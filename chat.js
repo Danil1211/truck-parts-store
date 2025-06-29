@@ -50,6 +50,13 @@ router.post('/typing', authMiddleware, async (req, res) => {
     name: fromAdmin ? 'Менеджер' : realName,
     fromAdmin: !!fromAdmin
   };
+  // онлайн-флаг обновляется
+  const user = await User.findById(userId);
+  if (user) {
+    user.isOnline = true;
+    user.lastOnlineAt = new Date();
+    await user.save();
+  }
   res.json({ ok: true });
 });
 
@@ -86,6 +93,7 @@ router.get('/admin', authMiddleware, async (req, res) => {
           ip: '$userInfo.ip',
           city: '$userInfo.city',
           isOnline: '$userInfo.isOnline',
+          lastOnlineAt: '$userInfo.lastOnlineAt',
           lastMessage: 1
         }
       },
@@ -144,6 +152,7 @@ router.get('/admin/user/:userId', authMiddleware, async (req, res) => {
       email: user.email || '',
       status: user.status || '',
       isOnline: !!user.isOnline,
+      lastOnlineAt: user.lastOnlineAt
     });
   } catch (err) {
     res.status(500).json({ error: 'Ошибка получения инфы' });
@@ -239,6 +248,8 @@ router.post(
       // При ответе сбрасываем статус
       user.status = "waiting";
       user.adminLastReadAt = new Date();
+      user.isOnline = true;
+      user.lastOnlineAt = new Date();
       await user.save();
 
       res.status(201).json(message);
@@ -267,7 +278,8 @@ router.get('/my', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (user) {
-      user.isOnline = true; // Отмечаем как онлайн при любом запросе
+      user.isOnline = true;
+      user.lastOnlineAt = new Date();
       await user.save();
     }
     const messages = await Message.find({ user: req.user.id }).sort({ createdAt: 1 });
@@ -297,8 +309,9 @@ router.post(
         // Проверяем на блокировку!
         if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
 
-        // Отмечаем онлайн
+        // Отмечаем онлайн + время
         user.isOnline = true;
+        user.lastOnlineAt = new Date();
         await user.save();
 
         const savedMessage = await Message.create({
@@ -337,7 +350,6 @@ router.post(
     try {
       let user = await User.findOne({ phone: req.body.phone });
       if (!user) {
-        // IP с первого обращения
         let ip = getRealIp(req);
         let city = "";
         try {
@@ -356,9 +368,11 @@ router.post(
           city,
           isBlocked: false,
           isOnline: true,
+          lastOnlineAt: new Date()
         });
       } else {
         user.isOnline = true;
+        user.lastOnlineAt = new Date();
         await user.save();
       }
 
@@ -382,6 +396,7 @@ router.post('/offline', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (user) {
       user.isOnline = false;
+      user.lastOnlineAt = new Date();
       await user.save();
     }
     res.json({ success: true });
@@ -417,7 +432,7 @@ router.patch('/status/:userId', authMiddleware, async (req, res) => {
   }
 });
 
-// --- Авто-переводим чаты в missed
+// --- Авто-переводим чаты в missed + оффлайн пользователей ---
 const TWO_MIN = 2 * 60 * 1000;
 async function updateMissedChats() {
   const now = Date.now();
@@ -432,13 +447,21 @@ async function updateMissedChats() {
         await user.save();
       }
     }
-    // ONLINE check: если юзер был онлайн более 70 сек назад — делаем оффлайн
-    if (user.isOnline && user.lastMessageAt && (now - user.lastMessageAt.getTime() > 70000)) {
+  }
+}
+// --- Автообновление isOnline ---
+const ONLINE_TIMEOUT = 2 * 60 * 1000;
+async function updateOnlineStatus() {
+  const now = Date.now();
+  const users = await User.find({ isOnline: true });
+  for (let user of users) {
+    if (user.lastOnlineAt && (now - user.lastOnlineAt.getTime() > ONLINE_TIMEOUT)) {
       user.isOnline = false;
       await user.save();
     }
   }
 }
 setInterval(updateMissedChats, 60 * 1000);
+setInterval(updateOnlineStatus, 60 * 1000);
 
 module.exports = router;

@@ -18,14 +18,12 @@ const UserSchema = new Schema({
   lastMessageAt: { type: Date, default: Date.now },
   adminLastReadAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
-  // --- Новые поля:
   ip: { type: String, default: '' },
   city: { type: String, default: '' },
   lastOnlineAt: { type: Date, default: Date.now },
-  isBlocked: { type: Boolean, default: false }, // если будешь делать блокировку
+  isOnline: { type: Boolean, default: false }, // <---- ДОЛЖНО БЫТЬ!
+  isBlocked: { type: Boolean, default: false }
 });
-
-// ... Остальные схемы не менялись
 
 const CategorySchema = new Schema({
   name: { type: String, required: true },
@@ -68,7 +66,6 @@ const MessageSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// ✅ Генерация JWT токена
 function generateToken(user) {
   return jwt.sign(
     {
