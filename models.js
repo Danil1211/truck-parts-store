@@ -9,20 +9,22 @@ const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
 // ✅ Модель пользователя
 const UserSchema = new Schema({
-  email: { type: String, required: true, unique: true },
+  email:    { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
-  name: { type: String, required: true },
-  phone: { type: String, required: true, unique: true },
-  isAdmin: { type: Boolean, default: false },
-  status: { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
+  name:     { type: String, required: true },           // <-- Оставь для совместимости
+  firstName:{ type: String },                            // <-- Добавь
+  lastName: { type: String },                            // <-- Добавь
+  phone:    { type: String, required: true, unique: true },
+  isAdmin:  { type: Boolean, default: false },
+  status:   { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
   lastMessageAt: { type: Date, default: Date.now },
   adminLastReadAt: { type: Date, default: null },
-  createdAt: { type: Date, default: Date.now },
-  ip: { type: String, default: '' },
-  city: { type: String, default: '' },
+  createdAt:{ type: Date, default: Date.now },
+  ip:       { type: String, default: '' },
+  city:     { type: String, default: '' },
   lastOnlineAt: { type: Date, default: Date.now },
-  isOnline: { type: Boolean, default: false }, // <---- ДОЛЖНО БЫТЬ!
-  isBlocked: { type: Boolean, default: false }
+  isOnline: { type: Boolean, default: false },
+  isBlocked:{ type: Boolean, default: false }
 });
 
 const CategorySchema = new Schema({
@@ -72,6 +74,8 @@ function generateToken(user) {
       id: user._id,
       email: user.email,
       name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       phone: user.phone,
       isAdmin: user.isAdmin
     },
