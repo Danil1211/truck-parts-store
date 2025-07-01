@@ -82,6 +82,8 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 
     const [orders, total] = await Promise.all([
       Order.find(filter)
+        .populate('items.product')     // <-- добавлено!
+        .populate('user')              // <-- добавлено!
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
