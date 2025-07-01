@@ -44,7 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= Новый маршрут для админки: список клиентов =======
+// ======= Новый маршрут для админки: список клиентов + поиск по id =======
 app.get('/api/clients/admin', async (req, res) => {
   try {
     // Авторизация (JWT из заголовка)
@@ -61,8 +61,16 @@ app.get('/api/clients/admin', async (req, res) => {
       return res.status(401).json({ error: 'Неверный токен' });
     }
 
+    // 👇 Теперь поддерживается id!
+    const { id, q = '', status = '', page = 1, limit = 20 } = req.query;
+
+    if (id) {
+      const client = await User.findById(id).select('-passwordHash');
+      if (!client) return res.status(404).json({ error: 'Клиент не найден' });
+      return res.json({ client });
+    }
+
     // --- Фильтры и поиск
-    const { q = '', status = '', page = 1, limit = 20 } = req.query;
     const filter = {};
     if (q) {
       filter.$or = [
@@ -82,7 +90,7 @@ app.get('/api/clients/admin', async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
-        .select('-passwordHash'), // ! пароль не отдаём
+        .select('-passwordHash'),
       User.countDocuments(filter),
     ]);
 
