@@ -20,8 +20,34 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
 
-// CORS
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+// ========== CORS (универсальный) ==========
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'https://truck-parts-frontend.onrender.com',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // CLI/postman или прямые запросы — разрешить всегда
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+}));
+
+// Для preflight запросов (OPTIONS)
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -57,7 +83,7 @@ app.get('/api/clients/admin', async (req, res) => {
         { email: { $regex: q, $options: 'i' } },
       ];
     }
-    if (status) filter.status = status;
+    if (status && status !== 'all') filter.status = status;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -77,7 +103,7 @@ app.get('/api/clients/admin', async (req, res) => {
   }
 });
 
-// API маршруты
+// --- Другие API маршруты
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
