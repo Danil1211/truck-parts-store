@@ -13,7 +13,6 @@ router.post('/', authMiddleware, async (req, res) => {
     let total = 0;
 
     for (const item of items) {
-      console.log('🔍 Проверка товара с ID:', item.product);
       const product = await Product.findById(item.product);
 
       if (!product) {
@@ -70,6 +69,31 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
 
     res.json(orders);
   } catch (err) {
+    res.status(500).json({ error: 'Ошибка загрузки заказов' });
+  }
+});
+
+// 👑 Получить заказы конкретного пользователя (по userId) с пагинацией
+router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { user, page = 1, limit = 5 } = req.query;
+    const filter = user ? { user } : {};
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Order.countDocuments(filter),
+    ]);
+    res.json({
+      orders,
+      pages: Math.ceil(total / limit),
+      total
+    });
+  } catch (err) {
+    console.error('Ошибка загрузки заказов по клиенту:', err);
     res.status(500).json({ error: 'Ошибка загрузки заказов' });
   }
 });
