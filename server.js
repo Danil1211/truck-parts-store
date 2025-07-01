@@ -74,16 +74,18 @@ app.get('/api/clients/admin', async (req, res) => {
     }
 
     // --- Фильтры и поиск
-    const { q = '', status = '', page = 1, limit = 20 } = req.query;
+    const { q = '', page = 1, limit = 20 } = req.query;
     const filter = {};
     if (q) {
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { phone: { $regex: q, $options: 'i' } },
-        { email: { $regex: q, $options: 'i' } },
+        { name:      { $regex: q, $options: 'i' } },
+        { firstName: { $regex: q, $options: 'i' } },
+        { lastName:  { $regex: q, $options: 'i' } },
+        { phone:     { $regex: q, $options: 'i' } },
+        { email:     { $regex: q, $options: 'i' } },
       ];
     }
-    if (status && status !== 'all') filter.status = status;
+    // ! Не фильтруем по status (иначе будут пустые)
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -92,10 +94,11 @@ app.get('/api/clients/admin', async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
-        .select('-password'), // не отдаём пароль!
+        .select('-password -passwordHash'), // не отдаём пароль/хеш!
       User.countDocuments(filter),
     ]);
 
+    console.log("FOUND CLIENTS:", clients.length, clients.map(u => u.name || u.firstName));
     res.json({ clients, total });
   } catch (err) {
     console.error('Ошибка получения клиентов:', err);
