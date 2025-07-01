@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const cron = require('node-cron');
+const jwt = require('jsonwebtoken');
 
 const authRoutes = require('./auth');
 const categoryRoutes = require('./categories');
@@ -28,6 +29,53 @@ app.use(express.urlencoded({ extended: true }));
 // Статика
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- Новый маршрут для админки: список клиентов
+app.get('/api/clients/admin', async (req, res) => {
+  try {
+    // Авторизация (JWT из заголовка)
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Нет авторизации' });
+    }
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+      if (!decoded.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
+    } catch {
+      return res.status(401).json({ error: 'Неверный токен' });
+    }
+
+    // --- Фильтры и поиск
+    const { q = '', status = '', page = 1, limit = 20 } = req.query;
+    const filter = {};
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { phone: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } },
+      ];
+    }
+    if (status) filter.status = status;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [clients, total] = await Promise.all([
+      User.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('-password'), // не отдаём пароль!
+      User.countDocuments(filter),
+    ]);
+
+    res.json({ clients, total });
+  } catch (err) {
+    console.error('Ошибка получения клиентов:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
 
 // API маршруты
 app.use('/api/auth', authRoutes);
