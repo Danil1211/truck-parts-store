@@ -25,10 +25,10 @@ router.post('/check', async (req, res) => {
   }
 });
 
-// Регистрация
+// Регистрация пользователя (теперь с фамилией и firstName!)
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, phone } = req.body;
+    const { email, password, name, phone, firstName, lastName } = req.body;
 
     const existingEmail = await User.findOne({ email });
     if (existingEmail) return res.status(400).json({ error: 'Email уже зарегистрирован' });
@@ -38,7 +38,15 @@ router.post('/register', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
 
-    const user = await User.create({ email, passwordHash: hash, name, phone });
+    // Сохраняем имя и фамилию — поддерживаем старый и новый фронт
+    const user = await User.create({
+      email,
+      passwordHash: hash,
+      name: firstName || name,
+      firstName: firstName || name,
+      lastName: lastName || '',
+      phone
+    });
 
     const token = generateToken(user);
     res.json({ token });
