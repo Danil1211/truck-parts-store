@@ -5,9 +5,10 @@ const Group = require('../models').Group;
 // Получить все группы
 router.get('/', async (req, res) => {
   try {
-    const groups = await Group.find().populate('children');
+    const groups = await Group.find().populate('children'); // Получаем все группы с детьми
     res.status(200).json(groups);
   } catch (error) {
+    console.error('Ошибка при получении групп:', error);
     res.status(500).json({ message: 'Ошибка при получении групп' });
   }
 });
@@ -40,6 +41,7 @@ router.post('/', async (req, res) => {
     }
     res.status(201).json(group);
   } catch (error) {
+    console.error('Ошибка при создании группы:', error);
     res.status(500).json({ message: 'Ошибка при создании группы' });
   }
 });
@@ -52,6 +54,7 @@ router.put('/:id', async (req, res) => {
     if (!group) return res.status(404).json({ message: 'Группа не найдена' });
     res.status(200).json(group);
   } catch (error) {
+    console.error('Ошибка при обновлении группы:', error);
     res.status(500).json({ message: 'Ошибка при обновлении группы' });
   }
 });
@@ -63,6 +66,7 @@ router.delete('/:id', async (req, res) => {
     if (!group) return res.status(404).json({ message: 'Группа не найдена' });
     res.status(200).json({ message: 'Группа удалена' });
   } catch (error) {
+    console.error('Ошибка при удалении группы:', error);
     res.status(500).json({ message: 'Ошибка при удалении группы' });
   }
 });

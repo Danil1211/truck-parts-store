@@ -12,7 +12,7 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const { Message, User } = require('./models');  // Убираем Group, так как он уже подключен в models
+const { Message, User, Group } = require('./models');  // Убираем Group, так как он уже подключен в models
 
 dotenv.config();
 
@@ -43,8 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= Модели и маршруты для групп =======
-// Удалили лишнюю повторную модель Group, так как она уже объявлена в models.js
+// ======= Маршруты для групп =======
 
 // Получить все группы
 app.get('/api/groups', async (req, res) => {
