@@ -68,6 +68,23 @@ const MessageSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Новая модель групп (группы и подгруппы)
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
+
+const groupSchema = new Schema({
+  name: { type: String, required: true },
+  img: { type: String, default: null },
+  count: { type: Number, default: 0 },
+  published: { type: Number, default: 0 },
+  hidden: { type: Number, default: 0 },
+  deleted: { type: Number, default: 0 },
+  children: [{ type: Schema.Types.ObjectId, ref: 'Group' }],
+  parentId: { type: Schema.Types.ObjectId, ref: 'Group', default: null },
+});
+
+module.exports = mongoose.model('Group', groupSchema);
+
 function generateToken(user) {
   return jwt.sign(
     {
@@ -90,5 +107,6 @@ module.exports = {
   Product: mongoose.model('Product', ProductSchema),
   Order: mongoose.model('Order', OrderSchema),
   Message: mongoose.model('Message', MessageSchema),
+  Group,
   generateToken
 };

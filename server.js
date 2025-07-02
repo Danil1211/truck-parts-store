@@ -12,7 +12,7 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const { Message, User } = require('./models');
+const { Message, User, Group } = require('./models');
 
 dotenv.config();
 
@@ -29,7 +29,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Разрешаем postman/cli (без origin) и нужные домены
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
@@ -44,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+<<<<<<< HEAD
 // ======= Модели и маршруты для групп =======
 const groupSchema = new mongoose.Schema({
   name: String,
@@ -59,17 +59,29 @@ const groupSchema = new mongoose.Schema({
 const Group = mongoose.model('Group', groupSchema);
 
 // Получение всех групп
+=======
+// ======= Новый маршрут для групп =======
+// Получить все группы
+>>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
 app.get('/api/groups', async (req, res) => {
   try {
     const groups = await Group.find().populate('children');
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении групп:', error);
+<<<<<<< HEAD
     res.status(500).json({ message: 'Ошибка при получении групп' });
   }
 });
 
 // Создание новой группы
+=======
+    res.status(500).json({ message: 'Ошибка сервера при получении групп' });
+  }
+});
+
+// Создать группу
+>>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
 app.post('/api/groups', async (req, res) => {
   const { name, img, parentId } = req.body;
 
@@ -85,7 +97,11 @@ app.post('/api/groups', async (req, res) => {
     hidden: 0,
     deleted: 0,
     children: [],
+<<<<<<< HEAD
     parentId: parentId || null
+=======
+    parentId: parentId || null,
+>>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
   });
 
   try {
@@ -98,7 +114,36 @@ app.post('/api/groups', async (req, res) => {
     res.status(201).json(group);
   } catch (error) {
     console.error('Ошибка при создании группы:', error);
+<<<<<<< HEAD
     res.status(500).json({ message: 'Ошибка при создании группы' });
+=======
+    res.status(500).json({ message: 'Ошибка сервера при создании группы' });
+  }
+});
+
+// Обновить группу
+app.put('/api/groups/:id', async (req, res) => {
+  const { name, img } = req.body;
+  try {
+    const group = await Group.findByIdAndUpdate(req.params.id, { name, img }, { new: true });
+    if (!group) return res.status(404).json({ message: 'Группа не найдена' });
+    res.status(200).json(group);
+  } catch (error) {
+    console.error('Ошибка при обновлении группы:', error);
+    res.status(500).json({ message: 'Ошибка сервера при обновлении группы' });
+  }
+});
+
+// Удалить группу
+app.delete('/api/groups/:id', async (req, res) => {
+  try {
+    const group = await Group.findByIdAndDelete(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Группа не найдена' });
+    res.status(200).json({ message: 'Группа удалена' });
+  } catch (error) {
+    console.error('Ошибка при удалении группы:', error);
+    res.status(500).json({ message: 'Ошибка сервера при удалении группы' });
+>>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
   }
 });
 
