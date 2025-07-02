@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const Group = require('../models').Group;
 
-// ============ Multer (uploads/groups) ============
 const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -18,10 +17,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ========== Получить все группы ==========
+// Получить все группы
 router.get('/', async (req, res) => {
   try {
-    const groups = await Group.find().populate('children');
+    // Только корневые группы с подгруппами вложенно
+    const groups = await Group.find({ parentId: null }).populate({
+      path: 'children',
+      populate: { path: 'children' } // если нужны вложенные подгруппы
+    });
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении групп:', error);
@@ -29,13 +32,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ========== Создать новую группу ==========
+// Создать новую группу
 router.post('/', upload.single('image'), async (req, res) => {
-  // ЛОГИРУЕМ всё, что прилетело
-  console.log('===== POST /api/groups =====');
-  console.log('BODY:', req.body);
-  console.log('FILE:', req.file);
-
   try {
     const { name, parentId, description } = req.body;
     let img = null;
@@ -55,7 +53,6 @@ router.post('/', upload.single('image'), async (req, res) => {
     });
 
     const group = await newGroup.save();
-
     // Добавить себя в children родителя
     if (parentId) {
       const parent = await Group.findById(parentId);
@@ -71,7 +68,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// ========== Обновить группу ==========
+// Обновить группу
 router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -86,7 +83,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// ========== Удалить группу ==========
+// Удалить группу
 router.delete('/:id', async (req, res) => {
   try {
     const group = await Group.findByIdAndDelete(req.params.id);
