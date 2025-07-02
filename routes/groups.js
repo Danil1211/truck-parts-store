@@ -21,9 +21,9 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    // Проверка типа файла
+    // Разрешаем только картинки
     if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Можно загружать только изображения'));
+      return cb(new Error('Можно загружать только изображения!'));
     }
     cb(null, true);
   }
@@ -68,6 +68,10 @@ router.put('/reorder', async (req, res) => {
 // === Создать новую группу ===
 router.post('/', upload.single('image'), async (req, res) => {
   try {
+    // Логирование файлов и тела запроса
+    console.log('BODY:', req.body);
+    console.log('FILE:', req.file);
+
     const { name, parentId, description } = req.body;
     let img = null;
     if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
@@ -116,7 +120,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     res.status(201).json(group);
   } catch (error) {
     console.error('Ошибка при создании группы:', error);
-    res.status(500).json({ message: 'Ошибка при создании группы' });
+    res.status(500).json({ message: 'Ошибка при создании группы', error: error.message });
   }
 });
 
@@ -134,7 +138,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
     res.status(200).json(group);
   } catch (error) {
     console.error('Ошибка при обновлении группы:', error);
-    res.status(500).json({ message: 'Ошибка при обновлении группы' });
+    res.status(500).json({ message: 'Ошибка при обновлении группы', error: error.message });
   }
 });
 
