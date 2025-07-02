@@ -10,13 +10,24 @@ const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
   }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    // Проверка типа файла
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Можно загружать только изображения'));
+    }
+    cb(null, true);
+  }
+});
 
 // === Получить все корневые группы с подгруппами, отсортированные по order ===
 router.get('/', async (req, res) => {
@@ -36,7 +47,6 @@ router.get('/', async (req, res) => {
 });
 
 // === Сохранить новый порядок групп (DRAG & DROP) ===
-// !!! ВАЖНО: этот роут ДОЛЖЕН быть ВЫШЕ, чем /:id !!!
 router.put('/reorder', async (req, res) => {
   try {
     const { orders } = req.body; // [{ _id, order }, ...]
@@ -61,16 +71,20 @@ router.post('/', upload.single('image'), async (req, res) => {
     const { name, parentId, description } = req.body;
     let img = null;
     if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
-    if (req.file) img = '/uploads/groups/' + req.file.filename;
+
+    if (req.file) {
+      img = '/uploads/groups/' + req.file.filename;
+      console.log('Загружен файл:', req.file.path, '->', img);
+    } else {
+      console.log('Файл не загружен!');
+    }
 
     // Автоматический порядок (order)
     let order = 0;
     if (parentId) {
-      // Для подгруппы — порядковый номер среди детей родителя
       const parent = await Group.findById(parentId).populate('children');
       order = parent && parent.children ? parent.children.length : 0;
     } else {
-      // Для корневой группы — порядковый номер среди корневых
       const count = await Group.countDocuments({ parentId: null });
       order = count;
     }
@@ -111,7 +125,10 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     const { name, description } = req.body;
     let update = { name, description };
-    if (req.file) update.img = '/uploads/groups/' + req.file.filename;
+    if (req.file) {
+      update.img = '/uploads/groups/' + req.file.filename;
+      console.log('Обновлён файл:', req.file.path, '->', update.img);
+    }
     const group = await Group.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!group) return res.status(404).json({ message: 'Группа не найдена' });
     res.status(200).json(group);
