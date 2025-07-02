@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoose = require('mongoose'); // Удалите второй импорт
+const { Schema } = mongoose;  // Оставьте этот, так как он должен быть в коде
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -11,9 +11,9 @@ const SECRET = process.env.JWT_SECRET || 'truck_secret';
 const UserSchema = new Schema({
   email:    { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
-  name:     { type: String, required: true },           // <-- Оставь для совместимости
-  firstName:{ type: String },                            // <-- Добавь
-  lastName: { type: String },                            // <-- Добавь
+  name:     { type: String, required: true },
+  firstName:{ type: String },
+  lastName: { type: String },
   phone:    { type: String, required: true, unique: true },
   isAdmin:  { type: Boolean, default: false },
   status:   { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
@@ -69,9 +69,7 @@ const MessageSchema = new Schema({
 });
 
 // Новая модель групп (группы и подгруппы)
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
-
+// Удалите повторный импорт mongoose
 const groupSchema = new Schema({
   name: { type: String, required: true },
   img: { type: String, default: null },
@@ -83,7 +81,7 @@ const groupSchema = new Schema({
   parentId: { type: Schema.Types.ObjectId, ref: 'Group', default: null },
 });
 
-module.exports = mongoose.model('Group', groupSchema);
+const Group = mongoose.model('Group', groupSchema);
 
 function generateToken(user) {
   return jwt.sign(
