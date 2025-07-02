@@ -12,7 +12,7 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const { Message, User, Group } = require('./models');
+const { Message, User } = require('./models');  // Убираем Group, так как он уже подключен в models
 
 dotenv.config();
 
@@ -44,18 +44,7 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ======= Модели и маршруты для групп =======
-const groupSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  img: { type: String, default: null },
-  count: { type: Number, default: 0 },
-  published: { type: Number, default: 0 },
-  hidden: { type: Number, default: 0 },
-  deleted: { type: Number, default: 0 },
-  children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group' }],
-  parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null },
-});
-
-const Group = mongoose.model('Group', groupSchema);
+// Удалили лишнюю повторную модель Group, так как она уже объявлена в models.js
 
 // Получить все группы
 app.get('/api/groups', async (req, res) => {
