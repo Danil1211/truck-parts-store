@@ -35,6 +35,26 @@ router.get('/', async (req, res) => {
   }
 });
 
+// === Сохранить новый порядок групп (DRAG & DROP) ===
+// !!! ВАЖНО: этот роут ДОЛЖЕН быть ВЫШЕ, чем /:id !!!
+router.put('/reorder', async (req, res) => {
+  try {
+    const { orders } = req.body; // [{ _id, order }, ...]
+    if (!Array.isArray(orders)) {
+      return res.status(400).json({ message: 'orders array required' });
+    }
+    await Promise.all(
+      orders.map(g =>
+        Group.findByIdAndUpdate(g._id, { order: g.order })
+      )
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка при обновлении порядка групп:', error);
+    res.status(500).json({ message: 'Ошибка при обновлении порядка групп' });
+  }
+});
+
 // === Создать новую группу ===
 router.post('/', upload.single('image'), async (req, res) => {
   try {
@@ -46,9 +66,11 @@ router.post('/', upload.single('image'), async (req, res) => {
     // Автоматический порядок (order)
     let order = 0;
     if (parentId) {
+      // Для подгруппы — порядковый номер среди детей родителя
       const parent = await Group.findById(parentId).populate('children');
       order = parent && parent.children ? parent.children.length : 0;
     } else {
+      // Для корневой группы — порядковый номер среди корневых
       const count = await Group.countDocuments({ parentId: null });
       order = count;
     }
@@ -108,26 +130,6 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Ошибка при удалении группы:', error);
     res.status(500).json({ message: 'Ошибка при удалении группы' });
-  }
-});
-
-// === Сохранить новый порядок групп (DRAG & DROP) ===
-router.put('/reorder', async (req, res) => {
-  try {
-    const { orders } = req.body; // [{ _id, order }, ...]
-    if (!Array.isArray(orders)) {
-      return res.status(400).json({ message: 'orders array required' });
-    }
-    // Сохраняем порядки
-    await Promise.all(
-      orders.map(g =>
-        Group.findByIdAndUpdate(g._id, { order: g.order })
-      )
-    );
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Ошибка при обновлении порядка групп:', error);
-    res.status(500).json({ message: 'Ошибка при обновлении порядка групп' });
   }
 });
 
