@@ -11,8 +11,8 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const groupsRoutes = require('./routes/groups'); // Группы — отдельный роутер!
-const { Message, User } = require('./models'); // Не импортируй Group здесь
+const groupsRoutes = require('./routes/groups'); // <-- Только импортируем роутер!
+const { Message, User } = require('./models');   // Group не импортировать сюда!
 
 dotenv.config();
 
@@ -50,7 +50,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/groups', groupsRoutes); // <---- только так!
+app.use('/api/groups', groupsRoutes); // <--- только через роутер!
 
 // ======= 404 =======
 app.use((req, res, next) => {
@@ -63,7 +63,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
-// ======= CRON (оставь как было, если нужно) =======
+// ======= CRON, запуск Mongo =======
 mongoose.connect(MONGO_URL)
   .then(() => {
     console.log('✅ MongoDB connected');

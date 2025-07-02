@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
 
 // ========== Создать новую группу ==========
 router.post('/', upload.single('image'), async (req, res) => {
-  // ЛОГГИРУЕМ всё, что прилетело
+  // ЛОГИРУЕМ всё, что прилетело
   console.log('===== POST /api/groups =====');
   console.log('BODY:', req.body);
   console.log('FILE:', req.file);
