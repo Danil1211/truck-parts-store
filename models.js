@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');  // Импортируем mongoose
+const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const dotenv = require('dotenv');
@@ -68,10 +68,11 @@ const MessageSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Новая модель групп (группы и подгруппы)
+// Группы/подгруппы
 const groupSchema = new Schema({
   name: { type: String, required: true },
   img: { type: String, default: null },
+  description: { type: String, default: '' },  // ОБЯЗАТЕЛЬНО!
   count: { type: Number, default: 0 },
   published: { type: Number, default: 0 },
   hidden: { type: Number, default: 0 },

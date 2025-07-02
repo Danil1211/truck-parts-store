@@ -31,12 +31,13 @@ router.get('/', async (req, res) => {
 
 // ========== Создать новую группу ==========
 router.post('/', upload.single('image'), async (req, res) => {
-  try {
-    // Для отладки
-    // console.log('req.body:', req.body);
-    // console.log('req.file:', req.file);
+  // ЛОГГИРУЕМ всё, что прилетело
+  console.log('===== POST /api/groups =====');
+  console.log('BODY:', req.body);
+  console.log('FILE:', req.file);
 
-    const { name, parentGroup, description } = req.body;
+  try {
+    const { name, parentId, description } = req.body;
     let img = null;
     if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
     if (req.file) img = '/uploads/groups/' + req.file.filename;
@@ -50,14 +51,14 @@ router.post('/', upload.single('image'), async (req, res) => {
       hidden: 0,
       deleted: 0,
       children: [],
-      parentId: parentGroup || null
+      parentId: parentId || null
     });
 
     const group = await newGroup.save();
 
     // Добавить себя в children родителя
-    if (parentGroup) {
-      const parent = await Group.findById(parentGroup);
+    if (parentId) {
+      const parent = await Group.findById(parentId);
       if (parent) {
         parent.children.push(group._id);
         await parent.save();
