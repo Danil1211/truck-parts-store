@@ -68,17 +68,18 @@ const MessageSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Группы/подгруппы
+// Группы/подгруппы (с полем order!)
 const groupSchema = new Schema({
   name: { type: String, required: true },
   img: { type: String, default: null },
-  description: { type: String, default: '' },  // ОБЯЗАТЕЛЬНО!
+  description: { type: String, default: '' },
   count: { type: Number, default: 0 },
   published: { type: Number, default: 0 },
   hidden: { type: Number, default: 0 },
   deleted: { type: Number, default: 0 },
   children: [{ type: Schema.Types.ObjectId, ref: 'Group' }],
   parentId: { type: Schema.Types.ObjectId, ref: 'Group', default: null },
+  order: { type: Number, default: 0 }    // ← для drag-n-drop порядка!
 });
 
 const Group = mongoose.model('Group', groupSchema);

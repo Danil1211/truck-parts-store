@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const Group = require('../models').Group;
 
+// Настроить папку для загрузки фото
 const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -17,14 +18,18 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Получить все группы
+// ==== Получить все группы (вложенно, отсортированные) ====
 router.get('/', async (req, res) => {
   try {
-    // Только корневые группы с подгруппами вложенно
-    const groups = await Group.find({ parentId: null }).populate({
-      path: 'children',
-      populate: { path: 'children' } // если нужны вложенные подгруппы
-    });
+    // Только корневые группы с подгруппами
+    let groups = await Group.find({ parentId: null })
+      .populate({
+        path: 'children',
+        options: { sort: { order: 1 } },
+        populate: { path: 'children', options: { sort: { order: 1 } } }
+      })
+      .sort({ order: 1 });
+
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении групп:', error);
@@ -32,13 +37,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Создать новую группу
+// ==== Создать новую группу ====
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { name, parentId, description } = req.body;
     let img = null;
     if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
     if (req.file) img = '/uploads/groups/' + req.file.filename;
+
+    // Узнаём максимальный order среди братьев
+    let maxOrder = 0;
+    if (parentId) {
+      const siblings = await Group.find({ parentId });
+      maxOrder = siblings.reduce((max, g) => g.order > max ? g.order : max, 0);
+    } else {
+      const roots = await Group.find({ parentId: null });
+      maxOrder = roots.reduce((max, g) => g.order > max ? g.order : max, 0);
+    }
 
     const newGroup = new Group({
       name,
@@ -49,7 +64,8 @@ router.post('/', upload.single('image'), async (req, res) => {
       hidden: 0,
       deleted: 0,
       children: [],
-      parentId: parentId || null
+      parentId: parentId || null,
+      order: maxOrder + 1
     });
 
     const group = await newGroup.save();
@@ -68,7 +84,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// Обновить группу
+// ==== Обновить группу ====
 router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -83,7 +99,25 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// Удалить группу
+// ==== Изменить порядок групп ====
+router.put('/reorder', async (req, res) => {
+  try {
+    // req.body: массив объектов [{ _id, order }]
+    const { orders } = req.body;
+    if (!Array.isArray(orders)) return res.status(400).json({ message: 'Некорректные данные' });
+
+    // Массово обновляем order для всех переданных групп
+    await Promise.all(
+      orders.map(item => Group.findByIdAndUpdate(item._id, { order: item.order }))
+    );
+    res.status(200).json({ message: 'Порядок групп обновлен' });
+  } catch (error) {
+    console.error('Ошибка при обновлении порядка:', error);
+    res.status(500).json({ message: 'Ошибка при обновлении порядка групп' });
+  }
+});
+
+// ==== Удалить группу ====
 router.delete('/:id', async (req, res) => {
   try {
     const group = await Group.findByIdAndDelete(req.params.id);
