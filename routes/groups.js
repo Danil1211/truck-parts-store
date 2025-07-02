@@ -46,11 +46,9 @@ router.post('/', upload.single('image'), async (req, res) => {
     // Автоматический порядок (order)
     let order = 0;
     if (parentId) {
-      // Для подгруппы — порядковый номер среди детей родителя
       const parent = await Group.findById(parentId).populate('children');
       order = parent && parent.children ? parent.children.length : 0;
     } else {
-      // Для корневой группы — порядковый номер среди корневых
       const count = await Group.countDocuments({ parentId: null });
       order = count;
     }
@@ -120,6 +118,7 @@ router.put('/reorder', async (req, res) => {
     if (!Array.isArray(orders)) {
       return res.status(400).json({ message: 'orders array required' });
     }
+    // Сохраняем порядки
     await Promise.all(
       orders.map(g =>
         Group.findByIdAndUpdate(g._id, { order: g.order })
