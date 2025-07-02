@@ -12,8 +12,8 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const groupsRoutes = require('./routes/groups'); // Новый роутер для групп!
-const { Message, User } = require('./models'); // Group импортируется ТОЛЬКО в router
+const groupsRoutes = require('./routes/groups'); // Новый роутер для групп
+const { Message, User } = require('./models');   // Только User и Message
 
 dotenv.config();
 
@@ -51,20 +51,18 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/groups', groupsRoutes); // <---- тут
+app.use('/api/groups', groupsRoutes); // !!! Это обязательно должно идти после app.use(express.urlencoded...)
 
-// ======= 404 =======
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
-// ======= Ошибка сервера =======
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
-// ...cron задачи и запуск базы (как у тебя было)
+// ======= Cron задачи и запуск базы =======
 mongoose.connect(MONGO_URL)
   .then(() => {
     console.log('✅ MongoDB connected');
