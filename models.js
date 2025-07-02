@@ -1,5 +1,5 @@
-const mongoose = require('mongoose'); // Удалите второй импорт
-const { Schema } = mongoose;  // Оставьте этот, так как он должен быть в коде
+const mongoose = require('mongoose');  // Импортируем mongoose
+const { Schema } = mongoose;
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -69,7 +69,6 @@ const MessageSchema = new Schema({
 });
 
 // Новая модель групп (группы и подгруппы)
-// Удалите повторный импорт mongoose
 const groupSchema = new Schema({
   name: { type: String, required: true },
   img: { type: String, default: null },
