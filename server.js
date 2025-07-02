@@ -12,7 +12,7 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const { Message, User } = require('./models');
+const { Message, User, Group } = require('./models');
 
 dotenv.config();
 
@@ -29,7 +29,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Разрешаем postman/cli (без origin) и нужные домены
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
@@ -44,60 +43,73 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= Новый маршрут для админки: список клиентов + поиск по id =======
-app.get('/api/clients/admin', async (req, res) => {
+// ======= Новый маршрут для групп =======
+// Получить все группы
+app.get('/api/groups', async (req, res) => {
   try {
-    // Авторизация (JWT из заголовка)
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Нет авторизации' });
+    const groups = await Group.find().populate('children');
+    res.status(200).json(groups);
+  } catch (error) {
+    console.error('Ошибка при получении групп:', error);
+    res.status(500).json({ message: 'Ошибка сервера при получении групп' });
+  }
+});
+
+// Создать группу
+app.post('/api/groups', async (req, res) => {
+  const { name, img, parentId } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ message: 'Название группы обязательно' });
+  }
+
+  const newGroup = new Group({
+    name,
+    img: img || null,
+    count: 0,
+    published: 0,
+    hidden: 0,
+    deleted: 0,
+    children: [],
+    parentId: parentId || null,
+  });
+
+  try {
+    const group = await newGroup.save();
+    if (parentId) {
+      const parentGroup = await Group.findById(parentId);
+      parentGroup.children.push(group._id);
+      await parentGroup.save();
     }
-    const token = authHeader.split(' ')[1];
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
-      if (!decoded.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
-    } catch {
-      return res.status(401).json({ error: 'Неверный токен' });
-    }
+    res.status(201).json(group);
+  } catch (error) {
+    console.error('Ошибка при создании группы:', error);
+    res.status(500).json({ message: 'Ошибка сервера при создании группы' });
+  }
+});
 
-    // 👇 Теперь поддерживается id!
-    const { id, q = '', status = '', page = 1, limit = 20 } = req.query;
+// Обновить группу
+app.put('/api/groups/:id', async (req, res) => {
+  const { name, img } = req.body;
+  try {
+    const group = await Group.findByIdAndUpdate(req.params.id, { name, img }, { new: true });
+    if (!group) return res.status(404).json({ message: 'Группа не найдена' });
+    res.status(200).json(group);
+  } catch (error) {
+    console.error('Ошибка при обновлении группы:', error);
+    res.status(500).json({ message: 'Ошибка сервера при обновлении группы' });
+  }
+});
 
-    if (id) {
-      const client = await User.findById(id).select('-passwordHash');
-      if (!client) return res.status(404).json({ error: 'Клиент не найден' });
-      return res.json({ client });
-    }
-
-    // --- Фильтры и поиск
-    const filter = {};
-    if (q) {
-      filter.$or = [
-        { firstName: { $regex: q, $options: 'i' } },
-        { lastName: { $regex: q, $options: 'i' } },
-        { name: { $regex: q, $options: 'i' } },
-        { phone: { $regex: q, $options: 'i' } },
-        { email: { $regex: q, $options: 'i' } },
-      ];
-    }
-    if (status && status !== 'all') filter.status = status;
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const [clients, total] = await Promise.all([
-      User.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .select('-passwordHash'),
-      User.countDocuments(filter),
-    ]);
-
-    res.json({ clients, total });
-  } catch (err) {
-    console.error('Ошибка получения клиентов:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
+// Удалить группу
+app.delete('/api/groups/:id', async (req, res) => {
+  try {
+    const group = await Group.findByIdAndDelete(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Группа не найдена' });
+    res.status(200).json({ message: 'Группа удалена' });
+  } catch (error) {
+    console.error('Ошибка при удалении группы:', error);
+    res.status(500).json({ message: 'Ошибка сервера при удалении группы' });
   }
 });
 
