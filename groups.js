@@ -1,11 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const Group = require('../models').Group;
+
+// Настроить папку для загрузки
+const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
+  }
+});
+const upload = multer({ storage });
 
 // Получить все группы
 router.get('/', async (req, res) => {
   try {
-    const groups = await Group.find().populate('children'); // Получаем все группы с детьми
+    const groups = await Group.find().populate('children');
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении групп:', error);
@@ -13,31 +29,34 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Создать новую группу
-router.post('/', async (req, res) => {
-  const { name, img, parentId } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ message: 'Название группы обязательно' });
-  }
-
-  const newGroup = new Group({
-    name,
-    img: img || null,
-    count: 0,
-    published: 0,
-    hidden: 0,
-    deleted: 0,
-    children: [],
-    parentId: parentId || null
-  });
-
+// Создать новую группу с фото
+router.post('/', upload.single('image'), async (req, res) => {
   try {
+    const { name, parentGroup, description } = req.body;
+    let img = null;
+    if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
+    if (req.file) img = '/uploads/groups/' + req.file.filename;
+
+    const newGroup = new Group({
+      name,
+      img,
+      description: description || '',
+      count: 0,
+      published: 0,
+      hidden: 0,
+      deleted: 0,
+      children: [],
+      parentId: parentGroup || null
+    });
+
     const group = await newGroup.save();
-    if (parentId) {
-      const parentGroup = await Group.findById(parentId);
-      parentGroup.children.push(group._id);
-      await parentGroup.save();
+    // Добавить ссылку на себя в children родителя
+    if (parentGroup) {
+      const parent = await Group.findById(parentGroup);
+      if (parent) {
+        parent.children.push(group._id);
+        await parent.save();
+      }
     }
     res.status(201).json(group);
   } catch (error) {
@@ -46,11 +65,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Обновить группу
-router.put('/:id', async (req, res) => {
-  const { name, img } = req.body;
+// Обновить группу (можно с новой фоткой)
+router.put('/:id', upload.single('image'), async (req, res) => {
   try {
-    const group = await Group.findByIdAndUpdate(req.params.id, { name, img }, { new: true });
+    const { name, description } = req.body;
+    let update = { name, description };
+    if (req.file) update.img = '/uploads/groups/' + req.file.filename;
+    const group = await Group.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!group) return res.status(404).json({ message: 'Группа не найдена' });
     res.status(200).json(group);
   } catch (error) {
