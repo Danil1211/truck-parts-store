@@ -43,45 +43,32 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-<<<<<<< HEAD
 // ======= Модели и маршруты для групп =======
 const groupSchema = new mongoose.Schema({
-  name: String,
-  img: String,
-  count: Number,
-  published: Number,
-  hidden: Number,
-  deleted: Number,
+  name: { type: String, required: true },
+  img: { type: String, default: null },
+  count: { type: Number, default: 0 },
+  published: { type: Number, default: 0 },
+  hidden: { type: Number, default: 0 },
+  deleted: { type: Number, default: 0 },
+  children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group' }],
   parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null },
-  children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group' }]
 });
 
 const Group = mongoose.model('Group', groupSchema);
 
-// Получение всех групп
-=======
-// ======= Новый маршрут для групп =======
 // Получить все группы
->>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
 app.get('/api/groups', async (req, res) => {
   try {
     const groups = await Group.find().populate('children');
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении групп:', error);
-<<<<<<< HEAD
     res.status(500).json({ message: 'Ошибка при получении групп' });
   }
 });
 
-// Создание новой группы
-=======
-    res.status(500).json({ message: 'Ошибка сервера при получении групп' });
-  }
-});
-
-// Создать группу
->>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
+// Создать новую группу
 app.post('/api/groups', async (req, res) => {
   const { name, img, parentId } = req.body;
 
@@ -97,11 +84,7 @@ app.post('/api/groups', async (req, res) => {
     hidden: 0,
     deleted: 0,
     children: [],
-<<<<<<< HEAD
-    parentId: parentId || null
-=======
     parentId: parentId || null,
->>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
   });
 
   try {
@@ -114,10 +97,7 @@ app.post('/api/groups', async (req, res) => {
     res.status(201).json(group);
   } catch (error) {
     console.error('Ошибка при создании группы:', error);
-<<<<<<< HEAD
     res.status(500).json({ message: 'Ошибка при создании группы' });
-=======
-    res.status(500).json({ message: 'Ошибка сервера при создании группы' });
   }
 });
 
@@ -130,7 +110,7 @@ app.put('/api/groups/:id', async (req, res) => {
     res.status(200).json(group);
   } catch (error) {
     console.error('Ошибка при обновлении группы:', error);
-    res.status(500).json({ message: 'Ошибка сервера при обновлении группы' });
+    res.status(500).json({ message: 'Ошибка при обновлении группы' });
   }
 });
 
@@ -142,8 +122,7 @@ app.delete('/api/groups/:id', async (req, res) => {
     res.status(200).json({ message: 'Группа удалена' });
   } catch (error) {
     console.error('Ошибка при удалении группы:', error);
-    res.status(500).json({ message: 'Ошибка сервера при удалении группы' });
->>>>>>> 7baa58d44ca2dfa36b197ec85b2f58e10d7cb04c
+    res.status(500).json({ message: 'Ошибка при удалении группы' });
   }
 });
 
