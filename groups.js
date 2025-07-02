@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const Group = require('../models').Group;
 
-// Настроить папку для загрузки
+// ============ Multer (uploads/groups) ============
 const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Получить все группы
+// ========== Получить все группы ==========
 router.get('/', async (req, res) => {
   try {
     const groups = await Group.find().populate('children');
@@ -29,9 +29,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Создать новую группу с фото
+// ========== Создать новую группу ==========
 router.post('/', upload.single('image'), async (req, res) => {
   try {
+    // Для отладки
+    // console.log('req.body:', req.body);
+    // console.log('req.file:', req.file);
+
     const { name, parentGroup, description } = req.body;
     let img = null;
     if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
@@ -50,7 +54,8 @@ router.post('/', upload.single('image'), async (req, res) => {
     });
 
     const group = await newGroup.save();
-    // Добавить ссылку на себя в children родителя
+
+    // Добавить себя в children родителя
     if (parentGroup) {
       const parent = await Group.findById(parentGroup);
       if (parent) {
@@ -65,7 +70,7 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// Обновить группу (можно с новой фоткой)
+// ========== Обновить группу ==========
 router.put('/:id', upload.single('image'), async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -80,7 +85,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// Удалить группу
+// ========== Удалить группу ==========
 router.delete('/:id', async (req, res) => {
   try {
     const group = await Group.findByIdAndDelete(req.params.id);

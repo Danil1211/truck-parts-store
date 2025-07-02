@@ -4,7 +4,6 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const cron = require('node-cron');
-const jwt = require('jsonwebtoken');
 
 const authRoutes = require('./auth');
 const categoryRoutes = require('./categories');
@@ -12,8 +11,8 @@ const productRoutes = require('./products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
-const groupsRoutes = require('./routes/groups'); // Новый роутер для групп
-const { Message, User } = require('./models');   // Только User и Message
+const groupsRoutes = require('./routes/groups'); // Группы — отдельный роутер!
+const { Message, User } = require('./models'); // Не импортируй Group здесь
 
 dotenv.config();
 
@@ -44,25 +43,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= Маршруты =======
+// ======= Основные роуты =======
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/groups', groupsRoutes); // !!! Это обязательно должно идти после app.use(express.urlencoded...)
+app.use('/api/groups', groupsRoutes); // <---- только так!
 
+// ======= 404 =======
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
+// ======= Ошибка сервера =======
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
-// ======= Cron задачи и запуск базы =======
+// ======= CRON (оставь как было, если нужно) =======
 mongoose.connect(MONGO_URL)
   .then(() => {
     console.log('✅ MongoDB connected');
