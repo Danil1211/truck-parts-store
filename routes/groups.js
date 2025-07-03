@@ -21,7 +21,6 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    // Разрешаем только картинки
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Можно загружать только изображения!'));
     }
@@ -68,10 +67,6 @@ router.put('/reorder', async (req, res) => {
 // === Создать новую группу ===
 router.post('/', upload.single('image'), async (req, res) => {
   try {
-    // Логирование файлов и тела запроса
-    console.log('BODY:', req.body);
-    console.log('FILE:', req.file);
-
     const { name, parentId, description } = req.body;
     let img = null;
     if (!name) return res.status(400).json({ message: 'Название группы обязательно' });
@@ -154,13 +149,14 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// === Получить группу по id === (ДОБАВЛЯЕМ ВНИЗУ!!!)
+// === Получить одну группу по ID ===
 router.get('/:id', async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ message: 'Группа не найдена' });
     res.status(200).json(group);
   } catch (error) {
+    console.error('Ошибка при получении группы:', error);
     res.status(500).json({ message: 'Ошибка при получении группы' });
   }
 });
