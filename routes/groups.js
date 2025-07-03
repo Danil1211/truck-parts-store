@@ -154,4 +154,15 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// === Получить группу по id === (ДОБАВЛЯЕМ ВНИЗУ!!!)
+router.get('/:id', async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Группа не найдена' });
+    res.status(200).json(group);
+  } catch (error) {
+    res.status(500).json({ message: 'Ошибка при получении группы' });
+  }
+});
+
 module.exports = router;
