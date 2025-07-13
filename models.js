@@ -33,13 +33,24 @@ const CategorySchema = new Schema({
 });
 
 const ProductSchema = new Schema({
-  name: { type: String, required: true },
-  description: String,
-  price: { type: Number, required: true },
-  image: String,
-  category: { type: Schema.Types.ObjectId, ref: 'Category' },
-  stock: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  name:        { type: String, required: true },
+  sku:         { type: String },                 // артикул
+  description: { type: String },
+  group:       { type: String, required: true }, // id группы (или ObjectId если хочешь)
+  hasProps:    { type: Boolean, default: false },
+  propsColor:  { type: String, default: '' },
+  queries:     { type: String, default: '' },
+  width:       { type: String, default: '' },
+  height:      { type: String, default: '' },
+  length:      { type: String, default: '' },
+  weight:      { type: String, default: '' },
+  price:       { type: Number, required: true },
+  unit:        { type: String, default: 'шт' },
+  availability:{ type: String, default: 'published' }, // published/order/out/draft/hidden
+  stock:       { type: String, default: '' },
+  images:      [String], // массив url фото!
+  createdAt:   { type: Date, default: Date.now },
+  updatedAt:   { type: Date, default: Date.now }
 });
 
 const OrderSchema = new Schema({

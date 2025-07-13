@@ -1,37 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const { Product } = require('./models');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
-// 🧪 Seed — временное добавление тестовых товаров
-router.post('/seed', async (req, res) => {
-  try {
-    await Product.deleteMany();
+// =========== Multer config ===========
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
-    const testProducts = await Product.insertMany([
-      {
-        name: 'Фара Volvo FH12',
-        price: 1800,
-        image: '/images/005-0110.png',
-        description: 'Левая фара Volvo FH12',
-        stock: 10
-      },
-      {
-        name: 'Амортизатор MAN TGA',
-        price: 950,
-        image: '/images/005-0110.png',
-        description: 'Амортизатор подвески для MAN',
-        stock: 20
-      }
-    ]);
-
-    res.json(testProducts);
-  } catch (err) {
-    console.error('Ошибка seed-запроса:', err);
-    res.status(500).json({ error: 'Ошибка при seed-запросе' });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext);
+    cb(null, base + '-' + Date.now() + ext);
   }
 });
+const upload = multer({ storage });
 
-// 🔍 Получить все товары
+// === Получить все товары ===
 router.get('/', async (req, res) => {
   try {
     const products = await Product.find();
@@ -41,7 +29,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 🔍 Получить один товар по ID
+// === Получить один товар по ID ===
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -51,5 +39,62 @@ router.get('/:id', async (req, res) => {
     res.status(400).json({ error: 'Неверный ID' });
   }
 });
+
+// === СОЗДАТЬ товар с загрузкой фото ===
+router.post(
+  '/',
+  upload.array('images', 10), // максимум 10 фото
+  async (req, res) => {
+    try {
+      const files = req.files || [];
+      const images = files.map(f => '/uploads/' + f.filename);
+
+      const {
+        name,
+        sku,
+        description,
+        group,
+        hasProps,
+        propsColor,
+        queries,
+        width,
+        height,
+        length,
+        weight,
+        price,
+        unit,
+        availability,
+        stock,
+      } = req.body;
+
+      const product = new Product({
+        name,
+        sku,
+        description,
+        group,
+        hasProps: hasProps === 'true',
+        propsColor,
+        queries,
+        width,
+        height,
+        length,
+        weight,
+        price,
+        unit,
+        availability,
+        stock,
+        images,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await product.save();
+      res.status(201).json(product);
+    } catch (err) {
+      console.error('Ошибка при создании товара:', err);
+      res.status(500).json({ error: 'Ошибка при создании товара' });
+    }
+  }
+);
 
 module.exports = router;
