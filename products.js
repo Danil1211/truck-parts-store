@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 // =========== Multer config ===========
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = path.join(__dirname, '../uploads/products');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
 const storage = multer.diskStorage({
@@ -47,7 +47,7 @@ router.post(
   async (req, res) => {
     try {
       const files = req.files || [];
-      const images = files.map(f => '/uploads/' + f.filename);
+      const images = files.map(f => '/uploads/products/' + f.filename);
 
       const {
         name,
