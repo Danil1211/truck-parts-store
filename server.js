@@ -7,7 +7,7 @@ const cron = require('node-cron');
 
 const authRoutes = require('./auth');
 const categoryRoutes = require('./categories');
-const productRoutes = require('./products');
+const productRoutes = require('./routes/products');
 const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
