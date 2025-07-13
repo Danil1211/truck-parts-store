@@ -19,7 +19,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ===================
 // GET /api/products — получить все товары
 router.get('/', async (req, res) => {
   try {
@@ -31,7 +30,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ===================
 // GET /api/products/:id — получить один товар
 router.get('/:id', async (req, res) => {
   try {
@@ -43,7 +41,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ===================
 // POST /api/products — добавить товар
 router.post(
   '/',
@@ -89,7 +86,6 @@ router.post(
   }
 );
 
-// ===================
 // PATCH /api/products/:id — обновить товар
 router.patch(
   '/:id',
@@ -110,11 +106,10 @@ router.patch(
         price, unit, availability, stock,
       } = req.body;
 
-      // Найдём старую версию для удаления файлов
       const oldProduct = await Product.findById(id);
       if (!oldProduct) return res.status(404).json({ error: 'Товар не найден' });
 
-      // Определяем, какие старые фото надо удалить
+      // Удаляем старые изображения, которые больше не нужны
       const toDelete = (oldProduct.images || []).filter(img => !serverImages.includes(img));
       toDelete.forEach(img => {
         const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
@@ -125,7 +120,6 @@ router.patch(
         }
       });
 
-      // Обновление товара
       const prod = await Product.findByIdAndUpdate(
         id,
         {
@@ -157,7 +151,6 @@ router.patch(
   }
 );
 
-// ===================
 // DELETE /api/products/:id — удалить товар по ID
 router.delete('/:id', async (req, res) => {
   try {
@@ -166,7 +159,6 @@ router.delete('/:id', async (req, res) => {
     if (!product) {
       return res.status(404).json({ error: 'Товар не найден' });
     }
-    // Удаляем файлы изображений товара
     if (product.images && product.images.length) {
       product.images.forEach(img => {
         const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
