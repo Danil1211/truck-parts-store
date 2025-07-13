@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 
 // =========== Multer config ===========
-// Создаём папку, если её нет
 const uploadsDir = path.join(__dirname, '../uploads/products');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
@@ -80,5 +79,32 @@ router.post(
     }
   }
 );
+
+// ===================
+// DELETE /api/products/:id — удалить товар по ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findByIdAndDelete(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Товар не найден' });
+    }
+    // Удаляем файлы изображений товара
+    if (product.images && product.images.length) {
+      product.images.forEach(img => {
+        const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, err => {
+            if (err) console.error('Ошибка удаления файла:', filePath, err);
+          });
+        }
+      });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Ошибка при удалении товара:', err);
+    res.status(500).json({ error: 'Ошибка при удалении' });
+  }
+});
 
 module.exports = router;
