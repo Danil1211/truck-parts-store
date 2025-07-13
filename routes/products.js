@@ -32,15 +32,24 @@ router.get('/', async (req, res) => {
 });
 
 // ===================
+// GET /api/products/:id — получить один товар
+router.get('/:id', async (req, res) => {
+  try {
+    const prod = await Product.findById(req.params.id);
+    if (!prod) return res.status(404).json({ error: "Товар не найден" });
+    res.json(prod);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка при получении товара' });
+  }
+});
+
+// ===================
 // POST /api/products — добавить товар
 router.post(
   '/',
   upload.array('images', 10),
   async (req, res) => {
     try {
-      console.log('FILES:', req.files);
-      console.log('BODY:', req.body);
-
       const files = req.files || [];
       const images = files.map(f => '/uploads/products/' + f.filename);
 
@@ -76,6 +85,74 @@ router.post(
     } catch (err) {
       console.error('Ошибка при создании товара:', err);
       res.status(500).json({ error: 'Ошибка при создании товара' });
+    }
+  }
+);
+
+// ===================
+// PATCH /api/products/:id — обновить товар
+router.patch(
+  '/:id',
+  upload.array('images', 10),
+  async (req, res) => {
+    try {
+      const id = req.params.id;
+      let serverImages = req.body.serverImages || [];
+      if (typeof serverImages === "string") serverImages = [serverImages];
+
+      const files = req.files || [];
+      const newImages = files.map(f => '/uploads/products/' + f.filename);
+      const images = [...serverImages, ...newImages];
+
+      const {
+        name, sku, description, group, hasProps, propsColor,
+        queries, width, height, length, weight,
+        price, unit, availability, stock,
+      } = req.body;
+
+      // Найдём старую версию для удаления файлов
+      const oldProduct = await Product.findById(id);
+      if (!oldProduct) return res.status(404).json({ error: 'Товар не найден' });
+
+      // Определяем, какие старые фото надо удалить
+      const toDelete = (oldProduct.images || []).filter(img => !serverImages.includes(img));
+      toDelete.forEach(img => {
+        const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, err => {
+            if (err) console.error('Ошибка удаления файла:', filePath, err);
+          });
+        }
+      });
+
+      // Обновление товара
+      const prod = await Product.findByIdAndUpdate(
+        id,
+        {
+          name,
+          sku,
+          description,
+          group,
+          hasProps: hasProps === 'true',
+          propsColor,
+          queries,
+          width,
+          height,
+          length,
+          weight,
+          price,
+          unit,
+          availability,
+          stock,
+          images,
+          updatedAt: new Date(),
+        },
+        { new: true }
+      );
+      res.json(prod);
+    } catch (err) {
+      console.error('Ошибка при обновлении товара:', err);
+      res.status(500).json({ error: "Ошибка при обновлении товара" });
     }
   }
 );
