@@ -59,15 +59,43 @@ router.get('/my', authMiddleware, async (req, res) => {
   }
 });
 
-// 👑 Получить все заказы (только для администратора)
+// 👑 Получить все заказы (только для администратора) c пагинацией, поиском и фильтрами
 router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const orders = await Order.find()
-      .populate('user', 'name email')
-      .populate('items.product')
-      .sort({ createdAt: -1 });
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      status = '',
+      sort = 'desc'
+    } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    res.json(orders);
+    // Сборка фильтра
+    let query = {};
+    if (status && status !== 'all') query.status = status;
+
+    // Поиск по номеру заказа, email, имени, телефону
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      query.$or = [
+        { _id: regex },
+        { 'user.email': regex },
+        { 'user.name': regex },
+        { 'user.phone': regex }
+      ];
+    }
+
+    // Получаем заказы + считаем total
+    const total = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+      .populate('user', 'name email phone')
+      .populate('items.product')
+      .sort({ createdAt: sort === 'asc' ? 1 : -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json({ orders, total });
   } catch (err) {
     res.status(500).json({ error: 'Ошибка загрузки заказов' });
   }
@@ -82,8 +110,8 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 
     const [orders, total] = await Promise.all([
       Order.find(filter)
-        .populate('items.product')     // <-- добавлено!
-        .populate('user')              // <-- добавлено!
+        .populate('items.product')
+        .populate('user')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -104,7 +132,7 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
   const { status } = req.body;
 
-  if (!['new', 'processing', 'shipped', 'done'].includes(status)) {
+  if (!['new', 'processing', 'done'].includes(status)) {
     return res.status(400).json({ error: 'Недопустимый статус' });
   }
 
