@@ -4,6 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const Group = require('../models').Group;
+const Product = require('../models').Product; // <-- добавили импорт Product
 
 // === Multer для загрузки изображений ===
 const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
@@ -158,6 +159,34 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Ошибка при получении группы:', error);
     res.status(500).json({ message: 'Ошибка при получении группы' });
+  }
+});
+
+// === Получить одну группу + подгруппы + товары ===
+router.get('/:id/full', async (req, res) => {
+  try {
+    const groupId = req.params.id;
+
+    // Найти группу
+    const group = await Group.findById(groupId);
+
+    // Найти подгруппы (где parentId == groupId)
+    const subgroups = await Group.find({ parentId: groupId });
+
+    let products = [];
+    // Если подгрупп нет, ищем товары этой группы
+    if (subgroups.length === 0) {
+      products = await Product.find({ group: groupId });
+    }
+
+    res.json({
+      group,
+      subgroups,
+      products,
+    });
+  } catch (err) {
+    console.error('Ошибка при получении полной инфы по группе:', err);
+    res.status(500).json({ error: 'Ошибка загрузки группы', details: err.message });
   }
 });
 
