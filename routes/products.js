@@ -30,10 +30,11 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/products/:id — получить один товар
+// GET /api/products/:id — получить один товар С ГРУППОЙ!
 router.get('/:id', async (req, res) => {
   try {
-    const prod = await Product.findById(req.params.id);
+    const prod = await Product.findById(req.params.id)
+      .populate('group'); // <= вот это главное изменение!
     if (!prod) return res.status(404).json({ error: "Товар не найден" });
     res.json(prod);
   } catch (err) {
