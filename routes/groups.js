@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 const Group = require('../models').Group;
 const Product = require('../models').Product;
 
@@ -50,22 +51,24 @@ router.get('/', async (req, res) => {
 router.get('/:id/full', async (req, res) => {
   try {
     const groupId = req.params.id;
-    const group = await Group.findById(groupId);
 
-    // Защита: если группы нет — явно вернуть ошибку и залогировать
+    // Проверка валидности ObjectId
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ error: 'Некорректный ID группы', groupId });
+    }
+
+    const group = await Group.findById(groupId);
     if (!group) {
       console.log('Группа не найдена:', groupId);
       return res.status(404).json({ error: 'Группа не найдена', groupId });
     }
 
     const subgroups = await Group.find({ parentId: groupId });
-
     let products = [];
     if (subgroups.length === 0) {
       products = await Product.find({ group: groupId });
     }
 
-    // Логи для дебага
     console.log('GROUP FULL:', {
       groupId,
       groupName: group.name,
@@ -84,5 +87,78 @@ router.get('/:id/full', async (req, res) => {
   }
 });
 
-// ... остальные маршруты выше и ниже, их не трогай
+// === Получить одну группу по id ===
+router.get('/:id', async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ error: 'Некорректный ID группы', groupId });
+    }
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Группа не найдена', groupId });
+    }
+    res.json(group);
+  } catch (err) {
+    console.error('Ошибка при получении группы:', err);
+    res.status(500).json({ error: 'Ошибка загрузки группы', details: err.message });
+  }
+});
+
+// === Создать новую группу ===
+router.post('/', upload.single('img'), async (req, res) => {
+  try {
+    const data = req.body;
+    if (req.file) {
+      data.img = `/uploads/groups/${req.file.filename}`;
+    }
+    const group = new Group(data);
+    await group.save();
+    res.status(201).json(group);
+  } catch (err) {
+    console.error('Ошибка при создании группы:', err);
+    res.status(500).json({ error: 'Ошибка создания группы', details: err.message });
+  }
+});
+
+// === Обновить группу ===
+router.put('/:id', upload.single('img'), async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ error: 'Некорректный ID группы', groupId });
+    }
+    const data = req.body;
+    if (req.file) {
+      data.img = `/uploads/groups/${req.file.filename}`;
+    }
+    const group = await Group.findByIdAndUpdate(groupId, data, { new: true });
+    if (!group) {
+      return res.status(404).json({ error: 'Группа не найдена', groupId });
+    }
+    res.json(group);
+  } catch (err) {
+    console.error('Ошибка при обновлении группы:', err);
+    res.status(500).json({ error: 'Ошибка обновления группы', details: err.message });
+  }
+});
+
+// === Удалить группу ===
+router.delete('/:id', async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ error: 'Некорректный ID группы', groupId });
+    }
+    const group = await Group.findByIdAndDelete(groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Группа не найдена', groupId });
+    }
+    res.json({ success: true, deleted: group });
+  } catch (err) {
+    console.error('Ошибка при удалении группы:', err);
+    res.status(500).json({ error: 'Ошибка удаления группы', details: err.message });
+  }
+});
+
 module.exports = router;
