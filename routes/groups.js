@@ -4,7 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const Group = require('../models').Group;
-const Product = require('../models').Product; // <-- добавили импорт Product
+const Product = require('../models').Product;
 
 // === Multer для загрузки изображений ===
 const uploadDir = path.join(__dirname, '..', 'uploads', 'groups');
@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
 // === Сохранить новый порядок групп (DRAG & DROP) ===
 router.put('/reorder', async (req, res) => {
   try {
-    const { orders } = req.body; // [{ _id, order }, ...]
+    const { orders } = req.body;
     if (!Array.isArray(orders)) {
       return res.status(400).json({ message: 'orders array required' });
     }
@@ -79,7 +79,6 @@ router.post('/', upload.single('image'), async (req, res) => {
       console.log('Файл не загружен!');
     }
 
-    // Автоматический порядок (order)
     let order = 0;
     if (parentId) {
       const parent = await Group.findById(parentId).populate('children');
@@ -104,7 +103,6 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     const group = await newGroup.save();
 
-    // Добавить себя в children родителя
     if (parentId) {
       const parent = await Group.findById(parentId);
       if (parent) {
@@ -166,15 +164,17 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/full', async (req, res) => {
   try {
     const groupId = req.params.id;
-
     // Найти группу
     const group = await Group.findById(groupId);
 
-    // Найти подгруппы (где parentId == groupId)
+    if (!group) {
+      return res.status(404).json({ error: 'Группа не найдена' });
+    }
+
+    // Найти подгруппы
     const subgroups = await Group.find({ parentId: groupId });
 
     let products = [];
-    // Если подгрупп нет, ищем товары этой группы
     if (subgroups.length === 0) {
       products = await Product.find({ group: groupId });
     }
