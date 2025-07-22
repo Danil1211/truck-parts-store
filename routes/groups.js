@@ -33,8 +33,7 @@ const upload = multer({
 // === Получить все группы (корневые и подгруппы), отсортированные по order ===
 router.get('/', async (req, res) => {
   try {
-    const groups = await Group.find({})
-      .sort({ order: 1 });
+    const groups = await Group.find({}).sort({ order: 1 });
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении групп:', error);
@@ -45,8 +44,7 @@ router.get('/', async (req, res) => {
 // === Получить только корневые группы ===
 router.get('/root', async (req, res) => {
   try {
-    const groups = await Group.find({ parentId: null })
-      .sort({ order: 1 });
+    const groups = await Group.find({ parentId: null }).sort({ order: 1 });
     res.status(200).json(groups);
   } catch (error) {
     console.error('Ошибка при получении корневых групп:', error);
@@ -54,7 +52,7 @@ router.get('/root', async (req, res) => {
   }
 });
 
-// === Получить одну группу + подгруппы + товары ===
+// === Получить одну группу + подгруппы + товары + ancestors ===
 router.get('/:id/full', async (req, res) => {
   try {
     const groupId = req.params.id;
@@ -65,12 +63,24 @@ router.get('/:id/full', async (req, res) => {
     if (!group) {
       return res.status(404).json({ error: 'Группа не найдена', groupId });
     }
+
+    // Формируем ancestors (все родители вверх по цепочке)
+    let ancestors = [];
+    let currentParentId = group.parentId;
+    while (currentParentId) {
+      const parent = await Group.findById(currentParentId);
+      if (!parent) break;
+      ancestors.unshift({ _id: parent._id, name: parent.name });
+      currentParentId = parent.parentId;
+    }
+
     const subgroups = await Group.find({ parentId: groupId });
     let products = [];
     if (subgroups.length === 0) {
       products = await Product.find({ group: groupId });
     }
-    res.json({ group, subgroups, products });
+
+    res.json({ group, subgroups, products, ancestors });
   } catch (err) {
     console.error('Ошибка при получении полной инфы по группе:', err);
     res.status(500).json({ error: 'Ошибка загрузки группы', details: err.message });
