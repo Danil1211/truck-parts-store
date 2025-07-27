@@ -5,7 +5,7 @@ const fetch = require('node-fetch');
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // замени на свой ключ
 
-// === Поиск города по подстроке — ФИКС ===
+// === Поиск города по подстроке с фильтрацией только городов ===
 router.post('/findCities', async (req, res) => {
   const { query } = req.body;
   if (!query || query.length < 2) return res.json({ data: [] });
@@ -25,11 +25,15 @@ router.post('/findCities', async (req, res) => {
       })
     });
     const data = await response.json();
-    // Собираем все города из всех групп (а не только первого элемента)
+
     let addresses = [];
     if (Array.isArray(data.data)) {
       data.data.forEach(group => {
-        if (Array.isArray(group.Addresses)) addresses = addresses.concat(group.Addresses);
+        if (Array.isArray(group.Addresses)) {
+          // Оставляем только объекты с SettlementTypeDescription === "город"
+          const filtered = group.Addresses.filter(addr => addr.SettlementTypeDescription === "город");
+          addresses = addresses.concat(filtered);
+        }
       });
     }
     res.json({ data: addresses });
