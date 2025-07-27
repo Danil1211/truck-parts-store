@@ -5,8 +5,11 @@ const fetch = require('node-fetch');
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // замени на свой ключ
 
-// Получение городов
-router.post('/getCities', async (req, res) => {
+// Поиск города по подстроке
+router.post('/findCities', async (req, res) => {
+  const { query } = req.body;
+  if (!query || query.length < 2) return res.json({ data: [] });
+
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
       method: 'POST',
@@ -14,20 +17,24 @@ router.post('/getCities', async (req, res) => {
       body: JSON.stringify({
         apiKey: NOVAPOSHTA_API_KEY,
         modelName: 'Address',
-        calledMethod: 'getCities',
-        methodProperties: {}
+        calledMethod: 'searchSettlements',
+        methodProperties: {
+          CityName: query,
+          Limit: 20
+        }
       })
     });
-
     const data = await response.json();
-    res.json(data);
+    res.json({
+      data: data.data?.[0]?.Addresses || []
+    });
   } catch (error) {
-    console.error('Ошибка при получении городов:', error);
+    console.error('Ошибка поиска городов:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Получение отделений по городу
+// Получение отделений по городу (cityRef)
 router.post('/getWarehouses', async (req, res) => {
   const { cityRef } = req.body;
   if (!cityRef) return res.status(400).json({ error: 'cityRef обязателен' });
@@ -43,7 +50,6 @@ router.post('/getWarehouses', async (req, res) => {
         methodProperties: { CityRef: cityRef }
       })
     });
-
     const data = await response.json();
     res.json(data);
   } catch (error) {
