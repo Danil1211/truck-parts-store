@@ -12,7 +12,7 @@ const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
 const groupsRoutes = require('./routes/groups');
-const novaposhtaProxy = require('./routes/novaposhtaProxy');  // <-- новый импорт
+const novaposhtaProxy = require('./routes/novaposhtaProxy');
 
 const { Message, User } = require('./models'); // Group импортируется только в router
 
@@ -23,18 +23,16 @@ const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
 
 // ====== CORS ======
+// --- Для DEV разрешаем любой origin, для PROD — только whitelist
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
   'https://truck-parts-frontend.onrender.com',
 ];
+const isDev = process.env.NODE_ENV !== 'production';
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: isDev ? '*' : allowedOrigins,
   credentials: true,
 }));
 
@@ -53,7 +51,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
-app.use('/api/novaposhta', novaposhtaProxy);  // <-- подключаем прокси для Новой Почты
+app.use('/api/novaposhta', novaposhtaProxy);
 
 // ======= 404 =======
 app.use((req, res, next) => {
