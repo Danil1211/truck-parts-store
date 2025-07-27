@@ -3,13 +3,12 @@ const router = express.Router();
 const fetch = require('node-fetch');
 
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // замени на свой ключ
+const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // Твой ключ
 
+// Поиск городов (просто возвращаем то, что пришло, чтобы гарантированно работало)
 router.post('/findCities', async (req, res) => {
   const { query } = req.body;
-  if (!query || query.length < 2) {
-    return res.json({ data: [] });
-  }
+  if (!query || query.length < 2) return res.json({ data: [] });
 
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
@@ -28,12 +27,8 @@ router.post('/findCities', async (req, res) => {
 
     const data = await response.json();
 
-    console.log('--- full response from NovaPoshta searchSettlements ---');
-    console.dir(data, { depth: null });
-    console.log('-------------------------------------------------------');
-
+    // Если есть массив групп, собираем все адреса из них
     let addresses = [];
-
     if (Array.isArray(data.data)) {
       data.data.forEach(group => {
         if (Array.isArray(group.Addresses)) {
@@ -42,19 +37,17 @@ router.post('/findCities', async (req, res) => {
       });
     }
 
-    // Возвращаем все адреса без фильтрации
-    return res.json({ data: addresses });
+    res.json({ data: addresses });
   } catch (error) {
     console.error('Ошибка поиска городов:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
+// Получение отделений
 router.post('/getWarehouses', async (req, res) => {
   const { cityRef } = req.body;
-  if (!cityRef) {
-    return res.status(400).json({ error: 'cityRef обязателен' });
-  }
+  if (!cityRef) return res.status(400).json({ error: 'cityRef обязателен' });
 
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
@@ -69,15 +62,10 @@ router.post('/getWarehouses', async (req, res) => {
     });
 
     const data = await response.json();
-
-    console.log('=== getWarehouses response ===');
-    console.dir(data, { depth: null });
-    console.log('==============================');
-
-    return res.json(data);
+    res.json(data);
   } catch (error) {
     console.error('Ошибка при получении отделений:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
