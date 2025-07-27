@@ -5,6 +5,11 @@ const fetch = require('node-fetch');
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // твой ключ
 
+// ==== DEBUG ROUTE ====
+router.get('/debug', (req, res) => {
+  res.json({ ok: true, ts: Date.now(), message: 'NovaPoshta proxy active!' });
+});
+
 // === Поиск городов (autocomplete) ===
 router.post('/findCities', async (req, res) => {
   const { query } = req.body;
