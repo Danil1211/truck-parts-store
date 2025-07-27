@@ -3,9 +3,9 @@ const router = express.Router();
 const fetch = require('node-fetch');
 
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // вставь свой ключ
+const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e';
 
-// === Поиск городов ===
+// === Поиск городов (autocomplete) ===
 router.post('/findCities', async (req, res) => {
   const { query } = req.body || {};
   if (!query || query.length < 2) return res.json({ data: [] });
@@ -23,7 +23,7 @@ router.post('/findCities', async (req, res) => {
     });
 
     const data = await response.json();
-
+    // Собираем все адреса из data.data[*].Addresses
     let addresses = [];
     if (Array.isArray(data.data)) {
       data.data.forEach(group => {
@@ -32,14 +32,14 @@ router.post('/findCities', async (req, res) => {
         }
       });
     }
-    return res.json({ data: addresses });
+    return res.json({ data: addresses }); // !!! именно тут массив городов !!!
   } catch (error) {
     console.error('[findCities] Ошибка:', error);
     return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// === Получить отделения по DeliveryCity (cityRef) ===
+// === Получить отделения по DeliveryCity ===
 router.post('/getWarehouses', async (req, res) => {
   const { cityRef } = req.body || {};
   if (!cityRef) return res.status(400).json({ error: 'cityRef обязателен' });
