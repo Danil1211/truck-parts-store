@@ -5,7 +5,6 @@ const fetch = require('node-fetch');
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // замени на свой ключ
 
-// === Поиск городов по подстроке, фильтрация только по городам ===
 router.post('/findCities', async (req, res) => {
   const { query } = req.body;
   if (!query || query.length < 2) {
@@ -29,23 +28,21 @@ router.post('/findCities', async (req, res) => {
 
     const data = await response.json();
 
-    // Проверим структуру data
-    // Должно быть data.data — массив групп, у каждой group.Addresses — массив адресов
+    console.log('--- full response from NovaPoshta searchSettlements ---');
+    console.dir(data, { depth: null });
+    console.log('-------------------------------------------------------');
+
     let addresses = [];
 
     if (Array.isArray(data.data)) {
       data.data.forEach(group => {
         if (Array.isArray(group.Addresses)) {
-          // Фильтруем по типу "город"
-          const filteredAddresses = group.Addresses.filter(addr =>
-            addr.SettlementTypeDescription && addr.SettlementTypeDescription.toLowerCase() === "город"
-          );
-          addresses = addresses.concat(filteredAddresses);
+          addresses = addresses.concat(group.Addresses);
         }
       });
     }
 
-    // Отправляем обратно отфильтрованный список городов
+    // Возвращаем все адреса без фильтрации
     return res.json({ data: addresses });
   } catch (error) {
     console.error('Ошибка поиска городов:', error);
@@ -53,7 +50,6 @@ router.post('/findCities', async (req, res) => {
   }
 });
 
-// === Получение отделений по городу ===
 router.post('/getWarehouses', async (req, res) => {
   const { cityRef } = req.body;
   if (!cityRef) {
@@ -74,7 +70,6 @@ router.post('/getWarehouses', async (req, res) => {
 
     const data = await response.json();
 
-    // Логируем ответ для отладки
     console.log('=== getWarehouses response ===');
     console.dir(data, { depth: null });
     console.log('==============================');
