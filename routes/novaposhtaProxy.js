@@ -3,9 +3,9 @@ const router = express.Router();
 const fetch = require('node-fetch');
 
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // твой ключ
+const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // твой API-ключ
 
-// === Поиск города по подстроке ===
+// === Поиск городов (autocomplete) ===
 router.post('/findCities', async (req, res) => {
   const { query } = req.body;
   if (!query || query.length < 2) return res.json({ data: [] });
@@ -40,9 +40,9 @@ router.post('/findCities', async (req, res) => {
   }
 });
 
-// === Получение Ref города для getWarehouses ===
+// === Получить Ref города для поиска отделений (по DeliveryCity) ===
 router.post('/findCityRef', async (req, res) => {
-  const { cityName, deliveryCity } = req.body;
+  const { deliveryCity } = req.body;
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
       method: 'POST',
@@ -51,25 +51,21 @@ router.post('/findCityRef', async (req, res) => {
         apiKey: NOVAPOSHTA_API_KEY,
         modelName: 'Address',
         calledMethod: 'getCities',
-        methodProperties: {
-          FindByString: cityName,
-        },
+        methodProperties: { Ref: deliveryCity }
       }),
     });
     const data = await response.json();
-    const match = (data.data || []).find(
-      city =>
-        (deliveryCity && city.DeliveryCity === deliveryCity) ||
-        (city.Description && city.Description.toLowerCase() === cityName.toLowerCase())
-    );
-    if (match) return res.json({ ref: match.Ref, description: match.Description });
+    if (data.data && data.data.length > 0) {
+      const match = data.data[0];
+      return res.json({ ref: match.Ref, description: match.Description });
+    }
     return res.status(404).json({ error: 'City not found in directory' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// === Получение отделений по Ref города ===
+// === Получить отделения по Ref города ===
 router.post('/getWarehouses', async (req, res) => {
   const { cityRef } = req.body;
   if (!cityRef) return res.status(400).json({ error: 'cityRef обязателен' });
