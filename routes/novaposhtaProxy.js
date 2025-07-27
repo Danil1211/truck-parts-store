@@ -5,10 +5,12 @@ const fetch = require('node-fetch');
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // замени на свой ключ
 
-// === Поиск города с фильтрацией только городов ===
+// === Поиск городов по подстроке, фильтрация только по городам ===
 router.post('/findCities', async (req, res) => {
   const { query } = req.body;
-  if (!query || query.length < 2) return res.json({ data: [] });
+  if (!query || query.length < 2) {
+    return res.json({ data: [] });
+  }
 
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
@@ -24,32 +26,39 @@ router.post('/findCities', async (req, res) => {
         }
       })
     });
+
     const data = await response.json();
 
+    // Проверим структуру data
+    // Должно быть data.data — массив групп, у каждой group.Addresses — массив адресов
     let addresses = [];
+
     if (Array.isArray(data.data)) {
       data.data.forEach(group => {
         if (Array.isArray(group.Addresses)) {
-          const filtered = group.Addresses.filter(addr => addr.SettlementTypeDescription === "город");
-          addresses = addresses.concat(filtered);
+          // Фильтруем по типу "город"
+          const filteredAddresses = group.Addresses.filter(addr =>
+            addr.SettlementTypeDescription && addr.SettlementTypeDescription.toLowerCase() === "город"
+          );
+          addresses = addresses.concat(filteredAddresses);
         }
       });
     }
-    res.json({ data: addresses });
+
+    // Отправляем обратно отфильтрованный список городов
+    return res.json({ data: addresses });
   } catch (error) {
     console.error('Ошибка поиска городов:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// === Получение отделений по городу с логированием ===
+// === Получение отделений по городу ===
 router.post('/getWarehouses', async (req, res) => {
-  // Для теста можно временно жестко задать город Киев
-  // const cityRef = '8d5a980d-391c-11dd-90d9-001a92567626'; // Киев
-
-  // ИЛИ используем cityRef из запроса
   const { cityRef } = req.body;
-  if (!cityRef) return res.status(400).json({ error: 'cityRef обязателен' });
+  if (!cityRef) {
+    return res.status(400).json({ error: 'cityRef обязателен' });
+  }
 
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
@@ -62,16 +71,18 @@ router.post('/getWarehouses', async (req, res) => {
         methodProperties: { CityRef: cityRef }
       })
     });
+
     const data = await response.json();
 
+    // Логируем ответ для отладки
     console.log('=== getWarehouses response ===');
     console.dir(data, { depth: null });
     console.log('==============================');
 
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     console.error('Ошибка при получении отделений:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
