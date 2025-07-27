@@ -3,7 +3,7 @@ const router = express.Router();
 const fetch = require('node-fetch');
 
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // твой API-ключ
+const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // твой ключ
 
 // === Поиск городов (autocomplete) ===
 router.post('/findCities', async (req, res) => {
@@ -40,9 +40,9 @@ router.post('/findCities', async (req, res) => {
   }
 });
 
-// === Получить Ref города для поиска отделений (по DeliveryCity) ===
+// === Получить Ref города для поиска отделений (по DeliveryCity И cityName) ===
 router.post('/findCityRef', async (req, res) => {
-  const { deliveryCity } = req.body;
+  const { deliveryCity, cityName } = req.body;
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
       method: 'POST',
@@ -51,14 +51,13 @@ router.post('/findCityRef', async (req, res) => {
         apiKey: NOVAPOSHTA_API_KEY,
         modelName: 'Address',
         calledMethod: 'getCities',
-        methodProperties: { Ref: deliveryCity }
+        methodProperties: { FindByString: cityName || "" }
       }),
     });
     const data = await response.json();
-    if (data.data && data.data.length > 0) {
-      const match = data.data[0];
-      return res.json({ ref: match.Ref, description: match.Description });
-    }
+    // ищем по DeliveryCity — это универсальный id для любого города!
+    const match = (data.data || []).find(city => city.DeliveryCity === deliveryCity);
+    if (match) return res.json({ ref: match.Ref, description: match.Description });
     return res.status(404).json({ error: 'City not found in directory' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
