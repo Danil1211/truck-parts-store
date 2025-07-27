@@ -12,6 +12,8 @@ const orderRoutes = require('./orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
 const groupsRoutes = require('./routes/groups');
+const novaposhtaProxy = require('./routes/novaposhtaProxy');  // <-- новый импорт
+
 const { Message, User } = require('./models'); // Group импортируется только в router
 
 dotenv.config();
@@ -51,6 +53,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
+app.use('/api/novaposhta', novaposhtaProxy);  // <-- подключаем прокси для Новой Почты
 
 // ======= 404 =======
 app.use((req, res, next) => {
