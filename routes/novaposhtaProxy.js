@@ -3,7 +3,7 @@ const router = express.Router();
 const fetch = require('node-fetch');
 
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // замени на свой ключ
+const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // свой ключ
 
 // === Поиск городов (autocomplete) ===
 router.post('/findCities', async (req, res) => {
@@ -23,7 +23,7 @@ router.post('/findCities', async (req, res) => {
     });
 
     const data = await response.json();
-
+    // Собираем массив всех Address
     let addresses = [];
     if (Array.isArray(data.data)) {
       data.data.forEach(group => {
@@ -32,7 +32,6 @@ router.post('/findCities', async (req, res) => {
         }
       });
     }
-
     return res.json({ data: addresses });
   } catch (error) {
     console.error('[findCities] Ошибка:', error);
@@ -58,7 +57,6 @@ router.post('/getWarehouses', async (req, res) => {
     });
 
     const data = await response.json();
-    // Возвращаем только массив отделений
     return res.json({ data: data.data || [] });
   } catch (error) {
     console.error('[getWarehouses] Ошибка:', error);
