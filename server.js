@@ -16,8 +16,18 @@ const allowedOrigins = [
 ];
 const isDev = process.env.NODE_ENV !== 'production';
 
+// --- КОРРЕКТНАЯ НАСТРОЙКА CORS ---
 app.use(cors({
-  origin: isDev ? '*' : allowedOrigins,
+  origin: function (origin, callback) {
+    // Если нет origin (например, curl/Postman) — разрешить
+    if (!origin) return callback(null, true);
+    // Разрешить из списка
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Разрешить всё в dev-режиме (можно временно)
+    if (isDev) return callback(null, true);
+    // Иначе запретить
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 
