@@ -1,3 +1,5 @@
+// backend/routes/novaposhtaProxy.js
+
 const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
@@ -5,10 +7,10 @@ const fetch = require('node-fetch');
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // твой ключ
 
-// === Получить отделения по DeliveryCity ===
-router.post('/getWarehouses', async (req, res) => {
-  const { cityRef } = req.body || {};
-  if (!cityRef) return res.status(400).json({ error: 'cityRef обязателен' });
+// === Поиск города по подстроке ===
+router.post('/findCities', async (req, res) => {
+  const { query } = req.body || {};
+  if (!query || query.length < 2) return res.json({ data: [] });
 
   try {
     const response = await fetch(NOVAPOSHTA_API_URL, {
@@ -17,18 +19,32 @@ router.post('/getWarehouses', async (req, res) => {
       body: JSON.stringify({
         apiKey: NOVAPOSHTA_API_KEY,
         modelName: 'Address',
-        calledMethod: 'getWarehouses',
-        methodProperties: { CityRef: cityRef }
+        calledMethod: 'searchSettlements',
+        methodProperties: {
+          CityName: query,
+          Limit: 20,
+        },
       }),
     });
-
     const data = await response.json();
-    // DEBUG! Смотри, что реально приходит:
-    // console.log(JSON.stringify(data, null, 2));
-    return res.json({ data: data.data || [] });
+
+    // Если это searchSettlements — города лежат тут:
+    let cityList = [];
+    if (Array.isArray(data.data) && data.data[0]?.Addresses) {
+      cityList = data.data[0].Addresses.map(addr => ({
+        ...addr,
+        Present: addr.Present,
+        Description: addr.MainDescription,
+        DeliveryCity: addr.DeliveryCity,
+        AreaDescription: addr.AreaDescription,
+        Ref: addr.DeliveryCity,
+      }));
+    }
+
+    res.json({ data: cityList });
   } catch (error) {
-    console.error('[getWarehouses] Ошибка:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    console.error('[findCities] Ошибка:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
