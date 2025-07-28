@@ -8,9 +8,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Подключение к БД
-require('./db')(); // если есть ./db.js
-
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
@@ -18,7 +15,7 @@ const allowedOrigins = [
 ];
 const isDev = process.env.NODE_ENV !== 'production';
 
-// --- КОРРЕКТНЫЙ CORS ---
+// --- CORS ---
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
@@ -32,35 +29,37 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Раздача статики (для картинок) ---
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// --- Подключение роутов ---
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/groups', require('./routes/groups'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/chat', require('./routes/chat'));
-app.use('/api/users', require('./routes/users'));
-// ... другие если есть
-
-// --- Прокси для Новая Почта ---
+// --- Новая Почта ---
 app.use('/api/novaposhta', require('./routes/novaposhtaProxy'));
 
-// --- Раздача frontend (если production) ---
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client', 'dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
-  });
-}
+// --- Подключаем роуты из /routes ---
+app.use('/api/groups', require('./routes/groups'));
+app.use('/api/products', require('./routes/products'));
 
-// --- 404 ---
+// --- Подключаем роуты из корня (внимание на пути!) ---
+app.use('/api/auth', require('./auth'));
+app.use('/api/categories', require('./categories'));
+app.use('/api/chat', require('./chat'));
+app.use('/api/orders', require('./orders'));
+app.use('/api/email', require('./email'));
+app.use('/api/upload', require('./upload'));
+// ...если есть еще — добавь тут!
+
+// --- Статика (картинки и т.п.) ---
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- Если нужен фронт в проде, раскомментируй:
+// if (process.env.NODE_ENV === 'production') {
+//   app.use(express.static(path.join(__dirname, 'client', 'dist')));
+//   app.get('*', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+//   });
+// }
+
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
-// --- 500 ---
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
