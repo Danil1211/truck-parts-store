@@ -8,7 +8,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// === CORS ===
+// Подключение к БД
+require('./db')(); // если есть ./db.js
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
@@ -16,16 +18,12 @@ const allowedOrigins = [
 ];
 const isDev = process.env.NODE_ENV !== 'production';
 
-// --- КОРРЕКТНАЯ НАСТРОЙКА CORS ---
+// --- КОРРЕКТНЫЙ CORS ---
 app.use(cors({
   origin: function (origin, callback) {
-    // Если нет origin (например, curl/Postman) — разрешить
     if (!origin) return callback(null, true);
-    // Разрешить из списка
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Разрешить всё в dev-режиме (можно временно)
     if (isDev) return callback(null, true);
-    // Иначе запретить
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -34,22 +32,40 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ==== Прокси для Новая Почта ====
-const novaposhtaProxy = require('./routes/novaposhtaProxy');
-app.use('/api/novaposhta', novaposhtaProxy);
+// --- Раздача статики (для картинок) ---
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= 404 =======
+// --- Подключение роутов ---
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/groups', require('./routes/groups'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/chat', require('./routes/chat'));
+app.use('/api/users', require('./routes/users'));
+// ... другие если есть
+
+// --- Прокси для Новая Почта ---
+app.use('/api/novaposhta', require('./routes/novaposhtaProxy'));
+
+// --- Раздача frontend (если production) ---
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client', 'dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  });
+}
+
+// --- 404 ---
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
-// ======= Ошибка сервера =======
+// --- 500 ---
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
-// ======= Запуск =======
 app.listen(PORT, () => {
   console.log(`🚀 Server started on port ${PORT}`);
 });
