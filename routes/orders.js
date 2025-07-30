@@ -95,7 +95,7 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
         { 'user.email': regex },
         { 'user.name': regex },
         { 'user.phone': regex },
-        // Добавь для поиска по контактам заказа:
+        // Для поиска по контактам заказа:
         { contactName: regex },
         { contactSurname: regex },
         { contactPhone: regex },
@@ -149,7 +149,7 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
   const { status } = req.body;
 
-  if (!['new', 'processing', 'done'].includes(status)) {
+  if (!['new', 'processing', 'done', 'cancelled'].includes(status)) {
     return res.status(400).json({ error: 'Недопустимый статус' });
   }
 
@@ -163,6 +163,30 @@ router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
     res.json({ message: 'Статус обновлён', order });
   } catch (err) {
     console.error('Ошибка обновления заказа:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// 🚩 Отмена заказа пользователем (только если статус "new")
+router.put('/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Заказ не найден' });
+
+    // Только свой заказ и только если он новый
+    if (order.user.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ error: 'Нет доступа к заказу' });
+    }
+    if (order.status !== 'new') {
+      return res.status(400).json({ error: 'Заказ уже обрабатывается или завершён' });
+    }
+    order.status = 'cancelled';
+    if (req.body.reason) order.cancelReason = req.body.reason; // <--- сохраняем причину отмены
+    await order.save();
+
+    res.json({ message: 'Заказ отменён', order });
+  } catch (err) {
+    console.error('Ошибка отмены заказа:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

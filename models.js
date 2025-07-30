@@ -64,7 +64,7 @@ const OrderSchema = new Schema({
   address: { type: String, required: true },
   novaPoshta: { type: String, required: true },
   paymentMethod: { type: String, required: true },
-  status: { type: String, enum: ['new', 'processing', 'shipped', 'done'], default: 'new' },
+  status: { type: String, enum: ['new', 'processing', 'shipped', 'done', 'cancelled'], default: 'new' },
   totalPrice: Number,
   createdAt: { type: Date, default: Date.now },
 
@@ -75,6 +75,9 @@ const OrderSchema = new Schema({
   contactEmail: { type: String },
   comment: { type: String },
   deliveryType: { type: String },
+
+  // Причина отмены заказа (если отменён)
+  cancelReason: { type: String, default: '' },
 });
 
 const MessageSchema = new Schema({
