@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const prod = await Product.findById(req.params.id)
-      .populate('group'); // <= вот это главное изменение!
+      .populate('group');
     if (!prod) return res.status(404).json({ error: "Товар не найден" });
     res.json(prod);
   } catch (err) {
@@ -175,6 +175,23 @@ router.delete('/:id', async (req, res) => {
     console.error('Ошибка при удалении товара:', err);
     res.status(500).json({ error: 'Ошибка при удалении' });
   }
+});
+
+// ==== ЗАГЛУШКИ для фронта ====
+
+// /api/products/showcase
+router.get('/showcase', (req, res) => {
+  res.json([]);
+});
+
+// /api/products/recommend
+router.get('/recommend', (req, res) => {
+  res.json([]);
+});
+
+// /api/products/recent
+router.get('/recent', (req, res) => {
+  res.json([]);
 });
 
 module.exports = router;

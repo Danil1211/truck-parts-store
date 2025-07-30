@@ -14,7 +14,9 @@ const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
 const groupsRoutes = require('./routes/groups');
 const novaposhtaProxy = require('./routes/novaposhtaProxy');
-const userRoutes = require('./routes/users'); // <--- добавил user роут
+const userRoutes = require('./routes/users');
+const blogRoutes = require('./routes/blog');      // <--- добавил blog
+const promosRoutes = require('./routes/promos');  // <--- добавил promos
 
 const { Message, User } = require('./models'); // Модели, если нужно (Group импортируется только в router)
 
@@ -31,10 +33,9 @@ const allowedOrigins = [
   'http://localhost:4173',
   'http://127.0.0.1:5173',
   'https://truck-parts-frontend.onrender.com',
-  'https://truck-parts-backend.onrender.com', // если нужно
+  'https://truck-parts-backend.onrender.com',
 ];
 
-// Используем массив origins и credentials:true (для авторизации)
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true); // Разрешить SSR/cron
@@ -63,7 +64,9 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/novaposhta', novaposhtaProxy);
-app.use('/api/users', userRoutes); // <--- подключил user роут
+app.use('/api/users', userRoutes);
+app.use('/api/blog', blogRoutes);         // <--- подключил blog
+app.use('/api/promos', promosRoutes);     // <--- подключил promos
 
 // ====== 404 ======
 app.use((req, res, next) => {
