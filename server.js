@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const cron = require('node-cron');
 
+// ===== Импорт роутов =====
 const authRoutes = require('./auth');
 const categoryRoutes = require('./categories');
 const productRoutes = require('./routes/products');
@@ -12,10 +13,11 @@ const orderRoutes = require('./routes/orders');
 const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
 const groupsRoutes = require('./routes/groups');
-const novaposhtaProxy = require('./routes/novaposhtaProxy');  // <-- новый импорт
+const novaposhtaProxy = require('./routes/novaposhtaProxy');
 
-const { Message, User } = require('./models'); // Group импортируется только в router
+const { Message, User } = require('./models'); // Модели, если нужно (Group импортируется только в router)
 
+// ===== .env переменные =====
 dotenv.config();
 
 const app = express();
@@ -26,6 +28,7 @@ const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
+  'http://127.0.0.1:5173',
   'https://truck-parts-frontend.onrender.com',
 ];
 
@@ -38,14 +41,15 @@ app.use(cors({
   credentials: true,
 }));
 
+// ====== Middlewares ======
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ======= Статика =======
+// ====== Статика ======
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= Основные роуты =======
+// ====== Роуты ======
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
@@ -53,20 +57,20 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
-app.use('/api/novaposhta', novaposhtaProxy);  // <-- подключаем прокси для Новой Почты
+app.use('/api/novaposhta', novaposhtaProxy);
 
-// ======= 404 =======
+// ====== 404 ======
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
-// ======= Ошибка сервера =======
+// ====== Глобальный обработчик ошибок ======
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
-// ======= CRON и запуск базы =======
+// ====== CRON и запуск базы ======
 mongoose.connect(MONGO_URL)
   .then(async () => {
     // Автоматически создать "Родительская группа", если её нет
