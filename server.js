@@ -14,7 +14,7 @@ const uploadRoutes = require('./upload');
 const chatRoutes = require('./chat');
 const groupsRoutes = require('./routes/groups');
 const novaposhtaProxy = require('./routes/novaposhtaProxy');
-const userRoutes = require('./routes/user'); // <--- добавил user роут
+const userRoutes = require('./routes/users'); // <--- добавил user роут
 
 const { Message, User } = require('./models'); // Модели, если нужно (Group импортируется только в router)
 
@@ -59,7 +59,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/novaposhta', novaposhtaProxy);
-app.use('/api/user', userRoutes); // <--- подключил user роут
+app.use('/api/users', userRoutes); // <--- подключил user роут
 
 // ====== 404 ======
 app.use((req, res, next) => {
