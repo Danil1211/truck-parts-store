@@ -34,9 +34,9 @@ const CategorySchema = new Schema({
 
 const ProductSchema = new Schema({
   name:        { type: String, required: true },
-  sku:         { type: String },                 // артикул
+  sku:         { type: String },
   description: { type: String },
-  group:       { type: String, required: true }, // id группы (или ObjectId если хочешь)
+  group:       { type: String, required: true },
   hasProps:    { type: Boolean, default: false },
   propsColor:  { type: String, default: '' },
   queries:     { type: String, default: '' },
@@ -46,9 +46,9 @@ const ProductSchema = new Schema({
   weight:      { type: String, default: '' },
   price:       { type: Number, required: true },
   unit:        { type: String, default: 'шт' },
-  availability:{ type: String, default: 'published' }, // published/order/out/draft/hidden
+  availability:{ type: String, default: 'published' },
   stock:       { type: String, default: '' },
-  images:      [String], // массив url фото!
+  images:      [String],
   createdAt:   { type: Date, default: Date.now },
   updatedAt:   { type: Date, default: Date.now }
 });
@@ -66,7 +66,15 @@ const OrderSchema = new Schema({
   paymentMethod: { type: String, required: true },
   status: { type: String, enum: ['new', 'processing', 'shipped', 'done'], default: 'new' },
   totalPrice: Number,
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
+  // Контактные данные:
+  contactName: { type: String },
+  contactSurname: { type: String },
+  contactPhone: { type: String },
+  contactEmail: { type: String },
+  comment: { type: String },
+  deliveryType: { type: String },
 });
 
 const MessageSchema = new Schema({
@@ -90,7 +98,7 @@ const groupSchema = new Schema({
   deleted: { type: Number, default: 0 },
   children: [{ type: Schema.Types.ObjectId, ref: 'Group' }],
   parentId: { type: Schema.Types.ObjectId, ref: 'Group', default: null },
-  order: { type: Number, default: 0 }    // ← для drag-n-drop порядка!
+  order: { type: Number, default: 0 }
 });
 
 const Group = mongoose.model('Group', groupSchema);

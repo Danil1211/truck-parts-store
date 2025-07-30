@@ -5,7 +5,11 @@ const { authMiddleware, adminMiddleware } = require('../protected');
 
 // 🔐 Создание нового заказа
 router.post('/', authMiddleware, async (req, res) => {
-  const { items, address, novaPoshta, paymentMethod } = req.body;
+  // Добавляем ВСЕ поля из фронта!
+  const {
+    items, address, novaPoshta, paymentMethod,
+    name, surname, phone, email, comment, deliveryType
+  } = req.body;
   const user = req.user;
 
   try {
@@ -35,6 +39,14 @@ router.post('/', authMiddleware, async (req, res) => {
       paymentMethod,
       totalPrice: total,
       status: 'new',
+
+      // --- Контактные и доп. данные ---
+      contactName: name,
+      contactSurname: surname,
+      contactPhone: phone,
+      contactEmail: email,
+      comment,
+      deliveryType,
     });
 
     await newOrder.save();
@@ -82,7 +94,12 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
         { _id: regex },
         { 'user.email': regex },
         { 'user.name': regex },
-        { 'user.phone': regex }
+        { 'user.phone': regex },
+        // Добавь для поиска по контактам заказа:
+        { contactName: regex },
+        { contactSurname: regex },
+        { contactPhone: regex },
+        { contactEmail: regex },
       ];
     }
 
