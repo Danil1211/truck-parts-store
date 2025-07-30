@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Order, Product } = require('../models');
-const { authMiddleware, adminMiddleware } = require('./protected');
+const { authMiddleware, adminMiddleware } = require('../protected');
 
 // 🔐 Создание нового заказа
 router.post('/', authMiddleware, async (req, res) => {
