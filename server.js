@@ -25,21 +25,25 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
 
-// ====== CORS ======
+// ====== CORS (УНИВЕРСАЛЬНО, ДЛЯ ЛОКАЛЬНОГО И ПРОДАКШН) ======
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
   'http://127.0.0.1:5173',
   'https://truck-parts-frontend.onrender.com',
+  'https://truck-parts-backend.onrender.com', // если нужно
 ];
 
+// Используем массив origins и credentials:true (для авторизации)
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // Разрешить SSR/cron
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // ====== Middlewares ======
