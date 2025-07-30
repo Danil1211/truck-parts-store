@@ -3,7 +3,20 @@ const router = express.Router();
 const { User } = require('../models');
 const { authMiddleware } = require('../protected');
 
-// PUT /api/users/me  (или /api/user/me)
+// GET /api/users/me
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-passwordHash');
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+    res.json({ user });
+  } catch (err) {
+    console.error('Ошибка получения профиля:', err);
+    res.status(500).json({ error: 'Ошибка получения профиля' });
+  }
+});
+
+// PUT /api/users/me
 router.put('/me', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
