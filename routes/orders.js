@@ -5,7 +5,6 @@ const { authMiddleware, adminMiddleware } = require('../protected');
 
 // 🔐 Создание нового заказа
 router.post('/', authMiddleware, async (req, res) => {
-  // Добавляем ВСЕ поля из фронта!
   const {
     items, address, novaPoshta, paymentMethod,
     name, surname, phone, email, comment, deliveryType
@@ -103,7 +102,6 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
       ];
     }
 
-    // Получаем заказы + считаем total
     const total = await Order.countDocuments(query);
     const orders = await Order.find(query)
       .populate('user', 'name email phone')
@@ -167,13 +165,32 @@ router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
-// 🚩 Отмена заказа пользователем (только если статус "new")
-router.put('/:id/cancel', authMiddleware, async (req, res) => {
+// 🚩 ОТМЕНА ЗАКАЗА АДМИНОМ (можно отменить любой заказ, добавить причину)
+router.put('/:id/cancel', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ error: 'Заказ не найден' });
 
-    // Только свой заказ и только если он новый
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: 'Заказ уже отменён' });
+    }
+    order.status = 'cancelled';
+    if (req.body.reason) order.cancelReason = req.body.reason;
+    await order.save();
+
+    res.json({ message: 'Заказ отменён', order });
+  } catch (err) {
+    console.error('Ошибка отмены заказа (админ):', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// 🚩 ОТМЕНА ЗАКАЗА ПОЛЬЗОВАТЕЛЕМ (только если статус "new" и только свой)
+router.put('/:id/cancel-my', authMiddleware, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Заказ не найден' });
+
     if (order.user.toString() !== req.user.id.toString()) {
       return res.status(403).json({ error: 'Нет доступа к заказу' });
     }
@@ -181,12 +198,12 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Заказ уже обрабатывается или завершён' });
     }
     order.status = 'cancelled';
-    if (req.body.reason) order.cancelReason = req.body.reason; // <--- сохраняем причину отмены
+    if (req.body.reason) order.cancelReason = req.body.reason;
     await order.save();
 
     res.json({ message: 'Заказ отменён', order });
   } catch (err) {
-    console.error('Ошибка отмены заказа:', err);
+    console.error('Ошибка отмены заказа (пользователь):', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
