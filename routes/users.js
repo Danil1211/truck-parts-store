@@ -4,6 +4,7 @@ const { User } = require('../models');
 const { authMiddleware } = require('../protected');
 const bcrypt = require('bcryptjs');
 
+// ====================
 // GET /api/users/me — получить свой профиль
 router.get('/me', authMiddleware, async (req, res) => {
   try {
@@ -16,35 +17,30 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+// ====================
 // PUT /api/users/me — изменить свой профиль
 router.put('/me', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { name, surname, phone, email } = req.body;
 
-    // Проверка на заполненность всех полей
     if (!name || !surname || !phone || !email)
       return res.status(400).json({ error: 'Заполните все поля' });
 
-    // Проверка формата телефона (UA +380)
     if (!/^\+380\d{9}$/.test(phone))
       return res.status(400).json({ error: 'Телефон должен быть в формате +380XXXXXXXXX' });
 
-    // Проверка формата email
     if (!/^[^@]+@[^@]+\.[^@]+$/.test(email))
       return res.status(400).json({ error: 'Некорректный email' });
 
-    // Проверка уникальности телефона
     const existingPhone = await User.findOne({ phone, _id: { $ne: userId } });
     if (existingPhone)
       return res.status(400).json({ error: 'Такой телефон уже зарегистрирован' });
 
-    // Проверка уникальности email
     const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
     if (existingEmail)
       return res.status(400).json({ error: 'Такой email уже зарегистрирован' });
 
-    // Обновление пользователя
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
 
@@ -63,10 +59,12 @@ router.put('/me', authMiddleware, async (req, res) => {
   }
 });
 
-// ====== СМЕНА ПАРОЛЯ ======
+// ====================
+// PUT /api/users/password — смена пароля
 router.put('/password', authMiddleware, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
+
     if (!oldPassword || !newPassword)
       return res.status(400).json({ error: 'Заполните все поля' });
 
