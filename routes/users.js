@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User } = require('../models');
 const { authMiddleware } = require('../protected');
+const bcrypt = require('bcryptjs');
 
 // GET /api/users/me — получить свой профиль
 router.get('/me', authMiddleware, async (req, res) => {
@@ -59,6 +60,33 @@ router.put('/me', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Ошибка обновления профиля:', err);
     res.status(500).json({ error: 'Ошибка обновления профиля' });
+  }
+});
+
+// ====== СМЕНА ПАРОЛЯ ======
+router.put('/password', authMiddleware, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword)
+      return res.status(400).json({ error: 'Заполните все поля' });
+
+    if (newPassword.length < 6)
+      return res.status(400).json({ error: 'Пароль должен быть не менее 6 символов' });
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch)
+      return res.status(400).json({ error: 'Старый пароль неверный' });
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Ошибка смены пароля:', err);
+    res.status(500).json({ error: 'Ошибка смены пароля' });
   }
 });
 
