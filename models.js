@@ -1,3 +1,5 @@
+// models.js
+
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -12,7 +14,7 @@ const UserSchema = new Schema({
   email:       { type: String, required: true, unique: true },
   passwordHash:{ type: String, required: true },
   name:        { type: String, required: true },
-  surname:     { type: String, required: true },  // <-- Заменили и сделали обязательным
+  surname:     { type: String, default: '' }, // <--- теперь не обязательное!
   phone:       { type: String, required: true, unique: true },
   isAdmin:     { type: Boolean, default: false },
   status:      { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
@@ -26,7 +28,6 @@ const UserSchema = new Schema({
   isBlocked:   { type: Boolean, default: false }
 });
 
-// Остальные схемы оставил без изменений
 const CategorySchema = new Schema({
   name: { type: String, required: true },
   slug: { type: String, required: true, unique: true }
@@ -112,7 +113,7 @@ function generateToken(user) {
       id: user._id,
       email: user.email,
       name: user.name,
-      surname: user.surname,  // <-- изменено здесь
+      surname: user.surname || '', // Гарантированно строка
       phone: user.phone,
       isAdmin: user.isAdmin
     },
