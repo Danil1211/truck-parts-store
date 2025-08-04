@@ -15,19 +15,19 @@ const chatRoutes = require('./chat');
 const groupsRoutes = require('./routes/groups');
 const novaposhtaProxy = require('./routes/novaposhtaProxy');
 const userRoutes = require('./routes/users');
-const blogRoutes = require('./routes/blog');      // <--- добавил blog
-const promosRoutes = require('./routes/promos');  // <--- добавил promos
+const blogRoutes = require('./routes/blog');
+const promosRoutes = require('./routes/promos');
+const siteSettingsRoutes = require('./routes/siteSettings'); // <--- Новый роут
 
-const { Message, User } = require('./models'); // Модели, если нужно (Group импортируется только в router)
+const { Message, User } = require('./models'); // Модели, если нужно
 
-// ===== .env переменные =====
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
 
-// ====== CORS (УНИВЕРСАЛЬНО, ДЛЯ ЛОКАЛЬНОГО И ПРОДАКШН) ======
+// ====== CORS ======
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:4173',
@@ -38,7 +38,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // Разрешить SSR/cron
+    if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
@@ -47,7 +47,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ====== Middlewares ======
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -65,8 +64,9 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/novaposhta', novaposhtaProxy);
 app.use('/api/users', userRoutes);
-app.use('/api/blog', blogRoutes);         // <--- подключил blog
-app.use('/api/promos', promosRoutes);     // <--- подключил promos
+app.use('/api/blog', blogRoutes);
+app.use('/api/promos', promosRoutes);
+app.use('/api/site-settings', siteSettingsRoutes); // <--- Новый роут
 
 // ====== 404 ======
 app.use((req, res, next) => {
@@ -82,7 +82,6 @@ app.use((err, req, res, next) => {
 // ====== CRON и запуск базы ======
 mongoose.connect(MONGO_URL)
   .then(async () => {
-    // Автоматически создать "Родительская группа", если её нет
     const { Group } = require('./models');
     let parent = await Group.findOne({ parentId: null, name: "Родительская группа" });
     if (!parent) {

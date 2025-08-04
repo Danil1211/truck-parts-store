@@ -14,7 +14,7 @@ const UserSchema = new Schema({
   email:       { type: String, required: true, unique: true },
   passwordHash:{ type: String, required: true },
   name:        { type: String, required: true },
-  surname:     { type: String, default: '' }, // <--- теперь не обязательное!
+  surname:     { type: String, default: '' },
   phone:       { type: String, required: true, unique: true },
   isAdmin:     { type: Boolean, default: false },
   status:      { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
@@ -91,6 +91,37 @@ const MessageSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// --- Сайт настройки (SiteSettings) ---
+const SiteSettingsSchema = new Schema({
+  siteName:      { type: String, default: "SteelTruck" },
+  contacts: {
+    phone:         { type: String, default: "" },
+    phoneComment:  { type: String, default: "" },
+    email:         { type: String, default: "" },
+    contactPerson: { type: String, default: "" },
+    address:       { type: String, default: "" },
+    phones:        { type: [ { phone: String, comment: String } ], default: [] },
+    chatSettings: {
+      startTime:    { type: String, default: "09:00" },
+      endTime:      { type: String, default: "18:00" },
+      workDays:     { type: [String], default: ["mon", "tue", "wed", "thu", "fri"] },
+      iconPosition: { type: String, default: "left" },
+      color:        { type: String, default: "#2291ff" },
+      greeting:     { type: String, default: "" }
+    }
+  },
+  display: {
+    categories: { type: Boolean, default: true },
+    showcase:   { type: Boolean, default: true },
+    promos:     { type: Boolean, default: true },
+    blog:       { type: Boolean, default: true },
+    chat:       { type: Boolean, default: true }
+  },
+  siteLogo:   { type: String, default: null },  // base64 либо путь до файла (если хранишь файл)
+  favicon:    { type: String, default: null },  // base64 либо путь до файла (если хранишь файл)
+  updatedAt:  { type: Date, default: Date.now }
+});
+
 // Группы/подгруппы (с полем order!)
 const groupSchema = new Schema({
   name: { type: String, required: true },
@@ -113,7 +144,7 @@ function generateToken(user) {
       id: user._id,
       email: user.email,
       name: user.name,
-      surname: user.surname || '', // Гарантированно строка
+      surname: user.surname || '',
       phone: user.phone,
       isAdmin: user.isAdmin
     },
@@ -129,5 +160,6 @@ module.exports = {
   Order: mongoose.model('Order', OrderSchema),
   Message: mongoose.model('Message', MessageSchema),
   Group,
+  SiteSettings: mongoose.model('SiteSettings', SiteSettingsSchema),
   generateToken
 };
