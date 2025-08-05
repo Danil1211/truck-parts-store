@@ -36,7 +36,6 @@ router.put('/', authMiddleware, async (req, res) => {
       'display',
       'siteLogo',
       'favicon',
-      'palette',    // <-- палитра цветов!
       'template',   // <-- текущий дизайн/шаблон!
     ];
     for (const key of allowed) {
