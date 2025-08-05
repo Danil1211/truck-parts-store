@@ -115,18 +115,21 @@ const SiteSettingsSchema = new Schema({
     showcase:   { type: Boolean, default: true },
     promos:     { type: Boolean, default: true },
     blog:       { type: Boolean, default: true },
-    chat:       { type: Boolean, default: true }
+    chat:       { type: Boolean, default: true },
+    palette: {
+      primary:       { type: String, default: "#2291ff" },
+      "primary-dark":{ type: String, default: "#1275be" },
+      accent:        { type: String, default: "#24c471" },
+      title:         { type: String, default: "#18446e" },
+      "title-alt":   { type: String, default: "#2175f3" },
+      secondary:     { type: String, default: "#f6fafd" },
+      bg:            { type: String, default: "#f7fafd" },
+      "bg-card":     { type: String, default: "#fff" }
+    },
+    template: { type: String, default: "standard" } // можно хранить тут, чтобы display.template читался всегда
   },
   siteLogo:   { type: String, default: null },  // base64 либо путь до файла (если хранишь файл)
   favicon:    { type: String, default: null },  // base64 либо путь до файла (если хранишь файл)
-
-  // === Палитра и шаблон ===
-  palette: {
-    primary: { type: String, default: "#2291ff" },
-    accent:  { type: String, default: "#24c471" },
-    bg:      { type: String, default: "#f7fafd" }
-  },
-  template:  { type: String, default: "standard" }, // ключ шаблона (например: "standard", "phoenix", и т.д.)
 
   updatedAt:  { type: Date, default: Date.now }
 });
