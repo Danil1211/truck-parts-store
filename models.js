@@ -119,6 +119,15 @@ const SiteSettingsSchema = new Schema({
   },
   siteLogo:   { type: String, default: null },  // base64 либо путь до файла (если хранишь файл)
   favicon:    { type: String, default: null },  // base64 либо путь до файла (если хранишь файл)
+
+  // === Палитра и шаблон ===
+  palette: {
+    primary: { type: String, default: "#2291ff" },
+    accent:  { type: String, default: "#24c471" },
+    bg:      { type: String, default: "#f7fafd" }
+  },
+  template:  { type: String, default: "standard" }, // ключ шаблона (например: "standard", "phoenix", и т.д.)
+
   updatedAt:  { type: Date, default: Date.now }
 });
 
