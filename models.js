@@ -117,15 +117,21 @@ const SiteSettingsSchema = new Schema({
     blog:       { type: Boolean, default: true },
     chat:       { type: Boolean, default: true },
     palette: {
-      primary:       { type: String, default: "#2291ff" },
-      "primary-dark":{ type: String, default: "#1275be" },
-      accent:        { type: String, default: "#3fd9d6" },
-      title:         { type: String, default: "#18446e" },
-      "title-alt":   { type: String, default: "#2175f3" },
-      secondary:     { type: String, default: "#f6fafd" },
-      bg:            { type: String, default: "#f7fafd" },
-      "bg-card":     { type: String, default: "#fff" },
-      // ДОБАВЬ СЮДА ВСЕ КАСТОМНЫЕ ПОЛЯ ДЛЯ ФУТЕРА:
+      // --- Основные цвета темы
+      primary:         { type: String, default: "#2291ff" },
+      "primary-dark":  { type: String, default: "#1275be" },
+      accent:          { type: String, default: "#3fd9d6" },
+      title:           { type: String, default: "#18446e" },
+      "title-alt":     { type: String, default: "#2175f3" },
+      secondary:       { type: String, default: "#f6fafd" },
+      bg:              { type: String, default: "#f7fafd" },
+      "bg-card":       { type: String, default: "#fff" },
+
+      // --- ДОБАВЛЕНЫ переменные для границ/блоков ---
+      "block-border":  { type: String, default: "#e3f1ff" },
+      "block-bg":      { type: String, default: "#f6fafd" },
+
+      // --- Footer ---
       "footer-bg":         { type: String, default: "#232a34" },
       "footer-title":      { type: String, default: "#fff" },
       "footer-text":       { type: String, default: "#ccd7e5" },
