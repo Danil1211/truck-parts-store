@@ -128,7 +128,7 @@ const SiteSettingsSchema = new Schema({
       "bg-card":       { type: String, default: "#fff" },
 
       // --- ДОБАВЛЕНЫ переменные для границ/блоков ---
-      "block-border":  { type: String, default: "#e3f1ff" },
+      "side-menu-border": { type: String, default: "#2291ff" },
       "block-bg":      { type: String, default: "#f6fafd" },
 
       // --- Footer ---
