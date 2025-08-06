@@ -11,7 +11,8 @@ router.get('/', async (req, res) => {
       settings = new SiteSettings();
       await settings.save();
     }
-    res.json(settings);
+    // ВАЖНО: Преобразуем в plain object!
+    res.json(settings.toObject());
   } catch (err) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
@@ -44,7 +45,9 @@ router.put('/', authMiddleware, async (req, res) => {
     settings.updatedAt = new Date();
 
     await settings.save();
-    res.json(settings);
+
+    // ВАЖНО: Преобразуем в plain object!
+    res.json(settings.toObject());
   } catch (err) {
     res.status(500).json({ error: 'Ошибка обновления настроек' });
   }
