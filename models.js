@@ -119,12 +119,22 @@ const SiteSettingsSchema = new Schema({
     palette: {
       primary:       { type: String, default: "#2291ff" },
       "primary-dark":{ type: String, default: "#1275be" },
-      accent:        { type: String, default: "#24c471" },
+      accent:        { type: String, default: "#3fd9d6" },
       title:         { type: String, default: "#18446e" },
       "title-alt":   { type: String, default: "#2175f3" },
       secondary:     { type: String, default: "#f6fafd" },
       bg:            { type: String, default: "#f7fafd" },
-      "bg-card":     { type: String, default: "#fff" }
+      "bg-card":     { type: String, default: "#fff" },
+      // ДОБАВЬ СЮДА ВСЕ КАСТОМНЫЕ ПОЛЯ ДЛЯ ФУТЕРА:
+      "footer-bg":         { type: String, default: "#232a34" },
+      "footer-title":      { type: String, default: "#fff" },
+      "footer-text":       { type: String, default: "#ccd7e5" },
+      "footer-link":       { type: String, default: "#ccd7e5" },
+      "footer-link-hover": { type: String, default: "#fff" },
+      "footer-dayoff":     { type: String, default: "#fa5b5b" },
+      "footer-bottom-bg":  { type: String, default: "#232a34" },
+      "footer-bottom":     { type: String, default: "#aeb6c3" },
+      "footer-border":     { type: String, default: "#303944" },
     },
     template: { type: String, default: "standard" } // можно хранить тут, чтобы display.template читался всегда
   },
