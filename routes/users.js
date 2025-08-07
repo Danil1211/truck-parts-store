@@ -4,8 +4,21 @@ const { User } = require('../models');
 const { authMiddleware } = require('../protected');
 const bcrypt = require('bcryptjs');
 
-// ====================
-// GET /api/users/me — получить свой профиль
+/**
+ * ХЕЛПЕР: проверка, что юзер — админ.
+ * Если у тебя роль хранится иначе — подправь условие.
+ */
+function requireAdmin(req, res, next) {
+  // варианты: req.user.role === 'admin'  ИЛИ  req.user.isAdmin === true
+  if (req.user && (req.user.role === 'admin' || req.user.isAdmin === true)) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Доступ запрещён' });
+}
+
+/* ====================
+ *  GET /api/users/me — профиль текущего
+ * ==================== */
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-passwordHash');
@@ -17,8 +30,9 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
-// ====================
-// PUT /api/users/me — изменить свой профиль
+/* ====================
+ *  PUT /api/users/me — обновить свой профиль
+ * ==================== */
 router.put('/me', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -59,8 +73,9 @@ router.put('/me', authMiddleware, async (req, res) => {
   }
 });
 
-// ====================
-// PUT /api/users/password — смена пароля
+/* ====================
+ *  PUT /api/users/password — смена пароля
+ * ==================== */
 router.put('/password', authMiddleware, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -85,6 +100,81 @@ router.put('/password', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Ошибка смены пароля:', err);
     res.status(500).json({ error: 'Ошибка смены пароля' });
+  }
+});
+
+/* =========================================================
+ *                А Д М И Н С К И Е   Р О У Т Ы
+ * ========================================================= */
+
+/**
+ * GET /api/users/admin
+ * Список клиентов (поиск, статус, пагинация)
+ * query: q, status=all|active|blocked, page=1, limit=20
+ */
+router.get('/admin', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const {
+      q = '',
+      status = 'all',
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = {};
+
+    // статус
+    if (status === 'active') filter.isBlocked = { $ne: true };
+    if (status === 'blocked') filter.isBlocked = true;
+
+    // поиск по имени / фамилии / email / телефону
+    if (q && String(q).trim().length > 0) {
+      const rx = new RegExp(String(q).trim(), 'i');
+      filter.$or = [
+        { name: rx },
+        { surname: rx },
+        { email: rx },
+        { phone: rx },
+      ];
+    }
+
+    const [clients, total] = await Promise.all([
+      User.find(filter)
+        .select('-passwordHash')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      User.countDocuments(filter),
+    ]);
+
+    res.json({ clients, total, page: pageNum, limit: limitNum });
+  } catch (err) {
+    console.error('Ошибка получения списка клиентов (admin):', err);
+    res.status(500).json({ error: 'Ошибка получения списка клиентов' });
+  }
+});
+
+/**
+ * GET /api/users/admin/:id
+ * Карточка клиента для админки
+ */
+router.get('/admin/:id', authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const client = await User.findById(req.params.id)
+      .select('-passwordHash')
+      .lean();
+
+    if (!client) return res.status(404).json({ error: 'Клиент не найден' });
+
+    res.json({ client });
+  } catch (err) {
+    console.error('Ошибка получения клиента (admin):', err);
+    res.status(500).json({ error: 'Ошибка получения клиента' });
   }
 });
 
