@@ -47,12 +47,9 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-app.use(cors(corsOptions));
+app.use(cors(corsOptions)); // Этого достаточно — preflight OPTIONS обработает сам
 
-// ✅ Express 5: catch-all для preflight ДОЛЖЕН начинаться со слэша
-app.options('/(.*)', cors(corsOptions));
-
-// Лимиты побольше (на случай base64 логотипов)
+// Лимиты на тело (для base64 логотипов и т.п.)
 app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
@@ -61,7 +58,7 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ====== Роуты ======
-// ВАЖНО: админские эндпоинты /api/products/admin и /api/products/groups
+// Важно: админские эндпоинты /api/products/admin и /api/products/groups
 // подключаем раньше обычных /api/products
 app.use('/api/products', productsAdminRoutes);
 
