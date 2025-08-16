@@ -49,10 +49,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// ✅ Express 5: catch-all только так
-app.options('(.*)', cors(corsOptions));
+// ✅ Express 5: catch-all для preflight ДОЛЖЕН начинаться со слэша
+app.options('/(.*)', cors(corsOptions));
 
-// Лимиты побольше (логотипы base64 и т.п.)
+// Лимиты побольше (на случай base64 логотипов)
 app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
@@ -61,8 +61,8 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ====== Роуты ======
-// Ставим админские товары ПЕРЕД обычными /api/products,
-// чтобы /api/products/admin и /api/products/groups не конфликтовали
+// ВАЖНО: админские эндпоинты /api/products/admin и /api/products/groups
+// подключаем раньше обычных /api/products
 app.use('/api/products', productsAdminRoutes);
 
 app.use('/api/auth', authRoutes);
