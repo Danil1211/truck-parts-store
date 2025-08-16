@@ -1,7 +1,44 @@
+// routes/site-settings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models');
 const { authMiddleware } = require('../protected');
+
+/**
+ * Нормализация пунктов меню.
+ * - title: string (trim)
+ * - url: string (trim, по-умолчанию "/")
+ * - visible: boolean (по-умолчанию true)
+ * - order: number (по индексу, если не задан)
+ */
+function sanitizeMenuArray(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map((it, idx) => {
+    const item = it || {};
+    const title = String(item.title ?? '').trim() || 'Без названия';
+    const url = String(item.url ?? '/').trim() || '/';
+    const visible = !!item.visible;
+    const order = Number.isFinite(Number(item.order)) ? Number(item.order) : idx;
+    return { title, url, visible, order };
+  }).sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Нормализация витрины.
+ * - enabled: boolean
+ * - productIds: массив строк/ObjectId (Mongoose сам кастанет)
+ */
+function sanitizeShowcase(showcase) {
+  const sc = showcase || {};
+  const enabled = !!sc.enabled;
+  let productIds = [];
+  if (Array.isArray(sc.productIds)) {
+    productIds = sc.productIds
+      .filter(Boolean)
+      .map(String);
+  }
+  return { enabled, productIds };
+}
 
 /**
  * Вспомогалка: формируем $set для deep-полей по присланному body.
@@ -47,6 +84,21 @@ function buildUpdateFromBody(body = {}) {
         $set[`display.palette.${k}`] = v;
       }
     }
+  }
+
+  // --- НОВОЕ: меню ---
+  if ('verticalMenu' in body) {
+    $set['verticalMenu'] = sanitizeMenuArray(body.verticalMenu);
+  }
+  if ('horizontalMenu' in body) {
+    $set['horizontalMenu'] = sanitizeMenuArray(body.horizontalMenu);
+  }
+
+  // --- НОВОЕ: витрина ---
+  if ('showcase' in body) {
+    const sc = sanitizeShowcase(body.showcase);
+    $set['showcase.enabled'] = sc.enabled;
+    $set['showcase.productIds'] = sc.productIds;
   }
 
   if ('siteLogo' in body) $set['siteLogo'] = body.siteLogo ?? null;

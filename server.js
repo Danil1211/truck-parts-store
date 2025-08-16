@@ -17,7 +17,8 @@ const novaposhtaProxy = require('./routes/novaposhtaProxy');
 const userRoutes = require('./routes/users');
 const blogRoutes = require('./routes/blog');
 const promosRoutes = require('./routes/promos');
-const siteSettingsRoutes = require('./routes/siteSettings'); // <--- Новый роут
+const siteSettingsRoutes = require('./routes/siteSettings');
+const productsAdminRoutes = require('./routes/products.admin'); // <--- новый роут
 
 const { Message, User } = require('./models'); // Модели, если нужно
 
@@ -66,7 +67,8 @@ app.use('/api/novaposhta', novaposhtaProxy);
 app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
-app.use('/api/site-settings', siteSettingsRoutes); // <--- Новый роут
+app.use('/api/site-settings', siteSettingsRoutes);
+app.use('/api/products', productsAdminRoutes); // <--- новый роут
 
 // ====== 404 ======
 app.use((req, res, next) => {
