@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -20,6 +19,7 @@ const blogRoutes = require('./routes/blog');
 const promosRoutes = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
 const productsAdminRoutes = require('./routes/products.admin');
+const productsShowcaseRoutes = require('./routes/products.showcase');
 
 dotenv.config();
 
@@ -47,9 +47,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-app.use(cors(corsOptions)); // Этого достаточно — preflight OPTIONS обработает сам
-
-// Лимиты на тело (для base64 логотипов и т.п.)
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
@@ -58,9 +56,9 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ====== Роуты ======
-// Важно: админские эндпоинты /api/products/admin и /api/products/groups
-// подключаем раньше обычных /api/products
+// Админские + витрина – ставим ДО обычных /api/products
 app.use('/api/products', productsAdminRoutes);
+app.use('/api/products', productsShowcaseRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);

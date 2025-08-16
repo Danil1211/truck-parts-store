@@ -1,16 +1,9 @@
-// routes/site-settings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models');
 const { authMiddleware } = require('../protected');
 
-/**
- * Нормализация пунктов меню.
- * - title: string (trim)
- * - url: string (trim, по-умолчанию "/")
- * - visible: boolean (по-умолчанию true)
- * - order: number (по индексу, если не задан)
- */
+/** Нормализация пунктов меню */
 function sanitizeMenuArray(arr) {
   if (!Array.isArray(arr)) return [];
   return arr.map((it, idx) => {
@@ -23,27 +16,18 @@ function sanitizeMenuArray(arr) {
   }).sort((a, b) => a.order - b.order);
 }
 
-/**
- * Нормализация витрины.
- * - enabled: boolean
- * - productIds: массив строк/ObjectId (Mongoose сам кастанет)
- */
+/** Нормализация витрины */
 function sanitizeShowcase(showcase) {
   const sc = showcase || {};
   const enabled = !!sc.enabled;
   let productIds = [];
   if (Array.isArray(sc.productIds)) {
-    productIds = sc.productIds
-      .filter(Boolean)
-      .map(String);
+    productIds = sc.productIds.filter(Boolean).map(String).slice(0, 24); // <= лимит здесь
   }
   return { enabled, productIds };
 }
 
-/**
- * Вспомогалка: формируем $set для deep-полей по присланному body.
- * Ничего лишнего не трогаем.
- */
+/** Построение $set для обновления */
 function buildUpdateFromBody(body = {}) {
   const $set = {};
 
@@ -70,15 +54,12 @@ function buildUpdateFromBody(body = {}) {
 
   if ('display' in body && body.display) {
     const d = body.display;
-
     if ('categories' in d) $set['display.categories'] = d.categories;
     if ('showcase'   in d) $set['display.showcase'] = d.showcase;
     if ('promos'     in d) $set['display.promos'] = d.promos;
     if ('blog'       in d) $set['display.blog'] = d.blog;
     if ('chat'       in d) $set['display.chat'] = d.chat;
     if ('template'   in d) $set['display.template'] = d.template;
-
-    // palette: копируем все ключи как есть (в т.ч. с дефисами)
     if (d.palette && typeof d.palette === 'object') {
       for (const [k, v] of Object.entries(d.palette)) {
         $set[`display.palette.${k}`] = v;
@@ -86,7 +67,7 @@ function buildUpdateFromBody(body = {}) {
     }
   }
 
-  // --- НОВОЕ: меню ---
+  // Меню
   if ('verticalMenu' in body) {
     $set['verticalMenu'] = sanitizeMenuArray(body.verticalMenu);
   }
@@ -94,67 +75,51 @@ function buildUpdateFromBody(body = {}) {
     $set['horizontalMenu'] = sanitizeMenuArray(body.horizontalMenu);
   }
 
-  // --- НОВОЕ: витрина ---
+  // Витрина (ограничиваем до 24)
   if ('showcase' in body) {
     const sc = sanitizeShowcase(body.showcase);
     $set['showcase.enabled'] = sc.enabled;
-    $set['showcase.productIds'] = sc.productIds;
+    $set['showcase.productIds'] = sc.productIds.slice(0, 24);
   }
 
   if ('siteLogo' in body) $set['siteLogo'] = body.siteLogo ?? null;
   if ('favicon'  in body) $set['favicon']  = body.favicon ?? null;
 
-  // системное поле обновления
   $set['updatedAt'] = new Date();
-
   return { $set };
 }
 
-/**
- * GET /api/site-settings
- * Возвращаем один документ. Если нет — создаём дефолт через upsert.
- */
+/** GET /api/site-settings */
 router.get('/', async (req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
-      {},                              // всегда один документ
-      { $setOnInsert: {} },            // если нет — создать с дефолтами из схемы
-      { new: true, upsert: true }      // вернуть новый/существующий
+      {},
+      { $setOnInsert: {} },
+      { new: true, upsert: true }
     ).lean();
-
-    return res.json(doc);
+    res.json(doc);
   } catch (err) {
     console.error('site-settings GET error:', err);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-/**
- * PUT /api/site-settings
- * Только для админа. Делаем атомарный upsert с частичным $set.
- */
+/** PUT /api/site-settings */
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    if (!req.user?.isAdmin) {
-      return res.status(403).json({ error: 'Доступ запрещён' });
-    }
+    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
 
     const update = buildUpdateFromBody(req.body);
-
     const updated = await SiteSettings.findOneAndUpdate(
-      {},                 // один документ в коллекции
+      {},
       update,
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true
-      }
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
-    return res.json(updated);
+    res.json(updated);
   } catch (err) {
     console.error('Ошибка обновления настроек:', err);
-    return res.status(500).json({ error: 'Ошибка обновления настроек' });
+    res.status(500).json({ error: 'Ошибка обновления настроек' });
   }
 });
 
