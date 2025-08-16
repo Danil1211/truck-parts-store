@@ -18,9 +18,9 @@ const userRoutes = require('./routes/users');
 const blogRoutes = require('./routes/blog');
 const promosRoutes = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
-const productsAdminRoutes = require('./routes/products.admin'); // админ-эндоинты для товаров
+const productsAdminRoutes = require('./routes/products.admin');
 
-const { Message, User } = require('./models');
+const { Message, User } = require('./models'); // Модели
 
 dotenv.config();
 
@@ -38,10 +38,10 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin(origin, callback) {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(null, false); // не роняем сервер ошибкой
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -49,22 +49,16 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options('/*', cors(corsOptions)); // <-- исправлено для Express 5
 
-// Preflight для всех
-app.options('*', cors(corsOptions));
-
-// Лимиты побольше (для base64-логотипов)
-app.use(express.json({ limit: '6mb' }));
-app.use(express.urlencoded({ extended: true, limit: '6mb' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ====== Статика ======
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ====== Роуты ======
-// админ-список/фильтр товаров (витрина) — ставим ПЕРЕД обычными /api/products
-app.use('/api/products', productsAdminRoutes);
-
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
@@ -77,16 +71,16 @@ app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
+app.use('/api/products', productsAdminRoutes);
 
 // ====== 404 ======
-app.use((req, res) => {
+app.use((req, res, next) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
 // ====== Глобальный обработчик ошибок ======
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
-  if (res.headersSent) return next(err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
