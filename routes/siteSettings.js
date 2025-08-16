@@ -1,37 +1,47 @@
+// routes/site-settings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models');
 const { authMiddleware } = require('../protected');
 
-/** Нормализация пунктов меню */
+/**
+ * Нормализация пунктов меню.
+ */
 function sanitizeMenuArray(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr.map((it, idx) => {
-    const item = it || {};
-    const title = String(item.title ?? '').trim() || 'Без названия';
-    const url = String(item.url ?? '/').trim() || '/';
-    const visible = !!item.visible;
-    const order = Number.isFinite(Number(item.order)) ? Number(item.order) : idx;
-    return { title, url, visible, order };
-  }).sort((a, b) => a.order - b.order);
+  return arr
+    .map((it, idx) => {
+      const item = it || {};
+      const title = String(item.title ?? '').trim() || 'Без названия';
+      const url = String(item.url ?? '/').trim() || '/';
+      const visible = !!item.visible;
+      const order = Number.isFinite(Number(item.order)) ? Number(item.order) : idx;
+      return { title, url, visible, order };
+    })
+    .sort((a, b) => a.order - b.order);
 }
 
-/** Нормализация витрины */
+/**
+ * Нормализация витрины.
+ */
 function sanitizeShowcase(showcase) {
   const sc = showcase || {};
   const enabled = !!sc.enabled;
   let productIds = [];
   if (Array.isArray(sc.productIds)) {
-    productIds = sc.productIds.filter(Boolean).map(String).slice(0, 24); // <= лимит здесь
+    productIds = sc.productIds.filter(Boolean).map(String).slice(0, 24);
   }
   return { enabled, productIds };
 }
 
-/** Построение $set для обновления */
+/**
+ * Собираем $set из body
+ */
 function buildUpdateFromBody(body = {}) {
   const $set = {};
 
   if ('siteName' in body) $set['siteName'] = body.siteName;
+
   if ('contacts' in body && body.contacts) {
     const c = body.contacts;
     if ('phone' in c)           $set['contacts.phone'] = c.phone;
@@ -60,6 +70,7 @@ function buildUpdateFromBody(body = {}) {
     if ('blog'       in d) $set['display.blog'] = d.blog;
     if ('chat'       in d) $set['display.chat'] = d.chat;
     if ('template'   in d) $set['display.template'] = d.template;
+
     if (d.palette && typeof d.palette === 'object') {
       for (const [k, v] of Object.entries(d.palette)) {
         $set[`display.palette.${k}`] = v;
@@ -68,18 +79,14 @@ function buildUpdateFromBody(body = {}) {
   }
 
   // Меню
-  if ('verticalMenu' in body) {
-    $set['verticalMenu'] = sanitizeMenuArray(body.verticalMenu);
-  }
-  if ('horizontalMenu' in body) {
-    $set['horizontalMenu'] = sanitizeMenuArray(body.horizontalMenu);
-  }
+  if ('verticalMenu' in body)   $set['verticalMenu'] = sanitizeMenuArray(body.verticalMenu);
+  if ('horizontalMenu' in body) $set['horizontalMenu'] = sanitizeMenuArray(body.horizontalMenu);
 
-  // Витрина (ограничиваем до 24)
+  // Витрина
   if ('showcase' in body) {
     const sc = sanitizeShowcase(body.showcase);
     $set['showcase.enabled'] = sc.enabled;
-    $set['showcase.productIds'] = sc.productIds.slice(0, 24);
+    $set['showcase.productIds'] = sc.productIds;
   }
 
   if ('siteLogo' in body) $set['siteLogo'] = body.siteLogo ?? null;
@@ -89,37 +96,45 @@ function buildUpdateFromBody(body = {}) {
   return { $set };
 }
 
-/** GET /api/site-settings */
-router.get('/', async (req, res) => {
+/**
+ * GET /api/site-settings
+ */
+router.get('/', async (_req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
       {},
       { $setOnInsert: {} },
       { new: true, upsert: true }
     ).lean();
-    res.json(doc);
+
+    return res.json(doc);
   } catch (err) {
     console.error('site-settings GET error:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-/** PUT /api/site-settings */
+/**
+ * PUT /api/site-settings
+ */
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: 'Доступ запрещён' });
+    }
 
     const update = buildUpdateFromBody(req.body);
+
     const updated = await SiteSettings.findOneAndUpdate(
       {},
       update,
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
-    res.json(updated);
+    return res.json(updated);
   } catch (err) {
     console.error('Ошибка обновления настроек:', err);
-    res.status(500).json({ error: 'Ошибка обновления настроек' });
+    return res.status(500).json({ error: 'Ошибка обновления настроек' });
   }
 });
 

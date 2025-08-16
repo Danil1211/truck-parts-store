@@ -1,5 +1,4 @@
 // models.js
-
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -37,7 +36,7 @@ const ProductSchema = new Schema({
   name:        { type: String, required: true },
   sku:         { type: String },
   description: { type: String },
-  group:       { type: String, required: true }, // оставляю как у тебя (строка)
+  group:       { type: String, required: true }, // у тебя группа хранится строкой
   hasProps:    { type: Boolean, default: false },
   propsColor:  { type: String, default: '' },
   queries:     { type: String, default: '' },
@@ -91,22 +90,6 @@ const MessageSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// ---- Доп. схемы для управления сайтом ----
-
-// Пункт меню (для вертикального и горизонтального меню)
-const MenuItemSchema = new Schema({
-  title:   { type: String, required: true, trim: true },
-  url:     { type: String, required: true, trim: true },
-  visible: { type: Boolean, default: true },
-  order:   { type: Number, default: 0 },
-}, { _id: true });
-
-// Настройки витрины (включение + выбранные товары)
-const ShowcaseSchema = new Schema({
-  enabled:    { type: Boolean, default: true },
-  productIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
-}, { _id: false });
-
 // --- Сайт настройки (SiteSettings) ---
 const SiteSettingsSchema = new Schema({
   siteName:      { type: String, default: "SteelTruck" },
@@ -143,7 +126,7 @@ const SiteSettingsSchema = new Schema({
       bg:              { type: String, default: "#f7fafd" },
       "bg-card":       { type: String, default: "#fff" },
 
-      // --- ДОБАВЛЕНЫ переменные для границ/блоков ---
+      // --- переменные для границ/блоков ---
       "side-menu-border": { type: String, default: "#2291ff" },
       "block-bg":      { type: String, default: "#f6fafd" },
 
@@ -156,16 +139,32 @@ const SiteSettingsSchema = new Schema({
       "footer-dayoff":     { type: String, default: "#fa5b5b" },
       "footer-bottom-bg":  { type: String, default: "#232a34" },
       "footer-bottom":     { type: String, default: "#aeb6c3" },
+      "footer-border":     { type: String, default: "#303944" },
     },
     template: { type: String, default: "standard" }
   },
   siteLogo:   { type: String, default: null },
   favicon:    { type: String, default: null },
 
-  // --- НОВОЕ: управление меню и витриной ---
-  verticalMenu:   { type: [MenuItemSchema], default: [] },
-  horizontalMenu: { type: [MenuItemSchema], default: [] },
-  showcase:       { type: ShowcaseSchema,   default: () => ({ enabled: true, productIds: [] }) },
+  // ===== НОВОЕ: меню сайта =====
+  verticalMenu: [{
+    title:   { type: String, default: "" },
+    url:     { type: String, default: "/" },
+    visible: { type: Boolean, default: true },
+    order:   { type: Number, default: 0 },
+  }],
+  horizontalMenu: [{
+    title:   { type: String, default: "" },
+    url:     { type: String, default: "/" },
+    visible: { type: Boolean, default: true },
+    order:   { type: Number, default: 0 },
+  }],
+
+  // ===== НОВОЕ: витрина =====
+  showcase: {
+    enabled:    { type: Boolean, default: true },
+    productIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }]
+  },
 
   updatedAt:  { type: Date, default: Date.now }
 });
