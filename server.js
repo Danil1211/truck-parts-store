@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -20,7 +21,7 @@ const promosRoutes = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
 const productsAdminRoutes = require('./routes/products.admin');
 
-const { Message, User } = require('./models'); // Модели
+const { Message, User } = require('./models');
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ const allowedOrigins = [
   'https://truck-parts-backend.onrender.com',
 ];
 
-const corsOptions = {
+app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
@@ -46,13 +47,14 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-};
+}));
 
-app.use(cors(corsOptions));
-app.options('/*', cors(corsOptions)); // <-- исправлено для Express 5
-
+// ====== Body ======
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ====== Preflight ======
+app.options('/*', cors()); // исправлено: вместо "*"
 
 // ====== Статика ======
 app.use('/images', express.static(path.join(__dirname, 'images')));
@@ -71,7 +73,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
-app.use('/api/products', productsAdminRoutes);
+app.use('/api/products-admin', productsAdminRoutes); // чтобы не конфликтовало с /api/products
 
 // ====== 404 ======
 app.use((req, res, next) => {
@@ -85,21 +87,20 @@ app.use((err, req, res, next) => {
 });
 
 // ====== CRON и запуск базы ======
-mongoose
-  .connect(MONGO_URL)
+mongoose.connect(MONGO_URL)
   .then(async () => {
     const { Group } = require('./models');
-    let parent = await Group.findOne({ parentId: null, name: 'Родительская группа' });
+    let parent = await Group.findOne({ parentId: null, name: "Родительская группа" });
     if (!parent) {
-      parent = new Group({ name: 'Родительская группа', parentId: null });
+      parent = new Group({ name: "Родительская группа", parentId: null });
       await parent.save();
-      console.log('✅ Родительская группа создана!');
+      console.log("✅ Родительская группа создана!");
     }
     app.listen(PORT, () => {
       console.log(`🚀 Server started on port ${PORT}`);
     });
   })
-  .catch((err) => {
+  .catch(err => {
     console.error('❌ DB connection error:', err);
     process.exit(1);
   });
