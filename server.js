@@ -21,8 +21,6 @@ const promosRoutes = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
 const productsAdminRoutes = require('./routes/products.admin');
 
-const { Message, User } = require('./models');
-
 dotenv.config();
 
 const app = express();
@@ -38,29 +36,35 @@ const allowedOrigins = [
   'https://truck-parts-backend.onrender.com',
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
+const corsOptions = {
+  origin(origin, cb) {
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
 
-// ====== Body ======
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions));
 
-// ====== Preflight ======
-app.options('/*', cors()); // исправлено: вместо "*"
+// ✅ Express 5: catch-all только так
+app.options('(.*)', cors(corsOptions));
+
+// Лимиты побольше (логотипы base64 и т.п.)
+app.use(express.json({ limit: '6mb' }));
+app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 
 // ====== Статика ======
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ====== Роуты ======
+// Ставим админские товары ПЕРЕД обычными /api/products,
+// чтобы /api/products/admin и /api/products/groups не конфликтовали
+app.use('/api/products', productsAdminRoutes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
@@ -73,34 +77,35 @@ app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
-app.use('/api/products-admin', productsAdminRoutes); // чтобы не конфликтовало с /api/products
 
 // ====== 404 ======
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Ресурс не найден' });
 });
 
 // ====== Глобальный обработчик ошибок ======
 app.use((err, req, res, next) => {
   console.error('Ошибка сервера:', err);
+  if (res.headersSent) return next(err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
 // ====== CRON и запуск базы ======
-mongoose.connect(MONGO_URL)
+mongoose
+  .connect(MONGO_URL)
   .then(async () => {
     const { Group } = require('./models');
-    let parent = await Group.findOne({ parentId: null, name: "Родительская группа" });
+    let parent = await Group.findOne({ parentId: null, name: 'Родительская группа' });
     if (!parent) {
-      parent = new Group({ name: "Родительская группа", parentId: null });
+      parent = new Group({ name: 'Родительская группа', parentId: null });
       await parent.save();
-      console.log("✅ Родительская группа создана!");
+      console.log('✅ Родительская группа создана!');
     }
     app.listen(PORT, () => {
       console.log(`🚀 Server started on port ${PORT}`);
     });
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('❌ DB connection error:', err);
     process.exit(1);
   });
