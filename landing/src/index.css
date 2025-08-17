@@ -2,70 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
-/* === Brand colors & app-level tokens === */
-:root {
-  /* primary: #3B82F6 (Tailwind's blue-500). Поменяй при желании. */
+/* ===== App tokens ===== */
+:root{
+  /* Tailwind rgb triplet (blue-500 по умолчанию). Можешь менять в рантайме. */
   --color-primary: 59 130 246;
-  --radius-xl: 1rem;
+  --radius-xl: 16px;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
+html{
+  -webkit-text-size-adjust:100%;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  scroll-behavior:smooth;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50;
+body{
+  @apply bg-slate-950 text-slate-50;             /* по умолчанию — тёмная космическая сцена */
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    Roboto, "Helvetica Neue", Arial, "Noto Sans",
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* базовые цвета на основе CSS-переменной */
-@layer base {
-  :root {
-    /* пример использования как цветовой токен */
-    --shadow-color: 15 23 42; /* slate-900 */
-  }
+/* ===== Base layer ===== */
+@layer base{
+  :root{ --shadow-color: 2 6 23; }
+  ::selection{ @apply bg-primary/30 text-white; }
 }
 
-/* Компактные готовые компоненты (опционально) */
+/* ===== Components ===== */
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5
-      font-semibold text-white bg-primary shadow-lg shadow-slate-900/5
-      hover:bg-primary/90 active:bg-primary/95 transition disabled:opacity-60
-      disabled:cursor-not-allowed;
+  .btn{
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3
+      font-semibold text-white bg-primary/90 shadow-xl shadow-slate-900/40
+      hover:bg-primary active:bg-primary/90 transition
+      focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30;
   }
 
-  .card {
-    @apply rounded-3xl border border-slate-200/80 dark:border-slate-800
-      bg-white/70 dark:bg-slate-900/60 backdrop-blur shadow-xl;
+  .btn-ghost{
+    @apply inline-flex items-center gap-2 rounded-2xl px-4 py-2.5
+      text-slate-100/80 hover:text-white border border-white/10
+      bg-white/5 hover:bg-white/10 transition
+      focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20;
   }
 
-  .input {
-    @apply w-full rounded-xl border border-slate-200 dark:border-slate-700
-      bg-white dark:bg-slate-900 px-3 py-2.5 text-[15px]
-      placeholder:text-slate-400 text-slate-900 dark:text-slate-50
-      outline-none ring-0 focus:border-primary focus:ring-4 focus:ring-primary/25
-      transition;
+  .card{
+    @apply rounded-3xl border border-white/10 bg-white/5
+      backdrop-blur-xl shadow-xl;
   }
 
-  .badge {
-    @apply inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5
+  .input{
+    @apply w-full rounded-2xl border border-white/10 bg-white/5
+      px-4 py-3 text-[15px] placeholder:text-slate-400/70
+      text-slate-50 outline-none ring-0
+      focus:border-primary/60 focus:ring-4 focus:ring-primary/25 transition;
+  }
+
+  .badge{
+    @apply inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5
       text-xs font-medium text-primary;
   }
 }
 
-/* Утилки, завязанные на токены */
-@layer utilities {
-  .bg-primary   { background-color: rgb(var(--color-primary) / 1); }
-  .text-primary { color: rgb(var(--color-primary) / 1); }
-  .ring-primary\/10 { --tw-ring-color: rgb(var(--color-primary) / .1); }
-  .ring-primary\/20 { --tw-ring-color: rgb(var(--color-primary) / .2); }
-  .ring-primary\/25 { --tw-ring-color: rgb(var(--color-primary) / .25); }
-  .bg-primary\/90 { background-color: rgb(var(--color-primary) / .9); }
+/* ===== Utilities ===== */
+@layer utilities{
+  .bg-primary{ background-color: rgb(var(--color-primary)/1); }
+  .bg-primary\/90{ background-color: rgb(var(--color-primary)/.9); }
+  .text-primary{ color: rgb(var(--color-primary)/1); }
+  .ring-primary\/20{ --tw-ring-color: rgb(var(--color-primary)/.2); }
+  .ring-primary\/30{ --tw-ring-color: rgb(var(--color-primary)/.3); }
+}
+
+/* ===== Decorative backdrops ===== */
+.aurora {
+  background: conic-gradient(
+      from 180deg at 50% 50%,
+      rgba(59,130,246,.18),
+      rgba(168,85,247,.16),
+      rgba(34,197,94,.14),
+      rgba(59,130,246,.18)
+    );
+  filter: blur(60px);
+  opacity: .8;
+}
+
+.noise {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background-image:
+     url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter>\
+<rect width='100%' height='100%' filter='url(%23n)' opacity='0.05'/></svg>");
+  mix-blend-mode: soft-light;
+  z-index: 0;
 }
