@@ -1,0 +1,183 @@
+/* Обёртка триггера и поповера должна быть position:relative */
+.cart-trigger-wrap { position: relative; display: inline-block; }
+
+/* Сам поповер */
+.cart-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 420px;
+  max-width: min(92vw, 420px);
+  background: var(--cart-popover-bg, #fff);
+  border: 1px solid var(--cart-popover-border, #e9eef6);
+  border-radius: 14px;
+  box-shadow: 0 14px 38px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+/* «Мостик» — чтобы курсор мог переехать с иконки в поповер, не теряя hover */
+.cart-popover::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  /* прозрачная зона ловит hover */
+}
+
+.cart-popover-header {
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cart-popover-title, #1a232b);
+  border-bottom: 1px solid var(--cart-popover-divider, #edf2f9);
+}
+
+.cart-popover-list {
+  max-height: 56vh;
+  overflow: auto;
+  padding: 8px 8px 0 8px;
+}
+
+.cart-popover-empty {
+  padding: 18px 14px 22px;
+  color: var(--cart-popover-meta, #6b7a90);
+  font-size: 14px;
+}
+
+.cart-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  transition: background .12s ease;
+}
+.cart-popover-row:hover { background: var(--cart-popover-row-hover, #f6f9ff); }
+
+.cart-popover-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border: 1px solid var(--cart-popover-img-border, #e8eef7);
+  border-radius: 8px;
+  background: var(--cart-popover-img-bg, #fff);
+  flex-shrink: 0;
+}
+
+.cart-popover-details { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cart-popover-title {
+  color: var(--cart-popover-link, #1363c7);
+  font-size: 14px;
+  text-decoration: none;
+  margin-bottom: 4px;
+  line-height: 1.25;
+  display: inline-block;
+}
+.cart-popover-title:hover { color: var(--cart-popover-link-hover, #0e4ea0); text-decoration: underline; }
+
+.cart-popover-qty-price {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; color: var(--cart-popover-meta, #6b7a90);
+}
+.cart-popover-row-sum { font-weight: 600; color: var(--cart-popover-sum, #1a232b); }
+
+.cart-popover-remove {
+  border: 0; background: transparent; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  color: var(--cart-popover-remove, #d23a3a);
+  font-size: 20px; line-height: 1; display: grid; place-items: center;
+}
+.cart-popover-remove:hover { background: rgba(210,58,58,0.08); }
+
+.cart-popover-total-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--cart-popover-divider, #edf2f9);
+}
+.cart-popover-total-label { color: var(--cart-popover-meta, #6b7a90); font-size: 14px; }
+.cart-popover-total { font-weight: 600; font-size: 16px; color: var(--cart-popover-sum, #1a232b); }
+
+.cart-popover-actions {
+  display: flex; gap: 10px; padding: 0 14px 14px;
+}
+
+.cart-popover-btn {
+  flex: 1 1 0;
+  height: 38px; line-height: 38px;
+  border-radius: 10px; border: 2px solid transparent;
+  background: var(--cart-popover-btn-bg, #f8fbff);
+  color: var(--cart-popover-btn-text, #174a8d);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: transform .12s, box-shadow .16s, background .16s, color .14s, border-color .14s;
+}
+.cart-popover-btn--outline {
+  background: #fff;
+  color: var(--cart-popover-btn-outline, #1760a0);
+  border-color: var(--cart-popover-btn-outline, #1760a0);
+}
+.cart-popover-btn--outline:hover {
+  background: var(--cart-popover-btn-outline-hover-bg, #eef6ff);
+  color: var(--cart-popover-btn-outline-hover, #0e4ea0);
+  border-color: var(--cart-popover-btn-outline-hover, #0e4ea0);
+}
+.cart-popover-btn--checkout {
+  background: var(--cart-popover-btn-checkout, #2291ff);
+  color: #fff;
+}
+.cart-popover-btn--checkout:hover {
+  background: var(--cart-popover-btn-checkout-hover, #177be0);
+}
+
+@media (max-width: 600px) {
+  .cart-popover { width: 95vw; right: 2.5vw; }
+}
+
+
+/* Привязываем поповер к цветам корзины */
+.cart-popover{
+  --cart-popover-link: var(--color-cart-link);
+  --cart-popover-link-hover: var(--color-cart-link-hover);
+
+  --cart-popover-btn-outline: var(--color-cart-btn-outline);
+  --cart-popover-btn-outline-hover: var(--color-cart-btn-outline-hover);
+  --cart-popover-btn-outline-hover-bg: var(--color-cart-section-bg); /* БЕЗ синего */
+
+  --cart-popover-btn-checkout: var(--color-cart-btn-order);
+  --cart-popover-btn-checkout-hover: var(--color-cart-btn-order-hover);
+}
+
+/* Кнопки — вернуть твой вид и убрать синий hover */
+.cart-popover-btn {
+  height: 38px;
+  border-radius: 10px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+}
+.cart-popover-btn:focus,
+.cart-popover-btn:active { outline: none; box-shadow: none; }
+
+/* Outline-кнопка = как на странице корзины */
+.cart-popover-btn--outline{
+  background: var(--color-cart-section-bg) !important;
+  color: var(--color-cart-btn-outline) !important;
+  border-color: var(--color-cart-btn-outline) !important;
+}
+.cart-popover-btn--outline:hover{
+  background: var(--color-cart-section-bg) !important; /* без синего фона */
+  color: var(--color-cart-btn-outline-hover) !important;
+  border-color: var(--color-cart-btn-outline-hover) !important;
+}
+
+/* Заполненная — твои цвета */
+.cart-popover-btn--checkout{
+  background: var(--color-cart-btn-order) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+.cart-popover-btn--checkout:hover{
+  background: var(--color-cart-btn-order-hover) !important;
+}

@@ -1,0 +1,212 @@
+.loginreg-wrap {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  margin-top: 16px;
+  gap: 24px;
+}
+
+.loginreg-flex-wrap {
+  display: flex;
+  gap: 38px;
+  justify-content: center;
+  align-items: flex-start;
+  padding-left: 90px; /* <--- только для центрального контента */
+}
+
+.loginreg-card-root {
+  margin: 38px 0 0 0;
+  width: 400px;
+  min-width: 340px;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+}
+
+.loginreg-tabs {
+  display: flex;
+  width: 100%;
+  background: var(--color-secondary, #f7fafd);
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1.5px solid #e2eaf7;
+}
+
+.loginreg-tab-btn {
+  flex: 1 1 50%;
+  background: none;
+  border: none;
+  font-size: 1.07rem;
+  font-weight: 500;
+  color: var(--color-primary, #185bbe);
+  padding: 17px 0 10px 0;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  transition: color 0.16s;
+  outline: none;
+  letter-spacing: 0.01em;
+}
+.loginreg-tab-btn.active {
+  color: var(--color-primary, #185bbe);
+  border-bottom: 2.5px solid var(--color-primary, #3d93ff);
+  background: var(--color-secondary, #f2f7fd);
+  font-weight: 600;
+}
+.loginreg-tab-btn:not(.active):hover {
+  color: var(--color-primary-dark, #257be8);
+  background: var(--color-secondary, #f2f7fd);
+}
+
+.loginreg-card {
+  width: 100%;
+  min-height: 420px;
+  background: var(--color-bg-card, #fff);
+  border-radius: 0;
+  box-shadow: 0 6px 38px #b8d8ff13, 0 1.5px 12px #b8d8ff10;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  margin-top: 0;
+  position: relative;
+}
+
+.loginreg-content-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 38px 32px 22px 32px;
+}
+
+.loginreg-title {
+  text-align: left;
+  font-size: 1.26rem;
+  color: var(--color-title, #163a56);
+  font-weight: 600;
+  margin-bottom: 22px;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.loginreg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.loginreg-form input {
+  background: var(--color-secondary, #f5f8fc);
+  border: 1.2px solid #d2e4f5;
+  border-radius: 5px;
+  padding: 13px 12px;
+  font-size: 1.08rem;
+  color: #133356;
+  outline: none;
+  transition: border 0.14s;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-weight: 400;
+}
+.loginreg-form input:focus {
+  border: 1.2px solid var(--color-primary, #3a9cff);
+  background: #e7f1fa;
+}
+
+.loginreg-main-btn {
+  background: var(--color-primary, #3d93ff);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 14px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 6px;
+  cursor: pointer;
+  transition: background 0.14s;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  letter-spacing: 0.01em;
+}
+.loginreg-main-btn:hover {
+  background: var(--color-primary-dark, #266fd3);
+}
+
+.loginreg-error {
+  color: #ca2727;
+  background: #f8eded;
+  border: 1px solid #f1b8b8;
+  border-radius: 5px;
+  padding: 9px 10px;
+  font-size: 0.98rem;
+  text-align: left;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  margin-bottom: 4px;
+}
+
+/* ===== Боковой блок ===== */
+.loginreg-aside {
+  min-width: 260px;
+  max-width: 300px;
+  background: var(--color-secondary, #f3faff);
+  border-radius: 12px;
+  box-shadow: 0 3px 16px #c1e3ff33;
+  padding: 32px 18px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 38px;
+  height: fit-content;
+}
+.loginreg-img {
+  width: 72px;
+  margin-bottom: 18px;
+  opacity: 0.94;
+}
+.loginreg-aside-title {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--color-primary, #185bbe);
+  margin-bottom: 12px;
+  text-align: center;
+}
+.loginreg-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: #2a5c9a;
+  font-size: 0.99rem;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* ===== Адаптив ===== */
+@media (max-width: 1200px) {
+  .loginreg-flex-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+  .loginreg-aside {
+    margin-top: 0;
+    margin-bottom: 32px;
+    align-self: center;
+  }
+}
+@media (max-width: 650px) {
+  .loginreg-wrap {
+    gap: 2px;
+  }
+  .loginreg-card-root,
+  .loginreg-card {
+    width: 99vw;
+    min-width: 0;
+    margin: 5vw 0 0 0;
+  }
+  .loginreg-content-main,
+  .loginreg-aside {
+    padding: 15px 4vw 14px 4vw;
+  }
+  .loginreg-aside {
+    border-radius: 8px;
+  }
+}

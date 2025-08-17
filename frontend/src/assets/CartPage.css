@@ -1,0 +1,553 @@
+/* Локальные нейтральные тени и прозрачный фон только для страницы корзины */
+.cart-page {
+  --color-cart-bg: transparent;
+  --color-cart-section-shadow: rgba(0, 0, 0, 0.06);
+  --color-cart-section-shadow2: rgba(0, 0, 0, 0.04);
+  --color-cart-recommend-shadow: rgba(0, 0, 0, 0.05);
+  --color-cart-recommend-shadow-hover: rgba(0, 0, 0, 0.08);
+}
+
+.main-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px 32px 16px;
+  box-sizing: border-box;
+  background: transparent; /* было var(--color-cart-bg) */
+}
+
+.cart-section-white {
+  background: var(--color-cart-section-bg);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px var(--color-cart-section-shadow), 0 1px 4px var(--color-cart-section-shadow2);
+  padding: 26px 24px 18px 24px;
+  margin-bottom: 18px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  transition: box-shadow 0.18s;
+  z-index: 2;
+}
+
+/* гарантируем нейтральные тени на всякий случай */
+.cart-page .cart-section-white {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04) !important;
+}
+
+@media (max-width: 1000px) {
+  .cart-section-white {
+    padding: 8px 2px 8px 2px;
+    border-radius: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .cart-section-white {
+    padding: 4px 0 2px 0;
+  }
+}
+
+.products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cart-modern-row {
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 10px 0;
+  margin: 0;
+}
+
+.products-list > div:not(:last-child) {
+  border-bottom: 1.3px solid var(--color-cart-section-border);
+}
+
+.cart-modern-row img {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  background: var(--color-cart-section-bg);
+  border: 1.2px solid var(--color-cart-border);
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.cart-modern-row a {
+  font-size: 16px;
+  color: var(--color-cart-link);
+  text-decoration: none;
+  margin-bottom: 7px;
+  word-break: break-word;
+  display: inline-block;
+  cursor: pointer;
+  font-weight: 400;
+  transition: none;
+}
+.cart-modern-row a:hover {
+  color: var(--color-cart-link-hover);
+  text-decoration: underline;
+}
+
+.cart-modern-row .cart-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.cart-modern-row .cart-info-row {
+  font-size: 15px;
+  color: var(--color-cart-meta);
+  margin-bottom: 3px;
+  line-height: 1.35;
+}
+.cart-modern-row .cart-info-row .cart-price-value {
+  color: var(--color-cart-price);
+}
+
+.cart-modern-row .cart-qty-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 150px;
+  gap: 10px;
+  height: 100%;
+}
+
+.cart-modern-row button,
+.cart-modern-row input[type="number"] {
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.cart-modern-row button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.3px solid #e5ecf8;
+  background: #f6fafd;
+  color: #1368b1;
+  cursor: pointer;
+  transition: background .13s, color .13s;
+}
+
+.cart-modern-row button:disabled {
+  cursor: not-allowed;
+  color: var(--color-cart-btn-disabled);
+}
+
+.cart-modern-row input[type="number"] {
+  width: 34px;
+  height: 32px;
+  text-align: center;
+  font-size: 15px;
+  color: #1760a0;
+  border: 1.1px solid #e2e8f6;
+  border-radius: 8px;
+  outline: none;
+  background: var(--color-cart-section-bg);
+  margin: 0 1px;
+}
+
+/* === Скрыть стрелки у number (все браузеры) === */
+.cart-modern-row input[type="number"]::-webkit-outer-spin-button,
+.cart-modern-row input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cart-modern-row input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.cart-modern-row .cart-remove-btn {
+  margin-left: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-cart-remove);
+  border: none;
+  font-weight: 400;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  transition: color .16s, background .14s;
+}
+.cart-modern-row .cart-remove-btn:hover {
+  background: #ffeaea22;
+  color: var(--color-cart-remove-hover);
+}
+
+.cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0 10px 0;
+  border-top: 2px solid #e6edf9;
+  margin-top: 24px;
+}
+.cart-summary-row .cart-total-label {
+  font-size: 19px;
+  color: var(--color-cart-title);
+  font-weight: 400;
+}
+.cart-summary-row .cart-total-value {
+  color: var(--color-cart-total-value);
+  font-weight: 400;
+  font-size: 22px;
+}
+.cart-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.cart-btn {
+  display: inline-block;
+  vertical-align: middle;
+  min-width: 120px;
+  height: 38px;
+  line-height: 38px;
+  padding: 0 18px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  margin: 0;
+  box-sizing: border-box;
+  outline: none;
+  box-shadow: none;
+  background: var(--color-cart-btn-clear);
+  color: var(--color-cart-label);
+  transition: transform 0.13s, box-shadow 0.16s, background 0.16s, color 0.14s, border-color 0.13s;
+}
+.cart-btn--clear {
+  background: var(--color-cart-btn-clear);
+  color: var(--color-cart-label);
+  border-color: transparent;
+}
+.cart-btn--continue {
+  background: var(--color-cart-section-bg);
+  color: var(--color-cart-btn-outline);
+  border-color: var(--color-cart-btn-outline);
+}
+.cart-btn--order {
+  background: var(--color-cart-btn-order);
+  color: #fff;
+  border-color: transparent;
+}
+.cart-btn:hover,
+.cart-btn:focus {
+  transform: scale(1.04);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12); /* была цветная тень */
+  z-index: 1;
+}
+.cart-btn--clear:hover {
+  background: #d3e8fa;
+}
+.cart-btn--continue:hover {
+  background: var(--color-cart-blue-light);
+  color: var(--color-cart-btn-outline-hover);
+  border-color: var(--color-cart-btn-outline-hover);
+}
+.cart-btn--order:hover {
+  background: var(--color-cart-btn-order-hover);
+}
+.cart-btn:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+.cart-section-white .cart-empty-block {
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-cart-empty);
+}
+.cart-section-white .cart-empty-block-title {
+  font-size: 26px;
+  font-weight: 400;
+  margin-bottom: 16px;
+}
+.cart-section-white .btn-continue {
+  background: #f6fafc;
+  border: 1.7px solid #cbe4fa;
+  color: var(--color-cart-total-value);
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 16px;
+  font-weight: 400;
+  margin-top: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 16px #7fa5ff10;
+  transition: background 0.16s, color 0.14s, transform 0.15s;
+  outline: none;
+}
+.cart-section-white .btn-continue:hover {
+  background: #e1eefc;
+  color: #1660c1;
+  transform: scale(1.05);
+}
+
+/* --- Рекомендации --- */
+.recommend-title {
+  font-weight: 700;
+  color: var(--color-cart-accent);
+  font-size: 1.16rem;
+  margin-bottom: 18px;
+  letter-spacing: .01em;
+  margin-left: 2px;
+}
+.recommend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  width: 100%;
+  padding: 0;
+  overflow: visible;
+}
+.recommend-item {
+  background: var(--color-cart-recommend-bg);
+  border-radius: 15px;
+  box-shadow: 0 2px 12px var(--color-cart-recommend-shadow);
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  padding: 26px 34px;
+  gap: 30px;
+  flex: 1 1 0;
+  position: relative;
+  transition: box-shadow .16s, background .14s;
+}
+.cart-page .recommend-item {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05) !important;
+}
+.recommend-item:hover {
+  background: #eaf2fc;
+  box-shadow: 0 4px 18px var(--color-cart-recommend-shadow-hover);
+}
+.recommend-img {
+  width: 130px;
+  height: 130px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: var(--color-cart-section-bg);
+  border: 1.1px solid var(--color-cart-recommend-border);
+  flex-shrink: 0;
+}
+.recommend-info {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-right: 10px;
+}
+.recommend-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-cart-total-value);
+  text-decoration: none;
+  margin-bottom: 7px;
+  display: inline-block;
+  line-height: 1.17;
+  cursor: pointer;
+  transition: color .15s;
+  word-break: break-word;
+}
+.recommend-name:hover {
+  color: #1051a3;
+  text-decoration: underline;
+}
+.recommend-desc {
+  font-size: 15px;
+  color: var(--color-cart-recommend-desc);
+  line-height: 1.33;
+  margin-bottom: 2px;
+  margin-top: 2px;
+  max-width: 340px;
+  min-height: 18px;
+  white-space: normal;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.recommend-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 11px;
+  min-width: 120px;
+}
+.recommend-price {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-cart-accent);
+  margin-bottom: 3px;
+}
+.recommend-price span {
+  font-size: 14px;
+  font-weight: 400;
+  margin-left: 1.5px;
+  color: var(--color-cart-recommend-price);
+}
+.recommend-btn {
+  background: var(--color-cart-btn-order);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 9px 22px;
+  box-shadow: 0 1px 7px #2175f307;
+  transition: background .13s, color .13s;
+  outline: none;
+  border: none;
+  display: inline-block;
+  cursor: pointer;
+}
+.recommend-btn:hover {
+  background: var(--color-cart-btn-order-hover);
+  color: #fff;
+}
+
+@media (max-width: 1200px) {
+  .recommend-item {
+    padding: 15px 12px;
+    gap: 18px;
+  }
+  .recommend-img {
+    width: 72px;
+    height: 72px;
+  }
+}
+@media (max-width: 900px) {
+  .recommend-list {
+    gap: 13px;
+  }
+  .recommend-item {
+    padding: 10px 5px;
+    gap: 10px;
+  }
+  .recommend-img {
+    width: 54px;
+    height: 54px;
+  }
+  .recommend-meta {
+    min-width: 80px;
+  }
+}
+@media (max-width: 600px) {
+  .recommend-list {
+    gap: 8px;
+  }
+  .recommend-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 9px 2px;
+    gap: 9px;
+  }
+  .recommend-img {
+    width: 40px;
+    height: 40px;
+  }
+  .recommend-info {
+    margin-right: 2px;
+    max-width: 90vw;
+  }
+  .recommend-meta {
+    min-width: 50px;
+    align-items: flex-start;
+  }
+  .recommend-desc {
+    max-width: 90vw;
+  }
+}
+@media (max-width: 1000px) {
+  .main-container {
+    max-width: 100vw;
+    padding: 0 0 30px 0;
+  }
+  .cart-section-white {
+    padding: 8px 2px 8px 2px;
+    border-radius: 12px;
+  }
+  .cart-modern-row img {
+    width: 68px;
+    height: 68px;
+  }
+}
+@media (max-width: 600px) {
+  .block-title-info {
+    padding-left: 8px;
+    min-height: 36px;
+    font-size: 1.01rem;
+  }
+  .cart-section-white {
+    padding: 4px 0 2px 0;
+  }
+  .cart-modern-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 0;
+  }
+  .cart-modern-row img {
+    width: 96%;
+    height: auto;
+    margin-bottom: 8px;
+    max-width: 160px;
+  }
+  .cart-summary-row {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
+/* --- Корзина: фиксируем цвета на нашей палитре --- */
+.cart-page {
+  /* на всякий случай */
+  --color-cart-recommend-hover-bg: var(--color-cart-section-bg);
+}
+
+/* Заголовок "КОРЗИНА" — не синий */
+.cart-page .block-title-info{
+  color: var(--color-cart-title) !important;
+  background: var(--color-cart-section-bg) !important;
+  box-shadow: 0 1.5px 10px rgba(0,0,0,0.06) !important;
+}
+
+/* "Мы рекомендуем": убираем синий hover и ссылки */
+.cart-page .recommend-item:hover{
+  background: var(--color-cart-recommend-hover-bg) !important; /* было #eaf2fc */
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08) !important;          /* нейтральная тень */
+}
+
+/* ссылка названия в рекомендациях — по нашим переменным */
+.cart-page .recommend-name:hover{
+  color: var(--color-cart-link-hover) !important; /* было #1051a3 */
+}
+
+/* убираем синий focus-ореол у элементов внутри блока */
+.cart-page .recommend-btn:focus,
+.cart-page .recommend-name:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* (опционально) уберём синий selection внутри корзины */
+.cart-page ::selection {
+  background: rgba(0,0,0,0.08);
+  color: inherit;
+}

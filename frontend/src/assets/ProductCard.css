@@ -1,0 +1,206 @@
+/* ===== БАЗА ===== */
+.pc-card.modern{
+  --pc-bg:#fff;
+  --pc-border:#e7eef5;
+  --pc-shadow:0 2px 10px rgba(18,31,53,.06);
+  --pc-ok:#19a24a;
+  --pc-ok-bg:#e9f8f0;
+  --pc-danger:#e33d3d;
+
+  background:var(--pc-bg);
+  border:1px solid var(--pc-border);
+  border-radius:16px;
+  box-shadow:var(--pc-shadow);
+  transition:box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+  cursor:pointer;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+.pc-card.modern:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(18,31,53,.10), 0 2px 6px rgba(18,31,53,.06);
+  border-color:#dee7f2;
+}
+
+/* ===== GRID (плитка) ===== */
+.pc-card.modern.grid{ display:flex; flex-direction:column; width:100%; }
+
+/* Фото повыше, чтобы казалось крупнее */
+.pc-thumb{
+  width:100%;
+  aspect-ratio: 5 / 6;                 /* выше квадрата => картинка крупнее */
+  background:#f7f9fc;
+  border-bottom:1px solid var(--pc-border);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.pc-thumb img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  transition:transform .25s ease;
+}
+.pc-card.modern.grid:hover .pc-thumb img{ transform:scale(1.04); }
+
+/* Контент как грид — компактно, без лишней “пустоты” */
+.pc-info{
+  padding:12px 16px 14px;              /* ещё плотнее */
+  display:grid;
+  grid-template-rows: auto auto auto auto auto auto; /* title, sku, price, stock, qty, btn */
+  align-items:start;
+  gap:3px;                              /* ↓ минимальные вертикальные зазоры */
+  height:100%;
+  text-align:center;
+}
+
+/* ==== Название в GRID: максимум 2 строки ==== */
+.pc-card.modern.grid .pc-title{
+  margin-bottom:2px;                    /* ↓ отступ под названием */
+  font-weight:700;
+  font-size:15.8px;
+  color:var(--pc-title,#1c375a);
+  line-height:1.28;
+  text-align:center;
+
+  display:-webkit-box;
+  -webkit-line-clamp:2;                 /* <= две строки */
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  white-space:normal;
+  text-overflow:ellipsis;
+  word-break:break-word;
+}
+
+/* ===== Код — без плашки, но заметнее ===== */
+.pc-card.modern.grid .pc-sku{
+  color:#2b3b52;                        /* темнее */
+  font-weight:600;
+  font-size:14px;
+  margin:0;                             /* без лишних внешних отступов */
+}
+
+/* ===== Цена в GRID — ярче и вплотную к “Наличию” ===== */
+.pc-card.modern.grid .pc-price{
+  font-size:22px;
+  font-weight:400;
+  letter-spacing:.01em;
+  color:var(--pc-price-strong, var(--pc-price, #108a38));
+  margin:0;                             /* убрали зазоры вокруг цены */
+  text-align:center;
+}
+
+/* Наличие — фиксированная строка, компактно */
+.pc-card.modern.grid .pc-stock-green,
+.pc-card.modern.grid .pc-stock-red{
+  min-height:16px;                      /* ↓ было 18–22 */
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:13.6px;
+  margin:0;
+}
+
+/* ===== Qty / кнопка (общие) ===== */
+.pc-qty-row{
+  display:flex; align-items:center; gap:10px; justify-content:center;
+}
+.pc-card.modern.grid .pc-qty-row{ margin-top:4px; } /* минимальный отступ перед +/- */
+
+.pc-qty-btn{
+  width:36px; height:36px; border-radius:10px;
+  border:1.5px solid var(--pc-primary,#2291ff);
+  background:#eaf4ff; color:var(--pc-primary,#2291ff);
+  font-weight:800; font-size:18px; line-height:1; cursor:pointer;
+  transition:background .15s ease, color .15s ease, transform .08s ease;
+}
+.pc-qty-btn:active{ background:var(--pc-primary,#2291ff); color:#fff; transform:scale(.98); }
+
+.pc-qty-input{
+  width:60px; height:36px; text-align:center; border-radius:10px;
+  border:1px solid #cfd7e6; font-size:15px; font-weight:700; outline:none; background:#fff;
+}
+.pc-qty-input::-webkit-outer-spin-button,
+.pc-qty-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.pc-qty-input[type=number]{ -moz-appearance:textfield; }
+
+.pc-cart-btn{
+  margin-top:10px;                      /* чуть ближе к счётчику */
+  width:100%;
+  background:var(--pc-primary,#2291ff); color:#fff; border:none; border-radius:12px;
+  padding:12px 16px; font-weight:800; font-size:16px;
+  box-shadow:0 2px 10px rgba(34,145,255,.18);
+  transition:background .18s ease, box-shadow .18s ease, transform .08s ease;
+}
+.pc-cart-btn:hover{ background:var(--pc-primary-dark,#1475c4); box-shadow:0 6px 18px rgba(34,145,255,.26); }
+.pc-cart-btn:active{ transform:translateY(1px); }
+
+/* ===== LIST (список) ===== */
+.pc-card.modern.pc-list-card{
+  display:grid;
+  grid-template-columns:130px 1fr 260px; /* фото | контент | правый блок */
+  gap:22px;
+  align-items:start;
+  padding:18px 20px;
+  text-align:left;
+}
+.pc-card.modern.pc-list-card .pc-list-thumb{
+  width:130px; height:130px;
+  background:#f7f9fc;
+  border:1px solid var(--pc-border);
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.pc-card.modern.pc-list-card .pc-list-thumb img{
+  width:auto; height:auto; max-width:92%; max-height:92%; object-fit:contain;
+}
+.pc-card.modern.pc-list-card .pc-list-center{
+  min-width:0; display:grid; grid-template-rows:auto auto auto; gap:8px;
+}
+/* Название в LIST — полное, без обрезки */
+.pc-card.modern.pc-list-card .pc-list-title{
+  all:unset; color:var(--pc-primary,#2291ff); cursor:pointer;
+  font-weight:700; font-size:17px; line-height:1.28;
+  white-space:normal; overflow:visible; text-overflow:clip; word-break:break-word;
+  margin-bottom:8px;
+}
+.pc-card.modern.pc-list-card .pc-list-title:hover{ text-decoration:underline; }
+.pc-card.modern.pc-list-card .pc-list-meta{
+  font-size:13.8px; color:#7d8aa4; display:flex; align-items:center; gap:8px;
+}
+.pc-card.modern.pc-list-card .pc-dot{ opacity:.5; }
+/* Цена в LIST — яркая, по центру */
+.pc-card.modern.pc-list-card .pc-list-price{
+  font-size:22px; font-weight:400; letter-spacing:.005em;
+  color:var(--pc-price-strong, var(--pc-price, #108a38));
+  text-align:center; display:block; width:max-content; margin:2px auto 0;
+}
+/* Правая колонка LIST */
+.pc-card.modern.pc-list-card .pc-list-right{
+  display:grid; grid-auto-flow:row; grid-auto-rows:max-content;
+  justify-items:end; gap:12px;
+}
+.pc-card.modern.pc-list-card .pc-qty-col{ justify-self:end; }
+.pc-card.modern.pc-list-card .pc-qty-label{ font-size:13px; color:#5b6b7f; margin-bottom:6px; text-align:right; }
+.pc-card.modern.pc-list-card .pc-list-buy{ width:160px; margin-top:2px; }
+.pc-card.modern.pc-list-card .pc-stock-badge{
+  padding:7px 13px; border-radius:999px; font-size:13.2px; font-weight:800; line-height:1;
+  border:1px solid transparent; white-space:nowrap;
+}
+.pc-card.modern.pc-list-card .pc-stock-green{ background:var(--pc-ok-bg); color:var(--pc-ok); border-color:rgba(25,162,74,.25); }
+.pc-card.modern.pc-list-card .pc-stock-red{ background:#ffeaea; color:var(--pc-danger); border-color:rgba(227,61,61,.3); }
+
+/* адаптив LIST */
+@media (max-width: 900px){
+  .pc-card.modern.pc-list-card{ grid-template-columns:120px 1fr 240px; }
+}
+@media (max-width: 680px){
+  .pc-card.modern.pc-list-card{
+    grid-template-columns:110px 1fr;
+    grid-template-rows:auto auto;
+  }
+  .pc-card.modern.pc-list-card .pc-list-right{ grid-column:2/3; justify-items:start; }
+  .pc-card.modern.pc-list-card .pc-qty-label{ text-align:left; }
+  .pc-card.modern.pc-list-card .pc-list-buy{ width:100%; }
+}
+
+/* На узких экранах вернём квадрат, чтобы карточка не стала слишком высокой */
+@media (max-width: 560px){
+  .pc-card.modern.grid .pc-thumb{ aspect-ratio: 1 / 1; }
+}

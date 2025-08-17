@@ -1,0 +1,264 @@
+/* Основной контейнер */
+.side-menu-modern {
+  --sm-border: var(--side-menu-border, rgba(33,117,243,.16));         /* базовая прозрачная обводка */
+  --sm-border-hover: var(--side-menu-border-hover, rgba(33,117,243,.32)); /* при hover/focus */
+  /* если есть фирменный цвет в теме — аккуратно смешаем его с прозрачностью */
+  border: 2px solid var(--sm-border);
+  background: var(--color-bg-card, #fff);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 2px 14px var(--color-shadow, #1278e522);
+  padding: 0;
+  max-width: 295px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  font-family: 'Segoe UI', sans-serif;
+  position: static;
+  overflow: hidden;
+  transition: border-color .18s, box-shadow .18s;
+}
+/* усиление обводки при наведении/фокусе */
+.side-menu-modern:hover,
+.side-menu-modern:focus-within {
+  border-color: var(--sm-border-hover);
+  box-shadow: 0 3px 18px var(--color-shadow, #1278e52a);
+}
+
+/* если хочешь привязать к переменным темы — можешь переопределить так:
+   .side-menu-modern {
+     --side-menu-border: color-mix(in srgb, var(--color-title-alt, #2175f3) 22%, transparent);
+     --side-menu-border-hover: color-mix(in srgb, var(--color-title-alt, #2175f3) 40%, transparent);
+   }
+*/
+
+/* Заголовок */
+.side-menu-title-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 12px 18px;
+  font-size: 1.19rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #2070d7);
+  background: linear-gradient(90deg, var(--color-bg, #f7faff) 80%, var(--color-secondary, #e6f0fa) 100%);
+  border-bottom: 1.5px solid var(--color-block-border, #e6f0fc);
+  border-radius: 17px 17px 0 0;
+  letter-spacing: -0.3px;
+  box-shadow: 0 1px 6px var(--color-shadow, #2175f308);
+  position: relative;
+  z-index: 2;
+  min-height: 47px;
+  user-select: none;
+}
+
+.side-menu-title-icon {
+  color: var(--color-primary-dark, #2070d7);
+  filter: drop-shadow(0 3px 13px var(--color-shadow-burger, #1278e522));
+  opacity: 0.92;
+  margin-right: 4px;
+  transition: filter 0.14s, opacity 0.14s, color 0.14s;
+}
+
+.side-menu-title-new span {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 700;
+  font-size: 1.17rem;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 3px var(--color-shadow, #b1dcff2a);
+}
+
+/* Список категорий */
+.side-menu-modern-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.side-menu-modern-list li {
+  border-bottom: 1px solid var(--color-block-border, #e3eaf5);
+  transition: background 0.13s;
+}
+.side-menu-modern-list li:last-child { border-bottom: none; }
+.side-menu-modern-list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 18px 13px 24px;
+  font-size: 1rem;
+  color: var(--color-title, #203859);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.13s, color 0.13s;
+  background: none;
+  line-height: 1.17;
+}
+.side-menu-modern-list a:hover,
+.side-menu-modern-list a:focus {
+  background: var(--color-secondary, #eaf2ff);
+  color: var(--color-title-alt, #2175f3);
+}
+.side-menu-arrow {
+  font-size: 1.18em;
+  color: var(--color-block-border, #b8c5d9);
+  margin-left: 10px;
+  line-height: 1;
+  font-weight: bold;
+  transition: color 0.13s;
+}
+.side-menu-modern-list a:hover .side-menu-arrow {
+  color: var(--color-title-alt, #2175f3);
+}
+
+/* Sticky cards */
+.side-menu-sticky-cards {
+  position: sticky;
+  top: 24px;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: transparent;
+}
+
+.side-menu-modern-card {
+  background: var(--color-secondary, #f6fafd);
+  border-radius: 9px;
+  padding: 10px 13px 8px 17px;
+  box-shadow: 0 2px 7px var(--color-shadow, #2175f306);
+  border: 1px solid var(--color-block-border, #e9f3ff);
+  margin: 10px 10px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.side-menu-modern-card-title {
+  font-size: 0.99rem;
+  font-weight: 600;
+  color: var(--color-title-alt, #2175f3);
+  margin-bottom: 4px;
+}
+.side-menu-modern-card-text {
+  font-size: 0.92rem;
+  color: var(--color-title, #124263);
+  line-height: 1.4;
+}
+.side-menu-modern-card-text a {
+  color: var(--color-title-alt, #2175f3);
+  text-decoration: underline dotted;
+  transition: color 0.13s;
+}
+.side-menu-modern-card-text a:hover {
+  color: var(--color-primary, #145dc0);
+  text-decoration: underline;
+}
+.day-off { color: #e44848; font-weight: bold; }
+
+/* Контакты */
+.contacts-block .contact-field {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.98rem;
+}
+.contacts-block .contact-label {
+  color: var(--color-title, #000);
+  font-size: 1rem;
+  font-weight: 400;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+.contacts-block a {
+  color: var(--color-title-alt, #2175f3);
+  text-decoration: underline dotted;
+  transition: color 0.13s;
+}
+.contacts-block a:hover {
+  color: var(--color-primary, #145dc0);
+  text-decoration: underline;
+}
+.contacts-block .phone-comment {
+  color: #888;
+  font-size: 0.94em;
+  margin-left: 3px;
+  font-style: italic;
+}
+
+/* Социальные сети */
+.side-menu-socials {
+  margin: 18px 10px 10px 10px;
+  padding: 13px 18px 13px 18px;
+  background: var(--color-secondary, #f6fafd);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px var(--color-shadow, #2175f31a);
+  border: 1px solid var(--color-block-border, #e9f3ff);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.side-menu-socials-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-title-alt, #2175f3);
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+  text-align: center;
+}
+.side-menu-socials-list {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+.side-menu-socials-list img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 8px var(--color-shadow, #2175f325);
+  transition: box-shadow 0.19s, transform 0.13s, opacity 0.13s;
+  opacity: 0.89;
+  object-fit: cover;
+}
+.side-menu-socials-list img:hover {
+  box-shadow: 0 3px 16px var(--color-primary, #1bb3ff4a);
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+/* --- Адаптив --- */
+@media (max-width: 1024px) {
+  .side-menu-modern {
+    max-width: 100vw;
+    border-radius: 10px 10px 0 0;
+    position: static !important;
+  }
+  .side-menu-modern-list a {
+    padding: 8px 5px 8px 10px;
+    font-size: 0.96rem;
+  }
+  .side-menu-modern-card {
+    padding: 8px 4px 7px 7px;
+    margin: 9px 1px 0 1px;
+  }
+  .side-menu-sticky-cards { position: static !important; }
+  .side-menu-title-new { border-radius: 8px 8px 0 0; }
+}
+
+@media (max-width: 600px) {
+  .side-menu-modern {
+    max-width: 100vw;
+    border-radius: 7px 7px 0 0;
+    position: static !important;
+  }
+  .side-menu-title-new { border-radius: 5px 5px 0 0; }
+  .side-menu-socials-list img { width: 26px; height: 26px; }
+}
+
+/* — Доп: вариант для тёмной темы (по желанию) — */
+@media (prefers-color-scheme: dark) {
+  .side-menu-modern {
+    --side-menu-border: rgba(114,160,255,.18);
+    --side-menu-border-hover: rgba(114,160,255,.35);
+  }
+}

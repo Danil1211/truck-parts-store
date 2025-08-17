@@ -1,0 +1,177 @@
+/* === Переменные === */
+:root {
+  /* === Основные цвета === */
+  --color-primary: #1e90ff;
+  --color-primary-dark: #0077cc;
+  --color-bg: #f8f9fa;
+  --color-bg-gradient: linear-gradient(to right, #e0f7fa, #ffffff);
+  --color-card: #fff;
+  --color-title: #333;
+  --color-footer-bg: #222;
+  --color-footer-text: #fff;
+  --color-side-menu-border: #fff;
+
+  --color-secondary: #f6fafd;
+  --color-bg-card: #fff;
+  --color-accent: #3fd9d6;
+  --color-title-alt: #2175f3;
+  --color-shadow: 0 1.5px 10px #1278e50d;
+  --color-block-gradient: linear-gradient(180deg, #2b93fd 40%, #3fd9d6 100%);
+  --color-block-bg: var(--color-secondary);
+
+  --color-promo-bg: linear-gradient(90deg, #ffefa3 70%, #fff8de 100%);
+  --color-promo-title: #ca8005;
+  --color-promo-desc: #c49024;
+  --color-blog-bg: #eaf7ff;
+  --color-blog-shadow: 0 2px 8px #3ab5f22e;
+  --color-blog-title: #1275be;
+  --color-blog-desc: #427694;
+
+  --color-overlay: rgba(25, 48, 88, 0.52);
+
+  --color-card-hover: #f3faff;
+  --color-card-border: #aafbe0;
+  --color-card-boxshadow: 0 6px 24px #00ffc51a, 0 1.5px 7px #13e6b729;
+
+  --color-info-bg: #f8fafd;
+  --color-info-shadow: 0 2px 12px #2a9ff20c;
+  --color-info-border: #eaf2ff;
+  --color-info-title: #2475de;
+  --color-info-title-bg: #f3f8ff;
+  --color-info-title-shadow: 0 1px 6px #2175f308;
+
+  --color-breadcrumb: #6c92c2;
+  --color-breadcrumb-link: #2584e3;
+  --color-breadcrumb-link-hover: #0d4d99;
+  --color-breadcrumb-sep: #b8c9e6;
+  --color-breadcrumb-current: #215d96;
+
+  --color-btn-border: #e4eeff;
+  --color-btn-active-border: var(--color-primary);
+  --color-btn-bg: #fff;
+  --color-btn-active-bg: #eaf4ff;
+  --color-btn-shadow: 0 1px 7px #b0d6ff12;
+
+  --color-list-bg: #f7fbff;
+  --color-list-shadow: 0 1.5px 8px #bedfff1a;
+
+  /* === Checkout === */
+  --checkout-bg: #f7fafd;
+  --checkout-card-bg: #fff;
+  --checkout-card-border: #d4e2f8;
+  --checkout-card-shadow: #176fc317;
+  --checkout-title: #18446e;
+  --checkout-blue: #1886f6;
+  --checkout-blue-hover: #227aff;
+  --checkout-blue-light: #eaf3ff;
+  --checkout-blue-bg: #f8fbff;
+  --checkout-accent: #227aff;
+  --checkout-error: #c00;
+  --checkout-muted: #799cb8;
+
+  /* === Cart Popover === */
+  --cart-popover-bg: #fff;
+  --cart-popover-color: #133d80;
+  --cart-popover-shadow: 0 6px 32px #1365c325, 0 1px 8px #2175f510;
+  --cart-popover-header: #1948b7;
+  --cart-popover-dash: #d1e3fb;
+  --cart-popover-row-border: #f6fafd;
+  --cart-popover-img-bg: #f7fafd;
+  --cart-popover-img-border: #e1ecfa;
+  --cart-popover-title: #1566cc;
+  --cart-popover-title-hover: #104394;
+  --cart-popover-qty: #4b6993;
+  --cart-popover-row-sum: #2475f3;
+  --cart-popover-remove: #c5cbd6;
+  --cart-popover-remove-hover: #f01845;
+  --cart-popover-remove-bg-hover: #ffeaea33;
+  --cart-popover-empty: #a3afc7;
+  --cart-popover-total: #133d80;
+  --cart-popover-total-value: #2175f3;
+  --cart-popover-btn-outline-bg: #f7fafd;
+  --cart-popover-btn-outline: #2175f3;
+  --cart-popover-btn-outline-border: #2196f3;
+  --cart-popover-btn-outline-hover-bg: #eaf4ff;
+  --cart-popover-btn-outline-hover: #1560b5;
+  --cart-popover-btn-outline-hover-border: #1560b5;
+  --cart-popover-btn-blue-bg: linear-gradient(93deg, #2095ff 84%, #4db8f6 100%);
+  --cart-popover-btn-blue-hover-bg: linear-gradient(90deg, #1357b0 80%, #258fff 100%);
+  --cart-popover-btn-blue: #fff;
+
+  /* === Cart Page === */
+  --cart-bg: #f3f6fb;
+  --cart-section-bg: #fff;
+  --cart-section-shadow: #176fc318;
+  --cart-section-shadow2: #12569913;
+  --cart-section-border: #eaeaea;
+  --cart-title: #20427c;
+  --cart-blue: #1886f6;
+  --cart-blue-dark: #125ab0;
+  --cart-blue-hover: #1853a7;
+  --cart-blue-light: #eaf3ff;
+  --cart-accent: #2175f3;
+  --cart-btn-clear: #dde2e9;
+  --cart-btn-outline: #2196f3;
+  --cart-btn-outline-hover: #1560b5;
+  --cart-btn-order: #1886f6;
+  --cart-btn-order-hover: #125ab0;
+  --cart-btn-disabled: #bbb;
+  --cart-price: #326ad1;
+  --cart-remove: #d04a5d;
+  --cart-remove-hover: #ff001b;
+  --cart-link: #227aff;
+  --cart-link-hover: #1853a7;
+  --cart-border: #e2e7f7;
+  --cart-label: #2d3859;
+  --cart-meta: #8c98ae;
+  --cart-recommend-bg: #f6fafd;
+  --cart-recommend-border: #d6e7ff;
+  --cart-recommend-shadow: #2475de13;
+  --cart-recommend-shadow-hover: #2175f21a;
+  --cart-total-value: #1874e7;
+  --cart-empty: #b7c1d7;
+  --cart-recommend-desc: #8ea2c6;
+  --cart-recommend-price: #799cbf;
+
+  /* === Banner === */
+  --banner-bg: #2175f3;
+  --banner-bg-hover: #125ccc;
+  --banner-btn-color: #fff;
+  --banner-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  --banner-radius: 16px;
+  --banner-radius-tablet: 10px;
+  --banner-radius-mobile: 7px;
+  --banner-btn-shadow: 0 4px 18px #2175f344;
+  --banner-btn-shadow-hover: 0 6px 24px #2175f388;
+  --banner-title-color: #fff;
+  --banner-title-shadow: 0 4px 24px rgba(0,0,0,0.33);
+
+  /* === About / Contacts === */
+  --about-bg: var(--color-bg-card, #fff);
+  --about-radius: 14px;
+  --about-shadow: 0 4px 24px #b8d8ff22, 0 1.5px 10px #b8d8ff08;
+  --about-padding: 38px 40px 10px 40px;
+  --about-title: var(--color-primary-dark, #217aff);
+  --about-text: var(--color-title, #23436d);
+  --contacts-label: var(--color-primary-dark, #206fd7);
+  --contacts-value: var(--color-title, #23436d);
+}
+
+/* ------------------- ОСНОВНЫЕ СТИЛИ ------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f7fafd; /* фиксированный цвет, не зависит от темы */
+  color: var(--color-title, #333);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

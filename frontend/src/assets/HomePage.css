@@ -1,0 +1,377 @@
+/* === MAIN CONTAINER === */
+.main-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+  background: var(--color-bg);
+}
+
+/* ====== Заголовки блоков ====== */
+.block-title-info, .showcase-info {
+  display: flex;
+  align-items: center;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--color-title);
+  background: var(--color-block-bg);
+  border-radius: 16px;
+  box-shadow: var(--color-shadow);
+  margin-bottom: 16px;
+  min-height: 46px;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding: 0;
+}
+.block-title-info::before,
+.showcase-info::before {
+  content: '';
+  display: block;
+  width: 7px;
+  height: 100%;
+  background: var(--color-block-gradient);
+  border-radius: 12px 0 0 12px;
+  margin-right: 17px;
+}
+.block-title-info b, .showcase-info b {
+  padding-left: 15px;
+  color: var(--color-title-alt);
+  letter-spacing: 0.01em;
+  font-size: 1.13rem;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* ======== СЕТКИ (4 в ряд для всех кроме группы) ======== */
+.products-grid,
+.promo-grid,
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+}
+@media (max-width: 1200px) {
+  .products-grid,
+  .promo-grid,
+  .blog-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  .products-grid,
+  .promo-grid,
+  .blog-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .products-grid,
+  .promo-grid,
+  .blog-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ======== ТОЛЬКО ДЛЯ ГРУППЫ — 3 в ряд ======== */
+.products-grid.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 1000px) {
+  .products-grid.three { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .products-grid.three { grid-template-columns: 1fr; }
+}
+
+/* ======== КАРТОЧКИ ======== */
+.product-placeholder-card,
+.promo-card,
+.blog-card {
+  border-radius: 12px;
+  box-shadow: var(--color-shadow), 0 2px 10px #2175f310;
+  background: var(--color-bg-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 110px;
+  transition: box-shadow 0.18s, background 0.17s;
+}
+.product-placeholder-card {
+  background: #f4f7fb;
+  min-height: 210px;
+  align-items: center;
+}
+.promo-card {
+  background: var(--color-promo-bg);
+  color: var(--color-promo-title);
+  font-weight: 600;
+  font-size: 1.09rem;
+  margin-top: 4px;
+}
+.promo-card h4 {
+  font-size: 1.03rem;
+  margin: 0 0 6px 0;
+}
+.promo-card p {
+  font-size: 0.99rem;
+  color: var(--color-promo-desc);
+  margin: 0;
+}
+.blog-card {
+  background: var(--color-blog-bg);
+  box-shadow: var(--color-blog-shadow);
+  margin-top: 4px;
+  cursor: pointer;
+  min-height: 120px;
+  transition: box-shadow 0.18s, background 0.17s;
+}
+.blog-card:hover {
+  background: var(--color-card-hover);
+  box-shadow: 0 5px 20px #0051ff17;
+}
+.blog-card-title {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--color-blog-title);
+  margin-bottom: 5px;
+}
+.blog-card-date {
+  color: #8c8c8c;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.blog-card-desc {
+  color: var(--color-blog-desc);
+  font-size: 1.01rem;
+  font-weight: 400;
+}
+
+/* Сетка ГРУПП (всегда 4 в ряд) */
+.groups-row-root {
+  max-width: 1240px;
+  margin: 0 auto 10px auto;
+  padding: 0 1.2rem;
+}
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+}
+@media (max-width: 1200px) {
+  .groups-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  .groups-row-root {
+    padding: 0 0.5rem;
+    margin-bottom: 15px;
+  }
+  .groups-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
+  }
+}
+@media (max-width: 700px) {
+  .groups-row-root {
+    padding: 0 0.2rem;
+  }
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Группа: квадратная карточка */
+.groups-grid .group-card {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1/1;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-secondary);
+  border-radius: 16px;
+  box-shadow: 0 2px 10px #1278e51c;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+.groups-grid .group-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #f7fafc;
+  transition: filter .18s, transform .16s;
+}
+
+/* Overlay и текст */
+.groups-grid .group-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay);
+  opacity: 0;
+  transition: opacity .18s;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.groups-grid .group-card:hover .group-card-overlay,
+.groups-grid .group-card:focus .group-card-overlay {
+  opacity: 1;
+}
+.groups-grid .group-card-overlay span {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.13rem;
+  padding: 0 14px;
+  text-align: center;
+  text-shadow: 0 2px 7px #12345a80;
+  line-height: 1.16;
+  word-break: break-word;
+}
+
+.group-card:focus,
+.group-card:hover {
+  box-shadow: var(--color-card-boxshadow);
+  transform: translateY(-3px) scale(1.04);
+  border: 1.7px solid var(--color-card-border);
+}
+
+/* ======== ПРОЧИЕ ======== */
+.info-section {
+  background: var(--color-info-bg);
+  border-radius: 18px;
+  box-shadow: var(--color-info-shadow);
+  margin: 30px 0 0 0;
+  padding: 0 0 22px 0;
+  border: 1px solid var(--color-info-border);
+  max-width: 100%;
+}
+.info-section-title {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--color-info-title);
+  background: var(--color-info-title-bg);
+  border-radius: 18px 18px 0 0;
+  padding: 12px 0 10px 23px;
+  box-shadow: var(--color-info-title-shadow);
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+.info-section-title svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 7px #a9e0ff36);
+}
+.info-section-content {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-left: 26px;
+  padding-right: 18px;
+}
+@media (max-width: 900px) {
+  .info-section-content {
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 12px;
+    padding-right: 6px;
+  }
+  .info-section-title {
+    font-size: 1.07rem;
+    padding: 11px 0 8px 10px;
+    gap: 7px;
+  }
+}
+
+/* ======== BREADCRUMBS ======== */
+.breadcrumbs-root, .breadcrumbs {
+  display: flex;
+  align-items: center;
+  font-size: 1.06rem;
+  color: var(--color-breadcrumb);
+  margin-bottom: 14px;
+  margin-top: 4px;
+  user-select: none;
+}
+.breadcrumbs-link {
+  color: var(--color-breadcrumb-link);
+  text-decoration: none;
+  margin-right: 4px;
+  font-weight: 500;
+  transition: color .13s;
+}
+.breadcrumbs-link:hover {
+  color: var(--color-breadcrumb-link-hover);
+  text-decoration: underline;
+}
+.breadcrumbs-sep {
+  margin: 0 6px;
+  color: var(--color-breadcrumb-sep);
+  font-size: 0.95em;
+}
+.breadcrumbs-current {
+  color: var(--color-breadcrumb-current);
+  font-weight: 700;
+}
+
+/* ======== Переключатель вида ======== */
+.view-switcher {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: 18px;
+  margin-right: 2px;
+}
+.view-btn {
+  border: 2px solid var(--color-btn-border);
+  background: var(--color-btn-bg);
+  border-radius: 13px;
+  padding: 5px 10px;
+  transition: border-color 0.14s, background 0.15s;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  box-shadow: var(--color-btn-shadow);
+}
+.view-btn.active,
+.view-btn:focus {
+  border-color: var(--color-btn-active-border);
+  background: var(--color-btn-active-bg);
+}
+.view-btn img {
+  width: 28px;
+  height: 28px;
+  display: block;
+  object-fit: contain;
+  filter: none;
+  transition: filter 0.13s;
+}
+.view-btn.active img {
+  filter: drop-shadow(0 0 3px #2995ff77) brightness(1.12);
+}
+
+/* Для списка (если понадобится) */
+.products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.product-list-item {
+  border-radius: 12px;
+  background: var(--color-list-bg);
+  box-shadow: var(--color-list-shadow);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}

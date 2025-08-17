@@ -1,0 +1,897 @@
+/* ================================
+   Admin Settings – isolated theme
+   ================================ */
+
+.admin-settings-root {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+  background: #f7fafd;
+
+  /* Локальные переменные ТОЛЬКО для админки */
+  --admin-bg: #f7fafd;
+  --admin-surface: #ffffff;
+  --admin-surface-weak: #f9fbff;
+  --admin-border: #f0f3fa;
+  --admin-shadow: #2291ff0a;
+  --admin-shadow-strong: #2291ff17;
+
+  --admin-primary: #2291ff;
+  --admin-primary-strong: #18446e;
+  --admin-primary-dark: #157ce8;
+  --admin-accent: #2175f3;
+
+  --admin-text: #222;
+  --admin-text-weak: #314155;
+  --admin-muted: #9da8b8;
+}
+
+/* ===== Левое меню ===== */
+
+.settings-menu-vertical {
+  width: 250px;
+  min-width: 180px;
+  background: var(--admin-bg);
+  margin-top: 25px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px var(--admin-shadow);
+  margin-left: 0;
+  margin-right: 18px;
+  padding: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: max-content;
+}
+
+.settings-menu-title {
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--admin-accent);
+  margin: 0 0 8px 18px;
+  letter-spacing: 0.2px;
+}
+
+.settings-menu-btn {
+  background: none;
+  color: var(--admin-text);
+  font-weight: 400;
+  border: none;
+  border-radius: 9px;
+  font-size: 15px;
+  padding: 11px 18px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s, color 0.14s;
+}
+
+.settings-menu-btn.active,
+.settings-menu-btn:hover {
+  background: #eaf4ff;
+  color: var(--admin-primary);
+}
+
+/* ===== Контент ===== */
+
+.settings-content {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+  padding-right: 48px;
+  box-sizing: border-box;
+}
+
+.settings-content-inner {
+  width: 100%;
+  max-width: 1150px;
+  margin: 25px 0 0 0;
+  background: var(--admin-surface-weak);
+  border-radius: 18px;
+  box-shadow: 0 2px 12px #2291ff0c;
+  padding: 28px 24px;
+}
+
+/* ===== Блоки ===== */
+
+.settings-block {
+  background: var(--admin-surface);
+  border-radius: 14px;
+  box-shadow: 0 1px 6px #2291ff08;
+  padding: 22px 24px 18px 24px;
+  margin-bottom: 28px;
+  border: 1px solid var(--admin-border);
+}
+
+.settings-block:last-child {
+  margin-bottom: 0;
+}
+
+/* ===== Заголовки (фиксированные цвета) ===== */
+
+.settings-title {
+  font-size: 18px;
+  font-weight: 400;
+  margin-bottom: 13px;
+  color: var(--admin-accent);
+  margin-top: 0;
+}
+
+.settings-subtitle {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--admin-accent);
+  margin-top: 0;
+  margin-bottom: 13px;
+}
+
+/* ===== Формы ===== */
+
+.settings-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px 34px;
+  margin-bottom: 16px;
+}
+
+.settings-input-wide {
+  width: 100%;
+  padding: 11px 13px;
+  font-size: 16px;
+  border-radius: 9px;
+  border: 1.5px solid #e4e8ee;
+  background: #f8fbff;
+  font-weight: 400;
+  margin-top: 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.settings-phone-field { position: relative; width: 100%; }
+
+.settings-remove-btn {
+  position: absolute;
+  top: 37px;
+  right: 12px;
+  border: none;
+  background: #ffebef;
+  color: #e32d4a;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px #ef36451c;
+  transition: background .12s;
+  padding: 0;
+  outline: none;
+  line-height: 16px;
+}
+
+.settings-add-btn {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--admin-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 400;
+  display: block;
+}
+
+/* ===== Чекбоксы ===== */
+
+.settings-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px 44px;
+  font-size: 22px;
+  font-weight: 400;
+  width: 100%;
+  justify-content: center;
+}
+
+.settings-checkbox-list label {
+  font-size: 18px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  margin-right: 36px;
+  margin-bottom: 18px;
+  line-height: 1.5;
+  color: var(--admin-text);
+}
+
+.settings-checkbox-list input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--admin-accent);
+  margin-right: 13px;
+  vertical-align: middle;
+  border-radius: 5px;
+}
+
+/* ===== Логотип / фавикон ===== */
+
+.settings-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.settings-upload-btn {
+  padding: 10px 22px;
+  background: var(--admin-primary);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-weight: 400;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.settings-logo-hint { color: var(--admin-muted); font-size: 15px; margin-top: 10px; }
+.settings-logo-hint span { font-weight: 400; }
+
+.settings-logo-preview { color: #94b6e9; font-size: 15px; }
+
+.settings-logo-preview img {
+  max-height: 52px;
+  max-width: 160px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px #2291ff22;
+  background: #f4f7fa;
+  border: 1px solid #e2e0ef;
+  margin-top: 5px;
+}
+
+/* uploader small */
+
+.settings-logo-uploader {
+  width: 60px;
+  height: 60px;
+  border: 2px dashed #b8d7ff;
+  border-radius: 12px;
+  background: rgba(170,200,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border 0.15s, box-shadow 0.15s, background 0.13s;
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-logo-uploader:hover {
+  border-color: var(--admin-primary);
+  background: #eaf4ff;
+  box-shadow: 0 2px 12px #2291ff12;
+}
+
+.settings-logo-plus {
+  font-size: 28px;
+  color: var(--admin-primary);
+  font-weight: 400;
+  line-height: 1;
+  user-select: none;
+}
+
+.settings-logo-preview-img {
+  max-width: 60px;
+  max-height: 60px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 5px #2291ff12;
+  display: block;
+}
+
+.settings-logo-remove-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #fff;
+  color: #e32d4a;
+  border: none;
+  box-shadow: 0 1px 5px #e32d4a11;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.93;
+  cursor: pointer;
+  transition: background .12s;
+  z-index: 2;
+}
+
+.settings-logo-remove-btn:hover {
+  background: #ffe5ec;
+  color: #d0112b;
+  opacity: 1;
+}
+
+/* favicon */
+
+.settings-favicon-uploader {
+  width: 60px;
+  height: 60px;
+  border: 2px dashed #b8d7ff;
+  border-radius: 8px;
+  background: rgba(170,200,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: border 0.15s, box-shadow 0.15s, background 0.13s;
+}
+
+.settings-favicon-uploader:hover {
+  border-color: var(--admin-primary);
+  background: #eaf4ff;
+  box-shadow: 0 2px 12px #2291ff12;
+}
+
+.settings-favicon-preview-img {
+  max-width: 34px;
+  max-height: 34px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+  display: block;
+}
+
+/* ===== Кнопка Сохранить ===== */
+
+.settings-save-btn {
+  margin: 16px auto 0 auto;
+  background: #24c471;
+  color: #fff;
+  font-weight: 400;
+  font-size: 16px;
+  border: none;
+  border-radius: 11px;
+  padding: 12px 36px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px #24c47122;
+  display: block;
+  max-width: 220px;
+  width: 100%;
+  text-align: center;
+}
+
+/* ===== Сообщения ===== */
+
+.settings-success-message {
+  background: none;
+  color: #1aad72;
+  margin: 24px auto 0 auto;
+  font-size: 15px;
+  text-align: center;
+  font-weight: 500;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  max-width: 100%;
+  width: 100%;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.logo-error-message {
+  color: #e13434;
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+/* ===== Блок Дизайна ===== */
+
+.settings-design-section {
+  display: flex;
+  gap: 44px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 7px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+  .settings-design-section { flex-direction: column; gap: 26px; }
+}
+
+/* подпись блока */
+
+.design-section-label {
+  font-size: 15.2px;
+  font-weight: 300;
+  color: var(--admin-text-weak);
+  letter-spacing: 0.04em;
+  margin-left: 1px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* палитра */
+
+.design-palette-row {
+  display: flex;
+  gap: 18px;
+  margin: 8px 0 18px 0;
+  align-items: center;
+}
+
+.design-color-circle {
+  margin-top: 8px;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: 2px solid #222;
+  box-sizing: border-box;
+  cursor: pointer;
+  box-shadow: none;
+  transition: box-shadow 0.18s, border-color 0.15s;
+  background: linear-gradient(135deg, #2291ff 48%, #fff 52%);
+  display: inline-block;
+}
+
+.design-color-circle.selected {
+  box-shadow: 0 0 0 4px #2291ff44, 0 0 8px 2px #2291ff88;
+  border-color: var(--admin-primary);
+  z-index: 1;
+}
+
+/* шаблоны */
+
+.design-templates-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 24px;
+  margin: 16px 0 0 0;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+}
+
+.design-template-label {
+  border: 2.3px solid #eaf1fb;
+  border-radius: 20px;
+  padding: 20px 28px 24px 28px;
+  background: #fafdff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 12px var(--admin-shadow-strong);
+  transition: border .17s, box-shadow .17s;
+  min-width: 245px;
+  max-width: 245px;
+  width: 245px;
+  opacity: 0.92;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.design-template-label.selected,
+.design-template-label:hover {
+  border: 2.7px solid var(--admin-primary);
+  box-shadow: 0 3px 16px #2291ff29;
+  opacity: 1;
+}
+
+.design-template-preview {
+  width: 190px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  background: #fff;
+  box-shadow: 0 2px 12px #2291ff18;
+  display: block;
+}
+
+.design-template-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 7px;
+  color: var(--admin-primary-strong);
+  margin-bottom: 17px;
+  letter-spacing: 0.03em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.apply-template-btn {
+  display: block;
+  margin: 0 auto;
+  margin-top: 0;
+  background: var(--admin-primary);
+  color: #fff;
+  font-weight: 500;
+  font-size: 16px;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 36px;
+  cursor: pointer;
+  transition: background 0.14s, opacity 0.17s;
+  box-shadow: 0 2px 14px #2291ff22;
+  outline: none;
+}
+
+.apply-template-btn:disabled { background: #bcdcf7; cursor: default; }
+.apply-template-btn:not(:disabled):hover { background: #1475c4; }
+
+/* ===== Чат блоки ===== */
+
+.chat-color-palette { display: flex; gap: 18px; margin-top: 8px; }
+
+.chat-days-off-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px; }
+
+.chat-days-off-label {
+  font-size: 15.2px;
+  color: var(--admin-text);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.chat-days-off-label input[type="checkbox"] {
+  accent-color: #ffe07c;
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
+  border-radius: 3px;
+  border: 1px solid #e1eaff;
+}
+
+.color-circle {
+  width: 24px;
+  height: 24px;
+  margin-top: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #222;
+  transition: border-color 0.23s, box-shadow 0.18s, transform 0.17s;
+  box-sizing: border-box;
+  display: inline-block;
+}
+
+.color-circle:hover { border-color: #888; }
+
+.color-circle.selected {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px #2175f322, 0 0 7px 2px #2175f344;
+  transform: scale(1.13);
+  z-index: 2;
+}
+
+textarea.settings-input-wide { height: 100px; resize: none !important; }
+
+/* Радиокнопки «Слева/Справа» */
+
+.settings-block > div > label {
+  font-size: 15px;
+  cursor: pointer;
+  margin-right: 25px;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--admin-text);
+}
+
+.settings-block > div > label > input[type="radio"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* ===== Адаптив ===== */
+
+@media (max-width: 1200px) {
+  .settings-content-inner {
+    max-width: 94vw;
+    padding: 20px 10px;
+    margin: 20px 2vw 0 2vw;
+  }
+}
+
+@media (max-width: 900px) {
+  .settings-content-inner {
+    max-width: 99vw;
+    padding: 12px 2vw 20px 2vw;
+    margin: 13px 0 0 0;
+    border-radius: 10px;
+  }
+  .settings-grid-2 { gap: 18px 14px; }
+  .settings-checkbox-list { gap: 16px 20px; font-size: 16px; }
+  .design-templates-row { gap: 14px; }
+  .design-template-label {
+    min-width: 180px; max-width: 240px;
+    padding: 12px 8px 16px 8px;
+  }
+  .design-template-preview { width: 140px; height: 60px; }
+}
+
+@media (max-width: 700px) {
+  .admin-settings-root { flex-direction: column; gap: 0; align-items: stretch; }
+  .settings-menu-vertical {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    border-radius: 10px;
+    margin: 8px 0 0 0;
+    padding: 6px 0;
+    gap: 6px;
+    position: static;
+    box-shadow: 0 1.5px 6px #2291ff15;
+    top: 0;
+    height: auto;
+  }
+  .settings-content { padding: 0; }
+  .settings-content-inner {
+    max-width: 99vw;
+    padding: 9px 2vw 22px 2vw;
+    margin: 12px 0 0 0;
+    border-radius: 8px;
+  }
+  .settings-grid-2 { grid-template-columns: 1fr; gap: 14px 0; margin-bottom: 12px; }
+  .settings-save-btn { font-size: 16px; padding: 11px 12px; max-width: 100%; }
+  .settings-block { padding: 13px 6px 12px 8px; }
+  .design-templates-row { flex-direction: column; gap: 12px; }
+  .design-template-label { min-width: 100%; max-width: 100%; }
+  .design-template-preview { width: 96vw; max-width: 99%; height: auto; }
+}
+
+/* =========================
+   ЖЁСТКАЯ ИЗОЛЯЦИЯ ЗАГОЛОВКОВ
+   ========================= */
+
+.admin-settings-root {
+  --title: var(--admin-primary-strong);
+  --title-alt: var(--admin-primary-strong);
+}
+
+.admin-settings-root h1,
+.admin-settings-root h2,
+.admin-settings-root h3,
+.admin-settings-root .settings-section h1,
+.admin-settings-root .settings-section h2,
+.admin-settings-root .settings-section h3 {
+  color: var(--admin-primary-strong) !important;
+}
+
+.admin-settings-root .settings-section p {
+  color: var(--admin-text-weak) !important;
+}
+
+.admin-settings-root .content h1,
+.admin-settings-root .content h2,
+.admin-settings-root .content h3,
+.admin-settings-root .admin-content h1,
+.admin-settings-root .admin-content h2,
+.admin-settings-root .admin-content h3 {
+  color: var(--admin-primary-strong) !important;
+}
+
+/* =========================================================
+   ▼▼▼ ДОБАВЛЕНО: вкладка «Управление сайтом» и модалка ▼▼▼
+   ========================================================= */
+
+/* --- Редактор меню --- */
+.menu-editor {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--admin-border);
+}
+.menu-row:last-child { border-bottom: none; }
+
+.menu-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 15px;
+  border-radius: 9px;
+  border: 1.5px solid #e4e8ee;
+  background: #f8fbff;
+  outline: none;
+}
+.menu-input:focus { border-color: #cfe0f5; box-shadow: none; }
+
+.menu-visible {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.menu-actions { display: inline-flex; gap: 6px; }
+.menu-actions button {
+  padding: 6px 10px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-weak);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.menu-actions .danger {
+  background: #ffeff1;
+  border-color: #ffd9de;
+  color: #cf2f3a;
+}
+
+.menu-footer { margin-top: 10px; }
+.menu-footer button {
+  padding: 9px 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-weak);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+/* --- Витрина --- */
+.showcase-block {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  padding: 14px;
+}
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  color: var(--admin-text);
+  margin-bottom: 10px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--admin-surface-weak);
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--admin-text);
+}
+.chip.muted { opacity: .7; }
+.chip button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.savebar { display: flex; justify-content: flex-end; margin-top: 6px; }
+button.primary {
+  background: var(--admin-primary);
+  color: #fff;
+  border: 1px solid #0f6cdc;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* --- Модалка выбора товаров --- */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.28);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+.modal {
+  width: 980px; max-width: 100%;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  display: flex; flex-direction: column;
+  max-height: 90vh;
+}
+.modal-head, .modal-foot { padding: 12px 14px; border-bottom: 1px solid var(--admin-border); }
+.modal-foot { border-bottom: 0; border-top: 1px solid var(--admin-border); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; }
+.modal-head .icon { border: none; background: transparent; font-size: 18px; cursor: pointer; }
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 220px 160px 120px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--admin-border);
+}
+.filters input, .filters select {
+  padding: 10px 12px;
+  border: 1.5px solid #e4e8ee;
+  border-radius: 9px;
+  background: #f8fbff;
+  outline: none;
+}
+.filters input:focus, .filters select:focus { border-color: #cfe0f5; box-shadow: none; }
+
+.list { padding: 8px 14px; overflow: auto; }
+.product-row {
+  display: grid;
+  grid-template-columns: 28px 64px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--admin-border);
+}
+.product-row img {
+  width: 64px; height: 64px; object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: #fff;
+}
+.product-row .name { font-weight: 600; }
+.product-row .meta {
+  margin-top: 4px;
+  display: flex; gap: 10px; align-items: center;
+  font-size: 13px; color: var(--admin-text-weak);
+}
+.meta .ok { color: #1b8a3e; background: #eaf7ef; border: 1px solid #d4eddc; padding: 2px 6px; border-radius: 6px; }
+.meta .bad { color: #b23a3a; background: #ffecec; border: 1px solid #ffd4d4; padding: 2px 6px; border-radius: 6px; }
+.meta .price { font-weight: 600; color: var(--admin-text); }
+
+.empty { padding: 16px; text-align: center; color: var(--admin-muted); }
+
+.pager {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 10px 14px; border-top: 1px solid var(--admin-border);
+}
+.pager button {
+  padding: 6px 10px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-weak);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Адаптив модалки */
+@media (max-width: 860px) {
+  .filters { grid-template-columns: 1fr 1fr; }
+}
+/* =========================================================
+   ▲▲▲ конец добавленных стилей для вкладки «Управление сайтом»
+   ========================================================= */

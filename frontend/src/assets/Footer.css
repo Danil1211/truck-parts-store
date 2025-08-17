@@ -1,0 +1,155 @@
+.footer-root {
+  background: var(--color-footer-bg, #222c38);  /* Фон всегда из palette! */
+  border-top: none;
+  box-shadow: none;
+  padding: 0;
+  margin-top: 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.footer-top {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 24px 18px 24px;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footer-col {
+  flex: 1 1 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 180px;
+  align-items: center;
+}
+
+.footer-title {
+  font-size: 1.13rem;
+  font-weight: 700;
+  color: var(--color-footer-title, #fff); /* Теперь из переменной! */
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+.footer-schedule,
+.footer-contact > div,
+.footer-contact a,
+.footer-contact span {
+  color: var(--color-footer-text, #ccd7e5); /* Единый мягкий цвет текста */
+  font-size: 1.01rem;
+  line-height: 1.5;
+}
+
+.footer-dayoff {
+  color: var(--color-footer-dayoff, #fa5b5b);  /* Цвет выходного, например красный */
+  font-weight: bold;
+}
+
+.footer-contact > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 2px;
+  font-size: 1rem;
+}
+.footer-contact a, .footer-contact span {
+  color: var(--color-footer-link, #ccd7e5);  /* Цвет ссылок */
+  text-decoration: none;
+  font-weight: 400;
+  transition: color 0.13s;
+}
+.footer-contact a:hover {
+  color: var(--color-footer-link-hover, #fff);
+  text-decoration: underline;
+}
+.footer-icon {
+  width: 20px;
+  height: 20px;
+  filter: none;      /* убираем любые filter: drop-shadow */
+  opacity: 0.86;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+.footer-socials img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: none;  /* убираем тени! */
+  filter: none;
+  transition: box-shadow 0.19s, transform 0.13s, opacity 0.13s;
+  opacity: 0.93;
+}
+.footer-socials img:hover {
+  box-shadow: 0 2px 10px rgba(30,40,50,0.07); /* мягкая, едва заметная тень */
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+/* ====== Картинка платежей ====== */
+.footer-payments-wide {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 18px 0 0 0;
+  padding-bottom: 8px;
+}
+.footer-payments-wide img {
+  max-width: 110px;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 13px;
+  box-shadow: none;   /* убираем неон! */
+  padding: 4px 12px;
+  opacity: 0.97;
+  margin-top: 4px;
+}
+
+.footer-bottom {
+  padding: 10px 2vw 7px 2vw;
+  text-align: center;
+  background: var(--color-footer-bottom-bg, #232a34); /* переменная */
+  color: var(--color-footer-bottom, #aeb6c3);        /* переменная */
+  font-size: 0.98rem;
+  border-top: 1px solid var(--color-footer-border, #303944);
+  letter-spacing: 0.01em;
+  margin-top: 10px;
+  border-radius: 0 0 15px 15px;
+  user-select: none;
+}
+
+/* Мобильная версия */
+@media (max-width: 900px) {
+  .footer-top {
+    flex-direction: column;
+    gap: 17px;
+    padding: 13px 5px 8px 5px;
+    text-align: center;
+  }
+  .footer-col {
+    max-width: 100%;
+    align-items: center;
+  }
+  .footer-payments-wide img {
+    max-width: 80px;
+    padding: 3px 6px;
+  }
+  .footer-bottom {
+    font-size: 0.94rem;
+    padding: 10px 2vw 8px 2vw;
+  }
+}
