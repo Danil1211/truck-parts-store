@@ -47,7 +47,7 @@ function App() {
       }
 
       setHint(
-        `Готово! Ваш поддомен: ${data.subdomain}.storo-shop.com. Откройте страницу входа магазина.`
+        `✅ Готово! Ваш магазин: https://${data.subdomain}.storo-shop.com`
       );
     } catch {
       setError("Ошибка сети");
@@ -57,16 +57,16 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 px-4">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-2">
+        <h1 className="text-3xl font-bold text-indigo-700 mb-2">
           Storo-Shop — магазин за 60 секунд
         </h1>
         <p className="text-gray-600 mb-6">
           Демо:{" "}
           <a
             href="https://demo.storo-shop.com"
-            className="text-indigo-500 hover:underline"
+            className="text-indigo-600 font-medium hover:underline"
             target="_blank"
             rel="noreferrer"
           >
@@ -119,7 +119,9 @@ function App() {
                 <label
                   key={p}
                   className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition hover:shadow-md ${
-                    plan === p ? "border-indigo-500 bg-indigo-50" : "border-gray-300"
+                    plan === p
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-gray-300"
                   }`}
                 >
                   <input
@@ -140,15 +142,15 @@ function App() {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg shadow-md hover:bg-indigo-700 transition active:scale-[0.98]"
           >
-            {loading ? "Создаём..." : "Создать магазин"}
+            {loading ? "Создаём..." : "🚀 Создать магазин"}
           </button>
         </form>
 
-        {error && <p className="text-red-500 mt-4">Ошибка: {error}</p>}
+        {error && <p className="text-red-500 mt-4">❌ Ошибка: {error}</p>}
         {hint && <p className="text-green-600 mt-4">{hint}</p>}
 
         <h2 className="text-xl font-semibold mt-8 mb-2">Тарифы</h2>
-        <ul className="space-y-1 text-gray-700">
+        <ul className="space-y-1 text-gray-700 list-disc pl-4">
           <li>Free — старт</li>
           <li>Basic — растём</li>
           <li>Pro — масштаб</li>
