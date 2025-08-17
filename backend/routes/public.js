@@ -3,15 +3,18 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { Tenant, User, SiteSettings } = require('../models');
 
+// URL фронта
 const FRONT_URL = process.env.FRONT_URL || 'http://localhost:5173';
 
+// 🔧 Функция построения ссылки для входа
 function buildLoginUrl(tenant) {
   const prod = tenant.subdomain && (process.env.NODE_ENV === 'production');
   return prod
-    ? `https://${tenant.subdomain}.shopik.com/login`
+    ? `https://${tenant.subdomain}.storo-shop.com/login`   // 👈 заменил shopik.com → storo-shop.com
     : `${FRONT_URL}/login?tenant=${tenant._id}`;
 }
 
+// доступные тарифы
 const plans = {
   free:  { products: 100 },
   basic: { products: 2000 },
@@ -20,6 +23,7 @@ const plans = {
 
 router.get('/plans', (_req, res) => res.json(plans));
 
+// регистрация нового арендатора
 router.post('/signup', async (req, res, next) => {
   try {
     const { company, subdomain, email, password, plan = 'free' } = req.body;
@@ -31,7 +35,7 @@ router.post('/signup', async (req, res, next) => {
       name: company,
       subdomain,
       plan,
-      currentPeriodEnd: new Date(Date.now() + 14*24*60*60*1000),
+      currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // +14 дней
     });
 
     await User.create({
@@ -53,7 +57,7 @@ router.post('/signup', async (req, res, next) => {
       ok: true,
       tenantId: tenant._id.toString(),
       subdomain: tenant.subdomain,
-      loginUrl: buildLoginUrl(tenant)
+      loginUrl: buildLoginUrl(tenant), // 👈 возвращаем новый URL
     });
   } catch (e) {
     if (e && e.code === 11000) {

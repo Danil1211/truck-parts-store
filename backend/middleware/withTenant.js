@@ -4,11 +4,11 @@ module.exports = function withTenant(req, res, next) {
   const headerTenant = req.headers['x-tenant-id'];
   const queryTenant = req.query.tenant;
 
-  // 2) prod-режим: определяем по поддомену *.shopik.com
+  // 2) prod-режим: определяем по поддомену *.storo-shop.com
   let hostTenant = null;
   const h = req.hostname || req.headers.host || '';
-  if (h && h.endsWith('.shopik.com')) {
-    hostTenant = h.split('.')[0]; // demo.shopik.com → demo
+  if (h && h.endsWith('.storo-shop.com')) {
+    hostTenant = h.split('.')[0]; // demo.storo-shop.com → demo
   }
 
   // 3) исключения — глобальные роуты не требуют tenant
