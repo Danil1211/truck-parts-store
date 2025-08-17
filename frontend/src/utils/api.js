@@ -2,11 +2,14 @@
 const API = import.meta.env.VITE_API_URL || "";
 
 /**
- * В проде (на поддомене *.shopik.com) X-Tenant-Id не нужен —
+ * В проде (на домене storo-shop.com) X-Tenant-Id не нужен —
  * арендатора определяем по hostname в withTenant.
  */
 function isProdHost() {
-  return typeof location !== "undefined" && /\.shopik\.com$/.test(location.hostname);
+  return (
+    typeof location !== "undefined" &&
+    /\.storo-shop\.com$/.test(location.hostname)
+  );
 }
 
 /**
@@ -29,7 +32,6 @@ export async function api(path, options = {}) {
     headers,
   });
 
-  // попытаться распарсить JSON в любом случае
   let payload = null;
   try {
     payload = await res.json();
@@ -45,13 +47,15 @@ export async function api(path, options = {}) {
 }
 
 /* Удобные шорткаты */
-export const get  = (path, opts={}) => api(path, { ...opts, method: "GET" });
-export const del  = (path, opts={}) => api(path, { ...opts, method: "DELETE" });
-export const post = (path, body, opts={}) =>
+export const get = (path, opts = {}) =>
+  api(path, { ...opts, method: "GET" });
+export const del = (path, opts = {}) =>
+  api(path, { ...opts, method: "DELETE" });
+export const post = (path, body, opts = {}) =>
   api(path, { ...opts, method: "POST", body: JSON.stringify(body) });
-export const put  = (path, body, opts={}) =>
+export const put = (path, body, opts = {}) =>
   api(path, { ...opts, method: "PUT", body: JSON.stringify(body) });
-export const patch = (path, body, opts={}) =>
+export const patch = (path, body, opts = {}) =>
   api(path, { ...opts, method: "PATCH", body: JSON.stringify(body) });
 
 /**
