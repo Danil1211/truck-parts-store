@@ -3,13 +3,12 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 
 const API = import.meta.env.VITE_API_URL || "";
-const TENANT_DOMAIN =
-  import.meta.env.VITE_TENANT_DOMAIN?.trim() || "storo-shop.com";
+const TENANT_DOMAIN = import.meta.env.VITE_TENANT_DOMAIN?.trim() || "storo-shop.com";
 
 const PLANS = [
-  { id: "free",  title: "Free",  subtitle: "старт",   desc: "Быстрый запуск.",              price: "0 ₽" },
-  { id: "basic", title: "Basic", subtitle: "растём",  desc: "Больше возможностей роста.",   price: "1 990 ₽" },
-  { id: "pro",   title: "Pro",   subtitle: "масштаб", desc: "Производительность и масштаб.", price: "4 990 ₽" },
+  { id: "free",  title: "Free",  subtitle: "старт",   desc: "Быстрый запуск.",                 price: "0 ₽" },
+  { id: "basic", title: "Basic", subtitle: "растём",  desc: "Больше возможностей роста.",      price: "1 990 ₽" },
+  { id: "pro",   title: "Pro",   subtitle: "масштаб", desc: "Производительность и масштаб.",   price: "4 990 ₽" },
 ];
 
 const cn = (...x) => x.filter(Boolean).join(" ");
@@ -20,10 +19,10 @@ function Input({ label, hint, error, right, ...props }) {
   return (
     <div className="space-y-1.5">
       {label && <label className="block text-sm text-slate-700">{label}</label>}
-      <div className={cn("flex items-center rounded-xl border px-3",
-        error ? "border-red-400 ring-4 ring-red-200"
-              : "border-slate-300 focus-within:ring-4 focus-within:ring-primary/20",
-        "bg-white transition")}>
+      <div className={cn(
+        "flex items-center rounded-xl border px-3 bg-white transition",
+        error ? "border-red-400 ring-4 ring-red-200" : "border-slate-300 focus-within:ring-4 focus-within:ring-primary/20"
+      )}>
         <input className="input border-0 shadow-none px-0" {...props} />
         {right && <span className="ml-2 text-sm text-slate-500 select-none">{right}</span>}
       </div>
@@ -60,7 +59,7 @@ function PlanCard({ plan, selected, onSelect }) {
 }
 
 function Check() {
-  // фиксированный размер И БЕЗ tailwind — чтобы «галочки» никогда не раздувались
+  // фиксированный размер, чтобы "галочки" не раздувались
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" strokeWidth="2" className="text-primary">
@@ -81,11 +80,11 @@ function Spinner() {
 function App() {
   const [company, setCompany] = useState("");
   const [subdomain, setSubdomain] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [plan, setPlan] = useState("free");
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState({ type: "", text: "" });
+  const [plan, setPlan]         = useState("free");
+  const [loading, setLoading]   = useState(false);
+  const [msg, setMsg]           = useState({ type: "", text: "" });
 
   const errors = useMemo(() => {
     const e = {};
@@ -118,7 +117,6 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -132,10 +130,8 @@ function App() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid lg:grid-cols-2 gap-10">
-          {/* Left */}
           <div className="space-y-6">
             <h1 className="text-4xl font-extrabold leading-tight">
               Запусти интернет-магазин за <span className="text-primary">60 секунд</span>
@@ -158,7 +154,6 @@ function App() {
             </ul>
           </div>
 
-          {/* Right (Form) */}
           <div className="lg:pl-6">
             <form onSubmit={submit} className="card p-6">
               <div className="mb-6">
