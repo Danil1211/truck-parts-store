@@ -65,7 +65,7 @@ function App() {
           Запусти интернет-магазин за 60 секунд
         </h1>
         <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
-          Storo Shop — это платформа для создания современного интернет-магазина без
+          Storo — это платформа для создания современного интернет-магазина без
           программиста. Просто зарегистрируйся и начни продавать уже сегодня.
         </p>
         <a
@@ -218,7 +218,7 @@ function App() {
 
       {/* FOOTER */}
       <footer className="py-6 text-center text-gray-500 border-t">
-        © {new Date().getFullYear()} Storo Shop. Все права защищены.
+        © {new Date().getFullYear()} Storo. Все права защищены.
       </footer>
     </div>
   );
