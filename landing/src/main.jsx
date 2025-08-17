@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
@@ -47,7 +48,7 @@ function App() {
       }
 
       setHint(
-        `✅ Готово! Ваш магазин: https://${data.subdomain}.storo-shop.com`
+        `Готово! Ваш поддомен: ${data.subdomain}.storo-shop.com. Откройте страницу входа магазина.`
       );
     } catch {
       setError("Ошибка сети");
@@ -57,105 +58,168 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 px-4">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
-        <h1 className="text-3xl font-bold text-indigo-700 mb-2">
-          Storo-Shop — магазин за 60 секунд
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* HERO */}
+      <section className="text-center py-20 px-6">
+        <h1 className="text-4xl sm:text-5xl font-bold text-indigo-700 mb-4 animate-fadeIn">
+          Запусти интернет-магазин за 60 секунд
         </h1>
-        <p className="text-gray-600 mb-6">
-          Демо:{" "}
-          <a
-            href="https://demo.storo-shop.com"
-            className="text-indigo-600 font-medium hover:underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            demo.storo-shop.com
-          </a>
+        <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
+          Shopik — это платформа для создания современного интернет-магазина без
+          программиста. Просто зарегистрируйся и начни продавать уже сегодня.
         </p>
+        <a
+          href="#signup"
+          className="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition"
+        >
+          Создать магазин бесплатно
+        </a>
+      </section>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <input
-            className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
-            placeholder="Компания"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            required
-          />
+      {/* ПРЕИМУЩЕСТВА */}
+      <section className="py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8 text-center">
+          {[
+            { title: "⚡ Быстрый запуск", text: "Готовый магазин за 1 минуту" },
+            { title: "📱 Современный дизайн", text: "Адаптивно под все устройства" },
+            { title: "💳 Приём платежей", text: "Подключение карт и сервисов" },
+          ].map((item, i) => (
+            <div key={i} className="p-6 rounded-xl shadow-md hover:shadow-xl transition">
+              <h3 className="text-xl font-semibold text-indigo-600 mb-2">{item.title}</h3>
+              <p className="text-gray-600">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="flex items-center gap-2">
+      {/* ВОЗМОЖНОСТИ */}
+      <section className="py-20 px-6">
+        <h2 className="text-3xl font-bold text-center text-indigo-700 mb-10">
+          Возможности платформы
+        </h2>
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[
+            "Управление товарами и заказами",
+            "Поддержка чата с клиентами",
+            "Автоматическая интеграция с Новой Почтой",
+            "Гибкие настройки дизайна",
+            "SEO и продвижение",
+            "Аналитика и отчёты",
+          ].map((text, i) => (
+            <div
+              key={i}
+              className="bg-white p-6 rounded-xl shadow-md hover:scale-[1.02] transition"
+            >
+              <p className="text-gray-700">✅ {text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ЧТО ПОЛУЧИТ КЛИЕНТ */}
+      <section className="py-16 bg-indigo-50">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold text-indigo-700 mb-8">
+            Что получаешь после регистрации?
+          </h2>
+          <ul className="space-y-4 text-lg text-gray-700">
+            <li>🚀 Полностью готовый сайт с корзиной</li>
+            <li>🎨 Современный дизайн магазина</li>
+            <li>
+              🔗 Личный поддомен вида <b>вашмагазин.storo-shop.com</b>
+            </li>
+            <li>📦 Управление товарами и заказами</li>
+            <li>💳 Возможность принимать онлайн-оплаты</li>
+          </ul>
+        </div>
+      </section>
+
+      {/* ФОРМА РЕГИСТРАЦИИ */}
+      <section id="signup" className="py-20 px-6">
+        <div className="w-full max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+          <h2 className="text-3xl font-bold text-indigo-600 mb-6">
+            Начни бесплатно
+          </h2>
+
+          <form onSubmit={onSubmit} className="space-y-4">
             <input
-              className="flex-1 px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
-              placeholder="Поддомен (например, demo)"
-              value={subdomain}
-              onChange={(e) => setSubdomain(e.target.value.trim())}
+              className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
+              placeholder="Компания"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
               required
             />
-            <span className="text-gray-600">.storo-shop.com</span>
-          </div>
 
-          <input
-            type="email"
-            className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
-            placeholder="Email владельца"
-            value={email}
-            onChange={(e) => setEmail(e.target.value.trim())}
-            required
-          />
-
-          <input
-            type="password"
-            className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
-            placeholder="Пароль"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          <div>
-            <label className="block font-medium mb-1">Тариф</label>
-            <div className="flex gap-4">
-              {["free", "basic", "pro"].map((p) => (
-                <label
-                  key={p}
-                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition hover:shadow-md ${
-                    plan === p
-                      ? "border-indigo-500 bg-indigo-50"
-                      : "border-gray-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="plan"
-                    value={p}
-                    checked={plan === p}
-                    onChange={() => setPlan(p)}
-                  />
-                  {PLAN_LABELS[p]}
-                </label>
-              ))}
+            <div className="flex items-center gap-2">
+              <input
+                className="flex-1 px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
+                placeholder="Поддомен (например, demo)"
+                value={subdomain}
+                onChange={(e) => setSubdomain(e.target.value.trim())}
+                required
+              />
+              <span className="text-gray-600">.storo-shop.com</span>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg shadow-md hover:bg-indigo-700 transition active:scale-[0.98]"
-          >
-            {loading ? "Создаём..." : "🚀 Создать магазин"}
-          </button>
-        </form>
+            <input
+              type="email"
+              className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
+              placeholder="Email владельца"
+              value={email}
+              onChange={(e) => setEmail(e.target.value.trim())}
+              required
+            />
 
-        {error && <p className="text-red-500 mt-4">❌ Ошибка: {error}</p>}
-        {hint && <p className="text-green-600 mt-4">{hint}</p>}
+            <input
+              type="password"
+              className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-        <h2 className="text-xl font-semibold mt-8 mb-2">Тарифы</h2>
-        <ul className="space-y-1 text-gray-700 list-disc pl-4">
-          <li>Free — старт</li>
-          <li>Basic — растём</li>
-          <li>Pro — масштаб</li>
-        </ul>
-      </div>
+            <div>
+              <label className="block font-medium mb-1">Тариф</label>
+              <div className="flex gap-4 flex-wrap">
+                {["free", "basic", "pro"].map((p) => (
+                  <label
+                    key={p}
+                    className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition hover:shadow-md ${
+                      plan === p ? "border-indigo-500 bg-indigo-50" : "border-gray-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="plan"
+                      value={p}
+                      checked={plan === p}
+                      onChange={() => setPlan(p)}
+                    />
+                    {PLAN_LABELS[p]}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-3 rounded-lg shadow-md hover:bg-indigo-700 transition active:scale-[0.98]"
+            >
+              {loading ? "Создаём..." : "Создать магазин"}
+            </button>
+          </form>
+
+          {error && <p className="text-red-500 mt-4">Ошибка: {error}</p>}
+          {hint && <p className="text-green-600 mt-4">{hint}</p>}
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="py-6 text-center text-gray-500 border-t">
+        © {new Date().getFullYear()} Shopik. Все права защищены.
+      </footer>
     </div>
   );
 }
