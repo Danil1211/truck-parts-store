@@ -43,9 +43,6 @@ import AdminAddProductPage from "./admin/AdminAddProductPage";
 import AdminEditProductPage from "./admin/AdminEditProductPage";
 import AdminSettingsPage from "./admin/AdminSettingsPage";
 
-// ====== Super Admin page ======
-import SuperAdminPanel from "./superadmin/SuperAdminPanel";
-
 // ====== SiteReady wrapper ======
 function SiteReady({ children }) {
   const { display, loading } = useSite();
