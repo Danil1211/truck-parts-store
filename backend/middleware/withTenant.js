@@ -1,74 +1,63 @@
 // backend/middleware/withTenant.js
 const { Tenant } = require('../models');
 
-const isObjectId = (s) => typeof s === 'string' && /^[0-9a-f]{24}$/i.test(s);
+// очень простой кэш: ключ -> { val, exp }
+const cache = new Map();
+const TTL_MS = 5 * 60 * 1000; // 5 минут
 
-function subFromHost(host) {
-  if (!host) return null;
-  const h = String(host).toLowerCase();
-  if (!h.endsWith('.storo-shop.com')) return null;
-  const sub = h.split('.')[0];
-  if (!sub || sub === 'www' || sub === 'api') return null;
-  return sub;
+function getCached(key) {
+  const rec = cache.get(key);
+  if (!rec) return null;
+  if (Date.now() > rec.exp) { cache.delete(key); return null; }
+  return rec.val;
 }
-
-function hostFromHeader(req, headerName) {
-  try {
-    const v = req.get(headerName);
-    if (!v) return null;
-    return new URL(v).hostname;
-  } catch { return null; }
-}
+function setCached(key, val) { cache.set(key, { val, exp: Date.now() + TTL_MS }); }
 
 module.exports = async function withTenant(req, res, next) {
-  // кандидаты
-  const headerTenant = req.get('x-tenant-id');     // может быть _id или поддомен
-  const queryTenant  = req.query.tenant || req.query.tenantId;
-
-  const hostSub   = subFromHost(req.hostname || req.headers.host);
-  const originSub = subFromHost(hostFromHeader(req, 'origin'))
-                 || subFromHost(hostFromHeader(req, 'referer'));
-
-  // глобальные маршруты без tenant
+  // Глобальные маршруты, которым tenant не нужен
   const isGlobal =
-    req.path.startsWith('/api/public')     ||
+    req.path.startsWith('/api/public')   ||
     req.path.startsWith('/api/superadmin') ||
-    req.path.startsWith('/webhooks')       ||
-    req.path.startsWith('/healthz')        ||
-    req.path.startsWith('/api/cors-check');
+    req.path.startsWith('/webhooks')     ||
+    req.path.startsWith('/healthz');
 
-  let hint = headerTenant || queryTenant || hostSub || originSub;
+  // 1) Dev: можно явно передать id арендатора
+  const headerTenant = req.headers['x-tenant-id'];
+  const queryTenant  = req.query.tenant;
 
-  if (!isGlobal && !hint) {
+  let tenantId = headerTenant || queryTenant || null;
+
+  // 2) Prod: определяем по хосту (поддомен/кастом-домен)
+  let host = (req.headers.host || req.hostname || '').toLowerCase();
+  if (host.includes(':')) host = host.split(':')[0]; // убрать порт, если есть
+
+  if (!tenantId) {
+    if (host.endsWith('.storo-shop.com')) {
+      // demo.storo-shop.com -> demo
+      const sub = host.split('.')[0];
+      const k = `sub:${sub}`;
+      tenantId = getCached(k);
+      if (!tenantId) {
+        const t = await Tenant.findOne({ subdomain: sub }).select('_id').lean();
+        if (t) { tenantId = String(t._id); setCached(k, tenantId); }
+      }
+    } else if (host) {
+      // кастомный домен
+      const k = `dom:${host}`;
+      tenantId = getCached(k);
+      if (!tenantId) {
+        const t = await Tenant.findOne({ customDomain: host }).select('_id').lean();
+        if (t) { tenantId = String(t._id); setCached(k, tenantId); }
+      }
+    }
+  }
+
+  if (!isGlobal && !tenantId) {
     return res.status(400).json({ error: 'Tenant not resolved' });
   }
 
-  try {
-    let tenantId = null;
-    let tenantSub = hostSub || originSub || null;
+  req.tenantId = tenantId || null;    // ВСЕГДА кладём именно ObjectId арендатора
+  req.tenant   = { id: tenantId || null };
 
-    if (hint) {
-      if (isObjectId(hint)) {
-        tenantId = hint.toLowerCase();
-      } else {
-        const t = await Tenant.findOne({ subdomain: hint })
-          .select('_id subdomain')
-          .lean();
-        if (!t && !isGlobal) {
-          return res.status(400).json({ error: 'Tenant not found' });
-        }
-        if (t) {
-          tenantId  = String(t._id);
-          tenantSub = t.subdomain;
-        }
-      }
-    }
-
-    req.tenantId = tenantId || null;
-    req.tenant   = { id: tenantId || null, subdomain: tenantSub };
-    next();
-  } catch (e) {
-    console.error('withTenant error:', e);
-    res.status(500).json({ error: 'Tenant resolver failed' });
-  }
+  next();
 };
