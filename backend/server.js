@@ -53,11 +53,14 @@ function isAllowedOrigin(origin = '') {
       return true;
     }
 
-    // Белый список из ENV
-    if (allowedFromEnv.includes(origin)) return true;
+    // Явно разрешаем фронт супер-админки
+    if (origin === 'https://superadmin-frontend.onrender.com') return true;
 
     // Render (для отладки)
     if (h.endsWith('onrender.com')) return true;
+
+    // Белый список из ENV
+    if (allowedFromEnv.includes(origin)) return true;
 
     return false;
   } catch {
