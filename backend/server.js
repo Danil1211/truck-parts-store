@@ -28,6 +28,7 @@ const userRoutes         = require('./routes/users');
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
+const customersRoutes    = require('./routes/customers'); // 👈 добавил
 
 /* ========================= Общие настройки ========================= */
 app.set('trust proxy', true);
@@ -46,25 +47,25 @@ function isAllowedOrigin(origin = '') {
   if (!origin) return true;
   try {
     const url = new URL(origin);
-    const protocol = url.protocol;
     const h = url.hostname.toLowerCase();
 
-    // --- основной домен + www + поддомены ---
+    // Основной домен + поддомены
     if (
       h === 'storo-shop.com' ||
       h === 'www.storo-shop.com' ||
+      h === 'api.storo-shop.com' ||
       h.endsWith('.storo-shop.com')
     ) {
-      if (protocol === 'http:' || protocol === 'https:') return true;
+      return true;
     }
 
-    // --- фронт супер-админки ---
+    // Фронт супер-админки
     if (origin === 'https://superadmin-frontend.onrender.com') return true;
 
-    // --- Render (для отладки) ---
+    // Render (для отладки)
     if (h.endsWith('onrender.com')) return true;
 
-    // --- Белый список из ENV ---
+    // Белый список из ENV
     if (allowedFromEnv.includes(origin)) return true;
 
     return false;
@@ -110,7 +111,6 @@ app.get('/api/cors-check', (req, res) => {
   res.json({
     ok: true,
     originSeen: req.headers.origin || null,
-    allowed: isAllowedOrigin(req.headers.origin || '')
   });
 });
 
@@ -134,6 +134,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
+app.use('/api/customers', customersRoutes); // 👈 добавил
 
 /* ============================== 404 / 500 ============================== */
 app.use((req, res) => res.status(404).json({ error: 'Ресурс не найден' }));
