@@ -1,33 +1,37 @@
+// backend/routes/public.js
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { Tenant, User, SiteSettings } = require('../models');
 
-const FRONT_URL = (process.env.FRONT_URL || 'http://localhost:5173').replace(/\/+$/,'');
+const FRONT_URL = process.env.FRONT_URL || 'http://localhost:5173';
+const ADMIN_DEV_URL = process.env.ADMIN_DEV_URL || FRONT_URL;
 
-// URL для входа в админку
-function buildAdminLoginUrl(tenant) {
+/** Собираем все полезные ссылки для арендатора */
+function buildUrls(tenant) {
   const prod = process.env.NODE_ENV === 'production';
-  const host = tenant.customDomain
-    ? tenant.customDomain
-    : `${tenant.subdomain}.storo-shop.com`;
+  const sub = tenant.subdomain;
 
-  return prod && tenant.subdomain
-    ? `https://${host}/admin/login`
-    : `${FRONT_URL}/admin/login?tenant=${tenant._id}`;
+  if (prod && sub) {
+    const base = `https://${sub}.storo-shop.com`;
+    return {
+      siteUrl: `${base}`,
+      siteLoginUrl: `${base}/login`,
+      adminUrl: `${base}/admin`,
+      adminLoginUrl: `${base}/admin/login`,
+    };
+  }
+
+  // dev
+  const q = `?tenant=${tenant._id}`;
+  return {
+    siteUrl: FRONT_URL,
+    siteLoginUrl: `${FRONT_URL}/login${q}`,
+    adminUrl: `${ADMIN_DEV_URL}/admin${q}`,
+    adminLoginUrl: `${ADMIN_DEV_URL}/admin/login${q}`,
+  };
 }
 
-// (опционально) URL для клиентского логина магазина
-function buildStoreLoginUrl(tenant) {
-  const prod = process.env.NODE_ENV === 'production';
-  const host = tenant.customDomain
-    ? tenant.customDomain
-    : `${tenant.subdomain}.storo-shop.com`;
-
-  return prod && tenant.subdomain
-    ? `https://${host}/login`
-    : `${FRONT_URL}/login?tenant=${tenant._id}`;
-}
-
+// тарифы (можно читать и с бэка фронту)
 const plans = {
   free:  { products: 100 },
   basic: { products: 2000 },
@@ -36,7 +40,7 @@ const plans = {
 
 router.get('/plans', (_req, res) => res.json(plans));
 
-// регистрация нового арендатора
+/** POST /api/public/signup — регистрация магазина (арендатора) */
 router.post('/signup', async (req, res, next) => {
   try {
     const { company, subdomain, email, password, plan = 'free' } = req.body;
@@ -47,40 +51,39 @@ router.post('/signup', async (req, res, next) => {
 
     // создаём арендатора
     const tenant = await Tenant.create({
-      name: company,
-      subdomain,
+      name: company.trim(),
+      subdomain: String(subdomain).trim().toLowerCase(),
       plan,
       currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // +14 дней
       isBlocked: false,
     });
 
-    // создаём владельца (админа)
+    // владелец (админ)
     await User.create({
       tenantId: tenant._id.toString(),
-      email: email.toLowerCase(),
+      email: String(email).trim().toLowerCase(),
       passwordHash: await bcrypt.hash(password, 10),
-      name: company,
+      name: company.trim(),
       phone: '',
       isAdmin: true,
       role: 'owner',
     });
 
-    // базовые настройки
+    // базовые настройки сайта
     await SiteSettings.create({
       tenantId: tenant._id.toString(),
-      siteName: company,
-      contacts: { email, phone: '' },
+      siteName: company.trim(),
+      contacts: { email: String(email).trim().toLowerCase(), phone: '' },
     });
 
-    // ⚠️ теперь возвращаем ссылку СРАЗУ на админ-логин
+    const urls = buildUrls(tenant);
+
+    // 👉 возвращаем и siteLoginUrl, и adminLoginUrl
     res.json({
       ok: true,
       tenantId: tenant._id.toString(),
       subdomain: tenant.subdomain,
-      adminLoginUrl: buildAdminLoginUrl(tenant),   // ← главная ссылка после signup
-      storeLoginUrl: buildStoreLoginUrl(tenant),   // ← дополнительно, если пригодится
-      // для обратной совместимости можно оставить:
-      loginUrl: buildAdminLoginUrl(tenant),
+      ...urls,
     });
   } catch (e) {
     if (e && e.code === 11000) {
