@@ -49,24 +49,24 @@ const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
-// Статический список + из .env
+// Базовые разрешённые
 const baseAllowed = [
   // DEV
   'http://localhost:5173',   // фронт (storefront + admin)
   'http://127.0.0.1:5173',
   'http://localhost:5174',   // лендинг
-  // PROD (Render)
+  // PROD (Render demo)
   'https://truck-parts-frontend.onrender.com',
   'https://truck-parts-backend.onrender.com',
 ];
 
 const allowedOrigins = Array.from(new Set([...baseAllowed, ...allowedFromEnv]));
 
-// Вспомогательная проверка для поддоменов *.shopik.com в проде
-function isShopikSubdomain(origin = '') {
+// Вспомогательная проверка для поддоменов *.storo-shop.com
+function isStoroSubdomain(origin = '') {
   try {
     const { hostname, protocol } = new URL(origin);
-    return /^https?:$/.test(protocol) && /\.shopik\.com$/i.test(hostname);
+    return /^https?:$/.test(protocol) && /\.storo-shop\.com$/i.test(hostname);
   } catch {
     return false;
   }
@@ -78,7 +78,7 @@ app.use((req, res, next) => {
   const okOrigin =
     !origin ||
     allowedOrigins.includes(origin) ||
-    isShopikSubdomain(origin);
+    isStoroSubdomain(origin);
 
   if (okOrigin) {
     res.header('Access-Control-Allow-Origin', origin || '*');
@@ -94,14 +94,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Основной cors — не бросаем ошибку, если origin левый (просто без CORS заголовков)
+// Основной cors
 app.use(
   cors({
     origin: (origin, cb) => {
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        isShopikSubdomain(origin)
+        isStoroSubdomain(origin)
       ) {
         return cb(null, true);
       }
