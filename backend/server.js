@@ -24,11 +24,10 @@ const uploadRoutes       = require('./upload');
 const chatRoutes         = require('./chat');
 const groupsRoutes       = require('./routes/groups');
 const novaposhtaProxy    = require('./routes/novaposhtaProxy');
-const userRoutes         = require('./routes/users');
+const userRoutes         = require('./routes/users');   // ✅ только users
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
-const customersRoutes    = require('./routes/customers'); // 👈 добавил
 
 /* ========================= Общие настройки ========================= */
 app.set('trust proxy', true);
@@ -42,24 +41,18 @@ const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
-// Проверка разрешённых доменов
 function isAllowedOrigin(origin = '') {
   if (!origin) return true;
   try {
     const url = new URL(origin);
     const h = url.hostname.toLowerCase();
 
-    // Основной домен + поддомены
-    if (
-      h === 'storo-shop.com' ||
-      h === 'www.storo-shop.com' ||
-      h === 'api.storo-shop.com' ||
-      h.endsWith('.storo-shop.com')
-    ) {
+    // основной домен + поддомены
+    if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) {
       return true;
     }
 
-    // Фронт супер-админки
+    // явно разрешаем фронт супер-админки
     if (origin === 'https://superadmin-frontend.onrender.com') return true;
 
     // Render (для отладки)
@@ -91,7 +84,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 2) Подключаем cors()
+// 2) cors()
 app.use(
   cors({
     origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
@@ -130,11 +123,10 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/novaposhta', novaposhtaProxy);
-app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);      // ✅ клиенты + админы
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
-app.use('/api/customers', customersRoutes); // 👈 добавил
 
 /* ============================== 404 / 500 ============================== */
 app.use((req, res) => res.status(404).json({ error: 'Ресурс не найден' }));
