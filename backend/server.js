@@ -35,30 +35,37 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 /* ============================= CORS ============================= */
-// Домены из .env
+// Домены из .env (через запятую)
 const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
 
-// Разрешаем storo-shop.com, www, и любые поддомены *.storo-shop.com
+// Проверка разрешённых доменов
 function isAllowedOrigin(origin = '') {
   if (!origin) return true;
   try {
     const url = new URL(origin);
     const h = url.hostname.toLowerCase();
+
+    // Основной домен + поддомены
     if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) {
       return true;
     }
-    if (allowedFromEnv.includes(origin)) return true;          // доп. белый список (Render и т.п.)
-    if (h.endsWith('onrender.com')) return true;               // при необходимости
+
+    // Белый список из ENV
+    if (allowedFromEnv.includes(origin)) return true;
+
+    // Render (для отладки)
+    if (h.endsWith('onrender.com')) return true;
+
     return false;
   } catch {
     return false;
   }
 }
 
-// 1) Ручной «универсальный» слой — заголовки ставим ПЕРЕД всеми роутами
+// 1) Ручные заголовки
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (isAllowedOrigin(origin)) {
@@ -66,26 +73,31 @@ app.use((req, res, next) => {
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Tenant-Id, X-Super-Key');
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Tenant-Id, X-Super-Key'
+    );
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
   next();
 });
 
-// 2) Плагин cors — для совместимости с библиотеками
-app.use(cors({
-  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
-}));
+// 2) Подключаем cors()
+app.use(
+  cors({
+    origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
+  })
+);
 
 /* ============================ Статика / health ============================ */
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
-// Тестовый эндпоинт для проверки CORS
+// Проверка CORS
 app.get('/api/cors-check', (req, res) => {
   res.json({
     ok: true,
