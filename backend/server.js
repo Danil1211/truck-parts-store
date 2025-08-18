@@ -30,7 +30,7 @@ const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
-// Вспомогательная проверка для поддоменов *.storo-shop.com
+// Проверка для *.storo-shop.com
 function isStoroSubdomain(origin = '') {
   try {
     const { hostname, protocol } = new URL(origin);
@@ -46,17 +46,14 @@ app.use(cors({
 
     if (!origin) return cb(null, true);
 
-    // Разрешаем все поддомены storo-shop.com
     if (isStoroSubdomain(origin) || origin === "https://storo-shop.com") {
       return cb(null, true);
     }
 
-    // Доп. whitelist из .env
     if (allowedFromEnv.includes(origin)) {
       return cb(null, true);
     }
 
-    // Render демо
     if (origin.includes("onrender.com")) {
       return cb(null, true);
     }
@@ -68,8 +65,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
 }));
 
-// Preflight обработка
-app.options("*", (req, res) => {
+// Preflight обработка (фикс бага path-to-regexp)
+app.options((req, res) => {
   console.log("🟨 Preflight for:", req.headers.origin);
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.header("Access-Control-Allow-Credentials", "true");
