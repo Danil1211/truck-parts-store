@@ -1,54 +1,59 @@
 // backend/middleware/withTenant.js
 const { Tenant } = require('../models');
 
-// очень простой кэш: ключ -> { val, exp }
-const cache = new Map();
-const TTL_MS = 5 * 60 * 1000; // 5 минут
+// Перечень хостов API (через запятую), чтобы отличать их от витрин.
+const API_HOSTS = (process.env.API_HOSTS || 'api.storo-shop.com')
+  .split(',')
+  .map(h => h.trim().toLowerCase())
+  .filter(Boolean);
 
-function getCached(key) {
-  const rec = cache.get(key);
-  if (!rec) return null;
-  if (Date.now() > rec.exp) { cache.delete(key); return null; }
-  return rec.val;
+function hostToSubdomain(host) {
+  if (!host) return null;
+  host = host.toLowerCase();
+
+  // наши витрины вида *.storo-shop.com
+  if (!host.endsWith('.storo-shop.com')) return null;
+
+  const sub = host.split('.')[0];
+  // исключаем служебные поддомены
+  if (sub === 'www' || sub === 'api') return null;
+  return sub;
 }
-function setCached(key, val) { cache.set(key, { val, exp: Date.now() + TTL_MS }); }
 
 module.exports = async function withTenant(req, res, next) {
-  // Глобальные маршруты, которым tenant не нужен
+  // Глобальные маршруты — без арендатора
   const isGlobal =
-    req.path.startsWith('/api/public')   ||
+    req.path.startsWith('/api/public') ||
     req.path.startsWith('/api/superadmin') ||
-    req.path.startsWith('/webhooks')     ||
-    req.path.startsWith('/healthz');
+    req.path.startsWith('/webhooks') ||
+    req.path.startsWith('/healthz') ||
+    req.path.startsWith('/api/cors-check');
 
-  // 1) Dev: можно явно передать id арендатора
-  const headerTenant = req.headers['x-tenant-id'];
-  const queryTenant  = req.query.tenant;
+  let tenantId = (req.get('x-tenant-id') || req.query.tenant || '').toString().trim();
+  let subdomain = (req.get('x-tenant-subdomain') || '').toString().trim();
 
-  let tenantId = headerTenant || queryTenant || null;
+  // 1) Если явно не передали — пытаемся вывести из хоста / origin
+  if (!tenantId && !subdomain) {
+    let host = (req.hostname || req.headers.host || '').toLowerCase();
 
-  // 2) Prod: определяем по хосту (поддомен/кастом-домен)
-  let host = (req.headers.host || req.hostname || '').toLowerCase();
-  if (host.includes(':')) host = host.split(':')[0]; // убрать порт, если есть
+    // Если это запрос на API-домен, смотрим откуда пришёл (Origin/Referer)
+    if (API_HOSTS.includes(host)) {
+      const from = (req.get('origin') || req.get('referer') || '').toLowerCase();
+      try {
+        if (from) host = new URL(from).hostname.toLowerCase();
+      } catch {}
+    }
 
-  if (!tenantId) {
-    if (host.endsWith('.storo-shop.com')) {
-      // demo.storo-shop.com -> demo
-      const sub = host.split('.')[0];
-      const k = `sub:${sub}`;
-      tenantId = getCached(k);
-      if (!tenantId) {
-        const t = await Tenant.findOne({ subdomain: sub }).select('_id').lean();
-        if (t) { tenantId = String(t._id); setCached(k, tenantId); }
-      }
-    } else if (host) {
-      // кастомный домен
-      const k = `dom:${host}`;
-      tenantId = getCached(k);
-      if (!tenantId) {
-        const t = await Tenant.findOne({ customDomain: host }).select('_id').lean();
-        if (t) { tenantId = String(t._id); setCached(k, tenantId); }
-      }
+    subdomain = hostToSubdomain(host);
+  }
+
+  // 2) Если есть субдомен, но нет id — найдём id в БД
+  if (!tenantId && subdomain) {
+    try {
+      const t = await Tenant.findOne({ subdomain }).select('_id').lean();
+      if (t) tenantId = String(t._id);
+    } catch (e) {
+      console.error('withTenant: lookup error:', e);
     }
   }
 
@@ -56,8 +61,7 @@ module.exports = async function withTenant(req, res, next) {
     return res.status(400).json({ error: 'Tenant not resolved' });
   }
 
-  req.tenantId = tenantId || null;    // ВСЕГДА кладём именно ObjectId арендатора
-  req.tenant   = { id: tenantId || null };
-
+  req.tenantId = tenantId || null;
+  req.tenant = { id: tenantId || null, subdomain: subdomain || null };
   next();
 };
