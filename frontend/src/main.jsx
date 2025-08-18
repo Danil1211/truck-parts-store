@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import "./assets/style.css";
 
-// ====== Public pages ======
+// ===== Public pages =====
 import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
@@ -15,20 +15,20 @@ import LoginRegisterPage from "./pages/LoginRegisterPage";
 import AboutTabsPage from "./pages/AboutTabsPage";
 import GroupPage from "./pages/GroupPage";
 
-// ====== Components ======
+// ===== Components =====
 import PrivateRoute from "./components/PrivateRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import AddToCartAnimation from "./components/AddToCartAnimation";
 import ChatWidgetWrapper from "./components/ChatWidgetWrapper";
 import ThemeSync from "./components/ThemeSync";
 
-// ====== Context providers ======
+// ===== Context =====
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
 import { SiteProvider, useSite } from "./context/SiteContext";
 import { AdminNotifyProvider } from "./context/AdminNotifyContext";
 
-// ====== Admin pages ======
+// ===== Admin pages =====
 import AdminLayout from "./admin/AdminLayout";
 import AdminOrdersPage from "./admin/AdminOrdersPage";
 import AdminChatPage from "./admin/AdminChatPage";
@@ -41,9 +41,8 @@ import AdminEditGroupPage from "./admin/AdminEditGroupPage";
 import AdminAddProductPage from "./admin/AdminAddProductPage";
 import AdminEditProductPage from "./admin/AdminEditProductPage";
 import AdminSettingsPage from "./admin/AdminSettingsPage";
-import AdminLoginPage from "./admin/AdminLoginPage";
+import AdminLoginPage from "./admin/AdminLoginPage"; // <— НОВОЕ
 
-// ====== SiteReady wrapper ======
 function SiteReady({ children }) {
   const { display, loading } = useSite();
   if (loading || !display || !display.palette) return <div />;
@@ -55,7 +54,6 @@ function SiteReady({ children }) {
   );
 }
 
-// ====== Render app ======
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
@@ -69,7 +67,7 @@ root.render(
               <AddToCartAnimation />
               <ChatWidgetWrapper />
               <Routes>
-                {/* ==== Public routes ==== */}
+                {/* ===== Public ===== */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/product/:id" element={<ProductPage />} />
                 <Route path="/cart" element={<CartPage />} />
@@ -96,10 +94,16 @@ root.render(
                 <Route path="/catalog" element={<CatalogPage />} />
                 <Route path="/catalog/group/:groupId" element={<GroupPage />} />
 
-                {/* ==== Admin auth page ==== */}
+                {/* ===== Admin LOGIN (публичный) ===== */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
 
-                {/* ==== Admin routes ==== */}
+                {/* Если просто /admin — отправляем на /admin/orders (или на /admin/login, если неавторизован) */}
+                <Route
+                  path="/admin"
+                  element={<Navigate to="/admin/orders" replace />}
+                />
+
+                {/* ===== Admin protected ===== */}
                 <Route
                   path="/admin/*"
                   element={
@@ -110,7 +114,6 @@ root.render(
                     </PrivateRoute>
                   }
                 >
-                  <Route index element={<Navigate to="orders" replace />} />
                   <Route path="orders" element={<AdminOrdersPage />} />
                   <Route path="products" element={<AdminProductsPage />} />
                   <Route path="products/create" element={<AdminAddProductPage />} />
