@@ -24,7 +24,7 @@ const uploadRoutes       = require('./upload');
 const chatRoutes         = require('./chat');
 const groupsRoutes       = require('./routes/groups');
 const novaposhtaProxy    = require('./routes/novaposhtaProxy');
-const userRoutes         = require('./routes/users');   // ✅ только users
+const userRoutes         = require('./routes/users');
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
@@ -42,23 +42,23 @@ const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
   .filter(Boolean);
 
 function isAllowedOrigin(origin = '') {
-  if (!origin) return true;
+  if (!origin) return true; // Postman, curl, SSR и т.п.
   try {
-    const url = new URL(origin);
-    const h = url.hostname.toLowerCase();
+    const { hostname } = new URL(origin);
+    const h = hostname.toLowerCase();
 
-    // основной домен + поддомены
+    // основной домен + поддомены (*.storo-shop.com)
     if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) {
       return true;
     }
 
-    // явно разрешаем фронт супер-админки
-    if (origin === 'https://superadmin-frontend.onrender.com') return true;
+    // backend поддомен тоже явно разрешим
+    if (h === 'api.storo-shop.com') return true;
 
-    // Render (для отладки)
+    // Render-домены (удобно для отладки)
     if (h.endsWith('onrender.com')) return true;
 
-    // Белый список из ENV
+    // Белый список из ENV (с точным origin)
     if (allowedFromEnv.includes(origin)) return true;
 
     return false;
@@ -67,44 +67,50 @@ function isAllowedOrigin(origin = '') {
   }
 }
 
-// 1) Ручные заголовки
+// ЛОГИ запросов (видно в Render → Logs)
+app.use((req, _res, next) => {
+  console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
+  next();
+});
+
+// Ручной preflight (ставим заголовки ДО маршрутов)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (isAllowedOrigin(origin)) {
+  const allowed = isAllowedOrigin(origin);
+
+  if (allowed) {
     res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-Tenant-Id, X-Super-Key'
-    );
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Tenant-Id, X-Super-Key');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
+  } else {
+    // Явно отвечаем на preflight неразрешённым — чтобы не было "ошибка сети"
+    if (req.method === 'OPTIONS') {
+      console.warn(`❌ CORS blocked preflight for origin=${origin}`);
+      return res.status(403).json({ error: 'CORS not allowed' });
+    }
   }
   next();
 });
 
-// 2) cors()
-app.use(
-  cors({
-    origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
-  })
-);
+// express-cors — для совместимости
+app.use(cors({
+  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Tenant-Id','X-Super-Key'],
+}));
 
 /* ============================ Статика / health ============================ */
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
-// Проверка CORS
+// Проверка CORS/Origin
 app.get('/api/cors-check', (req, res) => {
-  res.json({
-    ok: true,
-    originSeen: req.headers.origin || null,
-  });
+  res.json({ ok: true, originSeen: req.headers.origin || null });
 });
 
 /* ===================== Глобальные роуты (без tenant) ===================== */
@@ -123,7 +129,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/novaposhta', novaposhtaProxy);
-app.use('/api/users', userRoutes);      // ✅ клиенты + админы
+app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
@@ -136,8 +142,7 @@ app.use((err, req, res, _next) => {
 });
 
 /* ============================== Старт ============================== */
-mongoose
-  .connect(MONGO_URL)
+mongoose.connect(MONGO_URL)
   .then(() => {
     app.listen(PORT, () => console.log(`🚀 Server started on port ${PORT}`));
   })
