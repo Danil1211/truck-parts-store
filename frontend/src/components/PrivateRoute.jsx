@@ -4,39 +4,39 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 /**
+ * Обёртка для приватных роутов.
+ *
  * Использование:
- * <PrivateRoute><ProfilePage /></PrivateRoute>
- * <PrivateRoute adminOnly><AdminLayout /></PrivateRoute>
+ *   <PrivateRoute><ProfilePage /></PrivateRoute>
+ *   <PrivateRoute adminOnly><AdminLayout /></PrivateRoute>
+ *
+ * Поведение:
+ *   - если пользователь не авторизован → редирект на /login
+ *   - если adminOnly=true и роль не owner/admin → редирект на /admin/login
  */
 export default function PrivateRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // пока не знаем состояние — ничего не рендерим (без мигания)
   if (loading) return null;
 
-  const next = `${location.pathname}${location.search || ""}`;
-
-  // нет пользователя — отправляем на правильную форму логина
+  // не авторизован → на клиентский логин
   if (!user) {
-    const to = adminOnly
-      ? `/admin/login?next=${encodeURIComponent(next)}`
-      : `/login?next=${encodeURIComponent(next)}`;
-    return <Navigate to={to} replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Проверка прав для админ-маршрутов
+  // требуется доступ в админку
   if (adminOnly) {
-    const isAdmin =
-      user?.isAdmin === true ||
-      user?.role === "owner" ||
-      user?.role === "admin" ||
-      user?.role === "manager";
+    const canAdmin =
+      user?.role === "owner" || user?.role === "admin" || user?.isAdmin === true;
 
-    if (!isAdmin) {
-      // авторизован, но не админ → в обычный логин/кабинет
-      return <Navigate to="/login" replace />;
+    if (!canAdmin) {
+      // авторизован, но нет прав администратора → на админ-логин
+      return <Navigate to="/admin/login" replace state={{ from: location }} />;
     }
   }
 
+  // доступ разрешён
   return children;
 }
