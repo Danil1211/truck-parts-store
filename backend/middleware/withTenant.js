@@ -1,48 +1,66 @@
 // backend/middleware/withTenant.js
-function pickSub(host) {
-  if (!host) return null;
-  const h = String(host).toLowerCase();
-  if (!h.endsWith('.storo-shop.com')) return null;
-  const sub = h.split('.')[0];
-  // защитимся от служебных поддоменов
-  if (!sub || sub === 'api' || sub === 'www') return null;
-  return sub;
-}
+const { Tenant } = require('../models');
 
-module.exports = function withTenant(req, res, next) {
-  // 0) глобальные роуты без tenant
+// Помощник: 24-символьный hex ObjectId?
+const isObjectId = (s) => typeof s === 'string' && /^[0-9a-f]{24}$/i.test(s);
+
+module.exports = async function withTenant(req, res, next) {
+  // 1) кандидат из заголовка/квери/поддомена
+  const headerTenant = req.get('x-tenant-id');         // может быть _id или поддомен
+  const queryTenant  = req.query.tenant;               // то же
+  const host         = String(req.hostname || req.headers.host || '').toLowerCase();
+
+  let hostSub = null;
+  if (host.endsWith('.storo-shop.com')) {
+    const sub = host.split('.')[0];
+    // игнорируем служебные
+    if (sub && sub !== 'www' && sub !== 'api') hostSub = sub;
+  }
+
+  // 2) глобальные маршруты – без tenant
   const isGlobal =
-    req.path.startsWith('/api/public') ||
+    req.path.startsWith('/api/public')   ||
     req.path.startsWith('/api/superadmin') ||
-    req.path.startsWith('/webhooks') ||
-    req.path.startsWith('/healthz');
+    req.path.startsWith('/webhooks')     ||
+    req.path.startsWith('/healthz')      ||
+    req.path.startsWith('/api/cors-check');
 
-  // 1) явные указания
-  const headerTenant = req.headers['x-tenant-id'];
-  const queryTenant  = req.query.tenant;
+  let hint = headerTenant || queryTenant || hostSub;
 
-  // 2) из Host (работает, если запрашивают не api.*, а {shop}.storo-shop.com)
-  const hostHeader = req.headers.host || req.hostname || '';
-  const fromHost   = pickSub(hostHeader);
-
-  // 3) из Origin/Referer (главный путь для запросов на api.storo-shop.com)
-  let fromOrigin = null;
-  try {
-    if (req.headers.origin) {
-      fromOrigin = pickSub(new URL(req.headers.origin).hostname);
-    } else if (req.headers.referer) {
-      fromOrigin = pickSub(new URL(req.headers.referer).hostname);
-    }
-  } catch (_) {}
-
-  const tenantId = headerTenant || queryTenant || fromHost || fromOrigin;
-
-  if (!isGlobal && !tenantId) {
+  if (!isGlobal && !hint) {
     return res.status(400).json({ error: 'Tenant not resolved' });
   }
 
-  req.tenantId = tenantId || null;
-  req.tenant   = { id: tenantId || null };
+  // 3) если это уже ObjectId — берём как есть,
+  //    иначе трактуем как поддомен и резолвим в _id
+  let tenantId = null;
+  let tenantSub = hostSub || null;
 
-  next();
+  try {
+    if (hint) {
+      if (isObjectId(hint)) {
+        tenantId = hint.toLowerCase();
+      } else {
+        const t = await Tenant.findOne({ subdomain: hint })
+          .select('_id subdomain')
+          .lean();
+        if (!t && !isGlobal) {
+          return res.status(400).json({ error: 'Tenant not found' });
+        }
+        if (t) {
+          tenantId  = String(t._id);
+          tenantSub = t.subdomain;
+        }
+      }
+    }
+
+    // 4) положим в req
+    req.tenantId = tenantId || null;
+    req.tenant   = { id: tenantId || null, subdomain: tenantSub };
+
+    return next();
+  } catch (e) {
+    console.error('withTenant error:', e);
+    return res.status(500).json({ error: 'Tenant resolver failed' });
+  }
 };
