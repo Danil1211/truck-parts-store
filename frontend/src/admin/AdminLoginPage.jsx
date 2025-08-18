@@ -1,9 +1,8 @@
-// src/admin/AdminLoginPage.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -13,6 +12,11 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+
+  useEffect(() => {
+    // для отладки — видим, что реально находимся на /admin/login
+    // console.log("[AdminLoginPage] at:", window.location.pathname);
+  }, []);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -28,18 +32,19 @@ export default function AdminLoginPage() {
         setErr(data.error || "Ошибка входа");
         return;
       }
+
       // кладём токен
       login(data.token);
 
-      // только админы/владельцы сюда проходят
+      // только админы/владельцы
       const u = data.user || {};
-      const isAdmin = u.role === "owner" || u.role === "admin" || u.isAdmin === true;
+      const isAdmin =
+        u.role === "owner" || u.role === "admin" || u.isAdmin === true;
       if (!isAdmin) {
         setErr("Используйте обычный вход на сайте.");
         return;
       }
 
-      // в админку (если был from — вернём туда)
       const to = (location.state && location.state.from?.pathname) || "/admin/orders";
       navigate(to, { replace: true });
     } catch {
@@ -59,13 +64,17 @@ export default function AdminLoginPage() {
           boxShadow: "0 10px 30px rgba(0,0,0,.06)",
         }}
       >
-        <h2 style={{ marginBottom: 16, textAlign: "center" }}>Вход в админ-панель</h2>
+        <h2 style={{ marginBottom: 16, textAlign: "center" }}>
+          Вход в админ-панель
+        </h2>
+
         <input
           type="email"
           placeholder="Email администратора"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="email"
           style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
         <input
@@ -74,9 +83,12 @@ export default function AdminLoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="current-password"
           style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
+
         {err && <div style={{ color: "crimson", marginBottom: 10 }}>{err}</div>}
+
         <button
           type="submit"
           style={{

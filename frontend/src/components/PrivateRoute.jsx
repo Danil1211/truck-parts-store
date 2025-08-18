@@ -18,11 +18,9 @@ export default function PrivateRoute({ children, adminOnly = false }) {
   }
 
   if (adminOnly) {
-    const canAdmin = user.role === "owner" || user.role === "admin" || user.isAdmin;
-    if (!canAdmin) {
-      // если зашёл не-админ на админ-маршрут — уводим на главную
-      return <Navigate to="/" replace />;
-    }
+    const canAdmin =
+      user.role === "owner" || user.role === "admin" || user.isAdmin === true;
+    if (!canAdmin) return <Navigate to="/" replace />;
   }
 
   return children;
