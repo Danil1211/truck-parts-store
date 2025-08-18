@@ -1,4 +1,3 @@
-// src/pages/LoginRegisterPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -10,7 +9,26 @@ import Footer from "../components/Footer";
 
 import "../assets/LoginRegisterPage.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+/** Нормализуем базовый API:
+ * - берём из VITE_API_URL
+ * - если схемы нет — добавляем https://
+ * - срезаем хвостовые слэши
+ */
+const RAW_API = import.meta.env.VITE_API_URL || "";
+const API_URL = (
+  /^https?:\/\//.test(RAW_API) ? RAW_API : (RAW_API ? `https://${RAW_API}` : "")
+).replace(/\/+$/, "");
+
+/** Определяем текущий tenant по хосту витрины: {tenant}.storo-shop.com */
+function currentTenantId() {
+  const h = (typeof window !== "undefined" ? window.location.hostname : "").toLowerCase();
+  if (h && h.endsWith(".storo-shop.com")) {
+    const sub = h.split(".")[0];
+    if (sub && sub !== "www" && sub !== "api") return sub;
+  }
+  return null;
+}
+const TENANT_ID = currentTenantId();
 
 export default function LoginRegisterPage() {
   const navigate = useNavigate();
@@ -38,15 +56,21 @@ export default function LoginRegisterPage() {
     if (user) navigate("/", { replace: true });
   }, [user, navigate]);
 
-  // --- handle login
+  // --- handle login (для админов и клиентов — бек различит по роли)
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(TENANT_ID ? { "X-Tenant-Id": TENANT_ID } : {}),
+        },
+        body: JSON.stringify({
+          email: String(loginEmail).trim().toLowerCase(),
+          password: String(loginPassword),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -60,16 +84,20 @@ export default function LoginRegisterPage() {
     }
   };
 
-  // --- handle register
+  // --- handle register (регистрация клиента витрины)
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegError("");
     try {
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(TENANT_ID ? { "X-Tenant-Id": TENANT_ID } : {}),
+        },
         body: JSON.stringify({
           ...regForm,
+          email: String(regForm.email).trim().toLowerCase(),
           name: `${regForm.firstName} ${regForm.lastName}`.trim(),
         }),
       });
@@ -182,7 +210,13 @@ export default function LoginRegisterPage() {
                   )}
                 </div>
               </div>
+
+              {/* необязательный отладочный блок — можно удалить */}
+              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.6 }}>
+                API: <code>{API_URL || "(не задан)"}</code> | Tenant: <code>{TENANT_ID || "(не определён)"}</code>
+              </div>
             </div>
+
             <div className="loginreg-aside">
               <svg className="loginreg-img" viewBox="0 0 60 60" fill="none">
                 <rect width="60" height="60" rx="15" fill="#E6F2FF" />
