@@ -1,20 +1,33 @@
-// backend/routes/public.js
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { Tenant, User, SiteSettings } = require('../models');
 
-const FRONT_URL = process.env.FRONT_URL || 'http://localhost:5173';
+const FRONT_URL = (process.env.FRONT_URL || 'http://localhost:5173').replace(/\/+$/,'');
 
-// 🔧 Функция построения ссылки для входа
-function buildLoginUrl(tenant) {
+// URL для входа в админку
+function buildAdminLoginUrl(tenant) {
   const prod = process.env.NODE_ENV === 'production';
-  if (prod && tenant.subdomain) {
-    return `https://${tenant.subdomain}.storo-shop.com/login`;
-  }
-  return `${FRONT_URL}/login?tenant=${tenant._id}`;
+  const host = tenant.customDomain
+    ? tenant.customDomain
+    : `${tenant.subdomain}.storo-shop.com`;
+
+  return prod && tenant.subdomain
+    ? `https://${host}/admin/login`
+    : `${FRONT_URL}/admin/login?tenant=${tenant._id}`;
 }
 
-// доступные тарифы
+// (опционально) URL для клиентского логина магазина
+function buildStoreLoginUrl(tenant) {
+  const prod = process.env.NODE_ENV === 'production';
+  const host = tenant.customDomain
+    ? tenant.customDomain
+    : `${tenant.subdomain}.storo-shop.com`;
+
+  return prod && tenant.subdomain
+    ? `https://${host}/login`
+    : `${FRONT_URL}/login?tenant=${tenant._id}`;
+}
+
 const plans = {
   free:  { products: 100 },
   basic: { products: 2000 },
@@ -32,7 +45,7 @@ router.post('/signup', async (req, res, next) => {
       return res.status(400).json({ error: 'company, subdomain, email, password required' });
     }
 
-    // создаём нового арендатора
+    // создаём арендатора
     const tenant = await Tenant.create({
       name: company,
       subdomain,
@@ -41,7 +54,7 @@ router.post('/signup', async (req, res, next) => {
       isBlocked: false,
     });
 
-    // создаём админа для магазина
+    // создаём владельца (админа)
     await User.create({
       tenantId: tenant._id.toString(),
       email: email.toLowerCase(),
@@ -52,21 +65,22 @@ router.post('/signup', async (req, res, next) => {
       role: 'owner',
     });
 
-    // создаём базовые настройки сайта
+    // базовые настройки
     await SiteSettings.create({
       tenantId: tenant._id.toString(),
       siteName: company,
-      contacts: {
-        email,
-        phone: '',
-      },
+      contacts: { email, phone: '' },
     });
 
+    // ⚠️ теперь возвращаем ссылку СРАЗУ на админ-логин
     res.json({
       ok: true,
       tenantId: tenant._id.toString(),
       subdomain: tenant.subdomain,
-      loginUrl: buildLoginUrl(tenant),
+      adminLoginUrl: buildAdminLoginUrl(tenant),   // ← главная ссылка после signup
+      storeLoginUrl: buildStoreLoginUrl(tenant),   // ← дополнительно, если пригодится
+      // для обратной совместимости можно оставить:
+      loginUrl: buildAdminLoginUrl(tenant),
     });
   } catch (e) {
     if (e && e.code === 11000) {

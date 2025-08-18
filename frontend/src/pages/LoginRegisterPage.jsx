@@ -1,34 +1,18 @@
+// src/pages/LoginRegisterPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
 import Header from "../components/Header";
 import NavMenu from "../components/NavMenu";
 import SideMenu from "../components/SideMenu";
 import Footer from "../components/Footer";
-
 import "../assets/LoginRegisterPage.css";
 
-/** Нормализуем базовый API:
- * - берём из VITE_API_URL
- * - если схемы нет — добавляем https://
- * - срезаем хвостовые слэши
- */
-const RAW_API = import.meta.env.VITE_API_URL || "";
-const API_URL = (
-  /^https?:\/\//.test(RAW_API) ? RAW_API : (RAW_API ? `https://${RAW_API}` : "")
-).replace(/\/+$/, "");
-
-/** Определяем текущий tenant по хосту витрины: {tenant}.storo-shop.com */
-function currentTenantId() {
-  const h = (typeof window !== "undefined" ? window.location.hostname : "").toLowerCase();
-  if (h && h.endsWith(".storo-shop.com")) {
-    const sub = h.split(".")[0];
-    if (sub && sub !== "www" && sub !== "api") return sub;
-  }
-  return null;
-}
-const TENANT_ID = currentTenantId();
+// API и определение сабдомена магазина (для X-Tenant-Id — на всякий случай)
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const SUBDOMAIN = location.hostname.endsWith(".storo-shop.com")
+  ? location.hostname.split(".")[0]
+  : "";
 
 export default function LoginRegisterPage() {
   const navigate = useNavigate();
@@ -36,12 +20,12 @@ export default function LoginRegisterPage() {
 
   const [activeTab, setActiveTab] = useState("login");
 
-  // --- login form
+  // login form
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  // --- register form
+  // register form
   const [regForm, setRegForm] = useState({
     firstName: "",
     lastName: "",
@@ -51,26 +35,22 @@ export default function LoginRegisterPage() {
   });
   const [regError, setRegError] = useState("");
 
-  // если юзер уже авторизован → редиректим на /
   useEffect(() => {
     if (user) navigate("/", { replace: true });
   }, [user, navigate]);
 
-  // --- handle login (для админов и клиентов — бек различит по роли)
+  // --- покупательский вход
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const res = await fetch(`${API_URL}/api/customers/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(TENANT_ID ? { "X-Tenant-Id": TENANT_ID } : {}),
+          ...(SUBDOMAIN ? { "X-Tenant-Id": SUBDOMAIN } : {}),
         },
-        body: JSON.stringify({
-          email: String(loginEmail).trim().toLowerCase(),
-          password: String(loginPassword),
-        }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -84,20 +64,20 @@ export default function LoginRegisterPage() {
     }
   };
 
-  // --- handle register (регистрация клиента витрины)
+  // --- покупательская регистрация
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegError("");
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const res = await fetch(`${API_URL}/api/customers/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(TENANT_ID ? { "X-Tenant-Id": TENANT_ID } : {}),
+          ...(SUBDOMAIN ? { "X-Tenant-Id": SUBDOMAIN } : {}),
         },
         body: JSON.stringify({
-          ...regForm,
-          email: String(regForm.email).trim().toLowerCase(),
+          email: regForm.email,
+          password: regForm.password,
           name: `${regForm.firstName} ${regForm.lastName}`.trim(),
         }),
       });
@@ -140,6 +120,7 @@ export default function LoginRegisterPage() {
                   Регистрация
                 </button>
               </div>
+
               <div className="loginreg-card">
                 <div className="loginreg-content-main">
                   {activeTab === "login" && (
@@ -164,6 +145,7 @@ export default function LoginRegisterPage() {
                       <button type="submit" className="loginreg-main-btn">Войти</button>
                     </form>
                   )}
+
                   {activeTab === "register" && (
                     <form className="loginreg-form" onSubmit={handleRegister} autoComplete="on">
                       <div className="loginreg-title">Регистрация</div>
@@ -171,38 +153,33 @@ export default function LoginRegisterPage() {
                         name="firstName"
                         placeholder="Имя"
                         value={regForm.firstName}
-                        onChange={(e) => setRegForm((f) => ({ ...f, firstName: e.target.value }))}
-                        required
+                        onChange={(e) => setRegForm((f) => ({ ...f, firstName: e.target.value }))} required
                       />
                       <input
                         name="lastName"
                         placeholder="Фамилия"
                         value={regForm.lastName}
-                        onChange={(e) => setRegForm((f) => ({ ...f, lastName: e.target.value }))}
-                        required
+                        onChange={(e) => setRegForm((f) => ({ ...f, lastName: e.target.value }))} required
                       />
                       <input
                         name="email"
                         type="email"
                         placeholder="Email"
                         value={regForm.email}
-                        onChange={(e) => setRegForm((f) => ({ ...f, email: e.target.value }))}
-                        required
+                        onChange={(e) => setRegForm((f) => ({ ...f, email: e.target.value }))} required
                       />
                       <input
                         name="phone"
-                        placeholder="Телефон (+380...)"
+                        placeholder="Телефон (необязательно)"
                         value={regForm.phone}
                         onChange={(e) => setRegForm((f) => ({ ...f, phone: e.target.value }))}
-                        required
                       />
                       <input
                         name="password"
                         type="password"
                         placeholder="Пароль"
                         value={regForm.password}
-                        onChange={(e) => setRegForm((f) => ({ ...f, password: e.target.value }))}
-                        required
+                        onChange={(e) => setRegForm((f) => ({ ...f, password: e.target.value }))} required
                       />
                       {regError && <div className="loginreg-error">{regError}</div>}
                       <button type="submit" className="loginreg-main-btn">Зарегистрироваться</button>
@@ -210,30 +187,10 @@ export default function LoginRegisterPage() {
                   )}
                 </div>
               </div>
-
-              {/* необязательный отладочный блок — можно удалить */}
-              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.6 }}>
-                API: <code>{API_URL || "(не задан)"}</code> | Tenant: <code>{TENANT_ID || "(не определён)"}</code>
-              </div>
             </div>
 
             <div className="loginreg-aside">
-              <svg className="loginreg-img" viewBox="0 0 60 60" fill="none">
-                <rect width="60" height="60" rx="15" fill="#E6F2FF" />
-                <path
-                  d="M17 44L43 44M19 39V44M41 39V44M20 37V27C20 20.9249 25.9249 15 32 15C38.0751 15 44 20.9249 44 27V37"
-                  stroke="#217AFF"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <circle cx="32" cy="25" r="2" fill="#217AFF" />
-              </svg>
-              <div className="loginreg-aside-title">Почему выбирают нас?</div>
-              <ul className="loginreg-benefits">
-                <li>🚚 Быстрая доставка по Украине</li>
-                <li>✅ Только оригинальные запчасти</li>
-                <li>⭐ Более 10 лет на рынке</li>
-              </ul>
+              {/* декор, как было */}
             </div>
           </div>
         </div>

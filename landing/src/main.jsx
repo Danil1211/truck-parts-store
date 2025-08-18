@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 
-const API = import.meta.env.VITE_API_URL || "";
+// Базовый API без завершающих слэшей
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 const PLAN_LABELS = {
   free: "Free — старт",
@@ -29,26 +30,47 @@ function App() {
     setLoading(true);
 
     try {
+      const payload = {
+        company: company.trim(),
+        subdomain: subdomain.trim().toLowerCase(),
+        email: email.trim().toLowerCase(),
+        password,
+        plan,
+      };
+
       const res = await fetch(`${API}/api/public/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company, subdomain, email, password, plan }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data?.error || "Ошибка сервера");
+        if (res.status === 409) {
+          setError(data?.error || "Поддомен или email уже заняты");
+        } else {
+          setError(data?.error || "Ошибка сервера");
+        }
         return;
       }
 
-      if (data.loginUrl) {
-        window.location.href = data.loginUrl;
+      // 👉 Сразу ведём владельца в админ-логин его магазина
+      const sub = payload.subdomain || (data && data.subdomain) || "";
+      const adminUrl =
+        data?.adminLoginUrl ||
+        data?.loginUrl || // совместимость, если бек вернёт старое поле
+        data?.storeLoginUrl || // запасной вариант
+        (sub ? `https://${sub}.storo-shop.com/admin/login` : "");
+
+      if (adminUrl) {
+        window.location.assign(adminUrl);
         return;
       }
 
+      // Фолбэк (почти не используется, но пусть будет)
       setHint(
-        `Готово! Ваш поддомен: ${data.subdomain}.storo-shop.com. Откройте страницу входа магазина.`
+        `Готово! Ваш поддомен: ${sub}.storo-shop.com. Откройте страницу входа в админку.`
       );
     } catch {
       setError("Ошибка сети");
@@ -155,7 +177,7 @@ function App() {
                 className="flex-1 px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
                 placeholder="Поддомен (например, demo)"
                 value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value.trim())}
+                onChange={(e) => setSubdomain(e.target.value)}
                 required
               />
               <span className="text-gray-600">.storo-shop.com</span>
@@ -166,7 +188,7 @@ function App() {
               className="w-full px-4 py-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition"
               placeholder="Email владельца"
               value={email}
-              onChange={(e) => setEmail(e.target.value.trim())}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
 
