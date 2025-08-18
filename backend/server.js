@@ -11,10 +11,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
 
-/* ===================== ЛОГИ ORIGIN ===================== */
+/* ===================== ЛОГИ ===================== */
 app.use((req, res, next) => {
-  console.log("👉 Request:", req.method, req.url);
-  console.log("👉 Origin:", req.headers.origin);
+  console.log("👉 Request:", req.method, req.url, "Origin:", req.headers.origin);
   next();
 });
 
@@ -25,18 +24,39 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 /* ============================= CORS ============================= */
-// ВРЕМЕННО максимально открыто (чтобы исключить баг с проверкой)
+// Разрешённые из .env
+const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// Вспомогательная проверка для поддоменов *.storo-shop.com
+function isStoroSubdomain(origin = '') {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return /^https?:$/.test(protocol) && /\.storo-shop\.com$/i.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
 app.use(cors({
   origin: (origin, cb) => {
     console.log("✅ CORS check origin:", origin);
+
     if (!origin) return cb(null, true);
 
-    // Разрешаем любой поддомен storo-shop.com и сам домен
-    if (origin.endsWith(".storo-shop.com") || origin === "https://storo-shop.com") {
+    // Разрешаем все поддомены storo-shop.com
+    if (isStoroSubdomain(origin) || origin === "https://storo-shop.com") {
       return cb(null, true);
     }
 
-    // Дополнительно можно whitelist'ить Render
+    // Доп. whitelist из .env
+    if (allowedFromEnv.includes(origin)) {
+      return cb(null, true);
+    }
+
+    // Render демо
     if (origin.includes("onrender.com")) {
       return cb(null, true);
     }
@@ -48,25 +68,22 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
 }));
 
-// Preflight лог
+// Preflight обработка
 app.options("*", (req, res) => {
   console.log("🟨 Preflight for:", req.headers.origin);
-  res.sendStatus(204);
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-Id, X-Super-Key");
+  return res.sendStatus(204);
 });
 
 /* ===================== Маршруты (импорты) ===================== */
-// глобальные
 const publicRoutes       = require('./routes/public');
 const superAdminRoutes   = require('./routes/superAdmin');
 const paymentsRoutes     = require('./routes/payments');
-
-// мультиарендное обнаружение
 const withTenant         = require('./middleware/withTenant');
-
-// админ-авторизация арендатора
 const authRoutes         = require('./auth');
-
-// остальной функционал магазина
 const categoryRoutes     = require('./categories');
 const productRoutes      = require('./routes/products');
 const orderRoutes        = require('./routes/orders');
