@@ -4,8 +4,13 @@ const { Tenant } = require('../models');
 
 // --- простая авторизация Основателя ---
 const SUPER_KEY = process.env.SUPER_KEY || 'super_secret';
+
 function superAuth(req, res, next) {
-  if (req.headers['x-super-key'] !== SUPER_KEY) {
+  const incoming = req.headers['x-super-key'];
+  console.log('🔑 Incoming x-super-key:', incoming);
+  console.log('🔑 Backend SUPER_KEY   :', SUPER_KEY);
+
+  if (incoming !== SUPER_KEY) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   next();
