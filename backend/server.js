@@ -11,76 +11,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
 
-/* ===================== ЛОГИ ===================== */
-app.use((req, res, next) => {
-  console.log("👉 Request:", req.method, req.url, "Origin:", req.headers.origin);
-  next();
-});
-
-/* ========================= Общие настройки ========================= */
-app.set('trust proxy', true);
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-/* ============================= CORS ============================= */
-// Разрешённые из .env
-const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-// Проверка для *.storo-shop.com
-function isStoroSubdomain(origin = '') {
-  try {
-    const { hostname, protocol } = new URL(origin);
-    return /^https?:$/.test(protocol) && /\.storo-shop\.com$/i.test(hostname);
-  } catch {
-    return false;
-  }
-}
-
-app.use(cors({
-  origin: (origin, cb) => {
-    console.log("✅ CORS check origin:", origin);
-
-    if (!origin) return cb(null, true);
-
-    if (isStoroSubdomain(origin) || origin === "https://storo-shop.com") {
-      return cb(null, true);
-    }
-
-    if (allowedFromEnv.includes(origin)) {
-      return cb(null, true);
-    }
-
-    if (origin.includes("onrender.com")) {
-      return cb(null, true);
-    }
-
-    return cb(null, false);
-  },
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
-}));
-
-// Preflight обработка (фикс бага path-to-regexp)
-app.options((req, res) => {
-  console.log("🟨 Preflight for:", req.headers.origin);
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-Id, X-Super-Key");
-  return res.sendStatus(204);
-});
-
 /* ===================== Маршруты (импорты) ===================== */
-const publicRoutes       = require('./routes/public');
-const superAdminRoutes   = require('./routes/superAdmin');
-const paymentsRoutes     = require('./routes/payments');
+// глобальные
+const publicRoutes       = require('./routes/public');       // лендинг: signup/plans
+const superAdminRoutes   = require('./routes/superAdmin');   // основатель
+const paymentsRoutes     = require('./routes/payments');     // вебхуки оплат (если есть)
+
+// мультиарендное обнаружение
 const withTenant         = require('./middleware/withTenant');
-const authRoutes         = require('./auth');
+
+// админ-авторизация арендатора
+const authRoutes         = require('./auth');                // /api/auth
+
+// остальной функционал магазина
 const categoryRoutes     = require('./categories');
 const productRoutes      = require('./routes/products');
 const orderRoutes        = require('./routes/orders');
@@ -93,20 +36,100 @@ const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
 
+/* ========================= Общие настройки ========================= */
+app.set('trust proxy', true);
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+/* ============================= CORS ============================= */
+// Разрешённые источники из .env (через запятую)
+const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// Статический список + из .env
+const baseAllowed = [
+  // DEV
+  'http://localhost:5173',   // фронт (storefront + admin)
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',   // лендинг
+  // PROD (Render)
+  'https://truck-parts-frontend.onrender.com',
+  'https://truck-parts-backend.onrender.com',
+];
+
+const allowedOrigins = Array.from(new Set([...baseAllowed, ...allowedFromEnv]));
+
+// Вспомогательная проверка для поддоменов *.shopik.com в проде
+function isShopikSubdomain(origin = '') {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return /^https?:$/.test(protocol) && /\.shopik\.com$/i.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+// Ручной preflight (важно для Render)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const okOrigin =
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    isShopikSubdomain(origin);
+
+  if (okOrigin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Tenant-Id, X-Super-Key'
+    );
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+  }
+  next();
+});
+
+// Основной cors — не бросаем ошибку, если origin левый (просто без CORS заголовков)
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        isShopikSubdomain(origin)
+      ) {
+        return cb(null, true);
+      }
+      return cb(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Id', 'X-Super-Key'],
+  })
+);
+
 /* ============================ Статика / health ============================ */
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 /* ===================== Глобальные роуты (без tenant) ===================== */
-app.use('/api/public', publicRoutes);
-app.use('/api/superadmin', superAdminRoutes);
-app.use('/webhooks', paymentsRoutes);
+app.use('/api/public', publicRoutes);         // регистрация арендатора, планы
+app.use('/api/superadmin', superAdminRoutes); // панель основателя
+app.use('/webhooks', paymentsRoutes);         // платёжные вебхуки
 
 /* ==================== Ниже всё в контексте арендатора ==================== */
 app.use(withTenant);
 
+/* ===== Админ-логин (владельцы/менеджеры арендатора) ===== */
 app.use('/api/auth', authRoutes);
+
+/* ===== Остальные роуты магазина (все требуют tenant) ===== */
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
@@ -123,7 +146,7 @@ app.use('/api/site-settings', siteSettingsRoutes);
 app.use((req, res) => res.status(404).json({ error: 'Ресурс не найден' }));
 
 app.use((err, req, res, _next) => {
-  console.error('🔥 Ошибка сервера:', err);
+  console.error('Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
 });
 
