@@ -46,20 +46,25 @@ function isAllowedOrigin(origin = '') {
   if (!origin) return true;
   try {
     const url = new URL(origin);
+    const protocol = url.protocol;
     const h = url.hostname.toLowerCase();
 
-    // Основной домен + поддомены
-    if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) {
-      return true;
+    // --- основной домен + www + поддомены ---
+    if (
+      h === 'storo-shop.com' ||
+      h === 'www.storo-shop.com' ||
+      h.endsWith('.storo-shop.com')
+    ) {
+      if (protocol === 'http:' || protocol === 'https:') return true;
     }
 
-    // Явно разрешаем фронт супер-админки
+    // --- фронт супер-админки ---
     if (origin === 'https://superadmin-frontend.onrender.com') return true;
 
-    // Render (для отладки)
+    // --- Render (для отладки) ---
     if (h.endsWith('onrender.com')) return true;
 
-    // Белый список из ENV
+    // --- Белый список из ENV ---
     if (allowedFromEnv.includes(origin)) return true;
 
     return false;
@@ -105,6 +110,7 @@ app.get('/api/cors-check', (req, res) => {
   res.json({
     ok: true,
     originSeen: req.headers.origin || null,
+    allowed: isAllowedOrigin(req.headers.origin || '')
   });
 });
 
