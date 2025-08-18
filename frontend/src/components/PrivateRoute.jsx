@@ -1,3 +1,4 @@
+// src/components/PrivateRoute.jsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -13,14 +14,28 @@ export default function PrivateRoute({ children, adminOnly = false }) {
 
   if (loading) return null;
 
+  const next = `${location.pathname}${location.search || ""}`;
+
+  // нет пользователя — отправляем на правильную форму логина
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    const to = adminOnly
+      ? `/admin/login?next=${encodeURIComponent(next)}`
+      : `/login?next=${encodeURIComponent(next)}`;
+    return <Navigate to={to} replace />;
   }
 
-  // теперь проверяем role или isAdmin
+  // Проверка прав для админ-маршрутов
   if (adminOnly) {
-    const canAdmin = user.role === "owner" || user.role === "admin" || user.isAdmin;
-    if (!canAdmin) return <Navigate to="/" replace />;
+    const isAdmin =
+      user?.isAdmin === true ||
+      user?.role === "owner" ||
+      user?.role === "admin" ||
+      user?.role === "manager";
+
+    if (!isAdmin) {
+      // авторизован, но не админ → в обычный логин/кабинет
+      return <Navigate to="/login" replace />;
+    }
   }
 
   return children;

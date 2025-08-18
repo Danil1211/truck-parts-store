@@ -1,7 +1,6 @@
-// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import "./assets/style.css";
 
 // ====== Public pages ======
@@ -42,6 +41,7 @@ import AdminEditGroupPage from "./admin/AdminEditGroupPage";
 import AdminAddProductPage from "./admin/AdminAddProductPage";
 import AdminEditProductPage from "./admin/AdminEditProductPage";
 import AdminSettingsPage from "./admin/AdminSettingsPage";
+import AdminLoginPage from "./admin/AdminLoginPage";
 
 // ====== SiteReady wrapper ======
 function SiteReady({ children }) {
@@ -96,6 +96,9 @@ root.render(
                 <Route path="/catalog" element={<CatalogPage />} />
                 <Route path="/catalog/group/:groupId" element={<GroupPage />} />
 
+                {/* ==== Admin auth page ==== */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+
                 {/* ==== Admin routes ==== */}
                 <Route
                   path="/admin/*"
@@ -107,6 +110,7 @@ root.render(
                     </PrivateRoute>
                   }
                 >
+                  <Route index element={<Navigate to="orders" replace />} />
                   <Route path="orders" element={<AdminOrdersPage />} />
                   <Route path="products" element={<AdminProductsPage />} />
                   <Route path="products/create" element={<AdminAddProductPage />} />
@@ -120,7 +124,8 @@ root.render(
                   <Route path="settings" element={<AdminSettingsPage />} />
                 </Route>
 
-                {/* ==== Super Admin (Основатель) ==== */}
+                {/* fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Router>
           </CartProvider>
