@@ -124,7 +124,6 @@ root.render(
                 </Route>
 
                 {/* ==== Super Admin (Основатель) ==== */}
-                <Route path="/superadmin" element={<SuperAdminPanel />} />
               </Routes>
             </Router>
           </CartProvider>
