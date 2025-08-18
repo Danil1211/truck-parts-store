@@ -55,18 +55,18 @@ const baseAllowed = [
   'http://localhost:5173',   // фронт (storefront + admin)
   'http://127.0.0.1:5173',
   'http://localhost:5174',   // лендинг
-  // PROD (Render)
+  // PROD (Render demo)
   'https://truck-parts-frontend.onrender.com',
   'https://truck-parts-backend.onrender.com',
 ];
 
 const allowedOrigins = Array.from(new Set([...baseAllowed, ...allowedFromEnv]));
 
-// Вспомогательная проверка для поддоменов *.shopik.com в проде
-function isShopikSubdomain(origin = '') {
+// Вспомогательная проверка для поддоменов *.storo-shop.com в проде
+function isStoroSubdomain(origin = '') {
   try {
     const { hostname, protocol } = new URL(origin);
-    return /^https?:$/.test(protocol) && /\.shopik\.com$/i.test(hostname);
+    return /^https?:$/.test(protocol) && /\.storo-shop\.com$/i.test(hostname);
   } catch {
     return false;
   }
@@ -78,7 +78,7 @@ app.use((req, res, next) => {
   const okOrigin =
     !origin ||
     allowedOrigins.includes(origin) ||
-    isShopikSubdomain(origin);
+    isStoroSubdomain(origin);
 
   if (okOrigin) {
     res.header('Access-Control-Allow-Origin', origin || '*');
@@ -101,7 +101,7 @@ app.use(
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        isShopikSubdomain(origin)
+        isStoroSubdomain(origin)
       ) {
         return cb(null, true);
       }
