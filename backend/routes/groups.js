@@ -3,6 +3,10 @@ const express = require('express');
 const router = express.Router();
 const { Group, Product } = require('../models');
 
+// ✅ важно: вытягиваем tenant из домена/хедера
+const withTenant = require('../middleware/withTenant');
+router.use(withTenant);
+
 // Хелпер: собрать дерево из плоского списка
 function buildTree(groups, parentId = null) {
   return groups
@@ -10,7 +14,7 @@ function buildTree(groups, parentId = null) {
     .sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name))
     .map(g => ({
       ...g,
-      children: buildTree(groups, g._id)
+      children: buildTree(groups, g._id),
     }));
 }
 
@@ -20,6 +24,7 @@ router.get('/', async (req, res, next) => {
   try {
     const { q, parentId } = req.query;
     const filter = { tenantId: String(req.tenant.id) };
+
     if (parentId === 'null') filter.parentId = null;
     else if (parentId) filter.parentId = parentId;
     if (q) filter.name = { $regex: q, $options: 'i' };
@@ -36,9 +41,14 @@ router.get('/', async (req, res, next) => {
 // GET /api/groups/tree
 router.get('/tree', async (req, res, next) => {
   try {
-    const list = await Group.find({ tenantId: String(req.tenant.id) }, null, { $tenantId: req.tenant.id })
+    const list = await Group.find(
+      { tenantId: String(req.tenant.id) },
+      null,
+      { $tenantId: req.tenant.id }
+    )
       .sort({ order: 1, name: 1 })
       .lean();
+
     const tree = buildTree(list);
     res.json(tree);
   } catch (e) { next(e); }
@@ -50,22 +60,23 @@ router.post('/', async (req, res, next) => {
   try {
     const payload = {
       name: req.body.name,
-      img: req.body.img || null,
+      img: req.body.img || null,           // base64 или url
       description: req.body.description || '',
       parentId: req.body.parentId || null,
       order: Number(req.body.order) || 0,
     };
 
     const doc = new Group(payload);
-    // проставляем tenantId
+    // проставляем tenantId (через плагин/локалы)
     doc.$locals = { $tenantId: req.tenant.id };
     await doc.save();
 
     res.json(doc);
   } catch (e) {
-    // нарушение уникального индекса { tenantId, parentId, name }
     if (e && e.code === 11000) {
-      return res.status(409).json({ error: 'Группа с таким именем уже существует в этом уровне' });
+      return res
+        .status(409)
+        .json({ error: 'Группа с таким именем уже существует в этом уровне' });
     }
     next(e);
   }
@@ -96,7 +107,9 @@ router.put('/:id', async (req, res, next) => {
     res.json(updated);
   } catch (e) {
     if (e && e.code === 11000) {
-      return res.status(409).json({ error: 'Группа с таким именем уже существует в этом уровне' });
+      return res
+        .status(409)
+        .json({ error: 'Группа с таким именем уже существует в этом уровне' });
     }
     next(e);
   }
@@ -108,17 +121,19 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // проверим, нет ли дочерних групп
+    // дочерние группы?
     const child = await Group.findOne(
       { tenantId: String(req.tenant.id), parentId: id },
-      null, { $tenantId: req.tenant.id }
+      null,
+      { $tenantId: req.tenant.id }
     ).lean();
     if (child) return res.status(400).json({ error: 'Нельзя удалить группу с подгруппами' });
 
-    // и привязанных товаров (если используешь ссылку по строке name/ид)
+    // товары в группе?
     const product = await Product.findOne(
       { tenantId: String(req.tenant.id), group: id },
-      null, { $tenantId: req.tenant.id }
+      null,
+      { $tenantId: req.tenant.id }
     ).lean();
     if (product) return res.status(400).json({ error: 'Нельзя удалить: есть товары в группе' });
 
@@ -127,7 +142,7 @@ router.delete('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ============ REORDER (опционально) ============
+// ============ REORDER ============
 // PATCH /api/groups/reorder
 // body: [{_id, order}, ...]
 router.patch('/reorder', async (req, res, next) => {
@@ -136,8 +151,8 @@ router.patch('/reorder', async (req, res, next) => {
     const bulk = items.map(it => ({
       updateOne: {
         filter: { _id: it._id, tenantId: String(req.tenant.id) },
-        update: { $set: { order: Number(it.order) || 0, updatedAt: new Date() } }
-      }
+        update: { $set: { order: Number(it.order) || 0, updatedAt: new Date() } },
+      },
     }));
     if (bulk.length) await Group.bulkWrite(bulk);
     res.json({ ok: true, updated: bulk.length });
