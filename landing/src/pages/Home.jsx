@@ -1,11 +1,53 @@
 // landing/src/pages/Home.jsx
+import { useState } from "react";
+
+const API = import.meta.env.VITE_API_URL || "";
+
 export default function Home() {
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("test");
+
+  const [company, setCompany] = useState("");
+  const [subdomain, setSubdomain] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState(null);
+
   const tiers = [
     { name: "Тест", price: "0 ₴", desc: "Доступен 14 дней", features: ["Бесплатно"], plan: "test" },
     { name: "Старт", price: "5 000 ₴ / год", desc: "30 дней или на год", features: ["5.000 товаров", "Базовый дизайн"], plan: "start" },
     { name: "Медиум", price: "9 000 ₴ / год", desc: "30 дней или на год", features: ["10.000 товаров", "Дизайн на выбор"], plan: "medium" },
     { name: "Про", price: "12 500 ₴ / год", desc: "30 дней или на год", features: ["15.000 товаров", "Премиум-дизайн"], plan: "pro" },
   ];
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setMsg(null);
+
+    const sd = subdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/^-+/, "").replace(/-+$/, "");
+    if (sd.length < 3) return setMsg({ type: "error", text: "Поддомен минимум 3 символа" });
+
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/api/public/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: company.trim(), subdomain: sd, email: email.trim(), password, plan: selectedPlan }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || "Ошибка регистрации");
+
+      localStorage.setItem("tenantId", data.tenantId);
+      localStorage.setItem("token", data.token);
+
+      window.location.href = `https://${data.subdomain}.storo-shop.com/admin`;
+    } catch (e) {
+      setMsg({ type: "error", text: e.message });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -29,7 +71,7 @@ export default function Home() {
         <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
           Storo — платформа для запуска магазина без программиста.
         </p>
-        <a href="/register" className="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition">
+        <a href="#plans" className="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition">
           Создать магазин бесплатно
         </a>
       </section>
@@ -46,12 +88,12 @@ export default function Home() {
               <ul className="text-gray-700 mb-6 space-y-1 text-sm text-left">
                 {t.features.map(f => <li key={f}>✔ {f}</li>)}
               </ul>
-              <a
-                href="/register"
+              <button
+                onClick={() => { setSelectedPlan(t.plan); setShowModal(true); }}
                 className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition"
               >
                 Выбрать тариф
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -82,6 +124,29 @@ export default function Home() {
           © {new Date().getFullYear()} Storo. Все права защищены.
         </div>
       </footer>
+
+      {/* === REGISTER MODAL === */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-lg relative">
+            <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800">✖</button>
+            <h2 className="text-2xl font-bold text-indigo-600 mb-4">Регистрация ({tiers.find(t => t.plan === selectedPlan)?.name})</h2>
+            <form onSubmit={onSubmit} className="grid gap-3">
+              <input className="border rounded p-2" placeholder="Компания" value={company} onChange={e=>setCompany(e.target.value)} required />
+              <div className="flex items-center gap-2">
+                <input className="border rounded p-2 w-full" placeholder="Поддомен (например, demo)" value={subdomain} onChange={e=>setSubdomain(e.target.value)} required />
+                <span className="text-sm text-slate-600">.storo-shop.com</span>
+              </div>
+              <input className="border rounded p-2" type="email" placeholder="Email владельца" value={email} onChange={e=>setEmail(e.target.value)} required />
+              <input className="border rounded p-2" type="password" placeholder="Пароль" value={password} onChange={e=>setPassword(e.target.value)} required />
+              <button disabled={loading} className="bg-indigo-600 text-white rounded p-2 disabled:opacity-60">
+                {loading ? "Создаём..." : "Создать магазин"}
+              </button>
+            </form>
+            {msg && <p className={`mt-3 ${msg.type === "error" ? "text-red-600" : "text-green-600"}`}>{msg.text}</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
