@@ -1,5 +1,6 @@
+// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { api } from "../utils/api"; // вместо прямого fetch
+import { api } from "../utils/api"; // api должен сам подставлять Authorization из localStorage
 
 const AuthContext = createContext();
 
@@ -9,7 +10,6 @@ export function AuthProvider({ children }) {
 
   const getToken = () => localStorage.getItem("token");
 
-  // загрузка профиля
   const loadProfile = async (token) => {
     if (!token) {
       setUser(null);
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
       return;
     }
     try {
-      const data = await api("/api/users/me"); // api сам подставит headers
+      const data = await api("/api/users/me");
       setUser(data.user || null);
     } catch (err) {
       console.error("Ошибка загрузки профиля:", err);
@@ -27,24 +27,23 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // при загрузке приложения
   useEffect(() => {
     loadProfile(getToken());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // логин
-  const login = (token) => {
-    localStorage.setItem("token", token);
+  const login = (token, extra = {}) => {
+    if (token) localStorage.setItem("token", token);
+    if (extra.tenantId) localStorage.setItem("tenantId", extra.tenantId);
     setLoading(true);
-    loadProfile(token);
+    loadProfile(token || getToken());
   };
 
-  // регистрация = логин
   const register = login;
 
-  // выход
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("tenantId");
     localStorage.removeItem("user");
     setUser(null);
   };

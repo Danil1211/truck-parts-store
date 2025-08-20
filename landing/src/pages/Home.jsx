@@ -1,5 +1,5 @@
 // landing/src/pages/Home.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -90,9 +90,11 @@ export default function Home() {
       const data = await r.json();
       if (!r.ok) throw new Error(data?.error || "Ошибка регистрации");
 
-      localStorage.setItem("tenantId", data.tenantId);
-      localStorage.setItem("token", data.token);
-      window.location.href = `https://${data.subdomain}.storo-shop.com/admin`;
+      // Важно: токен передаём на субдомен через URL-параметры
+      const url = `https://${data.subdomain}.storo-shop.com/admin?token=${encodeURIComponent(
+        data.token
+      )}&tid=${encodeURIComponent(data.tenantId)}`;
+      window.location.replace(url);
     } catch (e) {
       setMsg({ type: "error", text: e.message });
     } finally {
@@ -134,9 +136,7 @@ export default function Home() {
           </div>
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900">
             Запусти e-commerce за{" "}
-            <span className="bg-gradient-to-r from-indigo-600 to-sky-500 bg-clip-text text-transparent">
-              60 секунд
-            </span>
+            <span className="bg-gradient-to-r from-indigo-600 to-sky-500 bg-clip-text text-transparent">60 секунд</span>
           </h1>
           <p className="mt-5 max-w-2xl mx-auto text-slate-600">
             Storo — платформа, где магазин, оплата, каталог и дизайн уже готовы. Вы — добавляете товары и продаёте.
@@ -249,9 +249,7 @@ export default function Home() {
             {tiers.map((t) => (
               <div
                 key={t.name}
-                className={`relative rounded-2xl border p-6 flex flex-col hover:shadow-xl transition ${
-                  t.highlight ? "ring-2 ring-indigo-600" : "bg-white"
-                }`}
+                className={`relative rounded-2xl border p-6 flex flex-col hover:shadow-xl transition ${t.highlight ? "ring-2 ring-indigo-600" : "bg-white"}`}
               >
                 {t.tag && (
                   <div className={`absolute -top-3 left-4 text-xs px-2 py-1 rounded-full border bg-white ${t.highlight ? "border-indigo-600 text-indigo-700" : "text-slate-700 border-slate-200"}`}>
@@ -275,9 +273,7 @@ export default function Home() {
                 <button
                   onClick={() => { setSelectedPlan(t.plan); setShowModal(true); }}
                   className={`mt-6 w-full px-5 py-2 rounded-lg font-medium ${
-                    t.highlight
-                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                      : "border border-slate-300 hover:bg-slate-50"
+                    t.highlight ? "bg-indigo-600 text-white hover:bg-indigo-700" : "border border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   {t.cta}
@@ -311,7 +307,7 @@ export default function Home() {
       <section id="faq" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <h3 className="text-3xl font-bold text-slate-900 text-center">Частые вопросы</h3>
-          <div className="mt-10 max-w-3xl mx-auto divide-y border rounded-2xl bg-white">
+        <div className="mt-10 max-w-3xl mx-auto divide-y border rounded-2xl bg-white">
             {[
               { q: "Правда без карты на тест?", a: "Да, 14 дней бесплатно без привязки карты. В любой момент можно перейти на платный тариф." },
               { q: "Можно свой домен?", a: "Да. По умолчанию выдаём *.storo-shop.com, позже подключите свой домен в настройках." },
