@@ -8,7 +8,9 @@ export default function Home() {
           <a href="/register" className="bg-blue-700 text-white px-5 py-3 rounded">Начать бесплатно</a>
           <a href="/demo" className="px-5 py-3 rounded border border-blue-700 text-blue-700">Смотреть демо</a>
         </div>
-        <p className="mt-4">Демо: <a className="text-blue-700 underline" href="https://demo.shopik.com" target="_blank">demo.shopik.com</a></p>
+        <p className="mt-4">
+          Демо: <a className="text-blue-700 underline" href="https://demo.storo-shop.com" target="_blank">demo.storo-shop.com</a>
+        </p>
       </div>
 
       <div className="mt-10 grid gap-6 md:grid-cols-3">

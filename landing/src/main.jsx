@@ -1,141 +1,134 @@
 // src/App.jsx
-import React, { useState } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
+import { motion } from "framer-motion";
 import "./index.css";
 
-const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
-
-const PLAN_LABELS = {
-  free: "Free — старт",
-  basic: "Basic — растём",
-  pro: "Pro — масштаб",
-};
-
 function App() {
-  const [company, setCompany] = useState("");
-  const [subdomain, setSubdomain] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [plan, setPlan] = useState("free");
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [hint, setHint] = useState("");
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setHint("");
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/public/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company, subdomain, email, password, plan }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data?.error || "Ошибка сервера");
-        return;
-      }
-
-      // ——— ЖЕЛЕЗОБЕТОННЫЙ РЕДИРЕКТ ———
-      // 1) если сервер вернул loginUrl — используем его
-      // 2) иначе строим URL из введённого поддомена
-      const fallbackUrl = `https://${subdomain.trim().toLowerCase()}.storo-shop.com/admin/login`;
-      const redirectTo = data.loginUrl || fallbackUrl;
-
-      // моментальный переход
-      window.location.assign(redirectTo);
-      return;
-    } catch {
-      setError("Ошибка сети");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const plans = [
+    {
+      title: "Тест",
+      desc: "Доступен в течение 14 дней",
+      features: ["Бесплатно"],
+      price: "0 грн",
+    },
+    {
+      title: "Старт",
+      desc: "На 30 дней или на год",
+      features: ["5.000 товаров", "Базовый дизайн"],
+      price: "5.000 грн / год",
+    },
+    {
+      title: "Медиум",
+      desc: "На 30 дней или на год",
+      features: ["10.000 товаров", "Дизайн на выбор"],
+      price: "9.000 грн / год",
+    },
+    {
+      title: "Про",
+      desc: "На 30 дней или на год",
+      features: ["15.000 товаров", "Премиум-дизайн"],
+      price: "12.500 грн / год",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <section className="text-center py-20 px-6">
-        <h1 className="text-4xl sm:text-5xl font-bold text-indigo-700 mb-4">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* === HEADER === */}
+      <header className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
+          <h1 className="text-2xl font-bold text-indigo-600">Storo</h1>
+          <nav className="flex gap-6 text-gray-700 font-medium">
+            <a href="#about" className="hover:text-indigo-600">О нас</a>
+            <a href="#plans" className="hover:text-indigo-600">Тарифы</a>
+            <a href="#contacts" className="hover:text-indigo-600">Контакты</a>
+            <a href="#login" className="hover:text-indigo-600">Личный кабинет</a>
+          </nav>
+        </div>
+      </header>
+
+      {/* === HERO === */}
+      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
+        <motion.h2
+          className="text-4xl sm:text-5xl font-bold text-indigo-700 mb-4"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
           Запусти интернет-магазин за 60 секунд
-        </h1>
-        <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
-          Storo — платформа для запуска магазина без программиста.
-        </p>
-        <a href="#signup" className="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition">
-          Создать магазин бесплатно
-        </a>
+        </motion.h2>
+        <motion.p
+          className="text-lg text-gray-600 max-w-2xl mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 1 }}
+        >
+          Storo — простая и современная платформа для старта твоего бизнеса.
+        </motion.p>
+        <motion.a
+          href="#plans"
+          className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition"
+          whileHover={{ scale: 1.05 }}
+        >
+          Выбрать тариф
+        </motion.a>
       </section>
 
-      <section id="signup" className="py-20 px-6">
-        <div className="w-full max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-3xl font-bold text-indigo-600 mb-6">Начни бесплатно</h2>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-            <input
-              className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Компания"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              required
-            />
-
-            <div className="flex items-center gap-2">
-              <input
-                className="flex-1 px-4 py-3 border rounded-lg"
-                placeholder="Поддомен (например, demo)"
-                value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value)}
-                required
-              />
-              <span className="text-gray-600">.storo-shop.com</span>
-            </div>
-
-            <input
-              type="email"
-              className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Email владельца"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            <input
-              type="password"
-              className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-
-            <div>
-              <label className="block font-medium mb-1">Тариф</label>
-              <div className="flex gap-4 flex-wrap">
-                {["free", "basic", "pro"].map((p) => (
-                  <label key={p} className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer ${plan === p ? "border-indigo-500 bg-indigo-50" : "border-gray-300"}`}>
-                    <input type="radio" name="plan" value={p} checked={plan === p} onChange={() => setPlan(p)} />
-                    {PLAN_LABELS[p]}
-                  </label>
+      {/* === PLANS === */}
+      <section id="plans" className="py-20 px-6 bg-white">
+        <h3 className="text-3xl font-bold text-center text-indigo-600 mb-12">
+          Наши пакеты
+        </h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+          {plans.map((plan, i) => (
+            <motion.div
+              key={i}
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 flex flex-col items-center text-center hover:shadow-xl transition cursor-pointer"
+              whileHover={{ y: -8 }}
+            >
+              <h4 className="text-xl font-bold text-indigo-700 mb-2">{plan.title}</h4>
+              <p className="text-gray-500 mb-4">{plan.desc}</p>
+              <ul className="text-gray-700 mb-6 space-y-2">
+                {plan.features.map((f, idx) => (
+                  <li key={idx}>✔ {f}</li>
                 ))}
-              </div>
-            </div>
-
-            <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-lg shadow-md hover:bg-indigo-700 transition">
-              {loading ? "Создаём..." : "Создать магазин"}
-            </button>
-          </form>
-
-          {error && <p className="text-red-500 mt-4">Ошибка: {error}</p>}
-          {hint && <p className="text-green-600 mt-4">{hint}</p>}
+              </ul>
+              <p className="text-2xl font-bold text-indigo-600 mb-4">{plan.price}</p>
+              <button className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition">
+                Выбрать тариф
+              </button>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      <footer className="py-6 text-center text-gray-500 border-t">
-        © {new Date().getFullYear()} Storo
+      {/* === FOOTER === */}
+      <footer id="contacts" className="bg-gray-900 text-gray-300 py-10 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div>
+            <h5 className="font-bold text-white mb-3">Storo</h5>
+            <p className="text-sm">
+              Платформа для запуска интернет-магазинов быстро и просто.
+            </p>
+          </div>
+          <div>
+            <h5 className="font-bold text-white mb-3">Полезные ссылки</h5>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#about" className="hover:text-white">О нас</a></li>
+              <li><a href="#plans" className="hover:text-white">Тарифы</a></li>
+              <li><a href="#contacts" className="hover:text-white">Контакты</a></li>
+              <li><a href="#login" className="hover:text-white">Личный кабинет</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5 className="font-bold text-white mb-3">Контакты</h5>
+            <p className="text-sm">📧 support@storo-shop.com</p>
+            <p className="text-sm">📞 +380 00 000 00 00</p>
+          </div>
+        </div>
+        <div className="text-center text-gray-500 text-sm mt-8 border-t border-gray-700 pt-4">
+          © {new Date().getFullYear()} Storo. Все права защищены.
+        </div>
       </footer>
     </div>
   );

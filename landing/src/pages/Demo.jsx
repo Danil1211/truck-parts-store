@@ -3,8 +3,8 @@ export default function Demo() {
     <section className="text-center">
       <h2 className="text-2xl font-bold mb-3">Демо-магазин</h2>
       <p className="mb-4">Посмотрите живой пример с наполнением.</p>
-      <a className="text-blue-700 underline" href="https://demo.shopik.com" target="_blank" rel="noreferrer">
-        Открыть demo.shopik.com
+      <a className="text-blue-700 underline" href="https://demo.storo-shop.com" target="_blank" rel="noreferrer">
+        Открыть demo.storo-shop.com
       </a>
     </section>
   );
