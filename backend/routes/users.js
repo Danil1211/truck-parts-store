@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const { User } = require('../models');             // ✅ правильный импорт
+const { User } = require('../models/models');            // ✅ правильный импорт
 const { authMiddleware } = require('./protected'); // ✅ правильный путь
 const withTenant = require('../middleware/withTenant');
 
