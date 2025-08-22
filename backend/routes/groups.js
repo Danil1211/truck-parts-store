@@ -1,7 +1,7 @@
 // backend/routes/groups.js
 const express = require('express');
 const router = express.Router();
-const { Group, Product } = require('../models');
+const { Group, Product } = require('../models/models'); // ✅ правильный путь
 
 // ✅ важно: вытягиваем tenant из домена/хедера
 const withTenant = require('../middleware/withTenant');

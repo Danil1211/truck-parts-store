@@ -1,8 +1,8 @@
-// routes/site-settings.js
+// backend/routes/site-settings.js
 const express = require('express');
 const router = express.Router();
-const { SiteSettings } = require('../models');
-const { authMiddleware } = require('../protected');
+const { SiteSettings } = require('../models/models'); // ✅ правильный путь
+const { authMiddleware } = require('./protected');    // ✅ protected лежит в routes
 const withTenant = require('../middleware/withTenant');
 
 /* подключаем tenant */

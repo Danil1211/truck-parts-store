@@ -1,21 +1,38 @@
+// backend/plugins/tenantScope.js
 const mongoose = require('mongoose');
 
 module.exports = function tenantScope(schema) {
-  schema.add({ tenantId: { type: mongoose.Schema.Types.ObjectId, index: true, required: true } });
+  // Добавляем tenantId во все схемы
+  schema.add({
+    tenantId: { type: mongoose.Schema.Types.ObjectId, index: true, required: true }
+  });
 
-  schema.pre('save', function(next) {
-    if (!this.tenantId && this.$locals?.$tenantId) this.tenantId = this.$locals.$tenantId;
+  // При сохранении — проставляем tenantId из $locals
+  schema.pre('save', function (next) {
+    if (!this.tenantId && this.$locals?.$tenantId) {
+      this.tenantId = this.$locals.$tenantId;
+    }
     next();
   });
 
+  // Хуки, которые должны автоматически фильтровать по tenantId
   const hooks = [
-    'find','findOne','count','countDocuments',
-    'findOneAndUpdate','updateMany','updateOne',
-    'deleteMany','deleteOne'
+    'find',
+    'findOne',
+    'findById',
+    'findOneAndUpdate',
+    'findByIdAndUpdate',
+    'updateMany',
+    'updateOne',
+    'deleteMany',
+    'deleteOne',
+    'count',
+    'countDocuments'
   ];
-  hooks.forEach(h => {
-    schema.pre(h, function() {
-      if (this.options && this.options.$tenantId && !this.getQuery().tenantId) {
+
+  hooks.forEach(hook => {
+    schema.pre(hook, function () {
+      if (this.options?.$tenantId && !this.getQuery().tenantId) {
         this.where({ tenantId: this.options.$tenantId });
       }
     });

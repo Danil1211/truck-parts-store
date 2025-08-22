@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
-  secure: process.env.SMTP_SECURE === 'true' || true, // true = SSL
+  secure: process.env.SMTP_SECURE === 'true', // строго берём из .env
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -47,7 +47,7 @@ ${order.items.map(item => `• ${item.quantity} x ${item.product.name}`).join('\
       from: `"Магазин" <${process.env.SMTP_USER}>`,
       to: toEmail,
       subject: 'Подтверждение заказа',
-      text: textContent,
+      text: textContent.trim(),
       html: htmlContent,
     });
 

@@ -16,12 +16,13 @@ const publicRoutes       = require('./routes/public');
 const superAdminRoutes   = require('./routes/superAdmin');
 const paymentsRoutes     = require('./routes/payments');
 const withTenant         = require('./middleware/withTenant');
-const authRoutes         = require('./auth');
-const categoryRoutes     = require('./categories');
+
+const authRoutes         = require('./routes/auth');
+const categoryRoutes     = require('./routes/categories');
 const productRoutes      = require('./routes/products');
 const orderRoutes        = require('./routes/orders');
-const uploadRoutes       = require('./upload');
-const chatRoutes         = require('./chat');
+const uploadRoutes       = require('./routes/upload');
+const chatRoutes         = require('./routes/chat');
 const groupsRoutes       = require('./routes/groups');
 const novaposhtaProxy    = require('./routes/novaposhtaProxy');
 const userRoutes         = require('./routes/users');
@@ -35,30 +36,20 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 /* ============================= CORS ============================= */
-// Домены из .env (через запятую)
 const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
 
 function isAllowedOrigin(origin = '') {
-  if (!origin) return true; // Postman, curl, SSR и т.п.
+  if (!origin) return true; // Postman, curl и т.п.
   try {
     const { hostname } = new URL(origin);
     const h = hostname.toLowerCase();
 
-    // основной домен + поддомены (*.storo-shop.com)
-    if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) {
-      return true;
-    }
-
-    // backend поддомен тоже явно разрешим
+    if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) return true;
     if (h === 'api.storo-shop.com') return true;
-
-    // Render-домены (удобно для отладки)
     if (h.endsWith('onrender.com')) return true;
-
-    // Белый список из ENV (с точным origin)
     if (allowedFromEnv.includes(origin)) return true;
 
     return false;
@@ -67,13 +58,13 @@ function isAllowedOrigin(origin = '') {
   }
 }
 
-// ЛОГИ запросов (видно в Render → Logs)
+// ЛОГИ
 app.use((req, _res, next) => {
   console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
   next();
 });
 
-// Ручной preflight (ставим заголовки ДО маршрутов)
+// Preflight
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = isAllowedOrigin(origin);
@@ -86,7 +77,6 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Tenant-Id, X-Super-Key');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
   } else {
-    // Явно отвечаем на preflight неразрешённым — чтобы не было "ошибка сети"
     if (req.method === 'OPTIONS') {
       console.warn(`❌ CORS blocked preflight for origin=${origin}`);
       return res.status(403).json({ error: 'CORS not allowed' });
@@ -95,7 +85,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// express-cors — для совместимости
 app.use(cors({
   origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
   credentials: true,
@@ -108,7 +97,6 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
-// Проверка CORS/Origin
 app.get('/api/cors-check', (req, res) => {
   res.json({ ok: true, originSeen: req.headers.origin || null });
 });

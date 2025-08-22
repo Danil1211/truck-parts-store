@@ -1,12 +1,12 @@
-// routes/products.js
+// backend/routes/products.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const { Product, Group, SiteSettings } = require('../models');
-const { authMiddleware } = require('../protected');
+const { Product, Group, SiteSettings } = require('../models/models'); // ✅ правильный импорт
+const { authMiddleware } = require('./protected');                    // ✅ лежит в routes
 const withTenant = require('../middleware/withTenant');
 
 /* =========================
@@ -45,24 +45,19 @@ router.use(withTenant);
 
 /**
  * GET /api/products/showcase
- * Берём ids из SiteSettings текущего арендатора.
- * Возвращаем максимум 24 товара, порядок сохраняем.
  */
 router.get('/showcase', async (req, res) => {
   try {
-    const st = await SiteSettings.findOne({ tenantId: req.tenantId }).lean();
+    const st = await SiteSettings.findOne({ tenantId: String(req.tenant.id) }).lean();
     const ids = (st?.showcase?.productIds || []).map(String).slice(0, 24);
     if (!ids.length) return res.json([]);
 
-    // подстрахуемся: тянем только свои (tenantId) товары
-    const items = await Product.find({ _id: { $in: ids }, tenantId: req.tenantId })
+    const items = await Product.find({ _id: { $in: ids }, tenantId: String(req.tenant.id) })
       .select('name price images availability group')
       .lean();
 
-    // нормализуем наличие
     for (const it of items) it.availability = normalizeAvailability(it.availability);
 
-    // восстановим порядок как в настройках
     const order = new Map(ids.map((id, i) => [String(id), i]));
     items.sort((a, b) => (order.get(String(a._id)) ?? 999) - (order.get(String(b._id)) ?? 999));
 
@@ -73,14 +68,11 @@ router.get('/showcase', async (req, res) => {
   }
 });
 
-// Заглушки (можно потом заменить своей логикой)
 router.get('/recommend', (_req, res) => res.json([]));
 router.get('/recent', (_req, res) => res.json([]));
 
 /**
  * GET /api/products/admin
- * Список товаров для модалки выбора (админка).
- * Параметры: q, group / groupId, inStock, page, limit
  */
 router.get('/admin', authMiddleware, async (req, res) => {
   try {
@@ -92,15 +84,14 @@ router.get('/admin', authMiddleware, async (req, res) => {
     const limitNum = Math.max(1, Math.min(100, Number(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    const filter = { tenantId: req.tenantId };
+    const filter = { tenantId: String(req.tenant.id) };
 
     if (q) filter.name = { $regex: q.trim(), $options: 'i' };
 
     const groupFilter = (groupId || group || '').trim();
-    if (groupFilter) filter.group = groupFilter; // у тебя group — строка
+    if (groupFilter) filter.group = groupFilter;
 
-    // фильтр наличия по единому формату
-    if (inStock === 'true')  filter.availability = 'В наличии';
+    if (inStock === 'true') filter.availability = 'В наличии';
     if (inStock === 'false') filter.availability = { $ne: 'В наличии' };
 
     const [items, total] = await Promise.all([
@@ -113,7 +104,6 @@ router.get('/admin', authMiddleware, async (req, res) => {
       Product.countDocuments(filter),
     ]);
 
-    // нормализуем на выдаче
     for (const it of items) it.availability = normalizeAvailability(it.availability);
 
     res.json({ items, total, page: pageNum, pages: Math.ceil(total / limitNum) || 1 });
@@ -125,12 +115,11 @@ router.get('/admin', authMiddleware, async (req, res) => {
 
 /**
  * GET /api/products/groups
- * Группы для селекта в модалке (текущий арендатор).
  */
 router.get('/groups', authMiddleware, async (req, res) => {
   try {
     if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
-    const groups = await Group.find({ tenantId: req.tenantId })
+    const groups = await Group.find({ tenantId: String(req.tenant.id) })
       .select('name parentId')
       .sort({ order: 1 })
       .lean();
@@ -145,10 +134,9 @@ router.get('/groups', authMiddleware, async (req, res) => {
    CRUD
 ========================= */
 
-/** GET /api/products — все товары арендатора */
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find({ tenantId: req.tenantId }).lean();
+    const products = await Product.find({ tenantId: String(req.tenant.id) }).lean();
     products.forEach(p => (p.availability = normalizeAvailability(p.availability)));
     res.json(products);
   } catch (err) {
@@ -157,19 +145,17 @@ router.get('/', async (req, res) => {
   }
 });
 
-/** GET /api/products/:id — один товар арендатора */
 router.get('/:id', async (req, res) => {
   try {
-    const prod = await Product.findOne({ _id: req.params.id, tenantId: req.tenantId }).lean();
+    const prod = await Product.findOne({ _id: req.params.id, tenantId: String(req.tenant.id) }).lean();
     if (!prod) return res.status(404).json({ error: 'Товар не найден' });
     prod.availability = normalizeAvailability(prod.availability);
     res.json(prod);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Ошибка при получении товара' });
   }
 });
 
-/** POST /api/products — создать товар (привязываем к tenantId) */
 router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
   try {
     if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
@@ -183,7 +169,7 @@ router.post('/', authMiddleware, upload.array('images', 10), async (req, res) =>
     } = req.body;
 
     const product = new Product({
-      tenantId: req.tenantId,
+      tenantId: String(req.tenant.id),
       name, sku, description, group,
       hasProps: hasProps === 'true',
       propsColor, queries, width, height, length, weight,
@@ -203,7 +189,6 @@ router.post('/', authMiddleware, upload.array('images', 10), async (req, res) =>
   }
 });
 
-/** PATCH /api/products/:id — обновить товар арендатора */
 router.patch('/:id', authMiddleware, upload.array('images', 10), async (req, res) => {
   try {
     if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
@@ -222,11 +207,9 @@ router.patch('/:id', authMiddleware, upload.array('images', 10), async (req, res
       price, unit, availability, stock,
     } = req.body;
 
-    // найдём старый товар только своего арендатора
-    const oldProduct = await Product.findOne({ _id: id, tenantId: req.tenantId });
+    const oldProduct = await Product.findOne({ _id: id, tenantId: String(req.tenant.id) });
     if (!oldProduct) return res.status(404).json({ error: 'Товар не найден' });
 
-    // удалить физически лишние файлы
     const toDelete = (oldProduct.images || []).filter(img => !serverImages.includes(img));
     toDelete.forEach(img => {
       const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
@@ -236,7 +219,7 @@ router.patch('/:id', authMiddleware, upload.array('images', 10), async (req, res
     });
 
     const prod = await Product.findOneAndUpdate(
-      { _id: id, tenantId: req.tenantId },
+      { _id: id, tenantId: String(req.tenant.id) },
       {
         name, sku, description, group,
         hasProps: hasProps === 'true',
@@ -250,7 +233,6 @@ router.patch('/:id', authMiddleware, upload.array('images', 10), async (req, res
       { new: true, lean: true }
     );
 
-    // нормализуем на выдаче
     if (prod) prod.availability = normalizeAvailability(prod.availability);
 
     res.json(prod);
@@ -260,12 +242,11 @@ router.patch('/:id', authMiddleware, upload.array('images', 10), async (req, res
   }
 });
 
-/** DELETE /api/products/:id — удалить товар арендатора */
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
 
-    const product = await Product.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+    const product = await Product.findOneAndDelete({ _id: req.params.id, tenantId: String(req.tenant.id) });
     if (!product) return res.status(404).json({ error: 'Товар не найден' });
 
     (product.images || []).forEach(img => {

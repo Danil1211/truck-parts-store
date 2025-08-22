@@ -1,10 +1,10 @@
-// routes/categories.js
+// backend/routes/categories.js
 const express = require('express');
 const router = express.Router();
 
-const { Category } = require('./models');
+const { Category } = require('../models/models');
 const { authMiddleware } = require('./protected');
-const withTenant = require('./middleware/withTenant');
+const withTenant = require('../middleware/withTenant');
 
 // все роуты работают в контексте арендатора
 router.use(withTenant);
@@ -15,8 +15,14 @@ router.use(withTenant);
  */
 router.get('/', async (req, res) => {
   try {
-    const tenantId = req.tenantId || 'default';
-    const categories = await Category.find({ tenantId }).lean();
+    if (!req.tenant?.id) return res.status(400).json({ error: 'No tenant' });
+
+    const categories = await Category.find(
+      { tenantId: String(req.tenant.id) },
+      null,
+      { $tenantId: req.tenant.id }
+    ).lean();
+
     res.json(categories);
   } catch (err) {
     console.error('Ошибка получения категорий:', err);
@@ -33,21 +39,22 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!req.user?.isAdmin) {
       return res.status(403).json({ error: 'Только для админа' });
     }
-    const tenantId = req.tenantId || 'default';
-    const { name, slug, parentId = null } = req.body;
+    if (!req.tenant?.id) return res.status(400).json({ error: 'No tenant' });
 
+    const { name, slug, parentId = null } = req.body;
     if (!name || !slug) {
       return res.status(400).json({ error: 'Название и slug обязательны' });
     }
 
-    const category = await Category.create({
-      tenantId,
+    const doc = new Category({
       name: String(name).trim(),
       slug: String(slug).trim(),
       parentId: parentId || null,
     });
+    doc.$locals = { $tenantId: req.tenant.id };
+    await doc.save();
 
-    res.status(201).json(category);
+    res.status(201).json(doc);
   } catch (err) {
     console.error('Ошибка создания категории:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
@@ -63,10 +70,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (!req.user?.isAdmin) {
       return res.status(403).json({ error: 'Только для админа' });
     }
-    const tenantId = req.tenantId || 'default';
+    if (!req.tenant?.id) return res.status(400).json({ error: 'No tenant' });
 
     const updated = await Category.findOneAndUpdate(
-      { _id: req.params.id, tenantId },
+      { _id: req.params.id, tenantId: String(req.tenant.id) },
       req.body,
       { new: true }
     ).lean();
@@ -91,14 +98,18 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (!req.user?.isAdmin) {
       return res.status(403).json({ error: 'Только для админа' });
     }
-    const tenantId = req.tenantId || 'default';
+    if (!req.tenant?.id) return res.status(400).json({ error: 'No tenant' });
 
-    const deleted = await Category.findOneAndDelete({ _id: req.params.id, tenantId });
+    const deleted = await Category.findOneAndDelete({
+      _id: req.params.id,
+      tenantId: String(req.tenant.id),
+    });
+
     if (!deleted) {
       return res.status(404).json({ error: 'Категория не найдена' });
     }
 
-    res.status(204).end();
+    res.json({ ok: true });
   } catch (err) {
     console.error('Ошибка удаления категории:', err);
     res.status(500).json({ error: 'Ошибка сервера' });

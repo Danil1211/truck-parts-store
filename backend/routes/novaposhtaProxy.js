@@ -1,10 +1,10 @@
-// routes/novaposhta.js
+// backend/routes/novaposhtaProxy.js
 const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
 
 const NOVAPOSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const NOVAPOSHTA_API_KEY = 'c3686f791cb747ffeb935614ac10011e'; // 🔑 твой ключ
+const NOVAPOSHTA_API_KEY = process.env.NOVAPOSHTA_API_KEY; // ✅ берём из .env
 
 // === Поиск города по подстроке ===
 router.post('/findCities', async (req, res) => {

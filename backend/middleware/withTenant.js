@@ -1,5 +1,5 @@
 // backend/middleware/withTenant.js
-const { Tenant } = require('../models');
+const { Tenant } = require('../models/models');
 
 // Перечень хостов API (через запятую), чтобы отличать их от витрин.
 const API_HOSTS = (process.env.API_HOSTS || 'api.storo-shop.com')
@@ -29,6 +29,12 @@ module.exports = async function withTenant(req, res, next) {
     req.path.startsWith('/healthz') ||
     req.path.startsWith('/api/cors-check');
 
+  if (isGlobal) {
+    req.tenantId = null;
+    req.tenant = null;
+    return next();
+  }
+
   let tenantId = (req.get('x-tenant-id') || req.query.tenant || '').toString().trim();
   let subdomain = (req.get('x-tenant-subdomain') || '').toString().trim();
 
@@ -57,11 +63,11 @@ module.exports = async function withTenant(req, res, next) {
     }
   }
 
-  if (!isGlobal && !tenantId) {
-    return res.status(400).json({ error: 'Tenant not resolved' });
+  if (!tenantId) {
+    return res.status(403).json({ error: 'Tenant not resolved' });
   }
 
-  req.tenantId = tenantId || null;
-  req.tenant = { id: tenantId || null, subdomain: subdomain || null };
+  req.tenantId = tenantId;
+  req.tenant = { id: tenantId, subdomain: subdomain || null };
   next();
 };

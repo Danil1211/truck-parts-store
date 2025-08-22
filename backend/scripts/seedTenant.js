@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Tenant } = require('../models');
+const { Tenant } = require('../models/models');
 require('dotenv').config();
 
 (async () => {

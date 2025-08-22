@@ -1,14 +1,11 @@
 // jobs/checkMissedChats.js
-const { User, Message } = require('../models');
+const { User, Message } = require('../models/models'); // у тебя везде ../models/models
 
 /**
- * Логика:
- * - Берём пользователей, у которых статус в активных состояниях
- *   (new | waiting | active), и пришло новое входящее сообщение от клиента
- *   позже, чем админ видел/прочитал (adminLastReadAt), и прошло >2 минут.
- * - Помечаем их как missed.
- *
- * Дополнительно можно гасить "онлайн", если lastOnlineAt сильно старый.
+ * Проверка "пропущенных" чатов
+ * - new | waiting | active → если у клиента есть непрочитанное сообщение,
+ *   старше 2 минут → статус missed
+ * - плюс авто-сброс онлайн, если lastOnlineAt старше 70с
  */
 async function checkMissedChats() {
   const TWO_MIN = 2 * 60 * 1000;
@@ -20,13 +17,12 @@ async function checkMissedChats() {
     }).select('_id status lastMessageAt adminLastReadAt phone lastOnlineAt isOnline');
 
     for (const user of users) {
-      // офлайн-статус по таймеру (например, 70с)
+      // авто-офлайн
       if (user.isOnline && user.lastOnlineAt && now - new Date(user.lastOnlineAt).getTime() > 70_000) {
         user.isOnline = false;
         await user.save().catch(() => {});
       }
 
-      // если нет новых сообщений — дальше
       if (!user.lastMessageAt) continue;
 
       const lastClientMsg = new Date(user.lastMessageAt).getTime();
@@ -36,7 +32,7 @@ async function checkMissedChats() {
       const overdue = now - lastClientMsg > TWO_MIN;
 
       if (clientHasUnseenMsg && overdue) {
-        // Доп.проверка: не было ли ответов от админа после lastMessageAt
+        // проверка: нет ли ответа админа после этого сообщения
         const hasAdminReplyAfter = await Message.exists({
           user: user._id,
           fromAdmin: true,

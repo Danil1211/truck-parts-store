@@ -1,7 +1,7 @@
-// routes/showcase.js
+// backend/routes/products.showcase.js
 const express = require('express');
 const router = express.Router();
-const { SiteSettings, Product } = require('../models');
+const { SiteSettings, Product } = require('../models/models'); // ✅ правильный импорт
 const withTenant = require('../middleware/withTenant');
 
 // единая нормализация
@@ -24,7 +24,7 @@ router.use(withTenant);
  */
 router.get('/showcase', async (req, res) => {
   try {
-    const settings = await SiteSettings.findOne({ tenantId: req.tenantId }).lean();
+    const settings = await SiteSettings.findOne({ tenantId: String(req.tenant.id) }).lean();
     const enabled = !!settings?.showcase?.enabled;
     const ids = Array.isArray(settings?.showcase?.productIds)
       ? settings.showcase.productIds.map(String).slice(0, 24)
@@ -37,7 +37,7 @@ router.get('/showcase', async (req, res) => {
     // ищем только свои товары
     const items = await Product.find({
       _id: { $in: ids },
-      tenantId: req.tenantId,
+      tenantId: String(req.tenant.id),
     })
       .select('name price images availability group')
       .lean();

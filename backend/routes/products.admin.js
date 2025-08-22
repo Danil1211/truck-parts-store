@@ -1,9 +1,9 @@
-// routes/products.admin.js
+// backend/routes/products.admin.js
 const express = require('express');
 const router = express.Router();
 
-const { Product, Group } = require('../models');
-const { authMiddleware } = require('../protected');
+const { Product, Group } = require('../models/models'); // ✅ правильный импорт
+const { authMiddleware } = require('./protected');      // ✅ лежит в routes
 const withTenant = require('../middleware/withTenant');
 
 // Все эндпоинты здесь — только под конкретного арендатора
@@ -18,10 +18,6 @@ router.use(withTenant);
  *  inStock     - "true" | "false"
  *  page        - номер страницы (1)
  *  limit       - размер страницы (20)
- *
- * Примечание:
- *   inStock === "true" трактуем как availability === "В наличии"
- *   inStock === "false" трактуем как availability !== "В наличии"
  */
 router.get('/admin', authMiddleware, async (req, res) => {
   try {
@@ -43,20 +39,19 @@ router.get('/admin', authMiddleware, async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const filter = {
-      tenantId: req.tenantId, // 👈 фильтруем по арендатору
+      tenantId: String(req.tenant.id), // ✅ всегда tenant.id
     };
 
     if (q) {
       filter.name = { $regex: q.trim(), $options: 'i' };
     }
 
-    // Фильтр по группе — поддержим оба названия параметра
+    // Фильтр по группе
     const groupFilter = (groupId || group || '').trim();
     if (groupFilter) {
       filter.group = groupFilter; // у тебя group в товаре — строка
     }
 
-    // Фильтр наличия по единому формату поля availability
     if (inStock === 'true') {
       filter.availability = 'В наличии';
     } else if (inStock === 'false') {
@@ -87,7 +82,7 @@ router.get('/admin', authMiddleware, async (req, res) => {
 
 /**
  * GET /api/products/groups
- * Группы для фильтра витрины (если не используешь — вернём пустой массив).
+ * Группы для фильтра витрины
  */
 router.get('/groups', authMiddleware, async (req, res) => {
   try {
@@ -95,7 +90,7 @@ router.get('/groups', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
 
-    const groups = await Group.find({ tenantId: req.tenantId }) // 👈 привязка к арендатору
+    const groups = await Group.find({ tenantId: String(req.tenant.id) })
       .select('name parentId')
       .sort({ order: 1 })
       .lean();

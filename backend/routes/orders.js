@@ -1,9 +1,9 @@
-// routes/orders.js
+// backend/routes/orders.js
 const express = require('express');
 const router = express.Router();
 
-const { Order, Product, User } = require('../models');
-const { authMiddleware, adminMiddleware } = require('../protected');
+const { Order, Product, User } = require('../models/models'); // ✅ правильно
+const { authMiddleware, adminMiddleware } = require('./protected'); // ✅ protected в routes
 const withTenant = require('../middleware/withTenant');
 const mongoose = require('mongoose');
 
@@ -11,13 +11,10 @@ router.use(withTenant);
 
 /**
  * 🔐 Создание нового заказа (только авторизованный пользователь)
- * - Проверяем, что товары принадлежат текущему арендатору
- * - Считаем total по текущим ценам
- * - Сохраняем контактные данные
  */
 router.post('/', authMiddleware, async (req, res) => {
   const {
-    items,                // [{ product: <id>, quantity: <number> }, ...]
+    items,
     address,
     novaPoshta,
     paymentMethod,
@@ -26,7 +23,7 @@ router.post('/', authMiddleware, async (req, res) => {
     phone,
     email,
     comment,
-    deliveryType
+    deliveryType,
   } = req.body;
 
   try {
@@ -42,7 +39,6 @@ router.post('/', authMiddleware, async (req, res) => {
         return res.status(400).json({ error: 'Неверный формат items' });
       }
 
-      // Товар — только текущего арендатора
       const product = await Product.findOne({
         _id: item.product,
         tenantId: req.tenantId,
@@ -74,8 +70,6 @@ router.post('/', authMiddleware, async (req, res) => {
       paymentMethod,
       totalPrice: total,
       status: 'new',
-
-      // Контакты/доп.поля
       contactName: name,
       contactSurname: surname,
       contactPhone: phone,
@@ -115,10 +109,6 @@ router.get('/my', authMiddleware, async (req, res) => {
 
 /**
  * 👑 Список всех заказов (админ) с пагинацией/поиском/фильтрами
- * Поиск:
- *  - по ID заказа (точное совпадение, если валидный ObjectId)
- *  - по контактным полям в заказе: contactName, contactSurname, contactPhone, contactEmail
- *  - по пользователям: name, email, phone (через поиск userId и затем фильтр по ним)
  */
 router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -135,17 +125,11 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const query = { tenantId: req.tenantId };
-
-    if (status && status !== 'all') {
-      query.status = status;
-    }
+    if (status && status !== 'all') query.status = status;
 
     const or = [];
-
     if (search) {
       const regex = new RegExp(search, 'i');
-
-      // Поиск по контактным полям заказа
       or.push(
         { contactName: regex },
         { contactSurname: regex },
@@ -153,22 +137,17 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
         { contactEmail: regex }
       );
 
-      // Поиск по пользователям (name/email/phone)
       const userOr = [{ name: regex }, { email: regex }, { phone: regex }];
       const foundUsers = await User.find({ $or: userOr }).select('_id').lean();
       if (foundUsers.length) {
         or.push({ user: { $in: foundUsers.map(u => u._id) } });
       }
 
-      // Поиск по ID заказа (точно)
       if (mongoose.Types.ObjectId.isValid(search)) {
         or.push({ _id: new mongoose.Types.ObjectId(search) });
       }
     }
-
-    if (or.length) {
-      query.$or = or;
-    }
+    if (or.length) query.$or = or;
 
     const total = await Order.countDocuments(query);
 
@@ -193,8 +172,7 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 /**
- * 👑 Заказы конкретного пользователя (админ), с пагинацией
- * ?user=<userId>
+ * 👑 Заказы конкретного пользователя (админ)
  */
 router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -284,7 +262,7 @@ router.put('/:id/cancel', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 /**
- * 🚩 Отмена заказа пользователем (только свой и только если "new")
+ * 🚩 Отмена заказа пользователем (свой, если new)
  */
 router.put('/:id/cancel-my', authMiddleware, async (req, res) => {
   try {
@@ -294,7 +272,6 @@ router.put('/:id/cancel-my', authMiddleware, async (req, res) => {
     });
 
     if (!order) return res.status(404).json({ error: 'Заказ не найден' });
-
     if (String(order.user) !== String(req.user.id)) {
       return res.status(403).json({ error: 'Нет доступа к заказу' });
     }

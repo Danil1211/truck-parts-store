@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/truckparts';
-const { User } = require('../models');
+const { User } = require('../models/models');
 
 (async () => {
   try {

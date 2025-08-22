@@ -1,4 +1,4 @@
-const { Product, Message } = require('../models');
+const { Product, Message } = require('../models/models');
 
 exports.getTenantUsage = async (tenantId) => {
   const [products, chats] = await Promise.all([

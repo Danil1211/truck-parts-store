@@ -1,3 +1,4 @@
+// backend/routes/products.recommend.js
 const express = require('express');
 const router = express.Router();
 const withTenant = require('../middleware/withTenant');
