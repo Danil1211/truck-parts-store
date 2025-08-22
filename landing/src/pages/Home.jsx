@@ -1,3 +1,4 @@
+// landing/src/pages/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -54,6 +55,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Остальные секции без изменений */}
     </div>
   );
 }

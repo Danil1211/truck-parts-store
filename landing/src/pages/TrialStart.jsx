@@ -1,3 +1,4 @@
+// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
 
 const API =
@@ -7,7 +8,7 @@ const API =
 export default function TrialStart() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
-  const [subdomain, setSubdomain] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
@@ -16,30 +17,48 @@ export default function TrialStart() {
     e.preventDefault();
     setErr("");
     setOk("");
+
     try {
       setLoading(true);
       const res = await fetch(`${API}/api/public/trial`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, company, subdomain }),
+        body: JSON.stringify({
+          email: email.trim(),
+          company: company.trim(),
+          phone: phone.trim(),
+        }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка запуска триала");
 
+      // Предпочтительно — автологин в админку c token & tid
+      if (data.token && data.tenantId && data.subdomain) {
+        const url = `https://${data.subdomain}.storo-shop.com/admin?token=${encodeURIComponent(
+          data.token
+        )}&tid=${encodeURIComponent(data.tenantId)}`;
+        window.location.href = url;
+        return;
+      }
+
+      // Фолбэк — ссылка на /admin/login
       if (data.loginUrl) {
         window.location.href = data.loginUrl;
-      } else {
-        setOk("✅ Магазин создан! Проверьте почту для деталей.");
+        return;
       }
+
+      // Если вдруг без редиректа
+      setOk("✅ Магазин создан! Проверьте почту для деталей.");
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Ошибка запуска триала");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 500, margin: "40px auto", padding: 20 }}>
+    <div style={{ maxWidth: 520, margin: "40px auto", padding: 20 }}>
       <h1>Создать магазин бесплатно</h1>
       <p>14 дней бесплатного доступа, без привязки карты.</p>
 
@@ -50,6 +69,7 @@ export default function TrialStart() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="email"
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
         <input
@@ -61,11 +81,10 @@ export default function TrialStart() {
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
         <input
-          type="text"
-          placeholder="Поддомен (например: myshop)"
-          value={subdomain}
-          onChange={(e) => setSubdomain(e.target.value)}
-          required
+          type="tel"
+          placeholder="Телефон (необязательно)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
 
