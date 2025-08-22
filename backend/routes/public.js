@@ -12,7 +12,7 @@ const SECRET      = process.env.JWT_SECRET || 'tenant_secret';
 
 /* ========================= helpers ========================= */
 
-/** Авто-логин URL в админку: всегда ведём на /admin/login с токеном и tid */
+/** Авто-логин URL: всегда ведём на /admin/login с token/tid */
 function buildAutoLoginUrl(tenant, token) {
   const prod = process.env.NODE_ENV === 'production';
   const tid = tenant._id.toString();
@@ -44,12 +44,12 @@ function slugifyCompany(name) {
   return s.slice(0, 30).replace(/^-+|-+$/g, '');
 }
 
-/** Проверка валидности поддомена */
+/** Валидность поддомена */
 function isValidSub(s) {
   return /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(s);
 }
 
-/** Подбор свободного subdomain с попытками */
+/** Подбор свободного subdomain */
 async function allocateSubdomain(base) {
   let candidate = base;
   const exists = async (sub) => !!(await Tenant.findOne({ subdomain: sub }).lean());
@@ -71,7 +71,6 @@ async function allocateSubdomain(base) {
 
 /**
  * POST /api/public/trial
- * Вариант B: генерим subdomain автоматически.
  * Body: { email, company, phone? }
  * Ответ: { ok, tenantId, subdomain, token, loginUrl, adminEmail, adminPassword }
  */
@@ -90,12 +89,13 @@ router.post('/trial', async (req, res, next) => {
       return res.status(400).json({ error: 'failed to allocate subdomain' });
     }
 
-    // создаём арендатора (trial 14 дней)
+    // создаём арендатора:
+    // ВАЖНО: plan = 'free' (а НЕ 'trial'), + trialUntil для 14 дней
     const tenant = await Tenant.create({
       name: company,
       subdomain,
-      plan: 'trial',
-      currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      plan: 'free',
+      trialUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       isBlocked: false,
       contacts: { email, phone }
     });
@@ -121,22 +121,23 @@ router.post('/trial', async (req, res, next) => {
       contacts: { email, phone: phone || '' },
     });
 
-    // JWT для автологина в админку
+    // JWT для автологина
     const token = jwt.sign(
       { id: owner._id.toString(), tenantId: tenant._id.toString(), role: 'owner' },
       SECRET,
       { expiresIn: '12h' }
     );
 
+    // готовая ссылка на /admin/login?token=...&tid=...
     const loginUrl = buildAutoLoginUrl(tenant, token);
 
     res.json({
       ok: true,
       tenantId: tenant._id.toString(),
       subdomain: tenant.subdomain,
-      token,                 // можно использовать для прямого редиректа на /admin
-      loginUrl,              // готовая ссылка на /admin/login?token=...&tid=...
-      adminEmail: email,     // инфо для пользователя
+      token,
+      loginUrl,
+      adminEmail: email,
       adminPassword: password,
     });
   } catch (e) {
