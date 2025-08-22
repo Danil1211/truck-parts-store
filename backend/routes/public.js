@@ -6,13 +6,13 @@ const jwt = require('jsonwebtoken');
 
 const { Tenant, User, SiteSettings } = require('../models/models');
 
-const FRONT_URL   = process.env.FRONT_URL   || 'http://localhost:5173';
-const BASE_DOMAIN = process.env.BASE_DOMAIN || 'storo-shop.com';
-const JWT_SECRET  = process.env.JWT_SECRET  || 'tenant_secret';
+const FRONT_URL   = (process.env.FRONT_URL   || 'http://localhost:5173').replace(/\/+$/, '');
+const BASE_DOMAIN = (process.env.BASE_DOMAIN || 'storo-shop.com').replace(/\/+$/, '');
+const SECRET      = process.env.JWT_SECRET || 'tenant_secret';
 
-/**
- * URL входа в админку
- */
+/* ========================= helpers ========================= */
+
+/** Сборка URL входа в админку */
 function buildLoginUrl(tenant) {
   const prod = process.env.NODE_ENV === 'production';
   if (prod && tenant.customDomain) {
@@ -21,97 +21,88 @@ function buildLoginUrl(tenant) {
   if (prod && tenant.subdomain) {
     return `https://${tenant.subdomain}.${BASE_DOMAIN}/admin/login`;
   }
-  return `${FRONT_URL.replace(/\/+$/, '')}/admin/login?tenant=${tenant._id}`;
+  return `${FRONT_URL}/admin/login?tenant=${tenant._id}`;
 }
 
-/**
- * Приводим поддомен к валидному виду
- */
-function normalizeSubdomain(s) {
-  const sub = String(s || '').trim().toLowerCase();
-  if (!/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(sub)) return null;
-  return sub;
-}
-
-/**
- * Транслитерация/слуга для company → base subdomain
- * (простая карта для ru/ua символов + очистка)
- */
-function slugifyCompanyToSub(company) {
+/** Транслитерация + очистка под домен */
+function slugifyCompany(name) {
   const map = {
-    а:'a', б:'b', в:'v', г:'g', ґ:'g', д:'d', е:'e', ё:'e', є:'ie', ж:'zh', з:'z', и:'i', і:'i', ї:'i', й:'y',
-    к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t', у:'u', ф:'f', х:'h', ц:'c', ч:'ch',
-    ш:'sh', щ:'sch', ь:'', ы:'y', э:'e', ю:'yu', я:'ya',
-    ' ':'-', '_':'-'
+    а:'a', б:'b', в:'v', г:'g', ґ:'g', д:'d', е:'e', є:'ie', ё:'e', ж:'zh', з:'z', и:'i', і:'i', ї:'i', й:'i',
+    к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t', у:'u', ф:'f', х:'h', ц:'ts', ч:'ch',
+    ш:'sh', щ:'shch', ь:'', ю:'iu', я:'ia', ы:'y', э:'e',
   };
-  let s = String(company || '').toLowerCase();
-  s = s.replace(/[а-яёєіїґ _]/g, ch => map[ch] ?? ch);
-  s = s.replace(/[^a-z0-9-]/g, '');
-  s = s.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+  let s = String(name || '').toLowerCase();
+  s = s.replace(/[а-яёіїєґ]/g, ch => map[ch] ?? ch);
+  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  s = s.replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');
   if (!s) s = 'shop';
-  if (s.length < 3) s = (s + '-shop').slice(0, 20);
-  return s.slice(0, 30);
+  if (s.length < 3) s = `${s}-shop`;
+  return s.slice(0, 30).replace(/^-+|-+$/g, '');
 }
 
-/**
- * Генерация уникального поддомена (base, base-1, base-2, …)
- */
-async function ensureUniqueSubdomain(base) {
-  const reserved = new Set(['www', 'api', 'admin', 'static', 'cdn']);
+/** Проверка валидности поддомена */
+function isValidSub(s) {
+  return /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(s);
+}
+
+/** Подбор свободного subdomain с попытками */
+async function allocateSubdomain(base) {
   let candidate = base;
-  if (reserved.has(candidate)) candidate = `${candidate}-shop`;
+  const exists = async (sub) => !!(await Tenant.findOne({ subdomain: sub }).lean());
+  if (!await exists(candidate)) return candidate;
 
-  // один шанс без суффикса
-  let found = await Tenant.findOne({ subdomain: candidate }).lean();
-  if (!found) return candidate;
-
-  // добавляем числовой суффикс
-  for (let i = 1; i <= 999; i++) {
-    const c = `${candidate}-${i}`;
-    found = await Tenant.findOne({ subdomain: c }).lean();
-    if (!found) return c;
+  // пробуем разные варианты
+  const suffixes = ['-shop', '-store', '-online'];
+  for (const suf of suffixes) {
+    const c = (base + suf).slice(0, 63);
+    if (isValidSub(c) && !await exists(c)) return c;
   }
-  // крайний случай — случайный хвост
-  return `${candidate}-${Math.random().toString(36).slice(2, 6)}`;
+  // рандом
+  for (let i = 0; i < 20; i++) {
+    const c = `${base}-${Math.random().toString(36).slice(2, 6)}`.slice(0, 63);
+    if (isValidSub(c) && !await exists(c)) return c;
+  }
+  // крайний случай
+  return `${base}-${Date.now().toString(36).slice(-4)}`.slice(0, 63);
 }
 
+/* ========================= routes ========================= */
+
 /**
- * POST /api/public/trial — регистрация арендатора (Trial 14 дней)
- * ВХОД: { company, email, phone? }
- * ВЫХОД: { ok, tenantId, subdomain, token, loginUrl, adminEmail, adminPassword }
+ * POST /api/public/trial
+ * Вариант B: генерим subdomain автоматически.
+ * Body: { email, company, phone? }
+ * Ответ: { ok, tenantId, subdomain, token, loginUrl, adminEmail, adminPassword }
  */
 router.post('/trial', async (req, res, next) => {
   try {
-    let { company, email, phone } = req.body;
-
+    let { company, email, phone = '' } = req.body || {};
     if (!company || !email) {
-      return res.status(400).json({ error: 'company, email required' });
+      return res.status(400).json({ error: 'company and email required' });
     }
-
     email = String(email).trim().toLowerCase();
 
-    // генерим base subdomain из company и гарантируем уникальность
-    const base = slugifyCompanyToSub(company);
-    const subdomain = await ensureUniqueSubdomain(base);
-    const normalized = normalizeSubdomain(subdomain);
-    if (!normalized) {
-      return res.status(400).json({ error: 'Не удалось сформировать поддомен' });
+    // генерим базовый subdomain из названия
+    const base = slugifyCompany(company);
+    let subdomain = await allocateSubdomain(base);
+    if (!isValidSub(subdomain)) {
+      return res.status(400).json({ error: 'failed to allocate subdomain' });
     }
 
-    // создаём арендатора
+    // создаём арендатора (trial 14 дней)
     const tenant = await Tenant.create({
       name: company,
-      subdomain: normalized,
+      subdomain,
       plan: 'trial',
-      currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 дней Trial
+      currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       isBlocked: false,
+      contacts: { email, phone }
     });
 
-    // генерим временный пароль для owner
+    // генерим пароль админу (owner)
     const password = crypto.randomBytes(4).toString('hex'); // 8 символов
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // создаём администратора (owner)
     const owner = await User.create({
       tenantId: tenant._id.toString(),
       email,
@@ -129,27 +120,32 @@ router.post('/trial', async (req, res, next) => {
       contacts: { email, phone: phone || '' },
     });
 
-    // токен для автологина в админку
+    // JWT для автологина в админку
     const token = jwt.sign(
-      { id: owner._id, tenantId: tenant._id },
-      JWT_SECRET,
+      { id: owner._id.toString(), tenantId: tenant._id.toString(), role: 'owner' },
+      SECRET,
       { expiresIn: '12h' }
     );
 
+    const loginUrl = buildLoginUrl(tenant);
+
+    // основной ответ (под автологин через AdminLayout)
     res.json({
       ok: true,
       tenantId: tenant._id.toString(),
       subdomain: tenant.subdomain,
-      token,
-      loginUrl: buildLoginUrl(tenant),
-      adminEmail: email,
-      adminPassword: password, // можно скрыть позже
+      token,                // для редиректа: https://{sub}.BASE/admin?token=...&tid=...
+      loginUrl,             // fallback на форму входа
+      adminEmail: email,    // можно показать на лендинге
+      adminPassword: password, // можно показать сразу (для тестов)
     });
   } catch (e) {
+    // дубликаты (на всякий случай, если гонка)
     if (e && e.code === 11000) {
       const field = Object.keys(e.keyPattern || {})[0] || 'field';
       return res.status(409).json({ error: `${field} already in use` });
     }
+    console.error('public/trial error:', e);
     next(e);
   }
 });
