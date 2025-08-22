@@ -19,7 +19,7 @@ export default function Home() {
             <a href="#faq" className="hover:text-indigo-600">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/trial" className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700">
+            <Link to="/trial/start" className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700">
               Создать магазин
             </Link>
             <a href="/admin" className="inline-flex px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
