@@ -1,73 +1,99 @@
 // backend/middleware/withTenant.js
 const { Tenant } = require('../models/models');
 
-// Перечень хостов API (через запятую), чтобы отличать их от витрин.
-const API_HOSTS = (process.env.API_HOSTS || 'api.storo-shop.com')
-  .split(',')
-  .map(h => h.trim().toLowerCase())
-  .filter(Boolean);
+const BASE_DOMAIN = (process.env.BASE_DOMAIN || 'storo-shop.com').toLowerCase();
 
-function hostToSubdomain(host) {
-  if (!host) return null;
-  host = host.toLowerCase();
+/**
+ * Извлекаем hostname из строки (host header, origin и т.п.)
+ */
+function toHostname(value = '') {
+  try {
+    // если приходит как "example.com:443"
+    if (value && !value.includes('://') && value.includes(':')) {
+      return value.split(':')[0].toLowerCase();
+    }
+    // если полноценный origin/url
+    if (value && value.includes('://')) {
+      return new URL(value).hostname.toLowerCase();
+    }
+    return String(value || '').toLowerCase();
+  } catch {
+    return String(value || '').toLowerCase();
+  }
+}
 
-  // наши витрины вида *.storo-shop.com
-  if (!host.endsWith('.storo-shop.com')) return null;
+/**
+ * Находим арендатора по hostname (субдомен *.BASE_DOMAIN или кастомный домен)
+ */
+async function findTenantByHostname(hostname) {
+  if (!hostname) return null;
 
-  const sub = host.split('.')[0];
-  // исключаем служебные поддомены
-  if (sub === 'www' || sub === 'api') return null;
-  return sub;
+  // Кастомный домен?
+  const byCustom = await Tenant.findOne({ customDomain: hostname }).lean();
+  if (byCustom) return byCustom;
+
+  // Поддомен *.BASE_DOMAIN?
+  if (
+    hostname.endsWith(`.${BASE_DOMAIN}`) &&
+    hostname !== BASE_DOMAIN &&
+    hostname !== `www.${BASE_DOMAIN}`
+  ) {
+    const sub = hostname.slice(0, -(BASE_DOMAIN.length + 1)); // отрезаем ".BASE_DOMAIN"
+    if (sub && sub !== 'www') {
+      const bySub = await Tenant.findOne({ subdomain: sub }).lean();
+      if (bySub) return bySub;
+    }
+  }
+
+  return null;
 }
 
 module.exports = async function withTenant(req, res, next) {
-  // Глобальные маршруты — без арендатора
-  const isGlobal =
-    req.path.startsWith('/api/public') ||
-    req.path.startsWith('/api/superadmin') ||
-    req.path.startsWith('/webhooks') ||
-    req.path.startsWith('/healthz') ||
-    req.path.startsWith('/api/cors-check');
+  try {
+    // 1) Явно переданный tenantId хедером (самый надёжный способ)
+    const headerTenantId = (req.headers['x-tenant-id'] || req.headers['x-tenant'] || '').toString().trim();
+    if (headerTenantId) {
+      const t = await Tenant.findById(headerTenantId).lean();
+      if (t) {
+        req.tenant = t;
+        req.tenantId = t._id.toString();
+        return next();
+      }
+    }
 
-  if (isGlobal) {
-    req.tenantId = null;
-    req.tenant = null;
+    // 2) Из query (?tenant=...)
+    if (req.query && req.query.tenant) {
+      const t = await Tenant.findById(req.query.tenant.toString()).lean();
+      if (t) {
+        req.tenant = t;
+        req.tenantId = t._id.toString();
+        return next();
+      }
+    }
+
+    // 3) По домену:
+    //    - сначала пробуем Origin (фронт — это {sub}.storo-shop.com)
+    //    - потом X-Forwarded-Host (если прокси его проставляет)
+    //    - потом Host (домен бэкенда; может не подходить)
+    const originHost = toHostname(req.headers.origin);
+    const xfwdHost = toHostname(req.headers['x-forwarded-host']);
+    const host      = toHostname(req.headers.host);
+
+    let t =
+      (originHost && await findTenantByHostname(originHost)) ||
+      (xfwdHost   && await findTenantByHostname(xfwdHost))   ||
+      (host       && await findTenantByHostname(host));
+
+    if (!t) {
+      // Не смогли определить арендатора
+      return res.status(403).json({ error: 'Tenant not resolved' });
+    }
+
+    req.tenant = t;
+    req.tenantId = t._id.toString();
     return next();
+  } catch (e) {
+    console.error('withTenant error:', e);
+    return res.status(500).json({ error: 'Tenant resolver error' });
   }
-
-  let tenantId = (req.get('x-tenant-id') || req.query.tenant || '').toString().trim();
-  let subdomain = (req.get('x-tenant-subdomain') || '').toString().trim();
-
-  // 1) Если явно не передали — пытаемся вывести из хоста / origin
-  if (!tenantId && !subdomain) {
-    let host = (req.hostname || req.headers.host || '').toLowerCase();
-
-    // Если это запрос на API-домен, смотрим откуда пришёл (Origin/Referer)
-    if (API_HOSTS.includes(host)) {
-      const from = (req.get('origin') || req.get('referer') || '').toLowerCase();
-      try {
-        if (from) host = new URL(from).hostname.toLowerCase();
-      } catch {}
-    }
-
-    subdomain = hostToSubdomain(host);
-  }
-
-  // 2) Если есть субдомен, но нет id — найдём id в БД
-  if (!tenantId && subdomain) {
-    try {
-      const t = await Tenant.findOne({ subdomain }).select('_id').lean();
-      if (t) tenantId = String(t._id);
-    } catch (e) {
-      console.error('withTenant: lookup error:', e);
-    }
-  }
-
-  if (!tenantId) {
-    return res.status(403).json({ error: 'Tenant not resolved' });
-  }
-
-  req.tenantId = tenantId;
-  req.tenant = { id: tenantId, subdomain: subdomain || null };
-  next();
 };
