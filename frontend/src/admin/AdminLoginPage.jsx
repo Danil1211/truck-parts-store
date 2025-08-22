@@ -1,4 +1,3 @@
-// src/admin/AdminLoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -8,39 +7,53 @@ const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, logout } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  // 🔑 МОСТИК АВТОЛОГИНА: если пришли с ?token=&tid= — логинимся без формы
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const t = params.get("token");
+    const tid = params.get("tid");
+    if (t && tid) {
+      try {
+        login(t, { tenantId: tid });
+        // сразу уводим в админку
+        navigate("/admin/orders", { replace: true });
+      } catch (_) {
+        // если что-то пошло не так, просто остаёмся на форме
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
-    setLoading(true);
-
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
       if (!res.ok) {
         setErr(data.error || "Ошибка входа");
         return;
       }
 
-      login(data.token);
+      // кладём токен
+      login(data.token, { tenantId: data?.user?.tenantId });
 
+      // только админы/владельцы
       const u = data.user || {};
-      const isAdmin = ["owner", "admin"].includes(u.role) || u.isAdmin === true;
-
+      const isAdmin =
+        u.role === "owner" || u.role === "admin" || u.isAdmin === true;
       if (!isAdmin) {
-        logout();
-        setErr("У вас нет доступа в админ-панель. Используйте обычный вход.");
+        setErr("Используйте обычный вход на сайте.");
         return;
       }
 
@@ -48,8 +61,6 @@ export default function AdminLoginPage() {
       navigate(to, { replace: true });
     } catch {
       setErr("Ошибка сети");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -76,13 +87,7 @@ export default function AdminLoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          style={{
-            width: "100%",
-            marginBottom: 10,
-            padding: 10,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-          }}
+          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
         <input
           type="password"
@@ -91,32 +96,25 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          style={{
-            width: "100%",
-            marginBottom: 10,
-            padding: 10,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-          }}
+          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
 
         {err && <div style={{ color: "crimson", marginBottom: 10 }}>{err}</div>}
 
         <button
           type="submit"
-          disabled={loading}
           style={{
             width: "100%",
             padding: 12,
             borderRadius: 10,
             border: 0,
-            background: loading ? "#9ca3af" : "#4f46e5",
+            background: "#4f46e5",
             color: "#fff",
             fontWeight: 600,
-            cursor: loading ? "default" : "pointer",
+            cursor: "pointer",
           }}
         >
-          {loading ? "Входим..." : "Войти"}
+          Войти
         </button>
       </form>
     </div>

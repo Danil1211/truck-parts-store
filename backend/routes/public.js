@@ -12,17 +12,23 @@ const SECRET      = process.env.JWT_SECRET || 'tenant_secret';
 
 /* ========================= helpers ========================= */
 
-function buildLoginUrl(tenant) {
+/** Авто-логин URL в админку: всегда ведём на /admin/login с токеном и tid */
+function buildAutoLoginUrl(tenant, token) {
   const prod = process.env.NODE_ENV === 'production';
+  const tid = tenant._id.toString();
+
   if (prod && tenant.customDomain) {
-    return `https://${tenant.customDomain.replace(/\/+$/, '')}/admin/login`;
+    const host = tenant.customDomain.replace(/\/+$/, '');
+    return `https://${host}/admin/login?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
   }
   if (prod && tenant.subdomain) {
-    return `https://${tenant.subdomain}.${BASE_DOMAIN}/admin/login`;
+    return `https://${tenant.subdomain}.${BASE_DOMAIN}/admin/login?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
   }
-  return `${FRONT_URL}/admin/login?tenant=${tenant._id}`;
+  // dev
+  return `${FRONT_URL}/admin/login?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
 }
 
+/** Транслитерация + очистка под домен */
 function slugifyCompany(name) {
   const map = {
     а:'a', б:'b', в:'v', г:'g', ґ:'g', д:'d', е:'e', є:'ie', ё:'e', ж:'zh', з:'z', и:'i', і:'i', ї:'i', й:'i',
@@ -38,10 +44,12 @@ function slugifyCompany(name) {
   return s.slice(0, 30).replace(/^-+|-+$/g, '');
 }
 
+/** Проверка валидности поддомена */
 function isValidSub(s) {
   return /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(s);
 }
 
+/** Подбор свободного subdomain с попытками */
 async function allocateSubdomain(base) {
   let candidate = base;
   const exists = async (sub) => !!(await Tenant.findOne({ subdomain: sub }).lean());
@@ -63,43 +71,41 @@ async function allocateSubdomain(base) {
 
 /**
  * POST /api/public/trial
+ * Вариант B: генерим subdomain автоматически.
  * Body: { email, company, phone? }
- * Resp: { ok, tenantId, subdomain, token, loginUrl, adminEmail, adminPassword }
+ * Ответ: { ok, tenantId, subdomain, token, loginUrl, adminEmail, adminPassword }
  */
-router.post('/trial', async (req, res) => {
-  const stage = { at: 'A:validate' };
+router.post('/trial', async (req, res, next) => {
   try {
     let { company, email, phone = '' } = req.body || {};
     if (!company || !email) {
-      return res.status(400).json({ error: 'company and email required', stage: stage.at });
+      return res.status(400).json({ error: 'company and email required' });
     }
     email = String(email).trim().toLowerCase();
 
-    // B: subdomain
-    stage.at = 'B:allocateSubdomain';
+    // генерим базовый subdomain из названия
     const base = slugifyCompany(company);
     const subdomain = await allocateSubdomain(base);
     if (!isValidSub(subdomain)) {
-      return res.status(400).json({ error: 'failed to allocate subdomain', stage: stage.at });
+      return res.status(400).json({ error: 'failed to allocate subdomain' });
     }
 
-    // C: create tenant  (ВАЖНО: plan -> 'free', чтобы пройти enum; триал ведём по currentPeriodEnd)
-    stage.at = 'C:createTenant';
+    // создаём арендатора (trial 14 дней)
     const tenant = await Tenant.create({
       name: company,
       subdomain,
-      plan: 'free', // вместо 'trial' — enum-safe
+      plan: 'trial',
       currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       isBlocked: false,
-      // без 'contacts': поле может отсутствовать в схеме Tenant
+      contacts: { email, phone }
     });
 
-    // D: create owner
-    stage.at = 'D:createOwner';
+    // генерим пароль админу (owner)
     const password = crypto.randomBytes(4).toString('hex'); // 8 символов
     const passwordHash = await bcrypt.hash(password, 10);
+
     const owner = await User.create({
-      tenantId: String(tenant._id),
+      tenantId: tenant._id.toString(),
       email,
       passwordHash,
       name: company,
@@ -108,41 +114,38 @@ router.post('/trial', async (req, res) => {
       role: 'owner',
     });
 
-    // E: site settings (контакты на сайт — полезны и не ломают Tenant)
-    stage.at = 'E:createSettings';
+    // дефолтные настройки сайта
     await SiteSettings.create({
-      tenantId: String(tenant._id),
+      tenantId: tenant._id.toString(),
       siteName: company,
       contacts: { email, phone: phone || '' },
     });
 
-    // F: sign token
-    stage.at = 'F:signToken';
+    // JWT для автологина в админку
     const token = jwt.sign(
-      { id: String(owner._id), tenantId: String(tenant._id), role: 'owner' },
+      { id: owner._id.toString(), tenantId: tenant._id.toString(), role: 'owner' },
       SECRET,
       { expiresIn: '12h' }
     );
 
-    const loginUrl = buildLoginUrl(tenant);
+    const loginUrl = buildAutoLoginUrl(tenant, token);
 
-    return res.json({
+    res.json({
       ok: true,
-      tenantId: String(tenant._id),
+      tenantId: tenant._id.toString(),
       subdomain: tenant.subdomain,
-      token,
-      loginUrl,
-      adminEmail: email,
+      token,                 // можно использовать для прямого редиректа на /admin
+      loginUrl,              // готовая ссылка на /admin/login?token=...&tid=...
+      adminEmail: email,     // инфо для пользователя
       adminPassword: password,
     });
   } catch (e) {
     if (e && e.code === 11000) {
       const field = Object.keys(e.keyPattern || {})[0] || 'field';
-      console.error('public/trial DUP', stage.at, e?.message);
-      return res.status(409).json({ error: `${field} already in use`, stage: stage.at });
+      return res.status(409).json({ error: `${field} already in use` });
     }
-    console.error('public/trial ERROR', stage.at, e?.message, e?.stack);
-    return res.status(500).json({ error: 'Server error', stage: stage.at });
+    console.error('public/trial error:', e);
+    next(e);
   }
 });
 
