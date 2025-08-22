@@ -1,3 +1,4 @@
+// src/admin/AdminLoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -7,41 +8,39 @@ const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
-
-  useEffect(() => {
-    // для отладки — видим, что реально находимся на /admin/login
-    // console.log("[AdminLoginPage] at:", window.location.pathname);
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
+    setLoading(true);
+
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
       const data = await res.json();
       if (!res.ok) {
         setErr(data.error || "Ошибка входа");
         return;
       }
 
-      // кладём токен
       login(data.token);
 
-      // только админы/владельцы
       const u = data.user || {};
-      const isAdmin =
-        u.role === "owner" || u.role === "admin" || u.isAdmin === true;
+      const isAdmin = ["owner", "admin"].includes(u.role) || u.isAdmin === true;
+
       if (!isAdmin) {
-        setErr("Используйте обычный вход на сайте.");
+        logout();
+        setErr("У вас нет доступа в админ-панель. Используйте обычный вход.");
         return;
       }
 
@@ -49,6 +48,8 @@ export default function AdminLoginPage() {
       navigate(to, { replace: true });
     } catch {
       setErr("Ошибка сети");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,7 +76,13 @@ export default function AdminLoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+          }}
         />
         <input
           type="password"
@@ -84,25 +91,32 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+          }}
         />
 
         {err && <div style={{ color: "crimson", marginBottom: 10 }}>{err}</div>}
 
         <button
           type="submit"
+          disabled={loading}
           style={{
             width: "100%",
             padding: 12,
             borderRadius: 10,
             border: 0,
-            background: "#4f46e5",
+            background: loading ? "#9ca3af" : "#4f46e5",
             color: "#fff",
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: loading ? "default" : "pointer",
           }}
         >
-          Войти
+          {loading ? "Входим..." : "Войти"}
         </button>
       </form>
     </div>

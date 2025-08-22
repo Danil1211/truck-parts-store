@@ -22,7 +22,6 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState([]);
   const [modalOrder, setModalOrder] = useState(null);
 
-  // --- Для отмены заказа ---
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelOrderId, setCancelOrderId] = useState(null);
@@ -80,7 +79,6 @@ export default function ProfilePage() {
     if (!orderId) return;
     try {
       const token = localStorage.getItem('token');
-      // ВАЖНО: пользовательский маршрут
       const res = await fetch(`${apiUrl}/api/orders/${orderId}/cancel-my`, {
         method: 'PUT',
         headers: {
@@ -187,6 +185,7 @@ export default function ProfilePage() {
     </>
   );
 }
+
 
 // ---- Блок профиля ----
 function ProfileInfoBlock({ user, setUser }) {
