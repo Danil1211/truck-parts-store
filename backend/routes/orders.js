@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const { Order, Product, User } = require('../models/models'); // ✅ правильно
-const { authMiddleware, adminMiddleware } = require('./protected'); // ✅ protected в routes
+const { authMiddleware, requireAdmin } = require('./protected'); // ✅ заменил adminMiddleware → requireAdmin
 const withTenant = require('../middleware/withTenant');
 const mongoose = require('mongoose');
 
@@ -110,7 +110,7 @@ router.get('/my', authMiddleware, async (req, res) => {
 /**
  * 👑 Список всех заказов (админ) с пагинацией/поиском/фильтрами
  */
-router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/admin', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const {
       page = 1,
@@ -174,7 +174,7 @@ router.get('/admin', authMiddleware, adminMiddleware, async (req, res) => {
 /**
  * 👑 Заказы конкретного пользователя (админ)
  */
-router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { user, page = 1, limit = 5 } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -210,7 +210,7 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 /**
  * 🔄 Обновление статуса заказа (админ)
  */
-router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/:id/status', authMiddleware, requireAdmin, async (req, res) => {
   const { status } = req.body;
 
   if (!['new', 'processing', 'done', 'cancelled'].includes(status)) {
@@ -238,7 +238,7 @@ router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
 /**
  * 🚩 Отмена заказа админом
  */
-router.put('/:id/cancel', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/:id/cancel', authMiddleware, requireAdmin, async (req, res) => {
   try {
     const order = await Order.findOne({
       _id: req.params.id,
