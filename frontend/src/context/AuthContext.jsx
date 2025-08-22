@@ -39,7 +39,22 @@ export function AuthProvider({ children }) {
     loadProfile(token || getToken());
   };
 
-  const register = login;
+  // --- исправленный метод регистрации ---
+  const register = async ({ name, email, phone, password }) => {
+    try {
+      const data = await api("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, phone, password }),
+      });
+      if (data.token) {
+        login(data.token, { tenantId: data.tenantId });
+      }
+      return data;
+    } catch (err) {
+      console.error("Ошибка регистрации:", err);
+      throw err;
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem("token");
