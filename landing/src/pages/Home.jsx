@@ -1,4 +1,3 @@
-// landing/src/pages/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -41,7 +40,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to="/trial"
+              to="/trial/start"
               className="inline-flex justify-center px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700"
             >
               Создать магазин бесплатно
@@ -55,8 +54,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Остальные блоки (features, how, faq, footer) оставляем как есть */}
     </div>
   );
 }

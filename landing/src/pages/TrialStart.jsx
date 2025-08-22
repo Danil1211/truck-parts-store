@@ -1,4 +1,3 @@
-// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
 
 const API =
@@ -8,7 +7,7 @@ const API =
 export default function TrialStart() {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
-  const [phone, setPhone] = useState("");
+  const [subdomain, setSubdomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
@@ -22,15 +21,13 @@ export default function TrialStart() {
       const res = await fetch(`${API}/api/public/trial`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, company, phone }),
+        body: JSON.stringify({ email, company, subdomain }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка запуска триала");
 
-      // если успешно → редиректим на админку с токеном
-      if (data.token && data.tenantId) {
-        const url = `https://${data.subdomain}.storo-shop.com/admin?token=${data.token}&tid=${data.tenantId}`;
-        window.location.href = url;
+      if (data.loginUrl) {
+        window.location.href = data.loginUrl;
       } else {
         setOk("✅ Магазин создан! Проверьте почту для деталей.");
       }
@@ -64,10 +61,11 @@ export default function TrialStart() {
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
         <input
-          type="tel"
-          placeholder="Телефон"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          type="text"
+          placeholder="Поддомен (например: myshop)"
+          value={subdomain}
+          onChange={(e) => setSubdomain(e.target.value)}
+          required
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
 
