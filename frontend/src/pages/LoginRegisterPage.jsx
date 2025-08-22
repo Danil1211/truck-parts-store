@@ -30,7 +30,7 @@ export default function LoginRegisterPage() {
 
   useEffect(() => { if (user) navigate("/", { replace: true }); }, [user, navigate]);
 
-  // ПОКУПАТЕЛИ: /api/customers/login
+  // вход покупателя
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -52,7 +52,7 @@ export default function LoginRegisterPage() {
     }
   };
 
-  // ПОКУПАТЕЛИ: /api/customers/register
+  // регистрация покупателя
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegError("");
@@ -64,11 +64,13 @@ export default function LoginRegisterPage() {
           email: regForm.email.trim(),
           password: regForm.password,
           name: `${regForm.firstName} ${regForm.lastName}`.trim(),
+          phone: regForm.phone.trim(),
         }),
       });
       const data = await res.json();
       if (!res.ok) { setRegError(data.error || "Ошибка регистрации"); return; }
-      register(data.token);
+      // сразу логинимся после регистрации
+      login(data.token);
       navigate("/", { replace: true });
     } catch {
       setRegError("Ошибка сервера");
