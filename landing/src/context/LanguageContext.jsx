@@ -4,15 +4,18 @@ import translations from "../i18n";
 const LanguageContext = createContext();
 
 export function LanguageProvider({ children }) {
-  // Определяем язык по localStorage или по браузеру
   const getDefaultLang = () => {
     const saved = localStorage.getItem("lang");
     if (saved) return saved;
 
     const browserLang = navigator.language.toLowerCase();
+
     if (browserLang.startsWith("uk") || browserLang.startsWith("ua")) return "ua";
     if (browserLang.startsWith("ru")) return "ru";
-    return "en"; // дефолт — английский
+    if (browserLang.startsWith("en")) return "en";
+
+    // ⚡️ всё остальное — английский
+    return "en";
   };
 
   const [lang, setLang] = useState(getDefaultLang);
