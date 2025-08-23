@@ -1,18 +1,13 @@
+// landing/src/pages/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
-import { useLang } from "../context/LanguageContext";
-import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Home() {
-  const { t } = useLang();
+  const { t, lang, setLang } = useLanguage();
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-blue-50 to-sky-100 font-sans">
-      {/* Переключатель языка */}
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
-
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -29,6 +24,28 @@ export default function Home() {
             <a href="#faq" className="hover:text-indigo-600">{t("nav.faq")}</a>
           </nav>
           <div className="flex items-center gap-3">
+            {/* 🌍 переключатель языка с флагами */}
+            <div className="flex gap-1 mr-3">
+              <button
+                onClick={() => setLang("ua")}
+                className={`px-2 py-1 text-lg rounded ${lang === "ua" ? "bg-indigo-100" : ""}`}
+              >
+                🇺🇦
+              </button>
+              <button
+                onClick={() => setLang("ru")}
+                className={`px-2 py-1 text-lg rounded ${lang === "ru" ? "bg-indigo-100" : ""}`}
+              >
+                🇷🇺
+              </button>
+              <button
+                onClick={() => setLang("en")}
+                className={`px-2 py-1 text-lg rounded ${lang === "en" ? "bg-indigo-100" : ""}`}
+              >
+                🇬🇧
+              </button>
+            </div>
+
             <Link
               to="/trial/start"
               className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 font-medium"
@@ -39,7 +56,7 @@ export default function Home() {
               href="/admin"
               className="inline-flex px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700"
             >
-              {t("login") || "Войти"}
+              Войти
             </a>
           </div>
         </div>
@@ -87,12 +104,12 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-center text-slate-900">{t("features")}</h2>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { title: "Быстрый старт", desc: "Создайте магазин за 60 секунд — всё готово к продажам." },
-              { title: "Готовый дизайн", desc: "Современные адаптивные шаблоны, которые можно кастомизировать." },
-              { title: "Оплата и доставка", desc: "Интеграция с популярными сервисами в 1 клик." },
-              { title: "Чат с клиентами", desc: "Общайтесь с покупателями прямо в админке." },
-              { title: "Аналитика", desc: "Следите за продажами и поведением клиентов в реальном времени." },
-              { title: "Безопасность", desc: "Ваши данные и платежи защищены." },
+              { title: "⚡ Быстрый старт", desc: "Создайте магазин за 60 секунд — всё готово к продажам." },
+              { title: "🎨 Готовый дизайн", desc: "Современные адаптивные шаблоны, которые можно кастомизировать." },
+              { title: "💳 Оплата и доставка", desc: "Интеграция с популярными сервисами в 1 клик." },
+              { title: "💬 Чат с клиентами", desc: "Общайтесь с покупателями прямо в админке." },
+              { title: "📊 Аналитика", desc: "Следите за продажами и поведением клиентов в реальном времени." },
+              { title: "🔒 Безопасность", desc: "Ваши данные и платежи защищены." },
             ].map((f, i) => (
               <div key={i} className="p-6 bg-white rounded-xl shadow hover:shadow-lg transition">
                 <h3 className="text-xl font-semibold text-indigo-600">{f.title}</h3>
