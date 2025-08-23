@@ -1,4 +1,3 @@
-// src/admin/AdminLoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -13,40 +12,39 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
-  const [autoHandled, setAutoHandled] = useState(false);
+  const [processing, setProcessing] = useState(true); // ждём обработку токена из URL
 
-  // ⛳ Автовход по ?token=&tid=
+  // 1) Сразу “съедаем” ?token=&tid= если они есть
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const token = params.get("token");
-    const tid = params.get("tid");
+    const t = params.get("token");
+    const tid = params.get("tid") || params.get("tenantId");
 
-    if (autoHandled) return;
-    if (!token) return;
-
-    setAutoHandled(true);
-
-    try {
-      // 1) Сохраняем токен/tenantId мгновенно
-      localStorage.setItem("token", token);
-      if (tid) localStorage.setItem("tenantId", tid);
-
-      // 2) Дополнительно пингуем login в контексте (не ждём ответа)
-      login(token, { tenantId: tid || undefined });
-
-      // 3) Чистим URL и ДЕЛАЕМ ПОЛНУЮ ПЕРЕЗАГРУЗКУ на раздел админки,
-      //    чтобы вся аппка стартанула уже с токеном в localStorage.
-      const to =
-        (location.state && location.state.from?.pathname) || "/admin/orders";
-
-      // если хочешь убрать токен из истории — используем replace:
-      window.location.replace(to);
-    } catch (e) {
-      console.error("Auto-login error:", e);
+    if (t) {
+      try {
+        // кладём токен/tenantId и дергаем загрузку профиля
+        login(t, { tenantId: tid });
+      } catch (e) {
+        console.error("auto-login error:", e);
+      } finally {
+        // чистим URL и уводим в админку
+        params.delete("token");
+        params.delete("tid");
+        params.delete("tenantId");
+        const search = params.toString();
+        navigate(
+          { pathname: "/admin/orders", search: search ? `?${search}` : "" },
+          { replace: true }
+        );
+      }
+      return;
     }
-  }, [location.search, location.state, login, autoHandled]);
+    setProcessing(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Ручной вход email/пароль — остаётся как fallback
+  if (processing) return null;
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
@@ -67,16 +65,13 @@ export default function AdminLoginPage() {
 
       // только админы/владельцы
       const u = data.user || {};
-      const isAdmin =
-        u.role === "owner" || u.role === "admin" || u.isAdmin === true;
+      const isAdmin = u.role === "owner" || u.role === "admin" || u.isAdmin === true;
       if (!isAdmin) {
         setErr("Используйте обычный вход на сайте.");
         return;
       }
 
-      const to =
-        (location.state && location.state.from?.pathname) || "/admin/orders";
-      navigate(to, { replace: true });
+      navigate("/admin/orders", { replace: true });
     } catch {
       setErr("Ошибка сети");
     }
@@ -105,13 +100,7 @@ export default function AdminLoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          style={{
-            width: "100%",
-            marginBottom: 10,
-            padding: 10,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-          }}
+          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
         <input
           type="password"
@@ -120,13 +109,7 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          style={{
-            width: "100%",
-            marginBottom: 10,
-            padding: 10,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-          }}
+          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
         />
 
         {err && <div style={{ color: "crimson", marginBottom: 10 }}>{err}</div>}
