@@ -38,61 +38,58 @@ function sanitizeShowcase(showcase) {
   return { enabled, productIds };
 }
 
-/** собираем апдейт */
+/** собираем апдейт — целыми объектами (без точечных $set по глубине) */
 function buildUpdateFromBody(body = {}) {
   const $set = {};
 
-  if ('siteName' in body) $set['siteName'] = body.siteName;
+  if ('siteName' in body) $set.siteName = body.siteName ?? '';
 
-  if ('contacts' in body && body.contacts) {
+  if (body.contacts && typeof body.contacts === 'object') {
     const c = body.contacts;
-    if ('phone' in c)           $set['contacts.phone'] = c.phone;
-    if ('phoneComment' in c)    $set['contacts.phoneComment'] = c.phoneComment;
-    if ('email' in c)           $set['contacts.email'] = c.email;
-    if ('contactPerson' in c)   $set['contacts.contactPerson'] = c.contactPerson;
-    if ('address' in c)         $set['contacts.address'] = c.address;
-    if ('phones' in c)          $set['contacts.phones'] = Array.isArray(c.phones) ? c.phones : [];
-
-    if ('chatSettings' in c && c.chatSettings) {
-      const ch = c.chatSettings;
-      if ('startTime' in ch)     $set['contacts.chatSettings.startTime'] = ch.startTime;
-      if ('endTime' in ch)       $set['contacts.chatSettings.endTime'] = ch.endTime;
-      if ('workDays' in ch)      $set['contacts.chatSettings.workDays'] = Array.isArray(ch.workDays) ? ch.workDays : [];
-      if ('iconPosition' in ch)  $set['contacts.chatSettings.iconPosition'] = ch.iconPosition;
-      if ('color' in ch)         $set['contacts.chatSettings.color'] = ch.color;
-      if ('greeting' in ch)      $set['contacts.chatSettings.greeting'] = ch.greeting;
-    }
+    const ch = c.chatSettings || {};
+    $set.contacts = {
+      phone: c.phone ?? '',
+      phoneComment: c.phoneComment ?? '',
+      email: c.email ?? '',
+      contactPerson: c.contactPerson ?? '',
+      address: c.address ?? '',
+      phones: Array.isArray(c.phones) ? c.phones : [],
+      chatSettings: {
+        startTime: ch.startTime ?? '09:00',
+        endTime: ch.endTime ?? '18:00',
+        workDays: Array.isArray(ch.workDays) ? ch.workDays : [],
+        iconPosition: ch.iconPosition ?? 'left',
+        color: ch.color ?? '#2291ff',
+        greeting: ch.greeting ?? '',
+      },
+    };
   }
 
-  if ('display' in body && body.display) {
+  if (body.display && typeof body.display === 'object') {
     const d = body.display;
-    if ('categories' in d) $set['display.categories'] = d.categories;
-    if ('showcase'   in d) $set['display.showcase'] = d.showcase;
-    if ('promos'     in d) $set['display.promos'] = d.promos;
-    if ('blog'       in d) $set['display.blog'] = d.blog;
-    if ('chat'       in d) $set['display.chat'] = d.chat;
-    if ('template'   in d) $set['display.template'] = d.template;
-
-    if (d.palette && typeof d.palette === 'object') {
-      for (const [k, v] of Object.entries(d.palette)) {
-        $set[`display.palette.${k}`] = v;
-      }
-    }
+    $set.display = {
+      categories: !!d.categories,
+      showcase: !!d.showcase,
+      promos: !!d.promos,
+      blog: !!d.blog,
+      chat: !!d.chat,
+      template: d.template || 'standard',
+      palette: { ...(typeof d.palette === 'object' ? d.palette : {}) },
+    };
   }
 
-  if ('verticalMenu' in body)   $set['verticalMenu'] = sanitizeMenuArray(body.verticalMenu);
-  if ('horizontalMenu' in body) $set['horizontalMenu'] = sanitizeMenuArray(body.horizontalMenu);
+  if ('verticalMenu' in body)   $set.verticalMenu   = sanitizeMenuArray(body.verticalMenu);
+  if ('horizontalMenu' in body) $set.horizontalMenu = sanitizeMenuArray(body.horizontalMenu);
 
   if ('showcase' in body) {
     const sc = sanitizeShowcase(body.showcase);
-    $set['showcase.enabled'] = sc.enabled;
-    $set['showcase.productIds'] = sc.productIds;
+    $set.showcase = { enabled: sc.enabled, productIds: sc.productIds };
   }
 
-  if ('siteLogo' in body) $set['siteLogo'] = body.siteLogo ?? null; // base64/URL
-  if ('favicon'  in body) $set['favicon']  = body.favicon  ?? null; // base64/URL
+  if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null; // base64/URL
+  if ('favicon'  in body) $set.favicon  = body.favicon  ?? null; // base64/URL
 
-  $set['updatedAt'] = new Date();
+  $set.updatedAt = new Date();
   return { $set };
 }
 

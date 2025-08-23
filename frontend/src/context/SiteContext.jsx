@@ -2,9 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 /* ===========================
-   ДЕФОЛТЫ (без cart-* ключей)
+   ДЕФОЛТЫ
 =========================== */
-
 export const DISPLAY_DEFAULT = {
   categories: true,
   showcase: true,
@@ -194,7 +193,7 @@ export const CHAT_SETTINGS_DEFAULT = {
   endTime: "18:00",
   workDays: ["mon", "tue", "wed", "thu", "fri"],
   iconPosition: "left",
-  color: "#2291ff", // ЧАТ-цвет (НЕ влияет на сайт)
+  color: "#2291ff",
   greeting: "",
 };
 
@@ -224,7 +223,6 @@ function applySitePaletteToCSSVars(palette) {
   const root = document.documentElement;
   if (!palette || typeof palette !== "object") return;
 
-  // Базовые
   root.style.setProperty("--site-primary", palette.primary || "#2291ff");
   root.style.setProperty("--site-primary-dark", palette["primary-dark"] || "#1275be");
   root.style.setProperty("--site-accent", palette.accent || "#3fd9d6");
@@ -248,13 +246,12 @@ function applySitePaletteToCSSVars(palette) {
   root.style.setProperty("--site-footer-border", palette["footer-border"] || "rgba(44,54,65,0.60)");
 }
 
-// Мягкая нормализация входящих данных
+// Мягкая нормализация
 function mergeDisplay(incoming) {
   const base = { ...DISPLAY_DEFAULT };
   const p = { ...DISPLAY_DEFAULT.palette, ...(incoming?.palette || {}) };
   return { ...base, ...(incoming || {}), palette: p };
 }
-
 function mergeContacts(incoming) {
   const base = { ...CONTACTS_DEFAULT };
   const chat = { ...CHAT_SETTINGS_DEFAULT, ...(incoming?.chatSettings || {}) };
@@ -264,7 +261,6 @@ function mergeContacts(incoming) {
 /* ===========================
    Контекст
 =========================== */
-
 export function SiteProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [siteName, setSiteName] = useState("");
@@ -273,7 +269,7 @@ export function SiteProvider({ children }) {
   const [siteLogo, setSiteLogo] = useState(LOGO_DEFAULT);
   const [favicon, setFavicon] = useState(FAVICON_DEFAULT);
 
-  // Загрузка с бэка
+  // Загрузка
   async function fetchSettings() {
     setLoading(true);
     try {
@@ -290,7 +286,6 @@ export function SiteProvider({ children }) {
       setSiteLogo(data.siteLogo || null);
       setFavicon(data.favicon || null);
 
-      // Применяем палитру САЙТА сразу
       applySitePaletteToCSSVars(mergedDisplay.palette);
     } catch (err) {
       console.error("Ошибка загрузки настроек:", err);
@@ -299,24 +294,20 @@ export function SiteProvider({ children }) {
       setDisplay(DISPLAY_DEFAULT);
       setSiteLogo(LOGO_DEFAULT);
       setFavicon(FAVICON_DEFAULT);
-
-      // Применим дефолтную палитру сайта
       applySitePaletteToCSSVars(DISPLAY_DEFAULT.palette);
     } finally {
       setLoading(false);
     }
   }
 
-  // Сохранение (не смешиваем чат и сайт)
-  async function saveSettings({ token, siteName, contacts, display, siteLogo, favicon }) {
-    // Мержим аккуратно: чтобы не затереть отсутствующие поля
-    const safeDisplay = mergeDisplay(display);
-    const safeContacts = mergeContacts(contacts);
+  // Сохранение
+  async function saveSettings({ siteName, contacts, display, siteLogo, favicon }) {
+    const token = localStorage.getItem("token") || "";
 
     const body = {
       siteName,
-      contacts: safeContacts,
-      display: safeDisplay,
+      contacts: mergeContacts(contacts),
+      display: mergeDisplay(display),
       siteLogo,
       favicon,
     };
@@ -325,7 +316,7 @@ export function SiteProvider({ children }) {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: "Bearer " + token } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
     });
@@ -346,16 +337,10 @@ export function SiteProvider({ children }) {
     setSiteLogo(data.siteLogo || LOGO_DEFAULT);
     setFavicon(data.favicon || FAVICON_DEFAULT);
 
-    // Моментально применяем САЙТ-палитру (чат — отдельно в своём компоненте)
     applySitePaletteToCSSVars(mergedDisplay.palette);
   }
 
-  // При первом монтировании тянем настройки
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  // Если палитра сайта поменялась в рантайме (через setDisplay) — применим
+  useEffect(() => { fetchSettings(); }, []);
   useEffect(() => {
     if (display?.palette) applySitePaletteToCSSVars(display.palette);
   }, [display?.palette]);
@@ -364,25 +349,13 @@ export function SiteProvider({ children }) {
     <SiteContext.Provider
       value={{
         loading,
-        siteName,
-        setSiteName,
-
-        contacts,
-        setContacts,
-
-        display,
-        setDisplay,
-
-        siteLogo,
-        setSiteLogo,
-
-        favicon,
-        setFavicon,
-
+        siteName, setSiteName,
+        contacts, setContacts,
+        display, setDisplay,
+        siteLogo, setSiteLogo,
+        favicon, setFavicon,
         fetchSettings,
         saveSettings,
-
-        // Чат — отдельно и не лезет в CSS сайта
         chatSettings: contacts.chatSettings || CHAT_SETTINGS_DEFAULT,
         setChatSettings: (newChatSettings) =>
           setContacts((prev) => ({
