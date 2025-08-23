@@ -60,7 +60,7 @@ const translations = {
       step2desc: "Завантажте товари, встановіть ціни та починайте продажі.",
       step3: "Розвивайте бізнес",
       step3desc: "Використовуйте аналітику, чат і доставку для зростання."
-    }
+    },
     terms: {
       title: "Умови використання",
       sections: [
@@ -131,7 +131,7 @@ const translations = {
       step2desc: "Загрузите товары, установите цены и начните продажи.",
       step3: "Развивайте бизнес",
       step3desc: "Используйте аналитику, чат и доставку для роста."
-    }
+    },
     terms: {
       title: "Условия использования",
       sections: [
@@ -202,7 +202,7 @@ const translations = {
       step2desc: "Upload products, set prices, and start selling.",
       step3: "Grow your business",
       step3desc: "Use analytics, chat, and delivery to scale up."
-    }
+    },
     terms: {
       title: "Terms of Use",
       sections: [
