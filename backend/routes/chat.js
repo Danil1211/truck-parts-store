@@ -1,4 +1,3 @@
-// backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -7,7 +6,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const axios = require('axios');
-const getRealIp = require('../utils/getIp'); // поправил путь
+const getRealIp = require('../utils/getIp');
 const { Message, User } = require('../models/models');
 const { authMiddleware } = require('./protected');
 const withTenant = require('../middleware/withTenant');
@@ -20,7 +19,7 @@ let typingStatus = {}; // { tenantId: { userId: {...} } }
 // --- Multer storage ---
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../uploads'); // папка в корне backend
+    const dir = path.join(__dirname, '../uploads');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -46,7 +45,7 @@ const upload = multer({ storage, fileFilter, limits: { files: 4 } });
  * POST /api/chat/typing
  */
 router.post('/typing', authMiddleware, async (req, res) => {
-  const tenantId = String(req.tenant?.id);
+  const tenantId = String(req.tenantId);
   const { userId, isTyping, name, fromAdmin } = req.body;
   let realName = name;
   if (!fromAdmin) {
@@ -67,7 +66,7 @@ router.post('/typing', authMiddleware, async (req, res) => {
 });
 
 router.get('/typing/statuses', authMiddleware, (req, res) => {
-  res.json(typingStatus[String(req.tenant?.id)] || {});
+  res.json(typingStatus[String(req.tenantId)] || {});
 });
 
 /**
@@ -76,9 +75,9 @@ router.get('/typing/statuses', authMiddleware, (req, res) => {
 router.get('/admin', authMiddleware, async (req, res) => {
   if (!req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
   try {
-    await updateMissedChats(String(req.tenant?.id));
+    await updateMissedChats(String(req.tenantId));
     const chats = await Message.aggregate([
-      { $match: { tenantId: String(req.tenant?.id) } },
+      { $match: { tenantId: String(req.tenantId) } },
       { $sort: { createdAt: -1 } },
       { $group: { _id: '$user', lastMessage: { $first: '$$ROOT' } } },
       {
@@ -91,7 +90,7 @@ router.get('/admin', authMiddleware, async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ['$_id', '$$userId'] },
-                    { $eq: ['$tenantId', String(req.tenant?.id)] }
+                    { $eq: ['$tenantId', String(req.tenantId)] }
                   ]
                 }
               }
@@ -132,7 +131,7 @@ router.get('/admin/:userId', authMiddleware, async (req, res) => {
   if (!req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
   if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ error: 'Некорректный userId' });
   try {
-    const tenantId = String(req.tenant?.id);
+    const tenantId = String(req.tenantId);
     const messages = await Message.find({ user: req.params.userId, tenantId }).sort({ createdAt: 1 });
     const user = await User.findOne({ _id: req.params.userId, tenantId });
     if (user) {
@@ -161,7 +160,7 @@ router.post(
     if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ error: 'Некорректный userId' });
 
     try {
-      const tenantId = String(req.tenant?.id);
+      const tenantId = String(req.tenantId);
       const user = await User.findOne({ _id: req.params.userId, tenantId });
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
@@ -201,7 +200,7 @@ router.post(
  */
 router.get('/my', authMiddleware, async (req, res) => {
   try {
-    const tenantId = String(req.tenant?.id);
+    const tenantId = String(req.tenantId);
     const user = await User.findOne({ _id: req.user.id, tenantId });
     if (user) {
       user.isOnline = true;
@@ -222,7 +221,7 @@ router.post(
   '/',
   upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
   async (req, res) => {
-    const tenantId = String(req.tenant?.id);
+    const tenantId = String(req.tenantId);
     const imageUrls = req.files?.images?.map(f => `/uploads/${f.filename}`) || [];
     const audioUrl = req.files?.audio?.[0] ? `/uploads/${req.files.audio[0].filename}` : null;
     const auth = req.headers.authorization;
