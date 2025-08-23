@@ -5,6 +5,12 @@ import { useSite } from "../context/SiteContext";
 import { DISPLAY_DEFAULT, PALETTES } from "../context/SiteContext";
 import { useAuth } from "../context/AuthContext";
 
+// импортируем превью, чтобы Vite их упаковал
+import tplStandard from "../assets/standartdesing.png";
+import tplPhoenix from "../assets/phoenix.png";
+import tplRedDove from "../assets/red-dove.png";
+import tplTurquoise from "../assets/turquoise-swallow.png";
+
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 // Формируем корректный URL к картинке (абсолютный если надо)
@@ -79,11 +85,16 @@ const sanitizeMenuArray = (arr) =>
 
 export default function AdminSettingsPage() {
   const {
-    siteName, setSiteName,
-    contacts, setContacts,
-    display, setDisplay,
-    siteLogo, setSiteLogo,
-    favicon, setFavicon,
+    siteName,
+    setSiteName,
+    contacts,
+    setContacts,
+    display,
+    setDisplay,
+    siteLogo,
+    setSiteLogo,
+    favicon,
+    setFavicon,
     saveSettings,
   } = useSite();
 
@@ -100,6 +111,7 @@ export default function AdminSettingsPage() {
   const [tab, setTab] = useState("main");
 
   // ========= MAIN =========
+  // Контакты
   const [email, setEmail] = useState(contacts?.email || "");
   const [contactPerson, setContactPerson] = useState(contacts?.contactPerson || "");
   const [address, setAddress] = useState(contacts?.address || "");
@@ -129,13 +141,14 @@ export default function AdminSettingsPage() {
   const [chatGreeting, setChatGreeting] = useState(defaultChatSettings.greeting || "");
 
   // UI сообщения
+  the
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Текущий основной цвет САЙТА
+  // Текущий основной цвет САЙТА (для UI выделения кружка)
   const sitePalettePrimary = display?.palette?.primary || COLOR_PALETTE[0];
 
-  // Синк из контекста
+  // Синк при входящих изменениях из контекста
   useEffect(() => {
     setEmail(contacts?.email || "");
     setContactPerson(contacts?.contactPerson || "");
@@ -155,7 +168,7 @@ export default function AdminSettingsPage() {
     }
   }, [contacts, siteLogo]);
 
-  // Цвет сайта
+  // Выбор цвета САЙТА — меняем только display.palette
   function handleSitePaletteSelect(color) {
     const palette = getPaletteWithFooter(color);
     setDisplay((prev) => ({
@@ -164,7 +177,7 @@ export default function AdminSettingsPage() {
     }));
   }
 
-  // Цвет чата
+  // Выбор цвета ЧАТА — меняем только локальный стейт chatColor
   function handleChatColorSelect(color) {
     setChatColor(color);
   }
@@ -256,13 +269,16 @@ export default function AdminSettingsPage() {
     };
     reader.readAsDataURL(file);
   };
+
   const handleRemoveLogo = (e) => {
     e.stopPropagation();
     setLogoFile(null);
     setLogoPreview(null);
     setSiteLogo(null);
     setLogoError("");
-    if (logoInputRef.current) logoInputRef.current.value = "";
+    if (logoInputRef.current) {
+      logoInputRef.current.value = "";
+    }
   };
 
   // Фавикон
@@ -282,12 +298,15 @@ export default function AdminSettingsPage() {
       setFavicon(null);
     }
   };
+
   const handleRemoveFavicon = (e) => {
     e.stopPropagation();
     setFaviconFile(null);
     setFaviconPreview(null);
     setFavicon(null);
-    if (faviconInputRef.current) faviconInputRef.current.value = "";
+    if (faviconInputRef.current) {
+      faviconInputRef.current.value = "";
+    }
   };
 
   // Чекбоксы главной
@@ -302,7 +321,7 @@ export default function AdminSettingsPage() {
   };
   const handleRemovePhone = (idx) => setPhones(phones.filter((_, i) => i !== idx));
 
-  // ========= SITE =========
+  // ========= SITE (новое) =========
   const [verticalMenu, setVerticalMenu] = useState([]);
   const [horizontalMenu, setHorizontalMenu] = useState([]);
   const [showcaseEnabled, setShowcaseEnabled] = useState(true);
@@ -325,7 +344,7 @@ export default function AdminSettingsPage() {
     if (tab !== "site") return;
     (async () => {
       try {
-        const r = await fetch(`${API_URL}/api/site-settings`);
+        const r = await fetch(`/api/site-settings`);
         const json = await r.json();
         setVerticalMenu(sanitizeMenuArray(json.verticalMenu || []));
         setHorizontalMenu(sanitizeMenuArray(json.horizontalMenu || []));
@@ -421,7 +440,7 @@ export default function AdminSettingsPage() {
         },
       };
 
-      const r = await fetch(`${API_URL}/api/site-settings`, {
+      const r = await fetch(`/api/site-settings`, {
         method: "PUT",
         headers: authHeaders, // Authorization: Bearer <token>
         body: JSON.stringify(payload),
@@ -710,7 +729,10 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
                 <div style={{ marginTop: 16, marginBottom: 6 }}>
-                  <div className="settings-subtitle" style={{ marginBottom: 7, fontSize: 17, color: "#2175f3" }}>
+                  <div
+                    className="settings-subtitle"
+                    style={{ marginBottom: 7, fontSize: 17, color: "#2175f3" }}
+                  >
                     Рабочие дни чата
                   </div>
                   <div className="chat-days-off-row">
@@ -721,7 +743,9 @@ export default function AdminSettingsPage() {
                           checked={chatWorkDays.includes(day.key)}
                           onChange={(e) => {
                             setChatWorkDays((prev) =>
-                              e.target.checked ? [...prev, day.key] : prev.filter((d) => d !== day.key)
+                              e.target.checked
+                                ? [...prev, day.key]
+                                : prev.filter((d) => d !== day.key)
                             );
                           }}
                         />
@@ -731,10 +755,25 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
                 <div style={{ marginTop: "16px" }}>
-                  <div style={{ fontWeight: "400", fontSize: "18px", color: "#2175f3", marginBottom: "8px" }}>
+                  <div
+                    style={{
+                      fontWeight: "400",
+                      fontSize: "18px",
+                      color: "#2175f3",
+                      marginBottom: "8px",
+                    }}
+                  >
                     Положение иконки
                   </div>
-                  <label style={{ marginRight: "25px", fontSize: "18px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <label
+                    style={{
+                      marginRight: "25px",
+                      fontSize: "18px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
                     <input
                       type="radio"
                       name="chatIconPosition"
@@ -745,7 +784,14 @@ export default function AdminSettingsPage() {
                     />
                     Слева
                   </label>
-                  <label style={{ fontSize: "18px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <label
+                    style={{
+                      fontSize: "18px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
                     <input
                       type="radio"
                       name="chatIconPosition"
@@ -818,7 +864,9 @@ export default function AdminSettingsPage() {
                   {COLOR_PALETTE.map((color) => (
                     <div
                       key={color}
-                      className={"design-color-circle" + (sitePalettePrimary === color ? " selected" : "")}
+                      className={
+                        "design-color-circle" + (sitePalettePrimary === color ? " selected" : "")
+                      }
                       style={{
                         background: `linear-gradient(135deg, ${color} 48%, #fff 52%)`,
                         borderColor: "#222",
@@ -835,14 +883,17 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="design-templates-row">
                   {[
-                    { key: "standard", label: "Стандартный", preview: "/images/standartdesing.png" },
-                    { key: "phoenix", label: "Феникс", preview: "/images/phoenix.png" },
-                    { key: "red-dove", label: "Красный Голубь", preview: "/images/red-dove.png" },
-                    { key: "turquoise-swallow", label: "Бирюзовая Ласточка", preview: "/images/turquoise-swallow.png" },
+                    { key: "standard", label: "Стандартный", preview: tplStandard },
+                    { key: "phoenix", label: "Феникс", preview: tplPhoenix },
+                    { key: "red-dove", label: "Красный Голубь", preview: tplRedDove },
+                    { key: "turquoise-swallow", label: "Бирюзовая Ласточка", preview: tplTurquoise },
                   ].map((tpl) => {
                     const isSelected = (display.template || "standard") === tpl.key;
                     return (
-                      <div key={tpl.key} className={"design-template-label" + (isSelected ? " selected" : "")}>
+                      <div
+                        key={tpl.key}
+                        className={"design-template-label" + (isSelected ? " selected" : "")}
+                      >
                         <input
                           type="radio"
                           name="siteTemplate"
@@ -857,7 +908,10 @@ export default function AdminSettingsPage() {
                           className="apply-template-btn"
                           type="button"
                           disabled={!isSelected}
-                          style={{ opacity: isSelected ? 1 : 0.67, pointerEvents: isSelected ? "auto" : "none" }}
+                          style={{
+                            opacity: isSelected ? 1 : 0.67,
+                            pointerEvents: isSelected ? "auto" : "none",
+                          }}
                         >
                           Применить
                         </button>
@@ -915,7 +969,10 @@ export default function AdminSettingsPage() {
                       <div className="menu-actions">
                         <button onClick={() => moveItem(verticalMenu, setVerticalMenu, idx, -1)}>↑</button>
                         <button onClick={() => moveItem(verticalMenu, setVerticalMenu, idx, 1)}>↓</button>
-                        <button className="danger" onClick={() => removeItem(verticalMenu, setVerticalMenu, idx)}>
+                        <button
+                          className="danger"
+                          onClick={() => removeItem(verticalMenu, setVerticalMenu, idx)}
+                        >
                           ✕
                         </button>
                       </div>
@@ -987,7 +1044,9 @@ export default function AdminSettingsPage() {
                     {showcaseIds.map((id) => (
                       <div key={id} className="chip">
                         {id}
-                        <button onClick={() => setShowcaseIds((prev) => prev.filter((x) => x !== id))}>×</button>
+                        <button onClick={() => setShowcaseIds((prev) => prev.filter((x) => x !== id))}>
+                          ×
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -1023,27 +1082,40 @@ export default function AdminSettingsPage() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>Добавить товары в витрину</h3>
-              <button className="icon" onClick={() => setPickerOpen(false)}>✕</button>
+              <button className="icon" onClick={() => setPickerOpen(false)}>
+                ✕
+              </button>
             </div>
 
             <div className="filters">
               <input
                 placeholder="Поиск по названию"
                 value={pickerQ}
-                onChange={(e) => { setPickerPage(1); setPickerQ(e.target.value); }}
+                onChange={(e) => {
+                  setPickerPage(1);
+                  setPickerQ(e.target.value);
+                }}
               />
               <select
                 value={pickerGroup}
-                onChange={(e) => { setPickerPage(1); setPickerGroup(e.target.value); }}
+                onChange={(e) => {
+                  setPickerPage(1);
+                  setPickerGroup(e.target.value);
+                }}
               >
                 <option value="">Все группы</option>
                 {groups.map((g) => (
-                  <option key={g._id} value={g._id}>{g.name}</option>
+                  <option key={g._id} value={g._id}>
+                    {g.name}
+                  </option>
                 ))}
               </select>
               <select
                 value={pickerInStock}
-                onChange={(e) => { setPickerPage(1); setPickerInStock(e.target.value); }}
+                onChange={(e) => {
+                  setPickerPage(1);
+                  setPickerInStock(e.target.value);
+                }}
               >
                 <option value="">Все</option>
                 <option value="true">В наличии</option>
@@ -1051,7 +1123,10 @@ export default function AdminSettingsPage() {
               </select>
               <select
                 value={pickerLimit}
-                onChange={(e) => { setPickerPage(1); setPickerLimit(Number(e.target.value)); }}
+                onChange={(e) => {
+                  setPickerPage(1);
+                  setPickerLimit(Number(e.target.value));
+                }}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -1092,13 +1167,24 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="pager">
-              <button disabled={pickerPage <= 1} onClick={() => setPickerPage((p) => p - 1)}>←</button>
-              <span>{pickerPage} / {pickerData.pages}</span>
-              <button disabled={pickerPage >= pickerData.pages} onClick={() => setPickerPage((p) => p + 1)}>→</button>
+              <button disabled={pickerPage <= 1} onClick={() => setPickerPage((p) => p - 1)}>
+                ←
+              </button>
+              <span>
+                {pickerPage} / {pickerData.pages}
+              </span>
+              <button
+                disabled={pickerPage >= pickerData.pages}
+                onClick={() => setPickerPage((p) => p + 1)}
+              >
+                →
+              </button>
             </div>
 
             <div className="modal-foot">
-              <button className="primary" onClick={() => setPickerOpen(false)}>Готово</button>
+              <button className="primary" onClick={() => setPickerOpen(false)}>
+                Готово
+              </button>
             </div>
           </div>
         </div>

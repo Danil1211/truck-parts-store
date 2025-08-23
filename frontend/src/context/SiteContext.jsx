@@ -20,8 +20,6 @@ export const DISPLAY_DEFAULT = {
     bg: "#f7fafd",
     "bg-card": "#fff",
     "side-menu-border": "#2291ff",
-
-    // footer
     "footer-bg": "rgba(33,44,56,0.88)",
     "footer-title": "rgba(245,248,250,0.93)",
     "footer-text": "rgba(179,190,208,0.80)",
@@ -31,7 +29,6 @@ export const DISPLAY_DEFAULT = {
     "footer-bottom-bg": "rgba(26,34,42,0.89)",
     "footer-bottom": "rgba(163,173,185,0.80)",
     "footer-border": "rgba(44,54,65,0.60)",
-
     "block-border": "#e3f1ff",
   },
   template: "standard",
@@ -165,27 +162,6 @@ export const PALETTES = {
     "footer-border": "rgba(128,109,148,0.62)",
     "block-border": "#e9e1fc",
   },
-  "#00bcd4": {
-    primary: "#00bcd4",
-    "primary-dark": "#0097a7",
-    accent: "#b2ffff",
-    title: "#13556a",
-    "title-alt": "#13d3e6",
-    secondary: "#eafcff",
-    bg: "#f4fdff",
-    "bg-card": "#fff",
-    "side-menu-border": "#00bcd4",
-    "footer-bg": "rgba(39,77,85,0.87)",
-    "footer-title": "rgba(234,247,250,0.93)",
-    "footer-text": "rgba(179,197,200,0.80)",
-    "footer-link": "rgba(191,224,232,0.81)",
-    "footer-link-hover": "rgba(228,245,250,0.91)",
-    "footer-dayoff": "rgba(132,182,191,0.75)",
-    "footer-bottom-bg": "rgba(29,54,65,0.88)",
-    "footer-bottom": "rgba(152,185,193,0.80)",
-    "footer-border": "rgba(85,129,151,0.60)",
-    "block-border": "#c1eff4",
-  },
 };
 
 export const CHAT_SETTINGS_DEFAULT = {
@@ -212,13 +188,13 @@ const FAVICON_DEFAULT = null;
 
 const SiteContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+// для site-settings намеренно только same-origin, чтобы не было рассинхронизации
+const API_URL = "";
 
 /* ===========================
    Утилиты
 =========================== */
 
-// Применяем ТОЛЬКО сайт-переменные (никаких --primary)
 function applySitePaletteToCSSVars(palette) {
   const root = document.documentElement;
   if (!palette || typeof palette !== "object") return;
@@ -246,7 +222,6 @@ function applySitePaletteToCSSVars(palette) {
   root.style.setProperty("--site-footer-border", palette["footer-border"] || "rgba(44,54,65,0.60)");
 }
 
-// Мягкая нормализация
 function mergeDisplay(incoming) {
   const base = { ...DISPLAY_DEFAULT };
   const p = { ...DISPLAY_DEFAULT.palette, ...(incoming?.palette || {}) };
@@ -273,7 +248,7 @@ export function SiteProvider({ children }) {
   async function fetchSettings() {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/site-settings`);
+      const res = await fetch(`/api/site-settings`);
       if (!res.ok) throw new Error("Ошибка загрузки настроек");
       const data = await res.json();
 
@@ -312,7 +287,7 @@ export function SiteProvider({ children }) {
       favicon,
     };
 
-    const res = await fetch(`${API_URL}/api/site-settings`, {
+    const res = await fetch(`/api/site-settings`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
