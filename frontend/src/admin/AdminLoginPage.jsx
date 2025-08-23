@@ -1,3 +1,4 @@
+// src/admin/AdminLoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -12,24 +13,36 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [autoTried, setAutoTried] = useState(false);
 
-  // 🔑 МОСТИК АВТОЛОГИНА: если пришли с ?token=&tid= — логинимся без формы
+  // ⛳ 1) Автовход по ?token=&tid= (из лендинга)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const t = params.get("token");
+    const token = params.get("token");
     const tid = params.get("tid");
-    if (t && tid) {
-      try {
-        login(t, { tenantId: tid });
-        // сразу уводим в админку
-        navigate("/admin/orders", { replace: true });
-      } catch (_) {
-        // если что-то пошло не так, просто остаёмся на форме
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
+    if (!autoTried && token) {
+      setAutoTried(true);
+
+      // сохраняем токен/tenantId и идём в админку
+      login(token, { tenantId: tid || undefined });
+
+      // чистим URL и шлём на раздел (или на то, откуда пришли)
+      const to =
+        (location.state && location.state.from?.pathname) || "/admin/orders";
+
+      // удаляем токен из строки запроса
+      params.delete("token");
+      params.delete("tid");
+
+      navigate(
+        { pathname: to, search: params.toString() ? `?${params}` : "" },
+        { replace: true }
+      );
+    }
+  }, [location.search, location.state, login, navigate, autoTried]);
+
+  // ⛳ 2) Ручной вход email/пароль (на случай повторного логина)
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
@@ -46,7 +59,7 @@ export default function AdminLoginPage() {
       }
 
       // кладём токен
-      login(data.token, { tenantId: data?.user?.tenantId });
+      login(data.token);
 
       // только админы/владельцы
       const u = data.user || {};
@@ -57,7 +70,8 @@ export default function AdminLoginPage() {
         return;
       }
 
-      const to = (location.state && location.state.from?.pathname) || "/admin/orders";
+      const to =
+        (location.state && location.state.from?.pathname) || "/admin/orders";
       navigate(to, { replace: true });
     } catch {
       setErr("Ошибка сети");
@@ -87,7 +101,13 @@ export default function AdminLoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+          }}
         />
         <input
           type="password"
@@ -96,7 +116,13 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+          }}
         />
 
         {err && <div style={{ color: "crimson", marginBottom: 10 }}>{err}</div>}
