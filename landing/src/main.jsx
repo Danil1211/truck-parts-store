@@ -5,7 +5,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 
 import Home from "./pages/Home";
-import TrialStart from "./pages/TrialStart"; // страница: имя/фамилия/телефон
+import TrialStart from "./pages/TrialStart";
+import TermsPage from "./pages/TermsPage"; // ✅ подключаем
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -13,6 +14,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/trial/start" element={<TrialStart />} />
+        <Route path="/terms" element={<TermsPage />} /> {/* ✅ новая страница */}
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
