@@ -33,16 +33,19 @@ export default function TrialStart() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка запуска триала");
 
-      // ✅ сразу редиректим на /admin?token&tid (НЕ login!)
+      // ✅ автологин: кладём токен и tenantId
       if (data.token && data.tenantId && data.subdomain) {
-        const url = `https://${data.subdomain}.storo-shop.com/admin?token=${encodeURIComponent(
-          data.token
-        )}&tid=${encodeURIComponent(data.tenantId)}`;
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("tenantId", data.tenantId);
+        localStorage.setItem("role", "admin");
+
+        // редиректим прямо в админку
+        const url = `https://${data.subdomain}.storo-shop.com/admin/orders`;
         window.location.href = url;
         return;
       }
 
-      // fallback на loginUrl, если вдруг что-то пошло не так
+      // fallback на loginUrl
       if (data.loginUrl) {
         window.location.href = data.loginUrl;
         return;
