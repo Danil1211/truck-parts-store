@@ -12,20 +12,20 @@ const SECRET      = process.env.JWT_SECRET || 'tenant_secret';
 
 /* ========================= helpers ========================= */
 
-/** Авто-логин URL: всегда ведём на /admin/login с token/tid */
+/** Авто-логин URL: ведём на /admin с token/tid */
 function buildAutoLoginUrl(tenant, token) {
   const prod = process.env.NODE_ENV === 'production';
   const tid = tenant._id.toString();
 
   if (prod && tenant.customDomain) {
     const host = tenant.customDomain.replace(/\/+$/, '');
-    return `https://${host}/admin/login?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
+    return `https://${host}/admin?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
   }
   if (prod && tenant.subdomain) {
-    return `https://${tenant.subdomain}.${BASE_DOMAIN}/admin/login?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
+    return `https://${tenant.subdomain}.${BASE_DOMAIN}/admin?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
   }
   // dev
-  return `${FRONT_URL}/admin/login?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
+  return `${FRONT_URL}/admin?token=${encodeURIComponent(token)}&tid=${encodeURIComponent(tid)}`;
 }
 
 /** Транслитерация + очистка под домен */
@@ -89,8 +89,7 @@ router.post('/trial', async (req, res, next) => {
       return res.status(400).json({ error: 'failed to allocate subdomain' });
     }
 
-    // создаём арендатора:
-    // ВАЖНО: plan = 'free' (а НЕ 'trial'), + trialUntil для 14 дней
+    // создаём арендатора
     const tenant = await Tenant.create({
       name: company,
       subdomain,
@@ -128,7 +127,7 @@ router.post('/trial', async (req, res, next) => {
       { expiresIn: '12h' }
     );
 
-    // готовая ссылка на /admin/login?token=...&tid=...
+    // готовая ссылка на /admin?token=...&tid=...
     const loginUrl = buildAutoLoginUrl(tenant, token);
 
     res.json({
