@@ -1,15 +1,16 @@
+// frontend/src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "../utils/api";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);   // объект пользователя (и админа арендатора)
-  const [role, setRole] = useState(null);   // "user" | "superadmin"
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const getToken = () => localStorage.getItem("token");
-  const getRole  = () => localStorage.getItem("role") || "user";
+  const getRole = () => localStorage.getItem("role") || "user";
 
   const loadProfile = async (token, currentRole) => {
     if (!token) {
@@ -20,12 +21,10 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      let data;
-      if (currentRole === "superadmin") {
-        data = await api("/api/superadmin/me");
-      } else {
-        data = await api("/api/users/me");
-      }
+      let { data } =
+        currentRole === "superadmin"
+          ? await api.get("/api/superadmin/me")
+          : await api.get("/api/users/me");
 
       setUser(data.user || null);
       setRole(currentRole || "user");
@@ -39,6 +38,19 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
+    // ✅ 1. Проверяем query ?token=...&tid=...
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const tid = params.get("tid");
+    if (token && tid) {
+      localStorage.setItem("token", token);
+      localStorage.setItem("tenantId", tid);
+      localStorage.setItem("role", "admin");
+      // чистим URL, чтобы не светился token
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    // ✅ 2. Загружаем профиль по данным из localStorage
     loadProfile(getToken(), getRole());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -48,23 +60,17 @@ export function AuthProvider({ children }) {
     if (extra.tenantId) localStorage.setItem("tenantId", extra.tenantId);
     if (extra.role) localStorage.setItem("role", extra.role);
 
-    const tid = extra.tenantId || localStorage.getItem("tenantId");
-    if (!tid) {
-      console.warn("⚠️ login без tenantId — пропускаем loadProfile");
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     loadProfile(token || getToken(), extra.role || getRole());
   };
 
   const register = async ({ name, email, phone, password }) => {
     try {
-      const data = await api("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name, email, phone, password }),
+      const { data } = await api.post("/api/auth/register", {
+        name,
+        email,
+        phone,
+        password,
       });
       if (data.token) {
         login(data.token, { tenantId: data.tenantId, role: "user" });
@@ -80,7 +86,6 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("token");
     localStorage.removeItem("tenantId");
     localStorage.removeItem("role");
-    localStorage.removeItem("user");
     setUser(null);
     setRole(null);
   };
