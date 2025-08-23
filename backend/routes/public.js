@@ -81,6 +81,21 @@ router.post('/trial', async (req, res, next) => {
       return res.status(400).json({ error: 'company and email required' });
     }
     email = String(email).trim().toLowerCase();
+    phone = String(phone || '').trim();
+
+    // 🔎 Проверка на дубликаты email
+    const emailExists = await User.findOne({ email }).lean();
+    if (emailExists) {
+      return res.status(409).json({ error: 'EMAIL_EXISTS' });
+    }
+
+    // 🔎 Проверка на дубликаты phone (если указан)
+    if (phone) {
+      const phoneExists = await User.findOne({ phone }).lean();
+      if (phoneExists) {
+        return res.status(409).json({ error: 'PHONE_EXISTS' });
+      }
+    }
 
     // генерим базовый subdomain из названия
     const base = slugifyCompany(company);
@@ -108,7 +123,7 @@ router.post('/trial', async (req, res, next) => {
       email,
       passwordHash,
       name: company,
-      phone: phone || '',
+      phone,
       isAdmin: true,
       role: 'owner',
     });
@@ -117,7 +132,7 @@ router.post('/trial', async (req, res, next) => {
     await SiteSettings.create({
       tenantId: tenant._id.toString(),
       siteName: company,
-      contacts: { email, phone: phone || '' },
+      contacts: { email, phone },
     });
 
     // JWT для автологина
@@ -140,10 +155,6 @@ router.post('/trial', async (req, res, next) => {
       adminPassword: password,
     });
   } catch (e) {
-    if (e && e.code === 11000) {
-      const field = Object.keys(e.keyPattern || {})[0] || 'field';
-      return res.status(409).json({ error: `${field} already in use` });
-    }
     console.error('public/trial error:', e);
     next(e);
   }
