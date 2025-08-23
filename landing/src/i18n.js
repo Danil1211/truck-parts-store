@@ -53,6 +53,9 @@ const translations = {
       loading: "Створюю...",
       success: "✅ Магазин створено! Перевірте пошту.",
       error: "Помилка запуску триала",
+      benefit1: "Без прив’язки картки",
+      benefit2: "Готовий магазин за хвилину",
+      benefit3: "14 днів безкоштовно",
     },
     terms: {
       title: "Умови використання",
@@ -117,6 +120,9 @@ const translations = {
       loading: "Создаю...",
       success: "✅ Магазин создан! Проверьте почту.",
       error: "Ошибка запуска триала",
+      benefit1: "Без привязки карты",
+      benefit2: "Готовый магазин за минуту",
+      benefit3: "14 дней бесплатно",
     },
     terms: {
       title: "Условия использования",
@@ -181,6 +187,9 @@ const translations = {
       loading: "Creating...",
       success: "✅ Store created! Check your email.",
       error: "Trial launch error",
+      benefit1: "No credit card required",
+      benefit2: "Ready store in 1 minute",
+      benefit3: "14 days free",
     },
     terms: {
       title: "Terms of Use",
