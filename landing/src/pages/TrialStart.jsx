@@ -1,3 +1,4 @@
+// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
 
 const API =
@@ -32,15 +33,16 @@ export default function TrialStart() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка запуска триала");
 
-      // ✅ всегда редиректим на /admin/login?token&tid
+      // ✅ сразу редиректим на /admin?token&tid (НЕ login!)
       if (data.token && data.tenantId && data.subdomain) {
-        const url = `https://${data.subdomain}.storo-shop.com/admin/login?token=${encodeURIComponent(
+        const url = `https://${data.subdomain}.storo-shop.com/admin?token=${encodeURIComponent(
           data.token
         )}&tid=${encodeURIComponent(data.tenantId)}`;
         window.location.href = url;
         return;
       }
 
+      // fallback на loginUrl, если вдруг что-то пошло не так
       if (data.loginUrl) {
         window.location.href = data.loginUrl;
         return;
