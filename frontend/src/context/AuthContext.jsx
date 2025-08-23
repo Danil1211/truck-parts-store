@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { api } from "../utils/api"; // добавляет токен из localStorage
+import api from "../api";
 
 const AuthContext = createContext();
 
