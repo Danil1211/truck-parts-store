@@ -1,46 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
-  const [processing, setProcessing] = useState(true);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const t = params.get("token");
-    const tid = params.get("tid") || params.get("tenantId");
-
-    if (t && tid) {
-      try {
-        login(t, { tenantId: tid, role: "admin" });
-      } catch (e) {
-        console.error("AdminLoginPage auto-login error:", e);
-      } finally {
-        params.delete("token");
-        params.delete("tid");
-        params.delete("tenantId");
-        const search = params.toString();
-        navigate(
-          { pathname: "/admin/orders", search: search ? `?${search}` : "" },
-          { replace: true }
-        );
-      }
-      return;
-    }
-    setProcessing(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (processing) return null;
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -57,6 +27,7 @@ export default function AdminLoginPage() {
         return;
       }
 
+      // кладём токен + отмечаем роль админа
       login(data.token, { role: "admin" });
 
       const u = data.user || {};

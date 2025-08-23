@@ -1,42 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import React from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminNotify } from "../context/AdminNotifyContext";
 import "../assets/AdminPanel.css";
 
 export default function AdminLayout() {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const { totalUnread, totalNewOrders } = useAdminNotify();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const t = params.get("token");
-    const tid = params.get("tid") || params.get("tenantId");
-
-    if (t && tid) {
-      try {
-        login(t, { tenantId: tid, role: "admin" });
-      } catch (e) {
-        console.error("AdminLayout auto-login error:", e);
-      } finally {
-        params.delete("token");
-        params.delete("tid");
-        params.delete("tenantId");
-        const search = params.toString();
-        navigate(
-          { pathname: location.pathname, search: search ? `?${search}` : "" },
-          { replace: true }
-        );
-      }
-    }
-    setReady(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!ready) return null;
 
   const MENU = [
     { key: "orders",   link: "/admin/orders",   icon: "/images/Заказы.png",   title: "Заказы",  badge: totalNewOrders },
