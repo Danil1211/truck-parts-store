@@ -53,10 +53,14 @@ const translations = {
       loading: "Створюю...",
       success: "✅ Магазин створено! Перевірте пошту.",
       error: "Помилка запуску триала",
-      benefit1: "Без прив’язки картки",
-      benefit2: "Готовий магазин за хвилину",
-      benefit3: "14 днів безкоштовно",
-    },
+      roadmapTitle: "Ваш шлях до успішного онлайн-бізнесу зі Storo",
+      step1: "Створіть магазин",
+      step1desc: "Зареєструйтеся і отримайте готову платформу за хвилину.",
+      step2: "Додайте товари",
+      step2desc: "Завантажте товари, встановіть ціни та починайте продажі.",
+      step3: "Розвивайте бізнес",
+      step3desc: "Використовуйте аналітику, чат і доставку для зростання."
+    }
     terms: {
       title: "Умови використання",
       sections: [
@@ -120,10 +124,14 @@ const translations = {
       loading: "Создаю...",
       success: "✅ Магазин создан! Проверьте почту.",
       error: "Ошибка запуска триала",
-      benefit1: "Без привязки карты",
-      benefit2: "Готовый магазин за минуту",
-      benefit3: "14 дней бесплатно",
-    },
+      roadmapTitle: "Ваш путь к успешному онлайн-бизнесу со Storo",
+      step1: "Создайте магазин",
+      step1desc: "Зарегистрируйтесь и получите готовую платформу за минуту.",
+      step2: "Добавьте товары",
+      step2desc: "Загрузите товары, установите цены и начните продажи.",
+      step3: "Развивайте бизнес",
+      step3desc: "Используйте аналитику, чат и доставку для роста."
+    }
     terms: {
       title: "Условия использования",
       sections: [
@@ -187,10 +195,14 @@ const translations = {
       loading: "Creating...",
       success: "✅ Store created! Check your email.",
       error: "Trial launch error",
-      benefit1: "No credit card required",
-      benefit2: "Ready store in 1 minute",
-      benefit3: "14 days free",
-    },
+      roadmapTitle: "Your path to online success with Storo",
+      step1: "Create your store",
+      step1desc: "Register and get a ready-to-use platform in one minute.",
+      step2: "Add products",
+      step2desc: "Upload products, set prices, and start selling.",
+      step3: "Grow your business",
+      step3desc: "Use analytics, chat, and delivery to scale up."
+    }
     terms: {
       title: "Terms of Use",
       sections: [

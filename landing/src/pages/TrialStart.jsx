@@ -1,5 +1,5 @@
+// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import { useLang } from "../context/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 
@@ -65,10 +65,7 @@ export default function TrialStart() {
             <span className="text-2xl font-extrabold text-slate-900">Storo</span>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="/"
-              className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 font-medium"
-            >
+            <a href="/#about" className="text-slate-700 hover:text-indigo-600">
               {t("nav.about")}
             </a>
             <LanguageSwitcher />
@@ -76,10 +73,10 @@ export default function TrialStart() {
         </div>
       </header>
 
-      {/* Form Section */}
-      <main className="flex-grow flex items-center justify-center px-4">
-        <div className="w-full max-w-lg bg-white shadow-lg rounded-2xl p-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+      {/* Form */}
+      <main className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">
             {t("trial.title")}
           </h1>
           <p className="text-slate-600 mb-6">{t("trial.subtitle")}</p>
@@ -91,7 +88,7 @@ export default function TrialStart() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500"
             />
             <input
               type="text"
@@ -99,14 +96,14 @@ export default function TrialStart() {
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               required
-              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500"
             />
             <input
               type="tel"
               placeholder={t("trial.phone")}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500"
             />
 
             {err && <div className="text-red-600">{err}</div>}
@@ -123,42 +120,39 @@ export default function TrialStart() {
         </div>
       </main>
 
-      {/* Extra Info */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-6 grid sm:grid-cols-3 gap-8 text-center">
-          {[
-            t("trial.benefit1"),
-            t("trial.benefit2"),
-            t("trial.benefit3"),
-          ].map((text, i) => (
-            <div key={i} className="p-6 rounded-xl shadow hover:shadow-lg bg-slate-50">
-              <p className="text-lg font-medium text-slate-700">{text}</p>
-            </div>
-          ))}
+      {/* Roadmap Section */}
+      <section className="py-16 bg-gradient-to-b from-white to-slate-50">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-12">
+            {t("trial.roadmapTitle")}
+          </h2>
+
+          <div className="grid sm:grid-cols-3 gap-8">
+            {[
+              { step: "1", title: t("trial.step1"), desc: t("trial.step1desc") },
+              { step: "2", title: t("trial.step2"), desc: t("trial.step2desc") },
+              { step: "3", title: t("trial.step3"), desc: t("trial.step3desc") },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="p-6 bg-white rounded-xl shadow hover:shadow-lg transition text-center"
+              >
+                <div className="h-12 w-12 mx-auto flex items-center justify-center rounded-full bg-indigo-600 text-white font-bold text-lg">
+                  {s.step}
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-slate-800">
+                  {s.title}
+                </h3>
+                <p className="mt-2 text-slate-600 text-sm">{s.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-10 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 grid sm:grid-cols-3 gap-8">
-          <div>
-            <h4 className="font-bold text-white">Storo</h4>
-            <p className="mt-2 text-sm">{t("footer.company")}</p>
-          </div>
-          <div>
-            <h4 className="font-bold text-white">{t("footer.contacts")}</h4>
-            <p className="mt-2 text-sm">support@storo-shop.com</p>
-            <p className="text-sm">+380 (99) 123-45-67</p>
-          </div>
-          <div>
-            <h4 className="font-bold text-white">Links</h4>
-            <ul className="mt-2 space-y-2 text-sm">
-              <li><Link to="/terms" className="hover:text-white">Terms</Link></li>
-              <li><a href="/" className="hover:text-white">Home</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="mt-8 text-center text-xs text-slate-500">
+      <footer className="bg-slate-900 text-slate-300 py-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 text-center text-sm">
           © {new Date().getFullYear()} Storo. {t("footer.rights")}
         </div>
       </footer>
