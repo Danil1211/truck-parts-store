@@ -12,9 +12,9 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
-  const [processing, setProcessing] = useState(true); // ждём обработку токена из URL
+  const [processing, setProcessing] = useState(true);
 
-  // 1) Сразу “съедаем” ?token=&tid= если они есть
+  // Подхватываем ?token=&tid= и логинимся (на случай, если гард уже редиректнул сюда)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const t = params.get("token");
@@ -22,12 +22,10 @@ export default function AdminLoginPage() {
 
     if (t) {
       try {
-        // кладём токен/tenantId и дергаем загрузку профиля
-        login(t, { tenantId: tid });
+        login(t, { tenantId: tid, role: "admin" });
       } catch (e) {
-        console.error("auto-login error:", e);
+        console.error("AdminLoginPage auto-login error:", e);
       } finally {
-        // чистим URL и уводим в админку
         params.delete("token");
         params.delete("tid");
         params.delete("tenantId");
@@ -60,10 +58,9 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // кладём токен
-      login(data.token);
+      // кладём токен + отмечаем роль админа
+      login(data.token, { role: "admin" });
 
-      // только админы/владельцы
       const u = data.user || {};
       const isAdmin = u.role === "owner" || u.role === "admin" || u.isAdmin === true;
       if (!isAdmin) {

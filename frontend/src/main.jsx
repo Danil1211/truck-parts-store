@@ -1,3 +1,4 @@
+// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
@@ -21,6 +22,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import AddToCartAnimation from "./components/AddToCartAnimation";
 import ChatWidgetWrapper from "./components/ChatWidgetWrapper";
 import ThemeSync from "./components/ThemeSync";
+import TokenCatcher from "./components/TokenCatcher"; // ⬅️ ГЛОБАЛЬНЫЙ перехватчик ?token=&tid=
 
 // Context
 import { CartProvider } from "./context/CartContext";
@@ -60,15 +62,12 @@ function AdminGate() {
   const { user, loading } = useAuth();
   if (loading) return null;
 
-  // не авторизован -> показать форму админ-логина
   if (!user) return <AdminLoginPage />;
 
-  // если это админ — в заказы
   const canAdmin =
     user.role === "owner" || user.role === "admin" || user.isAdmin === true;
   if (canAdmin) return <Navigate to="/admin/orders" replace />;
 
-  // обычного юзера уводим на главную
   return <Navigate to="/" replace />;
 }
 
@@ -81,9 +80,12 @@ root.render(
         <AuthProvider>
           <CartProvider>
             <Router>
+              {/* Глобальные помощники */}
+              <TokenCatcher /> {/* ⬅️ Сохраняет токен+tenantId из URL до роутов */}
               <ScrollToTop />
               <AddToCartAnimation />
               <ChatWidgetWrapper />
+
               <Routes>
                 {/* Public */}
                 <Route path="/" element={<HomePage />} />

@@ -11,7 +11,6 @@ export default function AdminLayout() {
   const { totalUnread, totalNewOrders } = useAdminNotify();
   const [ready, setReady] = useState(false);
 
-  // 1) Подхватываем ?token=&tid= при входе на любой /admin/* и чистим URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const t = params.get("token");
@@ -19,7 +18,7 @@ export default function AdminLayout() {
 
     if (t) {
       try {
-        login(t, { tenantId: tid });
+        login(t, { tenantId: tid, role: "admin" });
       } catch (e) {
         console.error("AdminLayout auto-login error:", e);
       } finally {
@@ -51,13 +50,11 @@ export default function AdminLayout() {
   return (
     <div className="admin-root admin-layout">
       <aside className="admin-sidebar">
-        {/* профиль админа */}
         <div className="admin-profile">
           <div className="admin-avatar">{user?.name?.charAt(0)?.toUpperCase() || "A"}</div>
           <div className="admin-name">{user?.name || "Админ"}</div>
         </div>
 
-        {/* вертикальное меню */}
         <nav className="admin-menu">
           {MENU.map((item) => {
             const active = location.pathname.includes(item.key);
@@ -74,7 +71,6 @@ export default function AdminLayout() {
           })}
         </nav>
 
-        {/* футер меню */}
         <div className="admin-footer">
           <a className="go-to-site" href="/" target="_blank" rel="noopener noreferrer" title="Перейти на сайт">
             <img src="/images/Перейти.png" alt="Перейти на сайт" className="admin-menu-icon" />
