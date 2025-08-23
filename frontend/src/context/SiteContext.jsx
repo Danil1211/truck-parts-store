@@ -212,7 +212,7 @@ const FAVICON_DEFAULT = null;
 
 const SiteContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || "https://truck-parts-backend.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 /* ===========================
    Утилиты
