@@ -5,12 +5,6 @@ import { useSite } from "../context/SiteContext";
 import { DISPLAY_DEFAULT, PALETTES } from "../context/SiteContext";
 import { useAuth } from "../context/AuthContext";
 
-// импортируем превью, чтобы Vite их упаковал
-import tplStandard from "../assets/standartdesing.png";
-import tplPhoenix from "../assets/phoenix.png";
-import tplRedDove from "../assets/red-dove.png";
-import tplTurquoise from "../assets/turquoise-swallow.png";
-
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 // Формируем корректный URL к картинке (абсолютный если надо)
@@ -141,7 +135,6 @@ export default function AdminSettingsPage() {
   const [chatGreeting, setChatGreeting] = useState(defaultChatSettings.greeting || "");
 
   // UI сообщения
-  the
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -883,10 +876,11 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="design-templates-row">
                   {[
-                    { key: "standard", label: "Стандартный", preview: tplStandard },
-                    { key: "phoenix", label: "Феникс", preview: tplPhoenix },
-                    { key: "red-dove", label: "Красный Голубь", preview: tplRedDove },
-                    { key: "turquoise-swallow", label: "Бирюзовая Ласточка", preview: tplTurquoise },
+                    // ВАЖНО: строки (public/images/*). Если файлов нет — onError подставит /noimg.png
+                    { key: "standard",          label: "Стандартный",         preview: "/images/standartdesing.png" },
+                    { key: "phoenix",           label: "Феникс",              preview: "/images/phoenix.png" },
+                    { key: "red-dove",          label: "Красный Голубь",      preview: "/images/red-dove.png" },
+                    { key: "turquoise-swallow", label: "Бирюзовая Ласточка",  preview: "/images/turquoise-swallow.png" },
                   ].map((tpl) => {
                     const isSelected = (display.template || "standard") === tpl.key;
                     return (
@@ -902,7 +896,12 @@ export default function AdminSettingsPage() {
                           onChange={() => setDisplay((d) => ({ ...d, template: tpl.key }))}
                           style={{ display: "none" }}
                         />
-                        <img src={tpl.preview} alt={tpl.label} className="design-template-preview" />
+                        <img
+                          src={tpl.preview}
+                          alt={tpl.label}
+                          className="design-template-preview"
+                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/noimg.png"; }}
+                        />
                         <span className="design-template-title">{tpl.label}</span>
                         <button
                           className="apply-template-btn"
