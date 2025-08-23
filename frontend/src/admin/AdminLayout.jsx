@@ -16,7 +16,7 @@ export default function AdminLayout() {
     const t = params.get("token");
     const tid = params.get("tid") || params.get("tenantId");
 
-    if (t) {
+    if (t && tid) {
       try {
         login(t, { tenantId: tid, role: "admin" });
       } catch (e) {

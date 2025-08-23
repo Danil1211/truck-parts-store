@@ -1,4 +1,3 @@
-// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
 
 const API =
@@ -33,22 +32,20 @@ export default function TrialStart() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка запуска триала");
 
-      // Предпочтительно — автологин в админку c token & tid
+      // ✅ всегда редиректим на /admin/login?token&tid
       if (data.token && data.tenantId && data.subdomain) {
-        const url = `https://${data.subdomain}.storo-shop.com/admin?token=${encodeURIComponent(
+        const url = `https://${data.subdomain}.storo-shop.com/admin/login?token=${encodeURIComponent(
           data.token
         )}&tid=${encodeURIComponent(data.tenantId)}`;
         window.location.href = url;
         return;
       }
 
-      // Фолбэк — ссылка на /admin/login
       if (data.loginUrl) {
         window.location.href = data.loginUrl;
         return;
       }
 
-      // Если вдруг без редиректа
       setOk("✅ Магазин создан! Проверьте почту для деталей.");
     } catch (e) {
       setErr(e.message || "Ошибка запуска триала");

@@ -14,13 +14,12 @@ export default function AdminLoginPage() {
   const [err, setErr] = useState("");
   const [processing, setProcessing] = useState(true);
 
-  // Подхватываем ?token=&tid= и логинимся (на случай, если гард уже редиректнул сюда)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const t = params.get("token");
     const tid = params.get("tid") || params.get("tenantId");
 
-    if (t) {
+    if (t && tid) {
       try {
         login(t, { tenantId: tid, role: "admin" });
       } catch (e) {
@@ -58,7 +57,6 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // кладём токен + отмечаем роль админа
       login(data.token, { role: "admin" });
 
       const u = data.user || {};

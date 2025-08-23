@@ -1,5 +1,4 @@
-// src/utils/api.js
-const API = import.meta.env.VITE_API_URL || "";
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 /**
  * В проде (на домене storo-shop.com) X-Tenant-Id не нужен —
@@ -14,7 +13,7 @@ function isProdHost() {
 
 /**
  * Основная функция запроса. Используй во всех местах вместо fetch:
- *   const data = await api('/api/products', { method: 'GET' })
+ *   const data = await api('/api/products')
  */
 export async function api(path, options = {}) {
   const token = localStorage.getItem("token");
@@ -35,8 +34,8 @@ export async function api(path, options = {}) {
   let payload = null;
   try {
     payload = await res.json();
-  } catch (_) {
-    // ignore
+  } catch {
+    // пустой ответ (204 и т.п.)
   }
 
   if (!res.ok) {
@@ -46,7 +45,7 @@ export async function api(path, options = {}) {
   return payload;
 }
 
-/* Удобные шорткаты */
+/* ===== Шорткаты ===== */
 export const get = (path, opts = {}) =>
   api(path, { ...opts, method: "GET" });
 export const del = (path, opts = {}) =>
@@ -58,9 +57,7 @@ export const put = (path, body, opts = {}) =>
 export const patch = (path, body, opts = {}) =>
   api(path, { ...opts, method: "PATCH", body: JSON.stringify(body) });
 
-/**
- * Хелперы для управления контекстом арендатора в dev
- */
+/* ===== Контекст арендатора в dev ===== */
 export function setTenantId(id) {
   if (id) localStorage.setItem("tenantId", id);
 }

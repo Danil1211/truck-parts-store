@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { api } from "../utils/api"; // добавляет токен из localStorage
 
@@ -6,7 +5,7 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);   // объект пользователя (и админа арендатора)
-  const [role, setRole] = useState(null);   // "user" | "superadmin" (РОЛЬ "admin" отдельно не нужна)
+  const [role, setRole] = useState(null);   // "user" | "superadmin"
   const [loading, setLoading] = useState(true);
 
   const getToken = () => localStorage.getItem("token");
@@ -21,9 +20,6 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // ВАЖНО:
-      // - для арендатора (включая owner/admin) — всегда /api/users/me
-      // - для супер-админки — /api/superadmin/me
       let data;
       if (currentRole === "superadmin") {
         data = await api("/api/superadmin/me");
@@ -47,16 +43,23 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // login: кладём токен/tenantId/role в localStorage и дергаем загрузку профиля
   const login = (token, extra = {}) => {
     if (token) localStorage.setItem("token", token);
     if (extra.tenantId) localStorage.setItem("tenantId", extra.tenantId);
-    if (extra.role)     localStorage.setItem("role", extra.role); // роль сохраняем ТОЛЬКО для супер-админки
+    if (extra.role) localStorage.setItem("role", extra.role);
+
+    const tid = extra.tenantId || localStorage.getItem("tenantId");
+    if (!tid) {
+      console.warn("⚠️ login без tenantId — пропускаем loadProfile");
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     loadProfile(token || getToken(), extra.role || getRole());
   };
 
-  // регистрация обычного пользователя магазина (если нужна на витрине)
   const register = async ({ name, email, phone, password }) => {
     try {
       const data = await api("/api/auth/register", {
