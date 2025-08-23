@@ -1,16 +1,18 @@
-// backend/routes/site-settings.js
+// backend/routes/siteSettings.js
 const express = require('express');
 const router = express.Router();
-const { SiteSettings } = require('../models/models'); // ✅ правильный путь
-const { authMiddleware } = require('./protected');    // ✅ protected лежит в routes
+const { SiteSettings } = require('../models/models');
+const { authMiddleware } = require('./protected');
 const withTenant = require('../middleware/withTenant');
 
-/* подключаем tenant */
+// парсим крупные тела только в этом роутере (5MB достаточно для base64 логотипов)
+router.use(express.json({ limit: '5mb' }));
+router.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// мультитенант
 router.use(withTenant);
 
-/**
- * Нормализация пунктов меню.
- */
+/** нормализация меню */
 function sanitizeMenuArray(arr) {
   if (!Array.isArray(arr)) return [];
   return arr
@@ -25,9 +27,7 @@ function sanitizeMenuArray(arr) {
     .sort((a, b) => a.order - b.order);
 }
 
-/**
- * Нормализация витрины.
- */
+/** нормализация витрины */
 function sanitizeShowcase(showcase) {
   const sc = showcase || {};
   const enabled = !!sc.enabled;
@@ -38,9 +38,7 @@ function sanitizeShowcase(showcase) {
   return { enabled, productIds };
 }
 
-/**
- * Собираем $set из body
- */
+/** собираем апдейт */
 function buildUpdateFromBody(body = {}) {
   const $set = {};
 
@@ -82,27 +80,23 @@ function buildUpdateFromBody(body = {}) {
     }
   }
 
-  // Меню
   if ('verticalMenu' in body)   $set['verticalMenu'] = sanitizeMenuArray(body.verticalMenu);
   if ('horizontalMenu' in body) $set['horizontalMenu'] = sanitizeMenuArray(body.horizontalMenu);
 
-  // Витрина
   if ('showcase' in body) {
     const sc = sanitizeShowcase(body.showcase);
     $set['showcase.enabled'] = sc.enabled;
     $set['showcase.productIds'] = sc.productIds;
   }
 
-  if ('siteLogo' in body) $set['siteLogo'] = body.siteLogo ?? null;
-  if ('favicon'  in body) $set['favicon']  = body.favicon ?? null;
+  if ('siteLogo' in body) $set['siteLogo'] = body.siteLogo ?? null; // base64/URL
+  if ('favicon'  in body) $set['favicon']  = body.favicon  ?? null; // base64/URL
 
   $set['updatedAt'] = new Date();
   return { $set };
 }
 
-/**
- * GET /api/site-settings
- */
+/** GET /api/site-settings */
 router.get('/', async (req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
@@ -110,17 +104,14 @@ router.get('/', async (req, res) => {
       { $setOnInsert: { tenantId: req.tenantId } },
       { new: true, upsert: true }
     ).lean();
-
-    return res.json(doc);
+    res.json(doc);
   } catch (err) {
     console.error('site-settings GET error:', err);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-/**
- * PUT /api/site-settings
- */
+/** PUT /api/site-settings */
 router.put('/', authMiddleware, async (req, res) => {
   try {
     if (!req.user?.isAdmin) {
@@ -135,10 +126,10 @@ router.put('/', authMiddleware, async (req, res) => {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
-    return res.json(updated);
+    res.json(updated);
   } catch (err) {
     console.error('Ошибка обновления настроек:', err);
-    return res.status(500).json({ error: 'Ошибка обновления настроек' });
+    res.status(500).json({ error: 'Ошибка обновления настроек' });
   }
 });
 

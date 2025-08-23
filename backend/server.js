@@ -19,7 +19,7 @@ const withTenant         = require('./middleware/withTenant');
 
 const authRoutes         = require('./routes/auth');
 const categoryRoutes     = require('./routes/categories');
-const productRoutes      = require('./routes/products');   // <-- единый файл
+const productRoutes      = require('./routes/products');   // единый файл для продуктов
 const orderRoutes        = require('./routes/orders');
 const uploadRoutes       = require('./routes/upload');
 const chatRoutes         = require('./routes/chat');
@@ -28,12 +28,14 @@ const novaposhtaProxy    = require('./routes/novaposhtaProxy');
 const userRoutes         = require('./routes/users');
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
-const siteSettingsRoutes = require('./routes/siteSettings');
+const siteSettingsRoutes = require('./routes/siteSettings'); // <== имя файла: routes/siteSettings.js
 
 /* ========================= Общие настройки ========================= */
 app.set('trust proxy', true);
+
+// лимиты тела: base64-лого/фавиконки и т.п.
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /* ============================= CORS ============================= */
 const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
@@ -64,7 +66,7 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Preflight
+// Ручной preflight (для чёткого контроля)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = isAllowedOrigin(origin);
@@ -85,6 +87,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// cors middleware (основной)
 app.use(cors({
   origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
   credentials: true,
@@ -95,6 +98,7 @@ app.use(cors({
 /* ============================ Статика / health ============================ */
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.get('/api/cors-check', (req, res) => {
   res.json({ ok: true, originSeen: req.headers.origin || null });
@@ -110,7 +114,7 @@ app.use(withTenant);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);   // ✅ всё тут
+app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
@@ -123,6 +127,7 @@ app.use('/api/site-settings', siteSettingsRoutes);
 
 /* ============================== 404 / 500 ============================== */
 app.use((req, res) => res.status(404).json({ error: 'Ресурс не найден' }));
+
 app.use((err, req, res, _next) => {
   console.error('🔥 Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
