@@ -33,19 +33,16 @@ export default function TrialStart() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка запуска триала");
 
-      // ✅ автологин: кладём токен и tenantId
+      // ✅ автологин
       if (data.token && data.tenantId && data.subdomain) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("tenantId", data.tenantId);
         localStorage.setItem("role", "admin");
 
-        // редиректим прямо в админку
-        const url = `https://${data.subdomain}.storo-shop.com/admin/orders`;
-        window.location.href = url;
+        window.location.href = `https://${data.subdomain}.storo-shop.com/admin/orders`;
         return;
       }
 
-      // fallback на loginUrl
       if (data.loginUrl) {
         window.location.href = data.loginUrl;
         return;
@@ -60,55 +57,65 @@ export default function TrialStart() {
   };
 
   return (
-    <div style={{ maxWidth: 520, margin: "40px auto", padding: 20 }}>
-      <h1>Создать магазин бесплатно</h1>
-      <p>14 дней бесплатного доступа, без привязки карты.</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-blue-50 to-sky-100 px-4">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8">
+        {/* Заголовок */}
+        <h1 className="text-3xl font-extrabold text-slate-900 text-center">
+          Создать магазин бесплатно
+        </h1>
+        <p className="mt-3 text-center text-slate-600">
+          14 дней бесплатного доступа <br />
+          <span className="text-indigo-600 font-semibold">без привязки карты</span>
+        </p>
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <input
-          type="email"
-          placeholder="Ваш email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
-        />
-        <input
-          type="text"
-          placeholder="Название компании / магазина"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          required
-          style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
-        />
-        <input
-          type="tel"
-          placeholder="Телефон (необязательно)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
-        />
+        {/* Форма */}
+        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+          <input
+            type="email"
+            placeholder="Ваш email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
+          <input
+            type="text"
+            placeholder="Название компании / магазина"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            required
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
+          <input
+            type="tel"
+            placeholder="Телефон (необязательно)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
 
-        {err && <div style={{ color: "crimson" }}>{err}</div>}
-        {ok && <div style={{ color: "green" }}>{ok}</div>}
+          {err && <div className="text-red-600 text-sm">{err}</div>}
+          {ok && <div className="text-green-600 text-sm">{ok}</div>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: 12,
-            borderRadius: 10,
-            border: 0,
-            background: "#4f46e5",
-            color: "#fff",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          {loading ? "Создаю..." : "Создать магазин бесплатно"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md transition disabled:opacity-70"
+          >
+            {loading ? "Создаю..." : "Создать магазин бесплатно"}
+          </button>
+        </form>
+
+        {/* Доп. инфо */}
+        <p className="mt-6 text-center text-slate-500 text-sm">
+          Нажимая кнопку, вы соглашаетесь с{" "}
+          <a href="/terms" className="text-indigo-600 hover:underline">
+            условиями использования
+          </a>
+          .
+        </p>
+      </div>
     </div>
   );
 }
