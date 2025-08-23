@@ -1,3 +1,4 @@
+// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
 import { useLang } from "../context/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
@@ -33,12 +34,12 @@ export default function TrialStart() {
 
       if (!res.ok) {
         if (res.status === 409 && data.code === "EMAIL_EXISTS") {
-          throw new Error(t("trial.emailExists"));
+          throw new Error("EMAIL_EXISTS");
         }
         if (res.status === 409 && data.code === "PHONE_EXISTS") {
-          throw new Error(t("trial.phoneExists"));
+          throw new Error("PHONE_EXISTS");
         }
-        throw new Error(data.error || t("trial.error"));
+        throw new Error(data.error || "TRIAL_ERROR");
       }
 
       // ✅ редирект с token & tid
@@ -54,7 +55,13 @@ export default function TrialStart() {
 
       setOk(t("trial.success"));
     } catch (e) {
-      setErr(e.message || t("trial.error"));
+      if (e.message === "EMAIL_EXISTS") {
+        setErr(t("trial.emailExists"));
+      } else if (e.message === "PHONE_EXISTS") {
+        setErr(t("trial.phoneExists"));
+      } else {
+        setErr(t("trial.error"));
+      }
     } finally {
       setLoading(false);
     }
