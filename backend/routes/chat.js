@@ -11,7 +11,6 @@ const { Message, User } = require('../models/models');
 const { authMiddleware } = require('./protected');
 const withTenant = require('../middleware/withTenant');
 
-// каждый запрос теперь работает в контексте арендатора
 router.use(withTenant);
 
 let typingStatus = {}; // { tenantId: { userId: {...} } }
@@ -19,7 +18,7 @@ let typingStatus = {}; // { tenantId: { userId: {...} } }
 // --- Multer storage ---
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../uploads');
+    const dir = path.join(__dirname, '../uploads', String(req.tenantId || 'common'));
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -41,9 +40,7 @@ const upload = multer({ storage, fileFilter, limits: { files: 4 } });
    CLIENT/ADMIN ROUTES
 ====================== */
 
-/**
- * POST /api/chat/typing
- */
+/** POST /api/chat/typing */
 router.post('/typing', authMiddleware, async (req, res) => {
   const tenantId = String(req.tenantId);
   const { userId, isTyping, name, fromAdmin } = req.body;
@@ -58,7 +55,7 @@ router.post('/typing', authMiddleware, async (req, res) => {
   }
   if (!typingStatus[tenantId]) typingStatus[tenantId] = {};
   typingStatus[tenantId][userId] = {
-    isTyping,
+    isTyping: !!isTyping,
     name: fromAdmin ? 'Менеджер' : realName,
     fromAdmin: !!fromAdmin
   };
@@ -69,11 +66,17 @@ router.get('/typing/statuses', authMiddleware, (req, res) => {
   res.json(typingStatus[String(req.tenantId)] || {});
 });
 
-/**
- * ADMIN: список чатов
- */
+/** ADMIN: список чатов */
 router.get('/admin', authMiddleware, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
+  // всегда отдаём массив и отключаем кэш (избавляемся от 304 без тела)
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+
+  if (!req.user || !req.user.isAdmin) {
+    return res.status(403).json([]); // ← массив
+  }
   try {
     await updateMissedChats(String(req.tenantId));
     const chats = await Message.aggregate([
@@ -117,19 +120,18 @@ router.get('/admin', authMiddleware, async (req, res) => {
       },
       { $sort: { 'lastMessage.createdAt': -1 } }
     ]);
-    res.json(chats);
+
+    res.json(Array.isArray(chats) ? chats : []);
   } catch (err) {
     console.error('Ошибка /admin:', err);
-    res.status(500).json({ error: 'Ошибка при получении чатов' });
+    res.json([]); // ← не валим фронт
   }
 });
 
-/**
- * ADMIN: сообщения юзера
- */
+/** ADMIN: сообщения юзера */
 router.get('/admin/:userId', authMiddleware, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
-  if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ error: 'Некорректный userId' });
+  if (!req.user || !req.user.isAdmin) return res.status(403).json([]);
+  if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json([]);
   try {
     const tenantId = String(req.tenantId);
     const messages = await Message.find({ user: req.params.userId, tenantId }).sort({ createdAt: 1 });
@@ -142,21 +144,19 @@ router.get('/admin/:userId', authMiddleware, async (req, res) => {
         await user.save();
       }
     }
-    res.json(messages);
+    res.json(Array.isArray(messages) ? messages : []);
   } catch (err) {
-    res.status(500).json({ error: 'Ошибка загрузки сообщений' });
+    res.json([]);
   }
 });
 
-/**
- * ADMIN: отправить сообщение
- */
+/** ADMIN: отправить сообщение */
 router.post(
   '/admin/:userId',
   authMiddleware,
   upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
   async (req, res) => {
-    if (!req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
+    if (!req.user || !req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
     if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ error: 'Некорректный userId' });
 
     try {
@@ -165,8 +165,8 @@ router.post(
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
-      const imageUrls = req.files?.images?.map(f => `/uploads/${f.filename}`) || [];
-      const audioUrl = req.files?.audio?.[0] ? `/uploads/${req.files.audio[0].filename}` : '';
+      const imageUrls = req.files?.images?.map(f => `/uploads/${tenantId}/${f.filename}`) || [];
+      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tenantId}/${req.files.audio[0].filename}` : '';
 
       const message = await Message.create({
         tenantId,
@@ -195,9 +195,7 @@ router.post(
   }
 );
 
-/**
- * CLIENT: получить свои сообщения
- */
+/** CLIENT: мои сообщения */
 router.get('/my', authMiddleware, async (req, res) => {
   try {
     const tenantId = String(req.tenantId);
@@ -208,22 +206,20 @@ router.get('/my', authMiddleware, async (req, res) => {
       await user.save();
     }
     const messages = await Message.find({ user: req.user.id, tenantId }).sort({ createdAt: 1 });
-    res.json(messages);
+    res.json(Array.isArray(messages) ? messages : []);
   } catch (err) {
-    res.status(500).json({ error: 'Ошибка при загрузке сообщений' });
+    res.json([]);
   }
 });
 
-/**
- * CLIENT: отправить сообщение или регистрация
- */
+/** CLIENT: отправить сообщение/регистрация */
 router.post(
   '/',
   upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
   async (req, res) => {
     const tenantId = String(req.tenantId);
-    const imageUrls = req.files?.images?.map(f => `/uploads/${f.filename}`) || [];
-    const audioUrl = req.files?.audio?.[0] ? `/uploads/${req.files.audio[0].filename}` : null;
+    const imageUrls = req.files?.images?.map(f => `/uploads/${tenantId}/${f.filename}`) || [];
+    const audioUrl = req.files?.audio?.[0] ? `/uploads/${tenantId}/${req.files.audio[0].filename}` : null;
     const auth = req.headers.authorization;
 
     // с токеном
@@ -231,6 +227,9 @@ router.post(
       try {
         const token = auth.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (String(decoded.tenantId) !== String(tenantId)) {
+          return res.status(403).json({ error: 'Cross-tenant forbidden' });
+        }
         const user = await User.findOne({ _id: decoded.id, tenantId });
         if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
         if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });

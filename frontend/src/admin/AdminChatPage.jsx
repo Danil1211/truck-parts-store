@@ -1,4 +1,3 @@
-// src/admin/AdminChatPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import Picker from "emoji-picker-react";
 import "../assets/AdminPanel.css";
@@ -191,9 +190,11 @@ export default function AdminChatPage() {
   const loadChats = async () => {
     setError("");
     try {
-      const data = await api("/api/chat/admin");
+      // анти-кэш, чтобы не ловить 304 без тела
+      const data = await api(`/api/chat/admin?_=${Date.now()}`);
+      const arr = Array.isArray(data) ? data : [];
       setChats(
-        data.map((c) => ({
+        arr.map((c) => ({
           ...c,
           lastMessage:
             c.lastMessage?.text ||
@@ -202,7 +203,9 @@ export default function AdminChatPage() {
         }))
       );
     } catch (e) {
-      setError("Ошибка получения чатов: " + e.message);
+      console.error("loadChats error:", e);
+      setChats([]);
+      setError("Ошибка получения чатов: " + (e?.message || "unknown"));
     }
   };
 
@@ -217,7 +220,7 @@ export default function AdminChatPage() {
   const loadMessages = async () => {
     if (!selected) return;
     try {
-      const data = await api(`/api/chat/admin/${selected.userId}`);
+      const data = await api(`/api/chat/admin/${selected.userId}?_=${Date.now()}`);
       setMessages(Array.isArray(data) ? data : []);
     } catch {
       setMessages([]);
@@ -230,7 +233,7 @@ export default function AdminChatPage() {
     const load = async () => {
       await loadMessages();
       try {
-        const info = await api(`/api/chat/admin/user/${selected.userId}`);
+        const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
         setSelectedUserInfo(info);
       } catch {}
     };
@@ -249,7 +252,7 @@ export default function AdminChatPage() {
     setAudioPreview(null);
     resetUnread(c.userId);
 
-    const info = await api(`/api/chat/admin/user/${c.userId}`);
+    const info = await api(`/api/chat/admin/user/${c.userId}?_=${Date.now()}`);
     setSelectedUserInfo(info);
 
     await api(`/api/chat/read/${c.userId}`, { method: "POST" });
@@ -403,12 +406,14 @@ export default function AdminChatPage() {
     return <div style={{ color: "red", padding: 30, fontSize: 18 }}>{error}</div>;
   }
 
+  const chatList = Array.isArray(chats) ? chats : [];
+
   return (
     <div className="admin-chat-root" style={{ display: "flex", height: "100vh" }}>
       {/* левая панель чатов */}
       <aside className="admin-chat-list">
         <h2 style={{ fontSize: 20, marginBottom: 20 }}>💬 Чаты</h2>
-        {chats.map((c) => {
+        {chatList.map((c) => {
           const isSelected = selected?.userId === c.userId;
           const unreadExists = hasUnread(c);
           return (
@@ -617,7 +622,7 @@ export default function AdminChatPage() {
                   </div>
                 ))}
 
-              {typingMap[selected.userId]?.isTyping && !typingMap[selected.userId]?.fromAdmin && (
+              {typingMap[selected?.userId]?.isTyping && !typingMap[selected?.userId]?.fromAdmin && (
                 <div className="typing-indicator">
                   <div
                     style={{
@@ -938,7 +943,7 @@ export default function AdminChatPage() {
 
               setBlocking(false);
 
-              const info = await api(`/api/chat/admin/user/${selected.userId}`);
+              const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
               setSelectedUserInfo(info);
               await loadChats();
             }}

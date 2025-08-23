@@ -1,95 +1,157 @@
 // src/admin/AdminChatDetail.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { useSite } from "../context/SiteContext";
 import api from "../utils/api";
 import "../assets/AdminPanel.css";
 
-function AdminChatDetail({ userId, userName }) {
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+// Простой аудио-блок
+function VoiceMessage({ url, createdAt }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) a.pause();
+    else a.play();
+  };
+
+  return (
+    <div className="voice-message-bubble">
+      <button className="voice-play-btn" onClick={toggle}>{playing ? "⏸" : "▶️"}</button>
+      <span className="voice-time">
+        {createdAt
+          ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : ""}
+      </span>
+      <audio
+        ref={audioRef}
+        src={url}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        style={{ display: "none" }}
+        preload="auto"
+      />
+    </div>
+  );
+}
+
+export default function AdminChatDetail({ userId, userName }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [files, setFiles] = useState([]);
+  const [error, setError] = useState("");
+
   const messagesEndRef = useRef(null);
-  const { settings } = useSite();
 
-  // === загрузка сообщений ===
-  useEffect(() => {
+  // загрузка сообщений с анти-кэшем
+  const load = async () => {
     if (!userId) return;
+    setError("");
+    try {
+      const data = await api(`/api/chat/admin/${userId}?_=${Date.now()}`);
+      setMessages(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setMessages([]);
+      setError("Не удалось загрузить сообщения");
+      // тихо логируем
+      console.error("AdminChatDetail load error:", e);
+    }
+  };
 
-    const fetchMessages = async () => {
-      try {
-        const data = await api(`/api/chat/admin/${userId}`);
-        setMessages(data);
-      } catch (err) {
-        console.error("Ошибка загрузки чата:", err);
-      }
-    };
-
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 2500);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // === автоскролл вниз ===
+  // автопрокрутка вниз
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // === отправка сообщения ===
   const handleSend = async () => {
+    if (!userId) return;
     if (!input.trim() && files.length === 0) return;
 
-    const formData = new FormData();
-    if (input.trim()) formData.append("text", input);
-    files.forEach((f) => formData.append("files", f));
+    const form = new FormData();
+    if (input.trim()) form.append("text", input.trim());
 
-    const tempMsg = {
-      text: input,
-      fromAdmin: true,
-      createdAt: new Date().toISOString(),
-      imageUrls: files.map((f) => URL.createObjectURL(f)),
-    };
+    // Бэкенд ждёт поле "images"
+    files.slice(0, 3).forEach((f) => form.append("images", f));
 
-    setMessages((prev) => [...prev, tempMsg]);
+    // очищаем инпуты и шлём
     setInput("");
     setFiles([]);
 
     try {
-      await api(`/api/chat/admin/${userId}`, {
-        method: "POST",
-        body: formData,
-      });
-    } catch (err) {
-      console.error("Ошибка отправки:", err);
+      await api(`/api/chat/admin/${userId}`, { method: "POST", body: form });
+      await load();
+    } catch (e) {
+      console.error("send error:", e);
+      setError("Не удалось отправить сообщение");
+      setTimeout(() => setError(""), 2000);
     }
   };
 
+  const onFileChange = (e) => {
+    const picked = Array.from(e.target.files || []);
+    const merged = [...files, ...picked].slice(0, 3); // лимит 3 как на бэке
+    setFiles(merged);
+  };
+
+  const removeFile = (idx) => {
+    setFiles((arr) => arr.filter((_, i) => i !== idx));
+  };
+
+  const safeMessages = Array.isArray(messages) ? messages : [];
+
   return (
     <div className="admin-chat-detail">
-      <h3 style={{ color: settings?.contacts?.color || "#2291ff" }}>
-        Диалог с {userName || "пользователем"}
-      </h3>
+      <div className="admin-chat-detail__header">
+        <h3 style={{ margin: 0 }}>
+          Диалог с {userName || "пользователем"}
+        </h3>
+      </div>
 
       <div className="admin-chat-messages">
-        {messages.map((msg, i) => (
+        {safeMessages.map((msg, i) => (
           <div
-            key={i}
+            key={msg._id || i}
             className={`chat-message ${msg.fromAdmin ? "admin" : "user"}`}
           >
             {msg.text && <span>{msg.text}</span>}
-            {msg.imageUrls?.map((url, idx) => (
-              <div className="chat-image-wrapper" key={idx}>
-                <img
-                  src={url.startsWith("blob:") ? url : `${import.meta.env.VITE_API_URL}${url}`}
-                  alt="img"
-                  className="chat-image"
-                />
-              </div>
-            ))}
+
+            {/* изображения */}
+            {Array.isArray(msg.imageUrls) &&
+              msg.imageUrls.map((url, idx) => (
+                <div className="chat-image-wrapper" key={idx}>
+                  <img
+                    src={url?.startsWith("http") ? url : `${API_URL}${url}`}
+                    alt="img"
+                    className="chat-image"
+                  />
+                </div>
+              ))}
+
+            {/* голосовые */}
+            {msg.audioUrl && (
+              <VoiceMessage
+                url={msg.audioUrl.startsWith("http") ? msg.audioUrl : `${API_URL}${msg.audioUrl}`}
+                createdAt={msg.createdAt}
+              />
+            )}
+
             <div className="chat-time">
-              {new Date(msg.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {msg.createdAt
+                ? new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : ""}
             </div>
           </div>
         ))}
@@ -99,14 +161,21 @@ function AdminChatDetail({ userId, userName }) {
       {files.length > 0 && (
         <div className="chat-preview">
           {files.map((f, i) => (
-            <img
-              key={i}
-              src={URL.createObjectURL(f)}
-              alt="preview"
-              className="chat-preview-img"
-            />
+            <div className="chat-preview-item" key={i}>
+              <img
+                src={URL.createObjectURL(f)}
+                alt="preview"
+                className="chat-preview-img"
+                onLoad={(e) => URL.revokeObjectURL(e.currentTarget.src)}
+              />
+              <button className="image-preview-remove" onClick={() => removeFile(i)}>×</button>
+            </div>
           ))}
         </div>
+      )}
+
+      {error && (
+        <div style={{ color: "#d43838", marginTop: 6, fontSize: 14 }}>{error}</div>
       )}
 
       <div className="chat-input">
@@ -117,19 +186,21 @@ function AdminChatDetail({ userId, userName }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
         />
+
         <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={(e) => setFiles([...files, ...e.target.files])}
-          style={{ display: "none" }}
           id="chatFile"
+          type="file"
+          accept="image/*"
+          multiple
+          style={{ display: "none" }}
+          onChange={onFileChange}
         />
-        <label htmlFor="chatFile" className="chat-attach-btn">📎</label>
+        <label htmlFor="chatFile" className="chat-attach-btn" title="Прикрепить фото">
+          📎
+        </label>
+
         <button onClick={handleSend}>Отправить</button>
       </div>
     </div>
   );
 }
-
-export default AdminChatDetail;
