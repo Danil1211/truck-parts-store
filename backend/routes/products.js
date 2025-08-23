@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { Product, Group } = require("../models/models");
-const { authMiddleware } = require("../protected");
+const { authMiddleware } = require("./protected");
 const withTenant = require("../middleware/withTenant");
 
 router.use(withTenant);
