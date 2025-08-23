@@ -57,9 +57,9 @@ const translations = {
       step1: "Створіть магазин",
       step1desc: "Зареєструйтеся і отримайте готову платформу за хвилину.",
       step2: "Додайте товари",
-      step2desc: "Завантажте товари, встановіть ціни та починайте продажі.",
+      step2desc: "Завантажте товари, встановіть ціни та почніть продажі.",
       step3: "Розвивайте бізнес",
-      step3desc: "Використовуйте аналітику, чат і доставку для зростання."
+      step3desc: "Використовуйте аналітику, чат і доставку для зростання.",
     },
     terms: {
       title: "Умови використання",
@@ -130,7 +130,7 @@ const translations = {
       step2: "Добавьте товары",
       step2desc: "Загрузите товары, установите цены и начните продажи.",
       step3: "Развивайте бизнес",
-      step3desc: "Используйте аналитику, чат и доставку для роста."
+      step3desc: "Используйте аналитику, чат и доставку для роста.",
     },
     terms: {
       title: "Условия использования",
@@ -195,13 +195,13 @@ const translations = {
       loading: "Creating...",
       success: "✅ Store created! Check your email.",
       error: "Trial launch error",
-      roadmapTitle: "Your path to online success with Storo",
+      roadmapTitle: "Your path to a successful online business with Storo",
       step1: "Create your store",
       step1desc: "Register and get a ready-to-use platform in one minute.",
       step2: "Add products",
-      step2desc: "Upload products, set prices, and start selling.",
+      step2desc: "Upload products, set prices and start selling.",
       step3: "Grow your business",
-      step3desc: "Use analytics, chat, and delivery to scale up."
+      step3desc: "Use analytics, chat and delivery tools to scale.",
     },
     terms: {
       title: "Terms of Use",
