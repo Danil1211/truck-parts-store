@@ -2,9 +2,7 @@ import React, { useState } from "react";
 import { useLang } from "../context/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 
-const API =
-  (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "") ||
-  "https://api.storo-shop.com";
+const API = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "") || "https://api.storo-shop.com";
 
 export default function TrialStart() {
   const { t } = useLang();
@@ -19,6 +17,7 @@ export default function TrialStart() {
     e.preventDefault();
     setErr("");
     setOk("");
+
     try {
       setLoading(true);
       const res = await fetch(`${API}/api/public/trial`, {
