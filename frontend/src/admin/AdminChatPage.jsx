@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Picker from "emoji-picker-react";
 import "../assets/AdminPanel.css";
 import { useAdminNotify } from "../context/AdminNotifyContext";
-import { api } from "../utils/api"; // ✅ общий api helper
+import api from "../utils/api";
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 function decodeHtml(html) {

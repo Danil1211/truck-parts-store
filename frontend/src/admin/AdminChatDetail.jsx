@@ -1,7 +1,7 @@
 // src/admin/AdminChatDetail.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useSite } from "../context/SiteContext";
-import { api } from "../utils/api"; // ✅ общий api helper
+import api from "../utils/api";
 import "../assets/AdminPanel.css";
 
 function AdminChatDetail({ userId, userName }) {

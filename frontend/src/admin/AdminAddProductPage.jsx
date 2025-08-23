@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
-import api from "../utils/api"; // ✅ импортируем общий api.js
+import api from "../utils/api";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 
