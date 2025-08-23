@@ -1,15 +1,28 @@
-// src/admin/AdminSettingsPage.jsx
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import "../assets/AdminSettingsPage.css";
 import { useSite } from "../context/SiteContext";
 import { DISPLAY_DEFAULT, PALETTES } from "../context/SiteContext";
 import { useAuth } from "../context/AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+// относительный API: все уйдёт через /api -> api.storo-shop.com
+const API_URL = ""; // НЕ используем для site-settings, но нужен для картинок товаров
+
+// Встроенный SVG-плейсхолдер вместо /noimg.png (чтобы не было 404)
+const NOIMG =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120">
+      <rect width="100%" height="100%" fill="#f2f4f7"/>
+      <g fill="#b9c2cf" font-family="Arial,Helvetica,sans-serif" font-size="12">
+        <rect x="30" y="30" width="100" height="60" rx="8" ry="8" fill="#dfe4ea"/>
+        <text x="80" y="65" text-anchor="middle">no image</text>
+      </g>
+    </svg>`
+  );
 
 // Формируем корректный URL к картинке (абсолютный если надо)
 const imgURL = (u) => {
-  if (!u) return "/noimg.png";
+  if (!u) return NOIMG;
   return /^https?:\/\//i.test(u) ? u : `${API_URL}${u}`;
 };
 
@@ -104,7 +117,7 @@ export default function AdminSettingsPage() {
 
   const [tab, setTab] = useState("main");
 
-  // ========= MAIN =========
+  // ========= MAIN (как было) =========
   // Контакты
   const [email, setEmail] = useState(contacts?.email || "");
   const [contactPerson, setContactPerson] = useState(contacts?.contactPerson || "");
@@ -141,7 +154,7 @@ export default function AdminSettingsPage() {
   // Текущий основной цвет САЙТА (для UI выделения кружка)
   const sitePalettePrimary = display?.palette?.primary || COLOR_PALETTE[0];
 
-  // Синк при входящих изменениях из контекста
+  // Синк при входящих изменениях из контекста (после загрузки/сохранения)
   useEffect(() => {
     setEmail(contacts?.email || "");
     setContactPerson(contacts?.contactPerson || "");
@@ -277,7 +290,10 @@ export default function AdminSettingsPage() {
   // Фавикон
   const handleFaviconChange = (e) => {
     const file = e.target.files[0];
-    if (file && (file.type === "image/x-icon" || file.type === "image/png" || file.type === "image/svg+xml")) {
+    if (
+      file &&
+      (file.type === "image/x-icon" || file.type === "image/png" || file.type === "image/svg+xml")
+    ) {
       setFaviconFile(file);
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -354,7 +370,7 @@ export default function AdminSettingsPage() {
     if (tab !== "site" || !token) return;
     (async () => {
       try {
-        const r = await fetch(`${API_URL}/api/products/groups`, { headers: authHeaders });
+        const r = await fetch(`/api/products/groups`, { headers: authHeaders });
         if (r.ok) setGroups(await r.json());
       } catch (e) {
         console.error("load groups failed", e);
@@ -374,7 +390,7 @@ export default function AdminSettingsPage() {
           page: String(pickerPage),
           limit: String(pickerLimit),
         });
-        const r = await fetch(`${API_URL}/api/products/admin?` + qs.toString(), {
+        const r = await fetch(`/api/products/admin?` + qs.toString(), {
           headers: authHeaders,
         });
         if (r.ok) setPickerData(await r.json());
@@ -876,7 +892,6 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="design-templates-row">
                   {[
-                    // ВАЖНО: строки (public/images/*). Если файлов нет — onError подставит /noimg.png
                     { key: "standard",          label: "Стандартный",         preview: "/images/standartdesing.png" },
                     { key: "phoenix",           label: "Феникс",              preview: "/images/phoenix.png" },
                     { key: "red-dove",          label: "Красный Голубь",      preview: "/images/red-dove.png" },
@@ -900,7 +915,10 @@ export default function AdminSettingsPage() {
                           src={tpl.preview}
                           alt={tpl.label}
                           className="design-template-preview"
-                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/noimg.png"; }}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = NOIMG;
+                          }}
                         />
                         <span className="design-template-title">{tpl.label}</span>
                         <button
@@ -1141,7 +1159,14 @@ export default function AdminSettingsPage() {
                     checked={showcaseIds.includes(String(p._id))}
                     onChange={() => toggleSelected(p._id)}
                   />
-                  <img src={`${API_URL}${p.images?.[0] || ''}`} alt="" />
+                  <img
+                    src={p.images?.[0] ? `${API_URL}${p.images[0]}` : NOIMG}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = NOIMG;
+                    }}
+                    alt=""
+                  />
                   <div className="col">
                     <div className="name">{p.name}</div>
                     <div className="meta">
