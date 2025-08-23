@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
+import api from "../utils/api"; // ✅ импортируем общий api.js
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 
@@ -16,16 +17,13 @@ export default function AdminAddProductPage() {
   const [availability, setAvailability] = useState("published");
   const [stock, setStock] = useState("");
 
-  // Характеристики
   const [charColor, setCharColor] = useState("");
   const [charBrand, setCharBrand] = useState("");
 
-  // Поисковые запросы
   const [queryInput, setQueryInput] = useState("");
   const [queries, setQueries] = useState([]);
   const queryInputRef = useRef(null);
 
-  // Габариты
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
   const [length, setLength] = useState("");
@@ -33,9 +31,9 @@ export default function AdminAddProductPage() {
 
   const [groups, setGroups] = useState([]);
   useEffect(() => {
-    fetch("/api/groups")
-      .then((res) => res.json())
-      .then((data) => {
+    api.get("/api/groups")
+      .then(res => {
+        const data = res.data;
         const flatGroups = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
@@ -45,10 +43,12 @@ export default function AdminAddProductPage() {
         };
         flatten(data);
         setGroups(flatGroups);
+      })
+      .catch(err => {
+        console.error("Ошибка загрузки групп:", err);
       });
   }, []);
 
-  // ФОТО
   const [images, setImages] = useState([]);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const inputFileRef = useRef(null);
@@ -104,7 +104,6 @@ export default function AdminAddProductPage() {
     return () => { images.forEach(img => URL.revokeObjectURL(img.url)); };
   }, [images]);
 
-  // Поисковые запросы
   const handleQueryInputKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -142,13 +141,12 @@ export default function AdminAddProductPage() {
     });
 
     try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        body: formData,
+      await api.post("/api/products", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      if (!res.ok) throw new Error("Ошибка при сохранении!");
       navigate("/admin/products");
     } catch (err) {
+      console.error("Ошибка при сохранении позиции:", err);
       alert("Ошибка при сохранении позиции: " + err.message);
     }
   };

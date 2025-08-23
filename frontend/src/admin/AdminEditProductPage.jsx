@@ -1,16 +1,15 @@
+// frontend/src/admin/AdminEditProductPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
 
 export default function AdminEditProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Состояния формы
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
   const [description, setDescription] = useState("");
@@ -31,14 +30,14 @@ export default function AdminEditProductPage() {
   const inputFileRef = useRef(null);
   const dragIndex = useRef(null);
 
+  const token = localStorage.getItem("token");
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
   // Загрузка групп
   useEffect(() => {
-    fetch(`${API_URL}/api/groups`)
-      .then(res => {
-        if (!res.ok) throw new Error("Ошибка загрузки групп");
-        return res.json();
-      })
-      .then(data => {
+    fetch(`${API_URL}/api/groups`, { headers: authHeaders })
+      .then((res) => res.json())
+      .then((data) => {
         const flatGroups = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
@@ -49,24 +48,22 @@ export default function AdminEditProductPage() {
         flatten(data);
         setGroups(flatGroups);
       })
-      .catch(() => alert("Ошибка загрузки групп"));
+      .catch(() => setGroups([]));
   }, []);
 
   // Загрузка данных товара
   useEffect(() => {
     if (!id) return;
-    console.log("Загружаем данные товара с id:", id);
-    fetch(`${API_URL}/api/products/${id}`)
-      .then(res => {
-        if (!res.ok) throw new Error(`Ошибка ${res.status}: Товар не найден`);
+    fetch(`${API_URL}/api/products/${id}`, { headers: authHeaders })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Ошибка ${res.status}`);
         return res.json();
       })
-      .then(prod => {
-        console.log("Получен товар:", prod);
+      .then((prod) => {
         setName(prod.name || "");
         setSku(prod.sku || "");
         setDescription(prod.description || "");
-        setGroup(prod.group || "");
+        setGroup(typeof prod.group === "object" ? prod.group._id : prod.group || "");
         setHasProps(Boolean(prod.hasProps));
         setPropsColor(prod.propsColor || "");
         setQueries(prod.queries || "");
@@ -74,68 +71,60 @@ export default function AdminEditProductPage() {
         setHeight(prod.height || "");
         setLength(prod.length || "");
         setWeight(prod.weight || "");
-        setPrice(prod.price?.$numberInt ?? prod.price ?? "");
+        setPrice(Number(prod.price) || "");
         setUnit(prod.unit || "шт");
         setAvailability(prod.availability || "published");
         setStock(prod.stock || "");
-        setImages((prod.images || []).map((url, i) => ({
-          id: "srv" + i,
-          file: null,
-          url: url.startsWith("http") ? url : `${API_URL}${url}`,
-          serverUrl: url,
-        })));
+        setImages(
+          (prod.images || []).map((url, i) => ({
+            id: "srv" + i,
+            file: null,
+            url: url.startsWith("http") ? url : `${API_URL}${url}`,
+            serverUrl: url,
+          }))
+        );
       })
-      .catch(err => {
-        alert(err.message);
-        navigate("/admin/products");
-      });
+      .catch(() => navigate("/admin/products"));
   }, [id]);
 
-  // Обработка добавления новых фото
+  // Добавление фото
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setImages(prev => {
-      const prevFiles = prev.map(i => i.file).filter(Boolean);
+    setImages((prev) => {
+      const prevFiles = prev.map((i) => i.file).filter(Boolean);
       const allFiles = [...prevFiles, ...files];
-      const uniqueFiles = [];
       const seen = new Set();
-      for (const f of allFiles) {
-        if (!f) continue;
-        const key = `${f.name}_${f.size}`;
-        if (!seen.has(key) && uniqueFiles.length < 10) {
+      const newImgs = allFiles
+        .filter((f) => {
+          const key = `${f.name}_${f.size}`;
+          if (seen.has(key)) return false;
           seen.add(key);
-          uniqueFiles.push(f);
-        }
-      }
-      const newImgs = uniqueFiles.map(f => {
-        const exist = prev.find(img => img.file && img.file.name === f.name && img.file.size === f.size);
-        return exist ? exist : { file: f, url: URL.createObjectURL(f), id: genId() };
-      });
-      return [
-        ...prev.filter(img => img.serverUrl && !img.file),
-        ...newImgs
-      ];
+          return true;
+        })
+        .slice(0, 10)
+        .map((f) => {
+          const exist = prev.find((img) => img.file && img.file.name === f.name && img.file.size === f.size);
+          return exist || { file: f, url: URL.createObjectURL(f), id: genId() };
+        });
+      return [...prev.filter((img) => img.serverUrl && !img.file), ...newImgs];
     });
     if (inputFileRef.current) inputFileRef.current.value = null;
   };
 
   // Удаление фото
   const handleRemoveImage = (id) => {
-    setImages(prev => {
-      const img = prev.find(i => i.id === id);
+    setImages((prev) => {
+      const img = prev.find((i) => i.id === id);
       if (img && img.file) URL.revokeObjectURL(img.url);
-      return prev.filter(i => i.id !== id);
+      return prev.filter((i) => i.id !== id);
     });
   };
 
-  // Drag & Drop
-  const handleDragStart = (idx) => { dragIndex.current = idx; };
-  const handleDragOver = (idx) => (e) => { if (dragIndex.current !== null && dragIndex.current !== idx) e.preventDefault(); };
+  // Drag&Drop
+  const handleDragStart = (idx) => (dragIndex.current = idx);
   const handleDrop = (idx) => {
-    if (dragIndex.current === null || dragIndex.current === idx) {
-      dragIndex.current = null; return;
-    }
-    setImages(prev => {
+    if (dragIndex.current === null || dragIndex.current === idx) return;
+    setImages((prev) => {
       const arr = [...prev];
       const [moved] = arr.splice(dragIndex.current, 1);
       arr.splice(idx, 0, moved);
@@ -144,13 +133,14 @@ export default function AdminEditProductPage() {
     dragIndex.current = null;
   };
 
+  // Очистка URL
   useEffect(() => {
     return () => {
-      images.forEach(img => img.file && URL.revokeObjectURL(img.url));
+      images.forEach((img) => img.file && URL.revokeObjectURL(img.url));
     };
-  }, []);
+  }, [images]);
 
-  // Отправка изменений
+  // Сохранение
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -170,7 +160,7 @@ export default function AdminEditProductPage() {
     formData.append("availability", availability);
     formData.append("stock", stock);
 
-    images.forEach(img => {
+    images.forEach((img) => {
       if (img.file) formData.append("images", img.file);
       if (img.serverUrl) formData.append("serverImages[]", img.serverUrl);
     });
@@ -178,6 +168,7 @@ export default function AdminEditProductPage() {
     try {
       const res = await fetch(`${API_URL}/api/products/${id}`, {
         method: "PATCH",
+        headers: authHeaders,
         body: formData,
       });
       if (!res.ok) throw new Error("Ошибка при сохранении!");

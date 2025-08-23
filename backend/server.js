@@ -19,7 +19,7 @@ const withTenant         = require('./middleware/withTenant');
 
 const authRoutes         = require('./routes/auth');
 const categoryRoutes     = require('./routes/categories');
-const productRoutes      = require('./routes/products');
+const productRoutes      = require('./routes/products');   // <-- единый файл
 const orderRoutes        = require('./routes/orders');
 const uploadRoutes       = require('./routes/upload');
 const chatRoutes         = require('./routes/chat');
@@ -58,7 +58,7 @@ function isAllowedOrigin(origin = '') {
   }
 }
 
-// ЛОГИ
+// Логи запросов
 app.use((req, _res, next) => {
   console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
   next();
@@ -96,7 +96,6 @@ app.use(cors({
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
-
 app.get('/api/cors-check', (req, res) => {
   res.json({ ok: true, originSeen: req.headers.origin || null });
 });
@@ -111,7 +110,7 @@ app.use(withTenant);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);
+app.use('/api/products', productRoutes);   // ✅ всё тут
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);

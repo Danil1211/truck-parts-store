@@ -74,11 +74,11 @@ export default function AdminSubMenu({
           <button
             key={item.key}
             className={
-              activeKey === item.key
+              activeKey === (item.filter || item.key)
                 ? "admin-nav-link active"
                 : "admin-nav-link"
             }
-            onClick={() => onSelect && onSelect(item.key)}
+            onClick={() => onSelect && onSelect(item.filter || item.key)}
             type="button"
           >
             {item.label}

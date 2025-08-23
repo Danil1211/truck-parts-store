@@ -1,9 +1,10 @@
+// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://truck-parts-backend.onrender.com";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
 
 export default function AdminProductsPage() {
   const location = useLocation();
@@ -21,15 +22,15 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/products")
+    fetch(`${API_URL}/api/products`)
       .then(res => res.json())
       .then(data => {
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
 
-    fetch("/api/groups")
+    fetch(`${API_URL}/api/groups`)
       .then(res => res.json())
       .then(data => {
         const flat = [];
@@ -65,7 +66,7 @@ export default function AdminProductsPage() {
   const handleDelete = async (id) => {
     if (!window.confirm("Удалить позицию?")) return;
     try {
-      await fetch(`/api/products/${id}`, { method: "DELETE" });
+      await fetch(`${API_URL}/api/products/${id}`, { method: "DELETE" });
       setProducts(p => p.filter(prod => prod._id !== id));
     } catch {
       alert("Ошибка при удалении позиции");
@@ -74,7 +75,7 @@ export default function AdminProductsPage() {
 
   const filtered = products.filter(p => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
-    if (group !== "all" && p.group !== group) return false;
+    if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
     if (search && !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))) return false;
     if (status && p.availability !== status) return false;
     return true;
@@ -111,7 +112,7 @@ export default function AdminProductsPage() {
                 marginRight: 10,
                 whiteSpace: "nowrap",
                 letterSpacing: 0,
-                color: "#1a232b" // фиксированный цвет заголовка
+                color: "#1a232b"
               }}>
                 Позиции <span style={{ color: "#2291ff", fontSize: 21, fontWeight: 400 }}>({filtered.length})</span>
               </div>
@@ -289,7 +290,7 @@ function ProductRow({ product, onEdit, onDelete }) {
     product.images && product.images.length
       ? (product.images[0].startsWith("http")
           ? product.images[0]
-          : API_URL + product.images[0])
+          : `${API_URL}${product.images[0]}`)
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
   return (
@@ -345,9 +346,13 @@ function ProductRow({ product, onEdit, onDelete }) {
       <div>
         <span style={{
           fontWeight: 500,
-          color: product.availability === "published" ? "#2291ff" : "#f34c4c"
+          color: product.availability === "published" ? "#2291ff"
+            : product.availability === "order" ? "#ef9c19"
+            : "#f34c4c"
         }}>
-          {product.availability === "published" ? "В наличии" : "Нет на складе"}
+          {product.availability === "published" ? "В наличии"
+            : product.availability === "order" ? "Под заказ"
+            : "Нет на складе"}
         </span>
       </div>
       <div style={{

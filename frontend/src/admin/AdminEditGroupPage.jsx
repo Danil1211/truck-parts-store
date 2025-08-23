@@ -1,71 +1,97 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+// frontend/src/admin/AdminEditGroupPage.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+const API = import.meta.env.VITE_API_URL || "";
 
 export default function AdminEditGroupPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
-  const [parentId, setParentId] = useState('');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState(null);
+  const [name, setName] = useState("");
+  const [parentId, setParentId] = useState("");
+  const [description, setDescription] = useState("");
   const [preview, setPreview] = useState(null);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const resGroups = await fetch('/api/groups');
-      const dataGroups = await resGroups.json();
-      setGroups(dataGroups);
+  const authHeaders = {};
+  const token = localStorage.getItem("token");
+  if (token) authHeaders.Authorization = `Bearer ${token}`;
 
-      const res = await fetch(`/api/groups/${id}`);
-      const group = await res.json();
-
-      setName(group.name || '');
-      setDescription(group.description || '');
-      setParentId(group.parentId || (dataGroups.find(g => g.name === "Родительская группа" && !g.parentId)?._id || ''));
-      setPreview(group.img || null);
-
-      setLoading(false);
+  async function fetchJSON(url, options = {}) {
+    const res = await fetch(url, options);
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(`Не JSON (${res.status}). ${text.slice(0, 120)}`);
     }
-    fetchData();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const dataGroups = await fetchJSON(`${API}/api/groups`, { headers: authHeaders });
+        setGroups(Array.isArray(dataGroups) ? dataGroups : []);
+
+        const group = await fetchJSON(`${API}/api/groups/${id}`, { headers: authHeaders });
+        setName(group.name || "");
+        setDescription(group.description || "");
+        setParentId(
+          group.parentId ||
+            dataGroups.find((g) => g.name === "Родительская группа" && !g.parentId)?._id ||
+            ""
+        );
+        setPreview(group.img || null);
+      } catch (err) {
+        console.error("Ошибка загрузки группы:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [id]);
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
+    const file = e.target.files?.[0];
+    if (!file) return setPreview(null);
     const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result);
-    if (file) reader.readAsDataURL(file);
+    reader.onloadend = () => setPreview(reader.result); // base64
+    reader.readAsDataURL(file);
   };
 
   const handleUpdateGroup = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const formData = new FormData();
-    formData.append('name', name);
-    if (parentId) formData.append('parentId', parentId);
-    formData.append('description', description);
-    if (image) formData.append('img', image); // <-- Исправлено тут!
+    try {
+      const payload = {
+        name: name.trim(),
+        parentId: parentId || null,
+        description: description || "",
+        img: preview || null,
+      };
 
-    const res = await fetch(`/api/groups/${id}`, {
-      method: 'PUT',
-      body: formData,
-    });
-    setSaving(false);
-    if (res.ok) {
-      navigate('/admin/groups');
-    } else {
-      alert('Ошибка при обновлении группы');
+      await fetchJSON(`${API}/api/groups/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify(payload),
+      });
+
+      navigate("/admin/groups");
+    } catch (err) {
+      alert(err.message || "Ошибка при обновлении группы");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const ROOT_GROUP = groups.find(g => g.name === 'Родительская группа' && !g.parentId);
+  const ROOT_GROUP = groups.find((g) => g.name === "Родительская группа" && !g.parentId);
   const availableParents = groups.filter(
-    g => g._id !== id && g._id !== (ROOT_GROUP && ROOT_GROUP._id)
+    (g) => g._id !== id && g._id !== (ROOT_GROUP && ROOT_GROUP._id)
   );
 
   if (loading) {
@@ -73,26 +99,23 @@ export default function AdminEditGroupPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#f6fafd',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-      padding: '44px 0 60px 0'
-    }}>
-      <div style={{
-        position: "absolute",
-        left: 60,
-        top: 38,
-        zIndex: 10
-      }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f6fafd",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        padding: "44px 0 60px 0",
+      }}
+    >
+      <div style={{ position: "absolute", left: 60, top: 38, zIndex: 10 }}>
         <button
           type="button"
-          onClick={() => navigate('/admin/groups')}
+          onClick={() => navigate("/admin/groups")}
           style={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             background: "#eaf4ff",
             color: "#2291ff",
             border: "none",
@@ -102,186 +125,67 @@ export default function AdminEditGroupPage() {
             padding: "10px 20px 10px 14px",
             boxShadow: "0 2px 12px #2291ff11",
             cursor: "pointer",
-            transition: "background 0.17s",
             gap: 8,
           }}
         >
-          <svg height="22" width="22" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
-            <path fill="#2291ff" d="M15.5 19.09 9.41 13l6.09-6.09L14.08 5.5 6.59 13l7.49 7.5z" />
-          </svg>
-          Назад
+          ◀ Назад
         </button>
       </div>
+
       <form
         onSubmit={handleUpdateGroup}
         style={{
-          background: '#fff',
+          background: "#fff",
           borderRadius: 24,
           maxWidth: 900,
-          width: '100%',
-          boxShadow: '0 8px 32px #2291ff12',
-          display: 'flex',
-          flexDirection: 'row',
-          gap: 0,
-          overflow: 'hidden',
-          marginTop: 34
+          width: "100%",
+          boxShadow: "0 8px 32px #2291ff12",
+          display: "flex",
+          flexDirection: "row",
+          overflow: "hidden",
+          marginTop: 34,
         }}
       >
-        <div style={{
-          flex: 2,
-          padding: '40px 38px 38px 38px',
-          borderRight: '1.5px solid #eaf1fa',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 30
-        }}>
-          <h1 style={{
-            fontSize: 32,
-            fontWeight: 800,
-            marginBottom: 16,
-            color: '#1b2437',
-            letterSpacing: 0.1
-          }}>Редактировать группу</h1>
-          <div>
-            <label style={{ fontWeight: 700, color: '#1b2437', fontSize: 17 }}>Название группы</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Введите название группы"
-              style={{
-                width: '100%',
-                marginTop: 7,
-                padding: '13px 16px',
-                borderRadius: 11,
-                border: '1.5px solid #c9e4ff',
-                fontSize: 16,
-                fontWeight: 500,
-                background: '#f6fafd'
-              }}
-              required
-            />
-          </div>
-          <div>
-            <label style={{ fontWeight: 700, color: '#1b2437', fontSize: 17 }}>
-              Родительская группа
-              <span style={{
-                color: '#b1bacf',
-                marginLeft: 6,
-                fontWeight: 400,
-                fontSize: 13
-              }}>
-                (группа верхнего уровня)
-              </span>
-            </label>
-            <select
-              value={parentId}
-              onChange={e => setParentId(e.target.value)}
-              style={{
-                width: '100%',
-                marginTop: 7,
-                padding: '12px 16px',
-                borderRadius: 11,
-                border: '1.5px solid #c9e4ff',
-                fontSize: 16,
-                background: '#f6fafd'
-              }}
-            >
-              <option value={ROOT_GROUP?._id || ''}>
-                Родительская группа (группа верхнего уровня)
+        {/* левая часть */}
+        <div
+          style={{
+            flex: 2,
+            padding: "40px 38px 38px 38px",
+            borderRight: "1.5px solid #eaf1fa",
+            display: "flex",
+            flexDirection: "column",
+            gap: 30,
+          }}
+        >
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: "#1b2437" }}>Редактировать группу</h1>
+
+          <label>Название группы</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} required />
+
+          <label>Родительская группа</label>
+          <select value={parentId} onChange={(e) => setParentId(e.target.value)}>
+            <option value={ROOT_GROUP?._id || ""}>Родительская группа</option>
+            {availableParents.map((g) => (
+              <option key={g._id} value={g._id}>
+                {g.name}
               </option>
-              {availableParents.map(group =>
-                <option key={group._id} value={group._id}>
-                  {group.name}
-                </option>
-              )}
-            </select>
-          </div>
-          <div>
-            <label style={{ fontWeight: 700, color: '#1b2437', fontSize: 17 }}>Описание группы</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Введите описание группы"
-              style={{
-                width: '100%',
-                marginTop: 7,
-                padding: '13px 16px',
-                borderRadius: 11,
-                border: '1.5px solid #c9e4ff',
-                fontSize: 15,
-                minHeight: 120,
-                resize: 'vertical',
-                background: '#f6fafd'
-              }}
-            />
-          </div>
+            ))}
+          </select>
+
+          <label>Описание</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
-        <div style={{
-          flex: 1.25,
-          padding: '40px 34px 38px 34px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start'
-        }}>
-          <div>
-            <label style={{ fontWeight: 700, color: '#1b2437', fontSize: 17 }}>Изображение группы</label>
-            <div style={{
-              margin: '15px 0 18px 0',
-              border: '1.5px dashed #b6d4fc',
-              borderRadius: 14,
-              padding: '22px 10px',
-              background: '#f8fbff',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center'
-            }}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{
-                  marginBottom: '10px'
-                }}
-              />
-              {preview ? (
-                <img src={preview} alt="Preview"
-                  style={{
-                    width: '100%', maxWidth: 190, borderRadius: 13,
-                    boxShadow: '0 2px 10px #2291ff19', marginTop: 6
-                  }} />
-              ) : (
-                <div style={{
-                  color: '#b8b8c3',
-                  fontSize: 16,
-                  marginTop: 8,
-                  textAlign: 'center'
-                }}>
-                  Рекомендованный размер 200x200 пикселей<br />
-                  JPG, PNG, WEBP. Макс. размер: 10MB.
-                </div>
-              )}
-            </div>
-          </div>
-          <button
-            type="submit"
-            style={{
-              background: saving ? '#98ccfd' : '#2291ff',
-              color: '#fff',
-              padding: '15px 0',
-              borderRadius: 13,
-              border: 'none',
-              fontSize: 18,
-              fontWeight: 700,
-              width: '100%',
-              marginTop: 22,
-              boxShadow: '0 4px 14px #2291ff19',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              transition: 'background 0.16s'
-            }}
-            disabled={saving}
-          >
-            {saving ? 'Сохраняем...' : 'Сохранить изменения'}
+
+        {/* правая часть */}
+        <div style={{ flex: 1.25, padding: "40px 34px 38px 34px" }}>
+          <label>Изображение группы</label>
+          <input type="file" accept="image/*" onChange={handleImageChange} />
+          {preview && (
+            <img src={preview} alt="preview" style={{ maxWidth: 200, marginTop: 10 }} />
+          )}
+
+          <button type="submit" disabled={saving}>
+            {saving ? "Сохраняем..." : "Сохранить изменения"}
           </button>
         </div>
       </form>

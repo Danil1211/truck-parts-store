@@ -3,12 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Picker from "emoji-picker-react";
 import "../assets/AdminPanel.css";
 import { useAdminNotify } from "../context/AdminNotifyContext";
-import { useAuth } from "../context/AuthContext";
-
+import { api } from "../utils/api"; // ✅ общий api helper
 const API_URL = import.meta.env.VITE_API_URL || "";
-
-/** хелперы */
-const api = (path) => `${API_URL}${path}`;
 
 function decodeHtml(html) {
   const txt = document.createElement("textarea");
@@ -168,7 +164,6 @@ function isUserOnline(userInfo) {
 }
 
 export default function AdminChatPage() {
-  const { getToken } = useAuth();
   const { resetUnread, unread } = useAdminNotify();
 
   const [chats, setChats] = useState([]);
@@ -192,37 +187,11 @@ export default function AdminChatPage() {
   const audioChunks = useRef([]);
   const recordingTimer = useRef();
 
-  /** проверка авторизации */
-  useEffect(() => {
-    if (!getToken()) {
-      setError("Нет токена авторизации! Перезайдите в админку.");
-    }
-  }, [getToken]);
-
-  /** универсальный auth-fetch */
-  const authFetch = async (url, opts = {}) => {
-    const t = getToken();
-    const headers = {
-      ...(opts.headers || {}),
-      ...(t ? { Authorization: `Bearer ${t}` } : {}),
-    };
-    return fetch(url, { ...opts, headers });
-  };
-
   /** загрузка списка чатов */
   const loadChats = async () => {
     setError("");
     try {
-      const res = await authFetch(api("/api/chat/admin"));
-      if (res.status === 401 || res.status === 403) {
-        setError("Нет доступа (token истёк или вы не админ). Зайдите заново.");
-        return;
-      }
-      if (!res.ok) {
-        setError("Ошибка получения чатов: " + (await res.text()));
-        return;
-      }
-      const data = await res.json();
+      const data = await api("/api/chat/admin");
       setChats(
         data.map((c) => ({
           ...c,
@@ -233,72 +202,44 @@ export default function AdminChatPage() {
         }))
       );
     } catch (e) {
-      setError("Ошибка соединения: " + e.message);
+      setError("Ошибка получения чатов: " + e.message);
     }
   };
 
   /** автообновление чатов */
   useEffect(() => {
-    if (!getToken()) return;
     loadChats();
     const iv = setInterval(loadChats, 4000);
     return () => clearInterval(iv);
-  }, [getToken]);
+  }, []);
 
-  /** если выбранный чат исчез — сбрасываем выбор */
-  useEffect(() => {
-    if (selected && !chats.find((c) => c.userId === selected.userId)) {
-      setSelected(null);
-      setMessages([]);
-      setSelectedUserInfo(null);
-    }
-  }, [chats, selected]);
-
-  /** статусы "печатает" */
-  useEffect(() => {
-    if (!getToken()) return;
-    const iv = setInterval(async () => {
-      try {
-        const res = await authFetch(api("/api/chat/typing/statuses"));
-        if (res.ok) setTypingMap(await res.json());
-      } catch {}
-    }, 1200);
-    return () => clearInterval(iv);
-  }, [getToken]);
-
-  /** загрузка сообщений + инфо по юзеру */
-  useEffect(() => {
-    if (!selected || !getToken()) return;
-
-    const load = async () => {
-      await loadMessages();
-      const res = await authFetch(api(`/api/chat/admin/user/${selected.userId}`));
-      if (res.ok) {
-        const info = await res.json();
-        setSelectedUserInfo(info);
-      }
-    };
-
-    load();
-    const iv = setInterval(load, 2500);
-
-    resetUnread(selected.userId);
-    return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, getToken]);
-
+  /** загрузка сообщений */
   const loadMessages = async () => {
-    if (!selected || !getToken()) return;
+    if (!selected) return;
     try {
-      const res = await authFetch(api(`/api/chat/admin/${selected.userId}`));
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(Array.isArray(data) ? data : []);
-      }
+      const data = await api(`/api/chat/admin/${selected.userId}`);
+      setMessages(Array.isArray(data) ? data : []);
     } catch {
       setMessages([]);
     }
   };
+
+  /** загрузка юзера + сообщений */
+  useEffect(() => {
+    if (!selected) return;
+    const load = async () => {
+      await loadMessages();
+      try {
+        const info = await api(`/api/chat/admin/user/${selected.userId}`);
+        setSelectedUserInfo(info);
+      } catch {}
+    };
+    load();
+    const iv = setInterval(load, 2500);
+    resetUnread(selected.userId);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
 
   const handleSelectChat = async (c) => {
     setSelected(c);
@@ -308,10 +249,10 @@ export default function AdminChatPage() {
     setAudioPreview(null);
     resetUnread(c.userId);
 
-    const res = await authFetch(api(`/api/chat/admin/user/${c.userId}`));
-    if (res.ok) setSelectedUserInfo(await res.json());
+    const info = await api(`/api/chat/admin/user/${c.userId}`);
+    setSelectedUserInfo(info);
 
-    await authFetch(api(`/api/chat/read/${c.userId}`), { method: "POST" });
+    await api(`/api/chat/read/${c.userId}`, { method: "POST" });
     setTimeout(loadChats, 180);
   };
 
@@ -320,7 +261,7 @@ export default function AdminChatPage() {
     if (!window.confirm("Удалить чат безвозвратно?")) return;
 
     const uid = selected.userId;
-    await authFetch(api(`/api/chat/admin/${uid}`), { method: "DELETE" });
+    await api(`/api/chat/admin/${uid}`, { method: "DELETE" });
 
     resetUnread(uid);
     setSelected(null);
@@ -350,29 +291,17 @@ export default function AdminChatPage() {
 
   const typingOn = async () => {
     if (!selected) return;
-    await authFetch(api(`/api/chat/typing`), {
+    await api(`/api/chat/typing`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: selected.userId,
-        isTyping: true,
-        name: "Менеджер",
-        fromAdmin: true,
-      }),
+      body: { userId: selected.userId, isTyping: true, name: "Менеджер", fromAdmin: true },
     });
   };
 
   const typingOff = async () => {
     if (!selected) return;
-    await authFetch(api(`/api/chat/typing`), {
+    await api(`/api/chat/typing`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: selected.userId,
-        isTyping: false,
-        name: "Менеджер",
-        fromAdmin: true,
-      }),
+      body: { userId: selected.userId, isTyping: false, name: "Менеджер", fromAdmin: true },
     });
   };
 
@@ -403,10 +332,7 @@ export default function AdminChatPage() {
     setFiles([]);
     setAudioPreview(null);
 
-    await authFetch(api(`/api/chat/admin/${selected.userId}`), {
-      method: "POST",
-      body: form,
-    });
+    await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
     await typingOff();
     await loadMessages();
     await loadChats();
@@ -414,10 +340,9 @@ export default function AdminChatPage() {
 
   const sendText = async () => {
     if (!input.trim() || !selected) return;
-    await authFetch(api(`/api/chat/admin/${selected.userId}`), {
+    await api(`/api/chat/admin/${selected.userId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input.trim() }),
+      body: { text: input.trim() },
     });
     setInput("");
     await typingOff();
@@ -434,10 +359,7 @@ export default function AdminChatPage() {
     setFiles([]);
     setInput("");
 
-    await authFetch(api(`/api/chat/admin/${selected.userId}`), {
-      method: "POST",
-      body: form,
-    });
+    await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
     await typingOff();
     await loadMessages();
     await loadChats();
@@ -452,15 +374,9 @@ export default function AdminChatPage() {
   const handleInput = (e) => {
     setInput(e.target.value);
     if (!selected) return;
-    authFetch(api(`/api/chat/typing`), {
+    api(`/api/chat/typing`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: selected.userId,
-        isTyping: !!e.target.value,
-        name: "Менеджер",
-        fromAdmin: true,
-      }),
+      body: { userId: selected.userId, isTyping: !!e.target.value, name: "Менеджер", fromAdmin: true },
     });
   };
 
@@ -1014,15 +930,15 @@ export default function AdminChatPage() {
             onClick={async () => {
               if (!selected) return;
               setBlocking(true);
-              await authFetch(api(`/api/chat/admin/user/${selected.userId}/block`), {
+
+              await api(`/api/chat/admin/user/${selected.userId}/block`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ block: !selectedUserInfo.isBlocked }),
+                body: { block: !selectedUserInfo.isBlocked },
               });
+
               setBlocking(false);
 
-              const res = await authFetch(api(`/api/chat/admin/user/${selected.userId}`));
-              const info = await res.json();
+              const info = await api(`/api/chat/admin/user/${selected.userId}`);
               setSelectedUserInfo(info);
               await loadChats();
             }}
@@ -1038,7 +954,9 @@ export default function AdminChatPage() {
                 ? "linear-gradient(90deg,#21c087 0%,#1fa463 100%)"
                 : "linear-gradient(90deg,#fd4447 0%,#e54d2e 100%)",
               color: "#fff",
-              boxShadow: selectedUserInfo.isBlocked ? "0 3px 16px #21c08733" : "0 3px 16px #fd444733",
+              boxShadow: selectedUserInfo.isBlocked
+                ? "0 3px 16px #21c08733"
+                : "0 3px 16px #fd444733",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1054,20 +972,10 @@ export default function AdminChatPage() {
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             <span style={{ display: "flex", alignItems: "center" }}>
-              {selectedUserInfo.isBlocked ? (
-                <svg width={22} height={22} fill="none" stroke="#fff" strokeWidth={2} viewBox="0 0 24 24" style={{ marginRight: 4 }}>
-                  <rect x="4" y="11" width="16" height="9" rx="3" stroke="#fff" />
-                  <path d="M7 11V8.5a5 5 0 0 1 10 0V11" />
-                </svg>
-              ) : (
-                <svg width={22} height={22} fill="none" stroke="#fff" strokeWidth={2} viewBox="0 0 24 24" style={{ marginRight: 4 }}>
-                  <rect x="4" y="11" width="16" height="9" rx="3" stroke="#fff" />
-                  <path d="M8 11V8.5a4 4 0 0 1 8 0V11" />
-                </svg>
-              )}
               {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
             </span>
           </button>
+
         </aside>
       )}
 

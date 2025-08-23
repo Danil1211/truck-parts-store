@@ -1,265 +1,190 @@
 // backend/routes/products.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { Product, Group } = require("../models/models");
+const { authMiddleware } = require("../protected");
+const withTenant = require("../middleware/withTenant");
 
-const { Product, Group, SiteSettings } = require('../models/models'); // ✅ правильный импорт
-const { authMiddleware } = require('./protected');                    // ✅ лежит в routes
-const withTenant = require('../middleware/withTenant');
-
-/* =========================
-   Multer (upload dir)
-========================= */
-const uploadsDir = path.join(__dirname, '../uploads/products');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadsDir),
-  filename: (_, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext);
-    cb(null, `${base}-${Date.now()}${ext}`);
-  },
-});
-const upload = multer({ storage });
-
-/* =========================
-   Helpers
-========================= */
-function normalizeAvailability(v) {
-  const s = String(v || '').trim().toLowerCase();
-  if (s === 'в наличии' || s === 'published') return 'В наличии';
-  if (s === 'под заказ') return 'Под заказ';
-  if (s === 'нет в наличии' || s === 'нет') return 'Нет в наличии';
-  return 'Нет в наличии';
-}
-
-// все роуты ниже работают в контексте арендатора
 router.use(withTenant);
 
-/* =========================================================
-   ВАЖНО: спец-маршруты должны идти выше /:id
-========================================================= */
+/* ===================================================
+   PUBLIC ROUTES
+=================================================== */
 
-/**
- * GET /api/products/showcase
- */
-router.get('/showcase', async (req, res) => {
+// Список товаров (с фильтрами: группа, наличие, поиск)
+router.get("/", async (req, res) => {
   try {
-    const st = await SiteSettings.findOne({ tenantId: String(req.tenant.id) }).lean();
-    const ids = (st?.showcase?.productIds || []).map(String).slice(0, 24);
-    if (!ids.length) return res.json([]);
+    const { q, groupId, inStock, page = 1, limit = 20 } = req.query;
 
-    const items = await Product.find({ _id: { $in: ids }, tenantId: String(req.tenant.id) })
-      .select('name price images availability group')
-      .lean();
+    const filter = { deleted: { $ne: true } };
 
-    for (const it of items) it.availability = normalizeAvailability(it.availability);
+    if (q) {
+      filter.name = { $regex: q, $options: "i" };
+    }
 
-    const order = new Map(ids.map((id, i) => [String(id), i]));
-    items.sort((a, b) => (order.get(String(a._id)) ?? 999) - (order.get(String(b._id)) ?? 999));
+    if (groupId) {
+      filter.group = groupId;
+    }
 
-    res.json(items);
-  } catch (e) {
-    console.error('showcase error:', e);
-    res.json([]);
-  }
-});
+    if (inStock === "true") {
+      filter.availability = "published";
+    } else if (inStock === "false") {
+      filter.availability = { $ne: "published" };
+    }
 
-router.get('/recommend', (_req, res) => res.json([]));
-router.get('/recent', (_req, res) => res.json([]));
-
-/**
- * GET /api/products/admin
- */
-router.get('/admin', authMiddleware, async (req, res) => {
-  try {
-    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
-
-    const { q = '', group = '', groupId = '', inStock = '', page = 1, limit = 20 } = req.query;
-
-    const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.max(1, Math.min(100, Number(limit) || 20));
-    const skip = (pageNum - 1) * limitNum;
-
-    const filter = { tenantId: String(req.tenant.id) };
-
-    if (q) filter.name = { $regex: q.trim(), $options: 'i' };
-
-    const groupFilter = (groupId || group || '').trim();
-    if (groupFilter) filter.group = groupFilter;
-
-    if (inStock === 'true') filter.availability = 'В наличии';
-    if (inStock === 'false') filter.availability = { $ne: 'В наличии' };
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [items, total] = await Promise.all([
       Product.find(filter)
-        .select('name price images availability group')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNum)
-        .lean(),
+        .limit(parseInt(limit)),
       Product.countDocuments(filter),
     ]);
 
-    for (const it of items) it.availability = normalizeAvailability(it.availability);
-
-    res.json({ items, total, page: pageNum, pages: Math.ceil(total / limitNum) || 1 });
-  } catch (e) {
-    console.error('products.admin list error:', e);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    res.json({ items, total, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error("Error loading products:", err);
+    res.status(500).json({ error: "Ошибка загрузки товаров" });
   }
 });
 
-/**
- * GET /api/products/groups
- */
-router.get('/groups', authMiddleware, async (req, res) => {
+// Карточка товара
+router.get("/:id", async (req, res) => {
   try {
-    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
-    const groups = await Group.find({ tenantId: String(req.tenant.id) })
-      .select('name parentId')
-      .sort({ order: 1 })
-      .lean();
-    res.json(groups || []);
-  } catch (e) {
-    console.error('products.admin groups error:', e);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    const product = await Product.findById(req.params.id);
+    if (!product || product.deleted) {
+      return res.status(404).json({ error: "Товар не найден" });
+    }
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ error: "Ошибка загрузки товара" });
   }
 });
 
-/* =========================
-   CRUD
-========================= */
-
-router.get('/', async (req, res) => {
+// Витрина (подборка товаров)
+router.get("/public/showcase", async (req, res) => {
   try {
-    const products = await Product.find({ tenantId: String(req.tenant.id) }).lean();
-    products.forEach(p => (p.availability = normalizeAvailability(p.availability)));
+    const products = await Product.find({
+      deleted: { $ne: true },
+      showcase: true,
+    })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
     res.json(products);
   } catch (err) {
-    console.error('Ошибка при загрузке товаров:', err);
-    res.status(500).json({ error: 'Ошибка при загрузке товаров' });
+    res.status(500).json({ error: "Ошибка загрузки витрины" });
   }
 });
 
-router.get('/:id', async (req, res) => {
+/* ===================================================
+   ADMIN ROUTES
+=================================================== */
+router.use(authMiddleware);
+
+// Список товаров (для админки, с расширенными фильтрами)
+router.get("/admin", async (req, res) => {
   try {
-    const prod = await Product.findOne({ _id: req.params.id, tenantId: String(req.tenant.id) }).lean();
-    if (!prod) return res.status(404).json({ error: 'Товар не найден' });
-    prod.availability = normalizeAvailability(prod.availability);
-    res.json(prod);
-  } catch {
-    res.status(500).json({ error: 'Ошибка при получении товара' });
+    const { q, groupId, inStock, page = 1, limit = 20 } = req.query;
+
+    const filter = {};
+
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { sku: { $regex: q, $options: "i" } },
+      ];
+    }
+
+    if (groupId) filter.group = groupId;
+
+    if (inStock === "true") {
+      filter.availability = "published";
+    } else if (inStock === "false") {
+      filter.availability = { $ne: "published" };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [items, total] = await Promise.all([
+      Product.find(filter)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Product.countDocuments(filter),
+    ]);
+
+    res.json({ items, total, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    res.status(500).json({ error: "Ошибка загрузки товаров (admin)" });
   }
 });
 
-router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
+// Создание товара
+router.post("/admin", async (req, res) => {
   try {
-    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
-
-    const images = (req.files || []).map(f => '/uploads/products/' + f.filename);
-
-    const {
-      name, sku, description, group, hasProps, propsColor,
-      queries, width, height, length, weight,
-      price, unit, availability, stock,
-    } = req.body;
-
-    const product = new Product({
-      tenantId: String(req.tenant.id),
-      name, sku, description, group,
-      hasProps: hasProps === 'true',
-      propsColor, queries, width, height, length, weight,
-      price, unit,
-      availability: normalizeAvailability(availability),
-      stock,
-      images,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
+    const product = new Product(req.body);
     await product.save();
-    res.status(201).json(product);
+    res.json(product);
   } catch (err) {
-    console.error('Ошибка при создании товара:', err);
-    res.status(500).json({ error: 'Ошибка при создании товара' });
+    res.status(400).json({ error: "Ошибка при создании товара" });
   }
 });
 
-router.patch('/:id', authMiddleware, upload.array('images', 10), async (req, res) => {
+// Обновление товара
+router.put("/admin/:id", async (req, res) => {
   try {
-    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
-
-    const id = req.params.id;
-
-    let serverImages = req.body.serverImages || [];
-    if (typeof serverImages === 'string') serverImages = [serverImages];
-
-    const newImages = (req.files || []).map(f => '/uploads/products/' + f.filename);
-    const images = [...serverImages, ...newImages];
-
-    const {
-      name, sku, description, group, hasProps, propsColor,
-      queries, width, height, length, weight,
-      price, unit, availability, stock,
-    } = req.body;
-
-    const oldProduct = await Product.findOne({ _id: id, tenantId: String(req.tenant.id) });
-    if (!oldProduct) return res.status(404).json({ error: 'Товар не найден' });
-
-    const toDelete = (oldProduct.images || []).filter(img => !serverImages.includes(img));
-    toDelete.forEach(img => {
-      const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
-      if (fs.existsSync(filePath)) {
-        fs.unlink(filePath, err => err && console.error('unlink error:', filePath, err));
-      }
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
     });
-
-    const prod = await Product.findOneAndUpdate(
-      { _id: id, tenantId: String(req.tenant.id) },
-      {
-        name, sku, description, group,
-        hasProps: hasProps === 'true',
-        propsColor, queries, width, height, length, weight,
-        price, unit,
-        availability: normalizeAvailability(availability),
-        stock,
-        images,
-        updatedAt: new Date(),
-      },
-      { new: true, lean: true }
-    );
-
-    if (prod) prod.availability = normalizeAvailability(prod.availability);
-
-    res.json(prod);
+    res.json(product);
   } catch (err) {
-    console.error('Ошибка при обновлении товара:', err);
-    res.status(500).json({ error: 'Ошибка при обновлении товара' });
+    res.status(400).json({ error: "Ошибка при обновлении товара" });
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+// Удаление (soft-delete)
+router.delete("/admin/:id", async (req, res) => {
   try {
-    if (!req.user?.isAdmin) return res.status(403).json({ error: 'Доступ запрещён' });
-
-    const product = await Product.findOneAndDelete({ _id: req.params.id, tenantId: String(req.tenant.id) });
-    if (!product) return res.status(404).json({ error: 'Товар не найден' });
-
-    (product.images || []).forEach(img => {
-      const filePath = path.join(__dirname, '..', img.replace(/^\//, ''));
-      if (fs.existsSync(filePath)) {
-        fs.unlink(filePath, err => err && console.error('unlink error:', filePath, err));
-      }
-    });
-
+    await Product.findByIdAndUpdate(req.params.id, { deleted: true });
     res.json({ success: true });
   } catch (err) {
-    console.error('Ошибка при удалении товара:', err);
-    res.status(500).json({ error: 'Ошибка при удалении' });
+    res.status(500).json({ error: "Ошибка при удалении товара" });
+  }
+});
+
+// Восстановление товара
+router.put("/admin/:id/restore", async (req, res) => {
+  try {
+    await Product.findByIdAndUpdate(req.params.id, { deleted: false });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Ошибка при восстановлении товара" });
+  }
+});
+
+// Импорт (bulk insert/update)
+router.post("/admin/import", async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: "Неверные данные для импорта" });
+    }
+
+    const ops = items.map((it) => ({
+      updateOne: {
+        filter: { sku: it.sku },
+        update: { $set: it },
+        upsert: true,
+      },
+    }));
+
+    await Product.bulkWrite(ops);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Ошибка импорта:", err);
+    res.status(500).json({ error: "Ошибка при импорте товаров" });
   }
 });
 

@@ -1169,15 +1169,15 @@ export default function AdminSettingsPage() {
                     <div className="name">{p.name}</div>
                     <div className="meta">
                       {(() => {
-                        const avail = (p.availability || '').trim();
+                        const avail = p.availability || "";
                         const text =
-                          avail === 'В наличии' ? 'В наличии'
-                          : avail === 'Под заказ' ? 'Под заказ'
-                          : 'Нет в наличии';
+                          avail === "published" ? "В наличии"
+                          : avail === "order" ? "Под заказ"
+                          : "Нет в наличии";
                         const cls =
-                          avail === 'В наличии' ? 'ok'
-                          : avail === 'Под заказ' ? 'warn'
-                          : 'bad';
+                          avail === "published" ? "ok"
+                          : avail === "order" ? "warn"
+                          : "bad";
                         return <span className={cls}>{text}</span>;
                       })()}
                       <span className="price">{(p.price ?? 0).toLocaleString('uk-UA')} ₴</span>
