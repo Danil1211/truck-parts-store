@@ -19,7 +19,7 @@ const withTenant         = require('./middleware/withTenant');
 
 const authRoutes         = require('./routes/auth');
 const categoryRoutes     = require('./routes/categories');
-const productRoutes      = require('./routes/products');   // единый файл для продуктов
+const productRoutes      = require('./routes/products');   // <-- единый файл
 const orderRoutes        = require('./routes/orders');
 const uploadRoutes       = require('./routes/upload');
 const chatRoutes         = require('./routes/chat');
@@ -28,77 +28,61 @@ const novaposhtaProxy    = require('./routes/novaposhtaProxy');
 const userRoutes         = require('./routes/users');
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
-const siteSettingsRoutes = require('./routes/siteSettings'); // <== имя файла: routes/siteSettings.js
+const siteSettingsRoutes = require('./routes/siteSettings');
 
 /* ========================= Общие настройки ========================= */
 app.set('trust proxy', true);
-
-// лимиты тела: base64-лого/фавиконки и т.п.
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /* ============================= CORS ============================= */
-const allowedFromEnv = (process.env.ALLOWED_ORIGINS || '')
+// Разрешённые origin'ы (регекспы)
+const allowlist = [
+  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i, // любой поддомен storo-shop.com
+  /^https?:\/\/api\.storo-shop\.com$/i,
+  /^https?:\/\/localhost(?::\d+)?$/i,
+  /onrender\.com$/i
+];
+
+// Доп. домены можно передать через env (через запятую)
+const extra = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
 
-function isAllowedOrigin(origin = '') {
-  if (!origin) return true; // Postman, curl и т.п.
-  try {
-    const { hostname } = new URL(origin);
-    const h = hostname.toLowerCase();
+const extraRE = extra.map(s => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
 
-    if (h === 'storo-shop.com' || h === 'www.storo-shop.com' || h.endsWith('.storo-shop.com')) return true;
-    if (h === 'api.storo-shop.com') return true;
-    if (h.endsWith('onrender.com')) return true;
-    if (allowedFromEnv.includes(origin)) return true;
-
-    return false;
-  } catch {
-    return false;
-  }
+function originAllowed(origin) {
+  if (!origin) return true; // curl/Postman
+  return allowlist.some(re => re.test(origin)) || extraRE.some(re => re.test(origin));
 }
 
-// Логи запросов
+const corsOptionsDelegate = (req, cb) => {
+  const origin = req.header('Origin') || '';
+  const allowed = originAllowed(origin);
+  cb(null, {
+    origin: allowed ? origin : false,
+    credentials: true,
+    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','X-Tenant-Id','X-Super-Key'],
+    optionsSuccessStatus: 204,
+  });
+};
+
+// CORS должен стоять ДО любых роутов и middleware арендатора
+app.use(cors(corsOptionsDelegate));
+// Явно обрабатываем префлайт на все пути
+app.options('*', cors(corsOptionsDelegate));
+
+/* ============== (необязательно) Лёгкий логгер запросов ============== */
 app.use((req, _res, next) => {
   console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
   next();
 });
 
-// Ручной preflight (для чёткого контроля)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowed = isAllowedOrigin(origin);
-
-  if (allowed) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Vary', 'Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Tenant-Id, X-Super-Key');
-    if (req.method === 'OPTIONS') return res.sendStatus(204);
-  } else {
-    if (req.method === 'OPTIONS') {
-      console.warn(`❌ CORS blocked preflight for origin=${origin}`);
-      return res.status(403).json({ error: 'CORS not allowed' });
-    }
-  }
-  next();
-});
-
-// cors middleware (основной)
-app.use(cors({
-  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-Tenant-Id','X-Super-Key'],
-}));
-
 /* ============================ Статика / health ============================ */
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.get('/api/cors-check', (req, res) => {
   res.json({ ok: true, originSeen: req.headers.origin || null });
@@ -114,7 +98,7 @@ app.use(withTenant);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);
+app.use('/api/products', productRoutes);   // ✅ всё тут
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
@@ -127,7 +111,6 @@ app.use('/api/site-settings', siteSettingsRoutes);
 
 /* ============================== 404 / 500 ============================== */
 app.use((req, res) => res.status(404).json({ error: 'Ресурс не найден' }));
-
 app.use((err, req, res, _next) => {
   console.error('🔥 Ошибка сервера:', err);
   res.status(500).json({ error: 'Ошибка сервера' });
