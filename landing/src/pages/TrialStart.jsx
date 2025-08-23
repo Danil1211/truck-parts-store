@@ -33,11 +33,10 @@ export default function TrialStart() {
       const data = await res.json();
 
       if (!res.ok) {
-        // кастомные проверки
-        if (res.status === 409 && data.field === "email") {
+        if (res.status === 409 && data.error === "EMAIL_EXISTS") {
           throw new Error(t("trial.emailExists") || "Email уже используется");
         }
-        if (res.status === 409 && data.field === "phone") {
+        if (res.status === 409 && data.error === "PHONE_EXISTS") {
           throw new Error(t("trial.phoneExists") || "Телефон уже используется");
         }
         throw new Error(data.error || t("trial.error"));
