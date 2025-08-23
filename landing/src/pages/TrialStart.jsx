@@ -31,13 +31,21 @@ export default function TrialStart() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t("trial.error"));
 
+      if (!res.ok) {
+        // кастомные проверки
+        if (res.status === 409 && data.field === "email") {
+          throw new Error(t("trial.emailExists") || "Email уже используется");
+        }
+        if (res.status === 409 && data.field === "phone") {
+          throw new Error(t("trial.phoneExists") || "Телефон уже используется");
+        }
+        throw new Error(data.error || t("trial.error"));
+      }
+
+      // ✅ редирект с token & tid
       if (data.token && data.tenantId && data.subdomain) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("tenantId", data.tenantId);
-        localStorage.setItem("role", "admin");
-        window.location.href = `https://${data.subdomain}.storo-shop.com/admin/orders`;
+        window.location.href = `https://${data.subdomain}.storo-shop.com/admin/orders?token=${data.token}&tid=${data.tenantId}`;
         return;
       }
 
@@ -112,8 +120,8 @@ export default function TrialStart() {
               className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
             />
 
-            {err && <div className="text-red-600">{err}</div>}
-            {ok && <div className="text-green-600">{ok}</div>}
+            {err && <div className="text-red-600 text-sm">{err}</div>}
+            {ok && <div className="text-green-600 text-sm">{ok}</div>}
 
             <button
               type="submit"
