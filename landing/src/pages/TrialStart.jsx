@@ -1,4 +1,3 @@
-// landing/src/pages/TrialStart.jsx
 import React, { useState } from "react";
 import { useLang } from "../context/LanguageContext";
 import LanguageSwitcher from "../components/LanguageSwitcher";
@@ -33,11 +32,11 @@ export default function TrialStart() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 409 && data.error === "EMAIL_EXISTS") {
-          throw new Error(t("trial.emailExists") || "Email уже используется");
+        if (res.status === 409 && data.code === "EMAIL_EXISTS") {
+          throw new Error(t("trial.emailExists"));
         }
-        if (res.status === 409 && data.error === "PHONE_EXISTS") {
-          throw new Error(t("trial.phoneExists") || "Телефон уже используется");
+        if (res.status === 409 && data.code === "PHONE_EXISTS") {
+          throw new Error(t("trial.phoneExists"));
         }
         throw new Error(data.error || t("trial.error"));
       }

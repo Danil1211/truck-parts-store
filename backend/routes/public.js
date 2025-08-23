@@ -1,4 +1,3 @@
-// backend/routes/public.js
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -72,7 +71,6 @@ async function allocateSubdomain(base) {
 /**
  * POST /api/public/trial
  * Body: { email, company, phone? }
- * Ответ: { ok, tenantId, subdomain, token, loginUrl, adminEmail, adminPassword }
  */
 router.post('/trial', async (req, res, next) => {
   try {
@@ -86,14 +84,14 @@ router.post('/trial', async (req, res, next) => {
     // 🔎 Проверка на дубликаты email
     const emailExists = await User.findOne({ email }).lean();
     if (emailExists) {
-      return res.status(409).json({ error: 'EMAIL_EXISTS' });
+      return res.status(409).json({ code: 'EMAIL_EXISTS', error: 'Email already registered' });
     }
 
     // 🔎 Проверка на дубликаты phone (если указан)
     if (phone) {
       const phoneExists = await User.findOne({ phone }).lean();
       if (phoneExists) {
-        return res.status(409).json({ error: 'PHONE_EXISTS' });
+        return res.status(409).json({ code: 'PHONE_EXISTS', error: 'Phone already registered' });
       }
     }
 
