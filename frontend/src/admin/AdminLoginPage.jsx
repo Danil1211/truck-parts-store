@@ -27,15 +27,15 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // кладём токен + отмечаем роль админа
-      login(data.token, { role: "admin" });
-
       const u = data.user || {};
       const isAdmin = u.role === "owner" || u.role === "admin" || u.isAdmin === true;
       if (!isAdmin) {
         setErr("Используйте обычный вход на сайте.");
         return;
       }
+
+      // ✅ теперь tenantId тоже кладём
+      login(data.token, { role: "admin", tenantId: data.tenantId || u.tenantId });
 
       navigate("/admin/orders", { replace: true });
     } catch {
@@ -66,7 +66,13 @@ export default function AdminLoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+          }}
         />
         <input
           type="password"
@@ -75,7 +81,13 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          style={{ width: "100%", marginBottom: 10, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 10,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+          }}
         />
 
         {err && <div style={{ color: "crimson", marginBottom: 10 }}>{err}</div>}

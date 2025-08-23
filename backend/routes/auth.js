@@ -1,4 +1,3 @@
-// backend/routes/auth.js
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const { User, generateToken } = require("../models/models");
@@ -8,10 +7,6 @@ const { authMiddleware } = require("./protected");
    Админы / менеджеры
 ====================== */
 
-/**
- * POST /api/auth/register
- * Регистрация админа (или менеджера)
- */
 router.post("/register", async (req, res, next) => {
   try {
     const tenantId = req.tenantId || req?.tenant?.id;
@@ -40,16 +35,12 @@ router.post("/register", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain });
+    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * POST /api/auth/login
- * Логин админа/менеджера
- */
 router.post("/login", async (req, res, next) => {
   try {
     const tenantId = req.tenantId || req?.tenant?.id;
@@ -71,19 +62,16 @@ router.post("/login", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain });
+    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
   } catch (err) {
     next(err);
   }
 });
 
 /* ======================
-   Покупатели (customers)
+   Покупатели
 ====================== */
 
-/**
- * POST /api/auth/customer/register
- */
 router.post("/customer/register", async (req, res, next) => {
   try {
     const tenantId = req.tenantId || req?.tenant?.id;
@@ -110,15 +98,12 @@ router.post("/customer/register", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain });
+    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * POST /api/auth/customer/login
- */
 router.post("/customer/login", async (req, res, next) => {
   try {
     const tenantId = req.tenantId || req?.tenant?.id;
@@ -140,24 +125,21 @@ router.post("/customer/login", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain });
+    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
   } catch (err) {
     next(err);
   }
 });
 
 /* ======================
-   Универсальное "кто я"
+   "Кто я"
 ====================== */
 
-/**
- * GET /api/auth/me
- */
 router.get("/me", authMiddleware, async (req, res, next) => {
   try {
     const u = req.user.toObject ? req.user.toObject() : req.user;
     delete u.passwordHash;
-    res.json({ user: u });
+    res.json({ user: u, tenantId: u.tenantId }); // ✅ tenantId тоже вернём
   } catch (err) {
     next(err);
   }
