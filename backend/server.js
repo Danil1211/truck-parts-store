@@ -36,24 +36,22 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /* ============================= CORS ============================= */
-// Разрешённые origin'ы (регекспы)
+// allowlist
 const allowlist = [
-  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i, // любой поддомен storo-shop.com
+  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i,
   /^https?:\/\/api\.storo-shop\.com$/i,
   /^https?:\/\/localhost(?::\d+)?$/i,
-  /onrender\.com$/i
+  /onrender\.com$/i,
 ];
 
-// Доп. домены можно передать через env (через запятую)
 const extra = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
-
 const extraRE = extra.map(s => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
 
 function originAllowed(origin) {
-  if (!origin) return true; // curl/Postman
+  if (!origin) return true; // curl/Postman etc.
   return allowlist.some(re => re.test(origin)) || extraRE.some(re => re.test(origin));
 }
 
@@ -69,12 +67,12 @@ const corsOptionsDelegate = (req, cb) => {
   });
 };
 
-// CORS должен стоять ДО любых роутов и middleware арендатора
+// Важно: СНАЧАЛА cors(...)
 app.use(cors(corsOptionsDelegate));
-// Явно обрабатываем префлайт на все пути
-app.options('*', cors(corsOptionsDelegate));
+// ⚠️ Исправление: вместо '*' используем регэксп /.*/ (или этот блок можно вообще удалить)
+app.options(/.*/, cors(corsOptionsDelegate));
 
-/* ============== (необязательно) Лёгкий логгер запросов ============== */
+/* ============== Лог запросов (по желанию) ============== */
 app.use((req, _res, next) => {
   console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
   next();
@@ -98,7 +96,7 @@ app.use(withTenant);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/products', productRoutes);   // ✅ всё тут
+app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
