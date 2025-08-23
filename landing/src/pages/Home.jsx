@@ -1,10 +1,10 @@
 // landing/src/pages/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
-import { useLanguage } from "../context/LanguageContext";
+import { useLang } from "../context/LanguageContext";
 
 export default function Home() {
-  const { t, lang, setLang } = useLanguage();
+  const { lang, setLang, t } = useLang();
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-blue-50 to-sky-100 font-sans">
@@ -17,31 +17,25 @@ export default function Home() {
             </span>
             <span className="text-2xl font-extrabold text-slate-900">Storo</span>
           </div>
+
+          {/* Навигация */}
           <nav className="hidden md:flex items-center gap-8 text-slate-700 font-medium">
             <a href="#about" className="hover:text-indigo-600">{t("nav.about")}</a>
             <a href="#features" className="hover:text-indigo-600">{t("nav.features")}</a>
             <a href="#how" className="hover:text-indigo-600">{t("nav.how")}</a>
             <a href="#faq" className="hover:text-indigo-600">{t("nav.faq")}</a>
           </nav>
-          <div className="flex items-center gap-3">
-            {/* 🌍 переключатель языка с флагами */}
-            <div className="flex gap-1 mr-3">
-              <button
-                onClick={() => setLang("ua")}
-                className={`px-2 py-1 text-lg rounded ${lang === "ua" ? "bg-indigo-100" : ""}`}
-              >
+
+          <div className="flex items-center gap-4">
+            {/* Переключатель языков */}
+            <div className="flex gap-2">
+              <button onClick={() => setLang("ua")} className={`${lang === "ua" ? "opacity-100" : "opacity-50"} text-2xl`}>
                 🇺🇦
               </button>
-              <button
-                onClick={() => setLang("ru")}
-                className={`px-2 py-1 text-lg rounded ${lang === "ru" ? "bg-indigo-100" : ""}`}
-              >
+              <button onClick={() => setLang("ru")} className={`${lang === "ru" ? "opacity-100" : "opacity-50"} text-2xl`}>
                 🇷🇺
               </button>
-              <button
-                onClick={() => setLang("en")}
-                className={`px-2 py-1 text-lg rounded ${lang === "en" ? "bg-indigo-100" : ""}`}
-              >
+              <button onClick={() => setLang("en")} className={`${lang === "en" ? "opacity-100" : "opacity-50"} text-2xl`}>
                 🇬🇧
               </button>
             </div>
@@ -104,7 +98,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-center text-slate-900">{t("features")}</h2>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { title: "⚡ Быстрый старт", desc: "Создайте магазин за 60 секунд — всё готово к продажам." },
+              { title: "🚀 Быстрый старт", desc: "Создайте магазин за 60 секунд — всё готово к продажам." },
               { title: "🎨 Готовый дизайн", desc: "Современные адаптивные шаблоны, которые можно кастомизировать." },
               { title: "💳 Оплата и доставка", desc: "Интеграция с популярными сервисами в 1 клик." },
               { title: "💬 Чат с клиентами", desc: "Общайтесь с покупателями прямо в админке." },
