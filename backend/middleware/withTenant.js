@@ -50,7 +50,7 @@ async function findTenantByHostname(hostname) {
 
 module.exports = async function withTenant(req, res, next) {
   try {
-    // 1) Явно переданный tenantId хедером (самый надёжный способ)
+    // 1) Явно переданный tenantId хедером
     const headerTenantId = (req.headers['x-tenant-id'] || req.headers['x-tenant'] || '').toString().trim();
     if (headerTenantId) {
       const t = await Tenant.findById(headerTenantId).lean();
@@ -71,10 +71,7 @@ module.exports = async function withTenant(req, res, next) {
       }
     }
 
-    // 3) По домену:
-    //    - сначала пробуем Origin (фронт — это {sub}.storo-shop.com)
-    //    - потом X-Forwarded-Host (если прокси его проставляет)
-    //    - потом Host (домен бэкенда; может не подходить)
+    // 3) По домену
     const originHost = toHostname(req.headers.origin);
     const xfwdHost = toHostname(req.headers['x-forwarded-host']);
     const host      = toHostname(req.headers.host);
@@ -85,7 +82,11 @@ module.exports = async function withTenant(req, res, next) {
       (host       && await findTenantByHostname(host));
 
     if (!t) {
-      // Не смогли определить арендатора
+      console.error("❌ Tenant not resolved", {
+        originHost,
+        xfwdHost,
+        host,
+      });
       return res.status(403).json({ error: 'Tenant not resolved' });
     }
 
