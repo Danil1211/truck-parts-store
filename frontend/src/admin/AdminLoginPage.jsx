@@ -13,36 +13,40 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
-  const [autoTried, setAutoTried] = useState(false);
+  const [autoHandled, setAutoHandled] = useState(false);
 
-  // ⛳ 1) Автовход по ?token=&tid= (из лендинга)
+  // ⛳ Автовход по ?token=&tid=
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
     const tid = params.get("tid");
 
-    if (!autoTried && token) {
-      setAutoTried(true);
+    if (autoHandled) return;
+    if (!token) return;
 
-      // сохраняем токен/tenantId и идём в админку
+    setAutoHandled(true);
+
+    try {
+      // 1) Сохраняем токен/tenantId мгновенно
+      localStorage.setItem("token", token);
+      if (tid) localStorage.setItem("tenantId", tid);
+
+      // 2) Дополнительно пингуем login в контексте (не ждём ответа)
       login(token, { tenantId: tid || undefined });
 
-      // чистим URL и шлём на раздел (или на то, откуда пришли)
+      // 3) Чистим URL и ДЕЛАЕМ ПОЛНУЮ ПЕРЕЗАГРУЗКУ на раздел админки,
+      //    чтобы вся аппка стартанула уже с токеном в localStorage.
       const to =
         (location.state && location.state.from?.pathname) || "/admin/orders";
 
-      // удаляем токен из строки запроса
-      params.delete("token");
-      params.delete("tid");
-
-      navigate(
-        { pathname: to, search: params.toString() ? `?${params}` : "" },
-        { replace: true }
-      );
+      // если хочешь убрать токен из истории — используем replace:
+      window.location.replace(to);
+    } catch (e) {
+      console.error("Auto-login error:", e);
     }
-  }, [location.search, location.state, login, navigate, autoTried]);
+  }, [location.search, location.state, login, autoHandled]);
 
-  // ⛳ 2) Ручной вход email/пароль (на случай повторного логина)
+  // Ручной вход email/пароль — остаётся как fallback
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
