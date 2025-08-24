@@ -44,6 +44,7 @@ module.exports = async function withTenant(req, res, next) {
     if (headerTenantId) {
       const t = await Tenant.findById(headerTenantId).lean();
       if (t) {
+        console.log("✅ withTenant: resolved by header", headerTenantId);
         req.tenant = t;
         req.tenantId = t._id.toString();
         return next();
@@ -53,6 +54,7 @@ module.exports = async function withTenant(req, res, next) {
     if (req.query && req.query.tenant) {
       const t = await Tenant.findById(req.query.tenant.toString()).lean();
       if (t) {
+        console.log("✅ withTenant: resolved by query", req.query.tenant);
         req.tenant = t;
         req.tenantId = t._id.toString();
         return next();
@@ -73,9 +75,21 @@ module.exports = async function withTenant(req, res, next) {
     if (!t) {
       console.error("❌ Tenant not resolved", {
         originHost, refererHost, xfwdHost, host,
+        headers: req.headers
       });
       return res.status(403).json({ error: 'Tenant not resolved' });
     }
+
+    console.log("✅ withTenant: resolved tenant", {
+      tenantId: t._id,
+      name: t.name,
+      subdomain: t.subdomain,
+      customDomain: t.customDomain,
+      host,
+      originHost,
+      refererHost,
+      xfwdHost,
+    });
 
     req.tenant = t;
     req.tenantId = t._id.toString();
