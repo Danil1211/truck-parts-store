@@ -1,3 +1,4 @@
+// backend/routes/groups.js
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -8,7 +9,6 @@ const withTenant = require('../middleware/withTenant');
 router.use(withTenant);
 
 /* -------------------------- helpers -------------------------- */
-
 function ensureDir(p) {
   try { fs.mkdirSync(p, { recursive: true }); } catch {}
 }
@@ -26,7 +26,6 @@ function extByMime(mime) {
   return '.png';
 }
 
-/** Save dataURL -> file, return public web path like /uploads/groups/xxx.png */
 function saveDataUrlToFile(dataUrl) {
   if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return null;
   const m = dataUrl.match(/^data:(image\/[\w+.-]+);base64,(.+)$/i);
@@ -64,9 +63,21 @@ function buildTree(groups, parentId = null) {
 
 /* ---------------------------- routes ---------------------------- */
 
-/** GET /api/groups  — плоский список (фронт сам строит дерево) */
+/** GET /api/groups  */
 router.get('/', async (req, res, next) => {
   try {
+    // авто-создаём "Родительскую группу", если её нет
+    let root = await Group.findOne({ tenantId: req.tenantId, name: "Родительская группа", parentId: null });
+    if (!root) {
+      root = await new Group({
+        tenantId: req.tenantId,
+        name: "Родительская группа",
+        description: "Корневая группа",
+        parentId: null,
+        order: 0,
+      }).save();
+    }
+
     const { q, parentId } = req.query;
     const filter = { tenantId: req.tenantId };
 
@@ -83,7 +94,7 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-/** GET /api/groups/tree — дерево (на будущее/если понадобится) */
+/** GET /api/groups/tree */
 router.get('/tree', async (req, res, next) => {
   try {
     const list = await Group.find({ tenantId: req.tenantId })
@@ -93,7 +104,7 @@ router.get('/tree', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-/** GET /api/groups/:id — нужен для AdminEditGroupPage */
+/** GET /api/groups/:id */
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -103,17 +114,29 @@ router.get('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-/** POST /api/groups — img может быть dataURL; сохраним файл и путь */
+/** POST /api/groups */
 router.post('/', async (req, res, next) => {
   try {
+    // автосоздание root-группы
+    let root = await Group.findOne({ tenantId: req.tenantId, name: "Родительская группа", parentId: null });
+    if (!root) {
+      root = await new Group({
+        tenantId: req.tenantId,
+        name: "Родительская группа",
+        description: "Корневая группа",
+        parentId: null,
+        order: 0,
+      }).save();
+    }
+
     let imgPath = null;
     if (typeof req.body.img === 'string') {
       if (req.body.img.startsWith('data:')) {
         imgPath = saveDataUrlToFile(req.body.img);
       } else if (req.body.img.startsWith('/uploads/')) {
-        imgPath = req.body.img; // уже путь
+        imgPath = req.body.img;
       } else if (req.body.img.startsWith('http')) {
-        imgPath = req.body.img; // внешняя картинка
+        imgPath = req.body.img;
       }
     }
 
@@ -121,7 +144,7 @@ router.post('/', async (req, res, next) => {
       name: req.body.name,
       img: imgPath,
       description: req.body.description || '',
-      parentId: req.body.parentId || null,
+      parentId: req.body.parentId || root._id,   // если не указано — вешаем на root
       order: Number(req.body.order) || 0,
       tenantId: req.tenantId,
     };
@@ -131,19 +154,16 @@ router.post('/', async (req, res, next) => {
     res.json(doc);
   } catch (e) {
     if (e && e.code === 11000) {
-      return res
-        .status(409)
-        .json({ error: 'Группа с таким именем уже существует в этом уровне' });
+      return res.status(409).json({ error: 'Группа с таким именем уже существует в этом уровне' });
     }
     next(e);
   }
 });
 
-/** PUT /api/groups/:id — обновляем, заменяем картинку (и чистим старую, если она локальная) */
+/** PUT /api/groups/:id */
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const current = await Group.findOne({ _id: id, tenantId: req.tenantId }).lean();
     if (!current) return res.status(404).json({ error: 'Группа не найдена' });
 
@@ -152,7 +172,6 @@ router.put('/:id', async (req, res, next) => {
     if (req.body.hasOwnProperty('img')) {
       const incoming = req.body.img;
       if (!incoming) {
-        // удаляем
         if (isLocalGroupsFile(current.img)) deleteLocalFileIfExists(current.img);
         newImg = null;
       } else if (typeof incoming === 'string') {
@@ -163,7 +182,6 @@ router.put('/:id', async (req, res, next) => {
             newImg = saved;
           }
         } else if (incoming.startsWith('/uploads/') || incoming.startsWith('http')) {
-          // подменили на уже готовый путь/URL
           if (incoming !== current.img && isLocalGroupsFile(current.img)) {
             deleteLocalFileIfExists(current.img);
           }
@@ -190,27 +208,29 @@ router.put('/:id', async (req, res, next) => {
     res.json(updated);
   } catch (e) {
     if (e && e.code === 11000) {
-      return res
-        .status(409)
-        .json({ error: 'Группа с таким именем уже существует в этом уровне' });
+      return res.status(409).json({ error: 'Группа с таким именем уже существует в этом уровне' });
     }
     next(e);
   }
 });
 
-/** DELETE /api/groups/:id — запрет, если есть подгруппы/товары; чистим локальную картинку */
+/** DELETE /api/groups/:id */
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    const doc = await Group.findOne({ _id: id, tenantId: req.tenantId }).lean();
+    if (!doc) return res.status(404).json({ error: 'Группа не найдена' });
+
+    if (doc.name === "Родительская группа" && !doc.parentId) {
+      return res.status(400).json({ error: 'Нельзя удалить корневую группу' });
+    }
 
     const child = await Group.findOne({ tenantId: req.tenantId, parentId: id }).lean();
     if (child) return res.status(400).json({ error: 'Нельзя удалить группу с подгруппами' });
 
     const product = await Product.findOne({ tenantId: req.tenantId, group: id }).lean();
     if (product) return res.status(400).json({ error: 'Нельзя удалить: есть товары в группе' });
-
-    const doc = await Group.findOne({ _id: id, tenantId: req.tenantId }).lean();
-    if (!doc) return res.status(404).json({ error: 'Группа не найдена' });
 
     await Group.deleteOne({ _id: id, tenantId: req.tenantId });
 
@@ -220,7 +240,7 @@ router.delete('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-/** PATCH /api/groups/reorder — массовое изменение порядка */
+/** PATCH /api/groups/reorder */
 router.patch('/reorder', async (req, res, next) => {
   try {
     const items = Array.isArray(req.body) ? req.body : [];
