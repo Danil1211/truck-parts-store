@@ -1,13 +1,13 @@
+// backend/models/models.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const jwt = require('jsonwebtoken');
-const tenantScope = require('../plugins/tenantScope');
+const tenantScope = require('../plugins/tenantScope'); // если есть — ок; если нет — можно убрать
 const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
-/* ====================== Утилиты ====================== */
 function touchUpdatedAt(schema) {
   schema.pre('save', function (next) {
     this.updatedAt = new Date();
@@ -19,7 +19,7 @@ function touchUpdatedAt(schema) {
   });
 }
 
-/* ====================== Tenant ====================== */
+/* Tenant */
 const TenantSchema = new Schema({
   name:        { type: String, required: true },
   subdomain:   { type: String, unique: true, sparse: true },
@@ -34,7 +34,7 @@ const TenantSchema = new Schema({
 }, { timestamps: true });
 touchUpdatedAt(TenantSchema);
 
-/* ====================== User ====================== */
+/* User */
 const UserSchema = new Schema({
   tenantId:     { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   email:        { type: String, required: true },
@@ -42,84 +42,66 @@ const UserSchema = new Schema({
   name:         { type: String, required: true },
   surname:      { type: String, default: '' },
   phone:        { type: String, default: '' },
-
   isAdmin:      { type: Boolean, default: false },
   role:         { type: String, enum: ['owner','admin','manager','viewer','customer'], default: 'customer' },
-
   status:       { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
   lastMessageAt:   { type: Date, default: Date.now },
   adminLastReadAt: { type: Date, default: null },
   lastOnlineAt:    { type: Date, default: Date.now },
-
   ip:           { type: String, default: '' },
   city:         { type: String, default: '' },
   isOnline:     { type: Boolean, default: false },
   isBlocked:    { type: Boolean, default: false },
 }, { timestamps: true });
 touchUpdatedAt(UserSchema);
-UserSchema.plugin(tenantScope);
+if (tenantScope) UserSchema.plugin(tenantScope);
 
-/* ====================== Category ====================== */
+/* Category */
 const CategorySchema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   name:     { type: String, required: true },
   slug:     { type: String, required: true },
 }, { timestamps: true });
 touchUpdatedAt(CategorySchema);
-CategorySchema.plugin(tenantScope);
+if (tenantScope) CategorySchema.plugin(tenantScope);
 
-/* ====================== Product ====================== */
+/* Product */
 const ProductSchema = new Schema({
   tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-
   name:        { type: String, required: true },
   sku:         { type: String },
   description: { type: String },
   group:       { type: String, required: true },
-
   hasProps:    { type: Boolean, default: false },
   propsColor:  { type: String, default: '' },
   queries:     { type: String, default: '' },
-
   width:       { type: String, default: '' },
   height:      { type: String, default: '' },
   length:      { type: String, default: '' },
   weight:      { type: String, default: '' },
-
   price:       { type: Number, required: true },
   unit:        { type: String, default: 'шт' },
-
   availability:{
     type: String,
     enum: ['В наличии', 'Под заказ', 'Нет в наличии'],
     default: 'В наличии'
   },
-
   stock:       { type: String, default: '' },
   images:      [String],
 }, { timestamps: true });
 touchUpdatedAt(ProductSchema);
-ProductSchema.plugin(tenantScope);
+if (tenantScope) ProductSchema.plugin(tenantScope);
 
-/* ====================== Order ====================== */
+/* Order */
 const OrderSchema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   user:     { type: Schema.Types.ObjectId, ref: 'User' },
-
-  items: [
-    {
-      product:  { type: Schema.Types.ObjectId, ref: 'Product' },
-      quantity: Number,
-      price:    Number,
-    }
-  ],
-
+  items: [{ product: { type: Schema.Types.ObjectId, ref: 'Product' }, quantity: Number, price: Number }],
   address:        { type: String },
   novaPoshta:     { type: String },
   paymentMethod:  { type: String },
   status:         { type: String, enum: ['new', 'processing', 'shipped', 'done', 'cancelled'], default: 'new' },
   totalPrice:     { type: Number },
-
   contactName:    { type: String },
   contactSurname: { type: String },
   contactPhone:   { type: String },
@@ -129,23 +111,22 @@ const OrderSchema = new Schema({
   cancelReason:   { type: String, default: '' },
 }, { timestamps: true });
 touchUpdatedAt(OrderSchema);
-OrderSchema.plugin(tenantScope);
+if (tenantScope) OrderSchema.plugin(tenantScope);
 
-/* ====================== Message (чат) ====================== */
+/* Message */
 const MessageSchema = new Schema({
   tenantId:  { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   user:      { type: Schema.Types.ObjectId, ref: 'User' },
   text:      { type: String },
   fromAdmin: { type: Boolean, default: false },
   read:      { type: Boolean, default: false },
-
   imageUrls: [String],
   audioUrl:  { type: String },
 }, { timestamps: true });
 touchUpdatedAt(MessageSchema);
-MessageSchema.plugin(tenantScope);
+if (tenantScope) MessageSchema.plugin(tenantScope);
 
-/* ====================== SiteSettings ====================== */
+/* SiteSettings */
 const SiteSettingsSchema = new Schema({
   tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true, unique: true },
   siteName:   { type: String, default: "SteelTruck" },
@@ -184,9 +165,9 @@ const SiteSettingsSchema = new Schema({
   },
 }, { timestamps: true });
 touchUpdatedAt(SiteSettingsSchema);
-SiteSettingsSchema.plugin(tenantScope);
+if (tenantScope) SiteSettingsSchema.plugin(tenantScope);
 
-/* ====================== Blog ====================== */
+/* Blog */
 const BlogSchema = new Schema({
   tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   title:      { type: String, required: true },
@@ -194,9 +175,9 @@ const BlogSchema = new Schema({
   published:  { type: Boolean, default: false },
 }, { timestamps: true });
 touchUpdatedAt(BlogSchema);
-BlogSchema.plugin(tenantScope);
+if (tenantScope) BlogSchema.plugin(tenantScope);
 
-/* ====================== JWT ====================== */
+/* JWT */
 function generateToken(user) {
   return jwt.sign(
     {

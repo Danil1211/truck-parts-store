@@ -9,16 +9,23 @@ export default function TokenCatcher() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const t = params.get("token");
+    const token = params.get("token");
     const tid = params.get("tid") || params.get("tenantId");
 
-    if (!t || !tid) return; // ⚠️ без tenantId не логиним
+    // Без tenantId смысла нет – не логинимся
+    if (!token || !tid) return;
 
     try {
-      login(t, { tenantId: tid, role: "admin" });
+      // 1) Сохраняем в localStorage (не зависим от реализации AuthContext)
+      localStorage.setItem("token", token);
+      localStorage.setItem("tenantId", tid);
+
+      // 2) Дадим знать контексту аутентификации
+      login(token, { tenantId: tid, role: "admin" });
     } catch (e) {
       console.error("TokenCatcher error:", e);
     } finally {
+      // Чистим URL
       params.delete("token");
       params.delete("tid");
       params.delete("tenantId");
@@ -34,7 +41,7 @@ export default function TokenCatcher() {
         { replace: true }
       );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
 
   return null;

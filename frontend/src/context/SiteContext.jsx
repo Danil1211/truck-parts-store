@@ -270,13 +270,41 @@ export function SiteProvider({ children }) {
   const [siteLogo, setSiteLogo] = useState(LOGO_DEFAULT);
   const [favicon, setFavicon] = useState(FAVICON_DEFAULT);
 
+  // Шаг 0: если tenantId ещё нет — пробуем вытащить из URL или по host
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!localStorage.getItem("tenantId")) {
+          // 1) из URL (если пропустил TokenCatcher)
+          const url = new URL(window.location.href);
+          const tid = url.searchParams.get("tid") || url.searchParams.get("tenantId");
+          if (tid) {
+            localStorage.setItem("tenantId", tid);
+            return;
+          }
+          // 2) резолвим по домену
+          const host = window.location.hostname;
+          const r = await fetch(`/api/public/resolve-tenant?host=${encodeURIComponent(host)}`);
+          if (r.ok) {
+            const j = await r.json();
+            if (j?.tenantId) localStorage.setItem("tenantId", j.tenantId);
+          }
+        }
+      } catch (e) {
+        console.warn("resolve-tenant failed", e);
+      }
+    })();
+  }, []);
+
   // Загрузка с бэка
   async function fetchSettings() {
     setLoading(true);
     try {
-      // ВСЕГДА относительный путь — уйдёт на ваш api.storo-shop.com через прокси
-      const res = await fetch(`/api/site-settings`);
-      if (!res.ok) throw new Error("Ошибка загрузки настроек");
+      const tid = localStorage.getItem("tenantId") || "";
+      const res = await fetch(`/api/site-settings`, {
+        headers: tid ? { "x-tenant-id": tid } : {},
+      });
+      if (!res.ok) throw new Error(`Ошибка загрузки настроек (${res.status})`);
       const data = await res.json();
 
       const mergedDisplay = mergeDisplay(data.display);
@@ -292,13 +320,14 @@ export function SiteProvider({ children }) {
       applySitePaletteToCSSVars(mergedDisplay.palette);
     } catch (err) {
       console.error("Ошибка загрузки настроек:", err);
-      setSiteName("SteelTruck");
-      setContacts(CONTACTS_DEFAULT);
-      setDisplay(DISPLAY_DEFAULT);
-      setSiteLogo(LOGO_DEFAULT);
-      setFavicon(FAVICON_DEFAULT);
+      // НЕ перетираем на дефолты навсегда — оставим минимально рабочее,
+      // чтобы страница отрисовалась, и попробуем снова при следующем заходе
+      setSiteName((s) => s || "SteelTruck");
+      setContacts((c) => c || CONTACTS_DEFAULT);
+      setDisplay((d) => d || DISPLAY_DEFAULT);
+      setSiteLogo((l) => l ?? LOGO_DEFAULT);
+      setFavicon((f) => f ?? FAVICON_DEFAULT);
 
-      // Применим дефолтную палитру сайта
       applySitePaletteToCSSVars(DISPLAY_DEFAULT.palette);
     } finally {
       setLoading(false);
@@ -307,7 +336,6 @@ export function SiteProvider({ children }) {
 
   // Сохранение
   async function saveSettings({ siteName, contacts, display, siteLogo, favicon }) {
-    // Мержим аккуратно: чтобы не затереть отсутствующие поля
     const safeDisplay = mergeDisplay(display);
     const safeContacts = mergeContacts(contacts);
 
@@ -319,21 +347,23 @@ export function SiteProvider({ children }) {
       favicon,
     };
 
-    // Токен берём тут, чтобы НЕ забыть передать
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || "";
+    const tid = localStorage.getItem("tenantId") || "";
 
     const res = await fetch(`/api/site-settings`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: "Bearer " + token } : {}),
+        ...(tid ? { "x-tenant-id": tid } : {}), // ⬅️ ВАЖНО
       },
       body: JSON.stringify(body),
     });
 
     if (!res.ok) {
-      console.error("[SiteProvider] Ошибка сохранения настроек", res.status);
-      throw new Error("Ошибка сохранения настроек");
+      const j = await res.json().catch(() => ({}));
+      console.error("[SiteProvider] Ошибка сохранения настроек", res.status, j);
+      throw new Error(j.error || "Ошибка сохранения настроек");
     }
 
     const data = await res.json();
@@ -341,7 +371,7 @@ export function SiteProvider({ children }) {
     const mergedDisplay = mergeDisplay(data.display);
     const mergedContacts = mergeContacts(data.contacts);
 
-    setSiteName(data.siteName || "SteelTruck");
+    setSiteName(data.siteName || "MySite");
     setContacts(mergedContacts);
     setDisplay(mergedDisplay);
     setSiteLogo(data.siteLogo || LOGO_DEFAULT);

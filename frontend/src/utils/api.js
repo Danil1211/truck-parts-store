@@ -1,31 +1,22 @@
 // frontend/src/api.js
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://api.storo-shop.com";
+const API_URL = import.meta.env.VITE_API_URL || ""; // пусто = относительный /api
 
 const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: false, // если нужно — можно true
+  baseURL: API_URL || "",
+  withCredentials: false,
 });
 
-// перехватчик: перед каждым запросом добавляем токен и tenantId
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    const tenantId = localStorage.getItem("tenantId");
+// добавляем токен и tenantId во все запросы
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  const tenantId = localStorage.getItem("tenantId");
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    if (tenantId) {
-      config.headers["x-tenant-id"] = tenantId;
-    }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (tenantId) config.headers["x-tenant-id"] = tenantId;
 
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  return config;
+});
 
 export default api;
