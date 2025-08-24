@@ -3,11 +3,9 @@ import "../assets/AdminSettingsPage.css";
 import { useSite } from "../context/SiteContext";
 import { DISPLAY_DEFAULT, PALETTES } from "../context/SiteContext";
 import { useAuth } from "../context/AuthContext";
+import api from "../api";
 
-// относительный API: все уйдёт через /api -> api.storo-shop.com
-const API_URL = ""; // НЕ используем для site-settings, но нужен для картинок товаров
-
-// Встроенный SVG-плейсхолдер вместо /noimg.png (чтобы не было 404)
+// Встроенный SVG-плейсхолдер вместо /noimg.png
 const NOIMG =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
@@ -19,12 +17,6 @@ const NOIMG =
       </g>
     </svg>`
   );
-
-// Формируем корректный URL к картинке (абсолютный если надо)
-const imgURL = (u) => {
-  if (!u) return NOIMG;
-  return /^https?:\/\//i.test(u) ? u : `${API_URL}${u}`;
-};
 
 const WEEK_DAYS = [
   { key: "mon", label: "Пн" },
@@ -106,19 +98,10 @@ export default function AdminSettingsPage() {
   } = useSite();
 
   const { user } = useAuth();
-  const token = localStorage.getItem("token");
-  const authHeaders = useMemo(
-    () => ({
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    }),
-    [token]
-  );
 
   const [tab, setTab] = useState("main");
 
-  // ========= MAIN (как было) =========
-  // Контакты
+  // ========= MAIN =========
   const [email, setEmail] = useState(contacts?.email || "");
   const [contactPerson, setContactPerson] = useState(contacts?.contactPerson || "");
   const [address, setAddress] = useState(contacts?.address || "");
@@ -126,7 +109,6 @@ export default function AdminSettingsPage() {
     contacts?.phones && contacts.phones.length ? contacts.phones : [{ phone: "", comment: "" }]
   );
 
-  // Логотип/фавикон
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(siteLogo || null);
   const [logoError, setLogoError] = useState("");
@@ -136,7 +118,6 @@ export default function AdminSettingsPage() {
   const [faviconPreview, setFaviconPreview] = useState(favicon || null);
   const faviconInputRef = useRef();
 
-  // Чат
   const defaultChatSettings = contacts?.chatSettings || {};
   const [chatStartTime, setChatStartTime] = useState(defaultChatSettings.startTime || "09:00");
   const [chatEndTime, setChatEndTime] = useState(defaultChatSettings.endTime || "18:00");
@@ -147,14 +128,11 @@ export default function AdminSettingsPage() {
   const [chatColor, setChatColor] = useState(defaultChatSettings.color || "#2291ff");
   const [chatGreeting, setChatGreeting] = useState(defaultChatSettings.greeting || "");
 
-  // UI сообщения
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Текущий основной цвет САЙТА (для UI выделения кружка)
   const sitePalettePrimary = display?.palette?.primary || COLOR_PALETTE[0];
 
-  // Синк при входящих изменениях из контекста (после загрузки/сохранения)
   useEffect(() => {
     setEmail(contacts?.email || "");
     setContactPerson(contacts?.contactPerson || "");
@@ -174,7 +152,6 @@ export default function AdminSettingsPage() {
     }
   }, [contacts, siteLogo]);
 
-  // Выбор цвета САЙТА — меняем только display.palette
   function handleSitePaletteSelect(color) {
     const palette = getPaletteWithFooter(color);
     setDisplay((prev) => ({
@@ -183,12 +160,10 @@ export default function AdminSettingsPage() {
     }));
   }
 
-  // Выбор цвета ЧАТА — меняем только локальный стейт chatColor
   function handleChatColorSelect(color) {
     setChatColor(color);
   }
 
-  // Сохранение MAIN
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
@@ -232,7 +207,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Лого
   const handleLogoChange = (e) => {
     setLogoError("");
     const file = e.target.files[0];
@@ -287,7 +261,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Фавикон
   const handleFaviconChange = (e) => {
     const file = e.target.files[0];
     if (
@@ -318,10 +291,8 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Чекбоксы главной
   const handleCheckbox = (key) => setDisplay((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // Телефоны
   const handlePhoneChange = (idx, field, value) => {
     setPhones((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   };
@@ -336,7 +307,6 @@ export default function AdminSettingsPage() {
   const [showcaseEnabled, setShowcaseEnabled] = useState(true);
   const [showcaseIds, setShowcaseIds] = useState([]);
 
-  // модалка выбора товаров
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQ, setPickerQ] = useState("");
   const [pickerGroup, setPickerGroup] = useState("");
@@ -348,13 +318,11 @@ export default function AdminSettingsPage() {
   const [savingSite, setSavingSite] = useState(false);
   const [siteMsg, setSiteMsg] = useState("");
 
-  // При первом открытии вкладки "site" подтягиваем текущие значения с бэка
   useEffect(() => {
     if (tab !== "site") return;
     (async () => {
       try {
-        const r = await fetch(`/api/site-settings`);
-        const json = await r.json();
+        const { data: json } = await api.get(`/api/site-settings`);
         setVerticalMenu(sanitizeMenuArray(json.verticalMenu || []));
         setHorizontalMenu(sanitizeMenuArray(json.horizontalMenu || []));
         setShowcaseEnabled(json?.showcase?.enabled ?? true);
@@ -365,22 +333,20 @@ export default function AdminSettingsPage() {
     })();
   }, [tab]);
 
-  // Список групп (для фильтра витрины)
   useEffect(() => {
-    if (tab !== "site" || !token) return;
+    if (tab !== "site") return;
     (async () => {
       try {
-        const r = await fetch(`/api/products/groups`, { headers: authHeaders });
-        if (r.ok) setGroups(await r.json());
+        const { data } = await api.get(`/api/products/groups`);
+        setGroups(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error("load groups failed", e);
       }
     })();
-  }, [tab, token, authHeaders]);
+  }, [tab]);
 
-  // Загрузка товаров в модалке
   useEffect(() => {
-    if (!pickerOpen || !token) return;
+    if (!pickerOpen) return;
     (async () => {
       try {
         const qs = new URLSearchParams({
@@ -389,16 +355,14 @@ export default function AdminSettingsPage() {
           inStock: pickerInStock,
           page: String(pickerPage),
           limit: String(pickerLimit),
-        });
-        const r = await fetch(`/api/products/admin?` + qs.toString(), {
-          headers: authHeaders,
-        });
-        if (r.ok) setPickerData(await r.json());
+        }).toString();
+        const { data } = await api.get(`/api/products/admin?${qs}`);
+        setPickerData(data);
       } catch (e) {
         console.error("load products for picker failed", e);
       }
     })();
-  }, [pickerOpen, pickerQ, pickerGroup, pickerInStock, pickerPage, pickerLimit, token, authHeaders]);
+  }, [pickerOpen, pickerQ, pickerGroup, pickerInStock, pickerPage, pickerLimit]);
 
   const moveItem = (list, setList, idx, dir) => {
     const arr = [...list];
@@ -449,16 +413,7 @@ export default function AdminSettingsPage() {
         },
       };
 
-      const r = await fetch(`/api/site-settings`, {
-        method: "PUT",
-        headers: authHeaders, // Authorization: Bearer <token>
-        body: JSON.stringify(payload),
-      });
-
-      if (!r.ok) {
-        const j = await r.json().catch(() => ({}));
-        throw new Error(j.error || "Ошибка сохранения");
-      }
+      await api.put(`/api/site-settings`, payload);
 
       setSiteMsg("Изменения сохранены");
       setTimeout(() => setSiteMsg(""), 2200);
@@ -1081,7 +1036,6 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          {/* Заглушки для остальных вкладок */}
           {tab !== "main" && tab !== "site" && (
             <div className="settings-section">
               <h2>{SETTINGS_MENU.find((item) => item.key === tab)?.title || "Раздел"}</h2>
@@ -1160,7 +1114,7 @@ export default function AdminSettingsPage() {
                     onChange={() => toggleSelected(p._id)}
                   />
                   <img
-                    src={p.images?.[0] ? `${API_URL}${p.images[0]}` : NOIMG}
+                    src={p.images?.[0] ? p.images[0] : NOIMG}
                     onError={(e) => {
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = NOIMG;

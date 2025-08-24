@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import api from "../api";
 
 /* ===========================
    ДЕФОЛТЫ (без cart-* ключей)
@@ -193,7 +194,7 @@ export const CHAT_SETTINGS_DEFAULT = {
   endTime: "18:00",
   workDays: ["mon", "tue", "wed", "thu", "fri"],
   iconPosition: "left",
-  color: "#2291ff", // ЧАТ-цвет (НЕ влияет на сайт)
+  color: "#2291ff",
   greeting: "",
 };
 
@@ -270,43 +271,11 @@ export function SiteProvider({ children }) {
   const [siteLogo, setSiteLogo] = useState(LOGO_DEFAULT);
   const [favicon, setFavicon] = useState(FAVICON_DEFAULT);
 
-  // Шаг 0: если tenantId ещё нет — пробуем вытащить из URL или по host
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!localStorage.getItem("tenantId")) {
-          // 1) из URL (если пропустил TokenCatcher)
-          const url = new URL(window.location.href);
-          const tid = url.searchParams.get("tid") || url.searchParams.get("tenantId");
-          if (tid) {
-            localStorage.setItem("tenantId", tid);
-            return;
-          }
-          // 2) резолвим по домену
-          const host = window.location.hostname;
-          const r = await fetch(`/api/public/resolve-tenant?host=${encodeURIComponent(host)}`);
-          if (r.ok) {
-            const j = await r.json();
-            if (j?.tenantId) localStorage.setItem("tenantId", j.tenantId);
-          }
-        }
-      } catch (e) {
-        console.warn("resolve-tenant failed", e);
-      }
-    })();
-  }, []);
-
-  // Загрузка с бэка
+  // Загрузка с бэка (через axios-инстанс с x-tenant-id)
   async function fetchSettings() {
     setLoading(true);
     try {
-      const tid = localStorage.getItem("tenantId") || "";
-      const res = await fetch(`/api/site-settings`, {
-        headers: tid ? { "x-tenant-id": tid } : {},
-      });
-      if (!res.ok) throw new Error(`Ошибка загрузки настроек (${res.status})`);
-      const data = await res.json();
-
+      const { data } = await api.get(`/api/site-settings`);
       const mergedDisplay = mergeDisplay(data.display);
       const mergedContacts = mergeContacts(data.contacts);
 
@@ -316,25 +285,21 @@ export function SiteProvider({ children }) {
       setSiteLogo(data.siteLogo || null);
       setFavicon(data.favicon || null);
 
-      // Применяем палитру САЙТА сразу
       applySitePaletteToCSSVars(mergedDisplay.palette);
     } catch (err) {
       console.error("Ошибка загрузки настроек:", err);
-      // НЕ перетираем на дефолты навсегда — оставим минимально рабочее,
-      // чтобы страница отрисовалась, и попробуем снова при следующем заходе
-      setSiteName((s) => s || "SteelTruck");
-      setContacts((c) => c || CONTACTS_DEFAULT);
-      setDisplay((d) => d || DISPLAY_DEFAULT);
-      setSiteLogo((l) => l ?? LOGO_DEFAULT);
-      setFavicon((f) => f ?? FAVICON_DEFAULT);
-
+      setSiteName("SteelTruck");
+      setContacts(CONTACTS_DEFAULT);
+      setDisplay(DISPLAY_DEFAULT);
+      setSiteLogo(LOGO_DEFAULT);
+      setFavicon(FAVICON_DEFAULT);
       applySitePaletteToCSSVars(DISPLAY_DEFAULT.palette);
     } finally {
       setLoading(false);
     }
   }
 
-  // Сохранение
+  // Сохранение (через axios-инстанс с токеном и x-tenant-id)
   async function saveSettings({ siteName, contacts, display, siteLogo, favicon }) {
     const safeDisplay = mergeDisplay(display);
     const safeContacts = mergeContacts(contacts);
@@ -347,46 +312,24 @@ export function SiteProvider({ children }) {
       favicon,
     };
 
-    const token = localStorage.getItem("token") || "";
-    const tid = localStorage.getItem("tenantId") || "";
-
-    const res = await fetch(`/api/site-settings`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: "Bearer " + token } : {}),
-        ...(tid ? { "x-tenant-id": tid } : {}), // ⬅️ ВАЖНО
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      console.error("[SiteProvider] Ошибка сохранения настроек", res.status, j);
-      throw new Error(j.error || "Ошибка сохранения настроек");
-    }
-
-    const data = await res.json();
+    const { data } = await api.put(`/api/site-settings`, body);
 
     const mergedDisplay = mergeDisplay(data.display);
     const mergedContacts = mergeContacts(data.contacts);
 
-    setSiteName(data.siteName || "MySite");
+    setSiteName(data.siteName || "SteelTruck");
     setContacts(mergedContacts);
     setDisplay(mergedDisplay);
     setSiteLogo(data.siteLogo || LOGO_DEFAULT);
     setFavicon(data.favicon || FAVICON_DEFAULT);
 
-    // Моментально применяем САЙТ-палитру
     applySitePaletteToCSSVars(mergedDisplay.palette);
   }
 
-  // При первом монтировании тянем настройки
   useEffect(() => {
     fetchSettings();
   }, []);
 
-  // Если палитра сайта поменялась в рантайме (через setDisplay) — применим
   useEffect(() => {
     if (display?.palette) applySitePaletteToCSSVars(display.palette);
   }, [display?.palette]);
@@ -413,7 +356,6 @@ export function SiteProvider({ children }) {
         fetchSettings,
         saveSettings,
 
-        // Чат — отдельно и не лезет в CSS сайта
         chatSettings: contacts.chatSettings || CHAT_SETTINGS_DEFAULT,
         setChatSettings: (newChatSettings) =>
           setContacts((prev) => ({
