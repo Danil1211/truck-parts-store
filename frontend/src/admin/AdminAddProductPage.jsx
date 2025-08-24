@@ -33,7 +33,7 @@ export default function AdminAddProductPage() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await api("/api/groups");
+        const { data } = await api.get("/api/groups/tree"); // ✅ дерево
         const flatGroups = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
