@@ -4,36 +4,36 @@ const { Tenant } = require('../models/models');
 const BASE_DOMAIN = (process.env.BASE_DOMAIN || 'storo-shop.com').toLowerCase();
 
 /**
- * Извлекаем hostname из строки (host header, origin и т.п.)
+ * Извлекаем hostname из строки (host header, origin, referer и т.п.)
  */
 function toHostname(value = '') {
   try {
     if (!value) return '';
-    // если "example.com:443"
+    // если приходит как "example.com:443"
     if (!value.includes('://') && value.includes(':')) {
       return value.split(':')[0].toLowerCase();
     }
-    // если полноценный url
+    // если полноценный origin/url
     if (value.includes('://')) {
       return new URL(value).hostname.toLowerCase();
     }
-    return String(value).toLowerCase();
+    return String(value || '').toLowerCase();
   } catch {
     return String(value || '').toLowerCase();
   }
 }
 
 /**
- * Находим арендатора по hostname
+ * Находим арендатора по hostname (субдомен *.BASE_DOMAIN или кастомный домен)
  */
 async function findTenantByHostname(hostname) {
   if (!hostname) return null;
 
-  // Кастомный домен?
+  // кастомный домен
   const byCustom = await Tenant.findOne({ customDomain: hostname }).lean();
   if (byCustom) return byCustom;
 
-  // Поддомен *.BASE_DOMAIN?
+  // поддомен *.BASE_DOMAIN
   if (
     hostname.endsWith(`.${BASE_DOMAIN}`) &&
     hostname !== BASE_DOMAIN &&
@@ -51,7 +51,7 @@ async function findTenantByHostname(hostname) {
 
 module.exports = async function withTenant(req, res, next) {
   try {
-    // 1) tenantId явно (хедером)
+    // 1) Явный tenantId (хедер)
     const headerTenantId = (req.headers['x-tenant-id'] || req.headers['x-tenant'] || '').toString().trim();
     if (headerTenantId) {
       const t = await Tenant.findById(headerTenantId).lean();
@@ -62,8 +62,8 @@ module.exports = async function withTenant(req, res, next) {
       }
     }
 
-    // 2) tenantId из query
-    if (req.query?.tenant) {
+    // 2) Query (?tenant=...)
+    if (req.query && req.query.tenant) {
       const t = await Tenant.findById(req.query.tenant.toString()).lean();
       if (t) {
         req.tenant = t;
@@ -72,7 +72,7 @@ module.exports = async function withTenant(req, res, next) {
       }
     }
 
-    // 3) По домену: origin / referer / forwarded / host
+    // 3) По домену (origin → referer → x-forwarded-host → host)
     const originHost  = toHostname(req.headers.origin);
     const refererHost = toHostname(req.headers.referer);
     const xfwdHost    = toHostname(req.headers['x-forwarded-host']);
