@@ -12,7 +12,6 @@ const withTenant = require("../middleware/withTenant");
 router.use(withTenant);
 
 /* ----------------------------- helpers ----------------------------- */
-
 function ensureDir(p) {
   try {
     fs.mkdirSync(p, { recursive: true });
@@ -60,6 +59,13 @@ function parseQueries(v) {
   return [];
 }
 
+// ✅ защищённый конвертер для чисел
+function toNumber(v) {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = Number(v);
+  return isNaN(n) ? undefined : n;
+}
+
 function buildFilterFromQuery(qs) {
   const { q, search, group, groupId, availability, inStock } = qs;
   const filter = { deleted: { $ne: true } };
@@ -92,9 +98,7 @@ function mapFilesToPublicPaths(files) {
 
 /* ================================ PUBLIC ================================ */
 
-/**
- * Витрина — положили ПЕРЕД "/:id", чтобы не перехватывалось параметром
- */
+// Витрина
 router.get("/public/showcase", async (req, res) => {
   try {
     const products = await Product.find({
@@ -110,25 +114,19 @@ router.get("/public/showcase", async (req, res) => {
   }
 });
 
-/**
- * Публичный список — возвращает МАССИВ (как ожидает фронт)
- * Фильтры: q|search, group|groupId, availability, inStock
- */
+// Публичный список
 router.get("/", async (req, res) => {
   try {
     const filter = buildFilterFromQuery(req.query);
     const items = await Product.find(filter).sort({ updatedAt: -1 });
-    res.json(items); // массив
+    res.json(items);
   } catch (err) {
     console.error("public products list error:", err);
     res.status(500).json({ error: "Ошибка загрузки товаров" });
   }
 });
 
-/**
- * Админ-список с пагинацией — СТРОГО ДО "/:id", чтобы "/admin" не съедал ":id"
- * Возвращает { items, total, pages }
- */
+// Админ-список
 router.get("/admin", authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -152,10 +150,7 @@ router.get("/admin", authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * Карточка товара
- * ДЕРЖИМ ПОСЛЕ /admin и /public/showcase
- */
+// Карточка товара
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -169,29 +164,25 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/* ================================ PROTECTED (mutations) ================================ */
+/* ================================ PROTECTED ================================ */
 
 router.post("/", authMiddleware, upload.array("images", 10), async (req, res) => {
   try {
-    // Загруженные новые фото
     const uploadedImages = mapFilesToPublicPaths(req.files);
-    // На создание обычно нет serverImages, но на всякий случай
     const serverImages = toArray(req.body["serverImages[]"] || req.body.serverImages);
 
     const productData = {
       ...req.body,
-      // нормализуем поля
-      price: req.body.price != null ? Number(req.body.price) : undefined,
-      stock: req.body.stock != null ? Number(req.body.stock) : undefined,
-      width: req.body.width != null ? Number(req.body.width) : undefined,
-      height: req.body.height != null ? Number(req.body.height) : undefined,
-      length: req.body.length != null ? Number(req.body.length) : undefined,
-      weight: req.body.weight != null ? Number(req.body.weight) : undefined,
+      price: toNumber(req.body.price),
+      stock: toNumber(req.body.stock),
+      width: toNumber(req.body.width),
+      height: toNumber(req.body.height),
+      length: toNumber(req.body.length),
+      weight: toNumber(req.body.weight),
       queries: parseQueries(req.body.queries),
       images: [...serverImages, ...uploadedImages],
     };
 
-    // Удаляем служебные поля, чтобы не попали в документ
     delete productData["serverImages[]"];
     delete productData.serverImages;
 
@@ -211,12 +202,12 @@ router.patch("/:id", authMiddleware, upload.array("images", 10), async (req, res
 
     const update = {
       ...req.body,
-      price: req.body.price != null ? Number(req.body.price) : undefined,
-      stock: req.body.stock != null ? Number(req.body.stock) : undefined,
-      width: req.body.width != null ? Number(req.body.width) : undefined,
-      height: req.body.height != null ? Number(req.body.height) : undefined,
-      length: req.body.length != null ? Number(req.body.length) : undefined,
-      weight: req.body.weight != null ? Number(req.body.weight) : undefined,
+      price: toNumber(req.body.price),
+      stock: toNumber(req.body.stock),
+      width: toNumber(req.body.width),
+      height: toNumber(req.body.height),
+      length: toNumber(req.body.length),
+      weight: toNumber(req.body.weight),
       queries: parseQueries(req.body.queries),
       images: [...serverImages, ...uploadedImages],
       updatedAt: new Date(),
@@ -250,9 +241,8 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-/* ---------- совместимость со старыми путями /admin ---------- */
+/* ---------- legacy admin paths ---------- */
 
-// обновление
 router.put("/admin/:id", authMiddleware, async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(
@@ -268,7 +258,6 @@ router.put("/admin/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// soft-delete (старый путь)
 router.delete("/admin/:id", authMiddleware, async (req, res) => {
   try {
     const p = await Product.findByIdAndUpdate(req.params.id, { deleted: true }, { new: true });
@@ -280,7 +269,6 @@ router.delete("/admin/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// восстановление
 router.put("/:id/restore", authMiddleware, async (req, res) => {
   try {
     const p = await Product.findByIdAndUpdate(req.params.id, { deleted: false }, { new: true });
@@ -303,7 +291,6 @@ router.put("/admin/:id/restore", authMiddleware, async (req, res) => {
   }
 });
 
-// импорт
 router.post("/admin/import", authMiddleware, async (req, res) => {
   try {
     const { items } = req.body;

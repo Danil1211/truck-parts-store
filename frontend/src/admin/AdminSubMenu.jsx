@@ -6,11 +6,6 @@ const MENUS = {
   products: [
     { key: "list", label: "Позиции", link: "/admin/products" },
     { key: "groups", label: "Группы / Подгруппы", link: "/admin/groups" },
-    { key: "import", label: "Импорт", link: "/admin/import" },
-    { key: "promos", label: "Акции и промокоды", link: "/admin/promos" },
-    { key: "deleted", label: "Удалённые позиции", link: "/admin/deleted" },
-    { key: "restore", label: "Восстановление позиций", link: "/admin/restore" },
-    { key: "features", label: "Характеристики", link: "/admin/features" },
   ],
   orders: [
     { key: "all", label: "Все заказы", filter: "all" },
@@ -22,11 +17,6 @@ const MENUS = {
   settings: [
     { key: "main", label: "Основные настройки" },
     { key: "site", label: "Управление сайтом" },
-    { key: "delivery", label: "Способы доставки" },
-    { key: "payment", label: "Способы оплаты" },
-    { key: "schedule", label: "График работы" },
-    { key: "return", label: "Возврат и гарантия" },
-    { key: "managers", label: "Менеджеры" },
   ]
 };
 
