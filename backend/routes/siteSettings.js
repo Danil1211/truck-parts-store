@@ -11,15 +11,17 @@ router.use(withTenant);
 
 function sanitizeMenuArray(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr.map((it, idx) => {
-    const item = it || {};
-    return {
-      title: String(item.title ?? '').trim() || 'Без названия',
-      url: String(item.url ?? '/').trim() || '/',
-      visible: !!item.visible,
-      order: Number.isFinite(Number(item.order)) ? Number(item.order) : idx,
-    };
-  }).sort((a, b) => a.order - b.order);
+  return arr
+    .map((it, idx) => {
+      const item = it || {};
+      return {
+        title: String(item.title ?? '').trim() || 'Без названия',
+        url: String(item.url ?? '/').trim() || '/',
+        visible: !!item.visible,
+        order: Number.isFinite(Number(item.order)) ? Number(item.order) : idx,
+      };
+    })
+    .sort((a, b) => a.order - b.order);
 }
 
 function sanitizeShowcase(showcase) {
@@ -71,7 +73,7 @@ function buildUpdateFromBody(body = {}) {
     };
   }
 
-  if ('verticalMenu' in body)   $set.verticalMenu   = sanitizeMenuArray(body.verticalMenu);
+  if ('verticalMenu' in body) $set.verticalMenu = sanitizeMenuArray(body.verticalMenu);
   if ('horizontalMenu' in body) $set.horizontalMenu = sanitizeMenuArray(body.horizontalMenu);
 
   if ('showcase' in body) {
@@ -80,7 +82,7 @@ function buildUpdateFromBody(body = {}) {
   }
 
   if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null;
-  if ('favicon'  in body) $set.favicon  = body.favicon  ?? null;
+  if ('favicon' in body) $set.favicon = body.favicon ?? null;
 
   $set.updatedAt = new Date();
   return { $set };
@@ -90,8 +92,8 @@ function buildUpdateFromBody(body = {}) {
 router.get('/', async (req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant.id) },
-      { $setOnInsert: { tenantId: String(req.tenant.id) } },
+      { tenantId: req.tenantId }, // ✅ фикс
+      { $setOnInsert: { tenantId: req.tenantId } },
       { new: true, upsert: true }
     ).lean();
     res.json(doc);
@@ -111,8 +113,8 @@ router.put('/', authMiddleware, async (req, res) => {
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant.id) },
-      { ...update, $set: { ...update.$set, tenantId: String(req.tenant.id) } },
+      { tenantId: req.tenantId }, // ✅ фикс
+      { ...update, $set: { ...update.$set, tenantId: req.tenantId } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
