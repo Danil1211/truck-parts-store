@@ -1,3 +1,4 @@
+// backend/routes/site-settings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models/models');
@@ -77,8 +78,7 @@ function buildUpdateFromBody(body = {}) {
   if ('horizontalMenu' in body) $set.horizontalMenu = sanitizeMenuArray(body.horizontalMenu);
 
   if ('showcase' in body) {
-    const sc = sanitizeShowcase(body.showcase);
-    $set.showcase = sc;
+    $set.showcase = sanitizeShowcase(body.showcase);
   }
 
   if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null;
@@ -92,8 +92,8 @@ function buildUpdateFromBody(body = {}) {
 router.get('/', async (req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId: req.tenantId }, // ✅ фикс
-      { $setOnInsert: { tenantId: req.tenantId } },
+      { tenantId: String(req.tenant._id) }, // ✅ используем _id
+      { $setOnInsert: { tenantId: String(req.tenant._id) } },
       { new: true, upsert: true }
     ).lean();
     res.json(doc);
@@ -106,17 +106,20 @@ router.get('/', async (req, res) => {
 /** PUT /api/site-settings */
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    if (!req.user?.isAdmin) {
+    // ✅ разрешаем и owner, и admin
+    if (!(req.user?.isAdmin || req.user?.role === 'owner')) {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
 
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId: req.tenantId }, // ✅ фикс
-      { ...update, $set: { ...update.$set, tenantId: req.tenantId } },
+      { tenantId: String(req.tenant._id) }, // ✅ фикс tenantId
+      { ...update, $set: { ...update.$set, tenantId: String(req.tenant._id) } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
+
+    console.log('✅ Site settings updated for tenant:', req.tenant._id, update.$set);
 
     res.json(updated);
   } catch (err) {
