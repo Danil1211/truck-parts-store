@@ -3,7 +3,7 @@ import "../assets/AdminSettingsPage.css";
 import { useSite } from "../context/SiteContext";
 import { DISPLAY_DEFAULT, PALETTES } from "../context/SiteContext";
 import { useAuth } from "../context/AuthContext";
-import api from "../api";
+import api from "..utils/api";
 
 // Встроенный SVG-плейсхолдер вместо /noimg.png
 const NOIMG =
