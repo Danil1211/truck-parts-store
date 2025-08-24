@@ -147,7 +147,9 @@ export default function AdminAddProductPage() {
     });
 
     try {
-      await api("/api/products", { method: "POST", body: formData });
+      await api.post("/api/products", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       navigate("/admin/products");
     } catch (err) {
       console.error("Ошибка при сохранении позиции:", err);
