@@ -1,4 +1,3 @@
-// backend/server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -19,7 +18,7 @@ const withTenant         = require('./middleware/withTenant');
 
 const authRoutes         = require('./routes/auth');
 const categoryRoutes     = require('./routes/categories');
-const productRoutes      = require('./routes/products');   // <-- единый файл
+const productRoutes      = require('./routes/products');
 const orderRoutes        = require('./routes/orders');
 const uploadRoutes       = require('./routes/upload');
 const chatRoutes         = require('./routes/chat');
@@ -37,11 +36,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /* ============================= CORS ============================= */
 const allowlist = [
-  /^https?:\/\/storo-shop\.com$/i,            // корневой домен
-  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i,   // любые поддомены *.storo-shop.com
-  /^https?:\/\/api\.storo-shop\.com$/i,       // API-домен
-  /^https?:\/\/localhost(?::\d+)?$/i,         // локалка
-  /onrender\.com$/i,                          // Render
+  /^https?:\/\/storo-shop\.com$/i,
+  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i,
+  /^https?:\/\/api\.storo-shop\.com$/i,
+  /^https?:\/\/localhost(?::\d+)?$/i,
+  /onrender\.com$/i,
 ];
 
 const extra = (process.env.ALLOWED_ORIGINS || '')
@@ -53,7 +52,7 @@ const extraRE = extra.map(s =>
 );
 
 function originAllowed(origin) {
-  if (!origin) return true; // curl/Postman и т.п.
+  if (!origin) return true;
   return allowlist.some(re => re.test(origin)) || extraRE.some(re => re.test(origin));
 }
 
@@ -64,16 +63,15 @@ const corsOptionsDelegate = (req, cb) => {
     origin: allowed ? origin : false,
     credentials: true,
     methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization','X-Tenant-Id','X-Super-Key'],
+    allowedHeaders: ['Content-Type','Authorization','X-Tenant-Id','X-Tenant','X-Super-Key'],
     optionsSuccessStatus: 204,
   });
 };
 
-// сначала cors
 app.use(cors(corsOptionsDelegate));
 app.options(/.*/, cors(corsOptionsDelegate));
 
-/* ============== Лог запросов (по желанию) ============== */
+/* ============== Лог запросов ============== */
 app.use((req, _res, next) => {
   console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
   next();
@@ -82,6 +80,9 @@ app.use((req, _res, next) => {
 /* ============================ Статика / health ============================ */
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ВАЖНО: Render делает HEAD / — отвечаем 204 до withTenant
+app.head('/', (_req, res) => res.status(204).end());
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.get('/api/cors-check', (req, res) => {
   res.json({ ok: true, originSeen: req.headers.origin || null });
