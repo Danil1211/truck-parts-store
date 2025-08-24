@@ -1,7 +1,7 @@
 // src/admin/AdminClientDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import api from "../api"; // общий axios-клиент (baseURL = VITE_API_URL), добавляет Bearer-токен из localStorage
+import api from "../utils/api.js";
 
 // Базовый URL только для склейки ссылок на картинки из API
 const BASE_URL = String(api.defaults.baseURL || "").replace(/\/+$/, "");

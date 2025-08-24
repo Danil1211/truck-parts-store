@@ -1,7 +1,7 @@
 // src/admin/AdminClientsPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api"; // общий axios-клиент с baseURL (VITE_API_URL) и токеном из localStorage
+import api from "../utils/api.js";
 
 /**
  * Возможные пути для списка клиентов.

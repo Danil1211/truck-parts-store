@@ -1,7 +1,7 @@
 // frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api"; // общий axios-клиент с baseURL и токеном из localStorage
+import api from "../utils/api.js";
 
 export default function AdminCreateGroupPage() {
   const navigate = useNavigate();

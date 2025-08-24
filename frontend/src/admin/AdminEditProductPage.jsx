@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
-import api from "../api";
+import api from "../utils/api.js";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");

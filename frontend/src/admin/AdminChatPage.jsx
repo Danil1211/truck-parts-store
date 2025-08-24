@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Picker from "emoji-picker-react";
 import "../assets/AdminPanel.css";
 import { useAdminNotify } from "../context/AdminNotifyContext";
-import api from "../utils/api";
+import api from "../utils/api.js";
 
 // База для медиа-URL: берём из api.defaults.baseURL, хвостовые слэши убираем.
 // Если сервер уже прислал абсолютный URL (http/https), оставляем как есть.

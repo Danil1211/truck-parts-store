@@ -1,6 +1,6 @@
 // src/admin/AdminChatDetail.jsx
 import React, { useState, useEffect, useRef } from "react";
-import api from "../utils/api";
+import api from "../utils/api.js";
 import "../assets/AdminPanel.css";
 
 // Аккуратное построение абсолютных ссылок на медиа.

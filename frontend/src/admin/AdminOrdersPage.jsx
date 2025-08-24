@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AdminSubMenu from './AdminSubMenu';
-import api from '../api';
+import api from "../utils/api.js";
 
 const ORDER_STATUSES = [
   { key: "new", label: "Новый" },
