@@ -59,7 +59,7 @@ function parseQueries(v) {
   return [];
 }
 
-// ✅ защищённый конвертер для чисел
+// защищённый конвертер чисел
 function toNumber(v) {
   if (v === undefined || v === null || v === "") return undefined;
   const n = Number(v);
@@ -98,7 +98,7 @@ function mapFilesToPublicPaths(files) {
 
 /* ================================ PUBLIC ================================ */
 
-// Витрина
+// витрина
 router.get("/public/showcase", async (req, res) => {
   try {
     const products = await Product.find({
@@ -114,7 +114,7 @@ router.get("/public/showcase", async (req, res) => {
   }
 });
 
-// Публичный список
+// список публичный
 router.get("/", async (req, res) => {
   try {
     const filter = buildFilterFromQuery(req.query);
@@ -126,7 +126,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Админ-список
+// админ список
 router.get("/admin", authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -150,7 +150,7 @@ router.get("/admin", authMiddleware, async (req, res) => {
   }
 });
 
-// Карточка товара
+// карточка
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -169,7 +169,22 @@ router.get("/:id", async (req, res) => {
 router.post("/", authMiddleware, upload.array("images", 10), async (req, res) => {
   try {
     const uploadedImages = mapFilesToPublicPaths(req.files);
-    const serverImages = toArray(req.body["serverImages[]"] || req.body.serverImages);
+
+    // 🔥 безопасно достаём serverImages
+    let serverImages = [];
+    if (req.body) {
+      if (Array.isArray(req.body.serverImages)) {
+        serverImages = req.body.serverImages;
+      } else if (typeof req.body.serverImages === "string") {
+        try {
+          serverImages = JSON.parse(req.body.serverImages);
+        } catch {
+          serverImages = [req.body.serverImages];
+        }
+      } else if (req.body["serverImages[]"]) {
+        serverImages = toArray(req.body["serverImages[]"]);
+      }
+    }
 
     const productData = {
       ...req.body,
@@ -183,22 +198,33 @@ router.post("/", authMiddleware, upload.array("images", 10), async (req, res) =>
       images: [...serverImages, ...uploadedImages],
     };
 
-    delete productData["serverImages[]"];
-    delete productData.serverImages;
-
     const product = new Product(productData);
     await product.save();
     res.json(product);
   } catch (err) {
     console.error("create product error:", err);
-    res.status(400).json({ error: "Ошибка при создании товара" });
+    res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
   }
 });
 
 router.patch("/:id", authMiddleware, upload.array("images", 10), async (req, res) => {
   try {
     const uploadedImages = mapFilesToPublicPaths(req.files);
-    const serverImages = toArray(req.body["serverImages[]"] || req.body.serverImages);
+
+    let serverImages = [];
+    if (req.body) {
+      if (Array.isArray(req.body.serverImages)) {
+        serverImages = req.body.serverImages;
+      } else if (typeof req.body.serverImages === "string") {
+        try {
+          serverImages = JSON.parse(req.body.serverImages);
+        } catch {
+          serverImages = [req.body.serverImages];
+        }
+      } else if (req.body["serverImages[]"]) {
+        serverImages = toArray(req.body["serverImages[]"]);
+      }
+    }
 
     const update = {
       ...req.body,
@@ -213,9 +239,6 @@ router.patch("/:id", authMiddleware, upload.array("images", 10), async (req, res
       updatedAt: new Date(),
     };
 
-    delete update["serverImages[]"];
-    delete update.serverImages;
-
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { $set: update },
@@ -226,7 +249,7 @@ router.patch("/:id", authMiddleware, upload.array("images", 10), async (req, res
     res.json(product);
   } catch (err) {
     console.error("update product error:", err);
-    res.status(400).json({ error: "Ошибка при обновлении товара" });
+    res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
   }
 });
 
@@ -242,7 +265,6 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 
 /* ---------- legacy admin paths ---------- */
-
 router.put("/admin/:id", authMiddleware, async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(
