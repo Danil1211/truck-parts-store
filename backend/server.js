@@ -36,22 +36,24 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 /* ============================= CORS ============================= */
-// allowlist
 const allowlist = [
-  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i,
-  /^https?:\/\/api\.storo-shop\.com$/i,
-  /^https?:\/\/localhost(?::\d+)?$/i,
-  /onrender\.com$/i,
+  /^https?:\/\/storo-shop\.com$/i,            // корневой домен
+  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i,   // любые поддомены *.storo-shop.com
+  /^https?:\/\/api\.storo-shop\.com$/i,       // API-домен
+  /^https?:\/\/localhost(?::\d+)?$/i,         // локалка
+  /onrender\.com$/i,                          // Render
 ];
 
 const extra = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
-const extraRE = extra.map(s => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
+const extraRE = extra.map(s =>
+  new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i')
+);
 
 function originAllowed(origin) {
-  if (!origin) return true; // curl/Postman etc.
+  if (!origin) return true; // curl/Postman и т.п.
   return allowlist.some(re => re.test(origin)) || extraRE.some(re => re.test(origin));
 }
 
@@ -67,9 +69,8 @@ const corsOptionsDelegate = (req, cb) => {
   });
 };
 
-// Важно: СНАЧАЛА cors(...)
+// сначала cors
 app.use(cors(corsOptionsDelegate));
-// ⚠️ Исправление: вместо '*' используем регэксп /.*/ (или этот блок можно вообще удалить)
 app.options(/.*/, cors(corsOptionsDelegate));
 
 /* ============== Лог запросов (по желанию) ============== */
