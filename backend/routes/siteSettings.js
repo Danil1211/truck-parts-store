@@ -1,4 +1,3 @@
-// backend/routes/site-settings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models/models');
@@ -12,17 +11,15 @@ router.use(withTenant);
 
 function sanitizeMenuArray(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr
-    .map((it, idx) => {
-      const item = it || {};
-      return {
-        title: String(item.title ?? '').trim() || 'Без названия',
-        url: String(item.url ?? '/').trim() || '/',
-        visible: !!item.visible,
-        order: Number.isFinite(Number(item.order)) ? Number(item.order) : idx,
-      };
-    })
-    .sort((a, b) => a.order - b.order);
+  return arr.map((it, idx) => {
+    const item = it || {};
+    return {
+      title: String(item.title ?? '').trim() || 'Без названия',
+      url: String(item.url ?? '/').trim() || '/',
+      visible: !!item.visible,
+      order: Number.isFinite(Number(item.order)) ? Number(item.order) : idx,
+    };
+  }).sort((a, b) => a.order - b.order);
 }
 
 function sanitizeShowcase(showcase) {
@@ -74,15 +71,16 @@ function buildUpdateFromBody(body = {}) {
     };
   }
 
-  if ('verticalMenu' in body) $set.verticalMenu = sanitizeMenuArray(body.verticalMenu);
+  if ('verticalMenu' in body)   $set.verticalMenu   = sanitizeMenuArray(body.verticalMenu);
   if ('horizontalMenu' in body) $set.horizontalMenu = sanitizeMenuArray(body.horizontalMenu);
 
   if ('showcase' in body) {
-    $set.showcase = sanitizeShowcase(body.showcase);
+    const sc = sanitizeShowcase(body.showcase);
+    $set.showcase = sc;
   }
 
   if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null;
-  if ('favicon' in body) $set.favicon = body.favicon ?? null;
+  if ('favicon'  in body) $set.favicon  = body.favicon  ?? null;
 
   $set.updatedAt = new Date();
   return { $set };
@@ -92,7 +90,7 @@ function buildUpdateFromBody(body = {}) {
 router.get('/', async (req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant._id) }, // ✅ используем _id
+      { tenantId: String(req.tenant._id) },   // ⚡ фикс
       { $setOnInsert: { tenantId: String(req.tenant._id) } },
       { new: true, upsert: true }
     ).lean();
@@ -106,22 +104,23 @@ router.get('/', async (req, res) => {
 /** PUT /api/site-settings */
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    // ✅ разрешаем и owner, и admin
-    if (!(req.user?.isAdmin || req.user?.role === 'owner')) {
+    if (!req.user?.isAdmin) {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
 
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant._id) }, // ✅ фикс tenantId
+      { tenantId: String(req.tenant._id) }, // ⚡ фикс
       { ...update, $set: { ...update.$set, tenantId: String(req.tenant._id) } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
-    ).lean();
+    );
 
-    console.log('✅ Site settings updated for tenant:', req.tenant._id, update.$set);
+    if (!updated) {
+      return res.status(500).json({ error: 'Не удалось обновить настройки' });
+    }
 
-    res.json(updated);
+    res.json(updated.toObject ? updated.toObject() : updated);
   } catch (err) {
     console.error('Ошибка обновления настроек:', err);
     res.status(500).json({ error: 'Ошибка обновления настроек' });
