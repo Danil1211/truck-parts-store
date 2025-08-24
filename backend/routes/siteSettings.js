@@ -1,44 +1,37 @@
-// backend/routes/siteSettings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models/models');
 const { authMiddleware } = require('./protected');
 const withTenant = require('../middleware/withTenant');
 
-// парсим крупные тела только в этом роутере (5MB достаточно для base64 логотипов)
 router.use(express.json({ limit: '5mb' }));
 router.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// мультитенант
 router.use(withTenant);
 
-/** нормализация меню */
 function sanitizeMenuArray(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr
-    .map((it, idx) => {
-      const item = it || {};
-      const title = String(item.title ?? '').trim() || 'Без названия';
-      const url = String(item.url ?? '/').trim() || '/';
-      const visible = !!item.visible;
-      const order = Number.isFinite(Number(item.order)) ? Number(item.order) : idx;
-      return { title, url, visible, order };
-    })
-    .sort((a, b) => a.order - b.order);
+  return arr.map((it, idx) => {
+    const item = it || {};
+    return {
+      title: String(item.title ?? '').trim() || 'Без названия',
+      url: String(item.url ?? '/').trim() || '/',
+      visible: !!item.visible,
+      order: Number.isFinite(Number(item.order)) ? Number(item.order) : idx,
+    };
+  }).sort((a, b) => a.order - b.order);
 }
 
-/** нормализация витрины */
 function sanitizeShowcase(showcase) {
   const sc = showcase || {};
-  const enabled = !!sc.enabled;
-  let productIds = [];
-  if (Array.isArray(sc.productIds)) {
-    productIds = sc.productIds.filter(Boolean).map(String).slice(0, 24);
-  }
-  return { enabled, productIds };
+  return {
+    enabled: !!sc.enabled,
+    productIds: Array.isArray(sc.productIds)
+      ? sc.productIds.filter(Boolean).map(String).slice(0, 24)
+      : [],
+  };
 }
 
-/** собираем апдейт — целыми объектами (без точечных $set по глубине) */
 function buildUpdateFromBody(body = {}) {
   const $set = {};
 
@@ -83,11 +76,11 @@ function buildUpdateFromBody(body = {}) {
 
   if ('showcase' in body) {
     const sc = sanitizeShowcase(body.showcase);
-    $set.showcase = { enabled: sc.enabled, productIds: sc.productIds };
+    $set.showcase = sc;
   }
 
-  if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null; // base64/URL
-  if ('favicon'  in body) $set.favicon  = body.favicon  ?? null; // base64/URL
+  if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null;
+  if ('favicon'  in body) $set.favicon  = body.favicon  ?? null;
 
   $set.updatedAt = new Date();
   return { $set };
@@ -97,8 +90,8 @@ function buildUpdateFromBody(body = {}) {
 router.get('/', async (req, res) => {
   try {
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId: req.tenantId },
-      { $setOnInsert: { tenantId: req.tenantId } },
+      { tenantId: String(req.tenant.id) },
+      { $setOnInsert: { tenantId: String(req.tenant.id) } },
       { new: true, upsert: true }
     ).lean();
     res.json(doc);
@@ -118,8 +111,8 @@ router.put('/', authMiddleware, async (req, res) => {
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId: req.tenantId },
-      { ...update, $set: { ...update.$set, tenantId: req.tenantId } },
+      { tenantId: String(req.tenant.id) },
+      { ...update, $set: { ...update.$set, tenantId: String(req.tenant.id) } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
