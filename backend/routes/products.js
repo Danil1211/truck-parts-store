@@ -41,7 +41,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
 });
 
-const toArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+const toArray = (v) =>
+  v == null ? [] : Array.isArray(v) ? v : [v];
 
 function parseQueries(v) {
   if (Array.isArray(v)) return v.filter(Boolean);
@@ -164,90 +165,106 @@ router.get("/:id", async (req, res) => {
 
 /* ================================ PROTECTED ================================ */
 
-// ✅ порядок: upload → authMiddleware
 router.post(
   "/",
-  upload.fields([{ name: "images", maxCount: 10 }]),
   authMiddleware,
+  upload.fields([{ name: "images", maxCount: 10 }]),
   async (req, res) => {
     try {
-      console.log("REQ BODY:", req.body);
-      console.log("REQ FILES:", req.files);
+      console.log("REQ BODY:", req.body || {});
+      console.log("REQ FILES:", req.files || {});
 
+      const body = req.body || {};
       const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
 
       let serverImages = [];
-      if (req.body) {
-        if (Array.isArray(req.body.serverImages)) {
-          serverImages = req.body.serverImages;
-        } else if (typeof req.body.serverImages === "string") {
+      if (body.serverImages) {
+        if (Array.isArray(body.serverImages)) {
+          serverImages = body.serverImages;
+        } else if (typeof body.serverImages === "string") {
           try {
-            serverImages = JSON.parse(req.body.serverImages);
+            serverImages = JSON.parse(body.serverImages);
           } catch {
-            serverImages = [req.body.serverImages];
+            serverImages = [body.serverImages];
           }
-        } else if (req.body["serverImages[]"]) {
-          serverImages = toArray(req.body["serverImages[]"]);
         }
       }
 
       const productData = {
-        ...req.body,
-        price: toNumber(req.body.price),
-        stock: toNumber(req.body.stock),
-        width: toNumber(req.body.width),
-        height: toNumber(req.body.height),
-        length: toNumber(req.body.length),
-        weight: toNumber(req.body.weight),
-        queries: parseQueries(req.body.queries),
+        name: body.name,
+        sku: body.sku,
+        description: body.description,
+        group: body.group,
+        price: toNumber(body.price),
+        unit: body.unit,
+        availability: body.availability,
+        stock: toNumber(body.stock),
+        propsColor: body.charColor || "",
+        propsBrand: body.charBrand || "",
+        width: toNumber(body.width),
+        height: toNumber(body.height),
+        length: toNumber(body.length),
+        weight: toNumber(body.weight),
+        queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
+        tenantId: req.tenantId,
       };
+
+      console.log("PRODUCT DATA:", productData);
 
       const product = new Product(productData);
       await product.save();
       res.json(product);
     } catch (err) {
       console.error("create product error:", err);
-      res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
+      res
+        .status(400)
+        .json({ error: "Ошибка при создании товара", details: err.message });
     }
   }
 );
 
 router.patch(
   "/:id",
-  upload.fields([{ name: "images", maxCount: 10 }]),
   authMiddleware,
+  upload.fields([{ name: "images", maxCount: 10 }]),
   async (req, res) => {
     try {
-      console.log("REQ BODY:", req.body);
-      console.log("REQ FILES:", req.files);
+      console.log("REQ BODY:", req.body || {});
+      console.log("REQ FILES:", req.files || {});
 
+      const body = req.body || {};
       const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
 
       let serverImages = [];
-      if (req.body) {
-        if (Array.isArray(req.body.serverImages)) {
-          serverImages = req.body.serverImages;
-        } else if (typeof req.body.serverImages === "string") {
+      if (body.serverImages) {
+        if (Array.isArray(body.serverImages)) {
+          serverImages = body.serverImages;
+        } else if (typeof body.serverImages === "string") {
           try {
-            serverImages = JSON.parse(req.body.serverImages);
+            serverImages = JSON.parse(body.serverImages);
           } catch {
-            serverImages = [req.body.serverImages];
+            serverImages = [body.serverImages];
           }
-        } else if (req.body["serverImages[]"]) {
-          serverImages = toArray(req.body["serverImages[]"]);
         }
       }
 
       const update = {
-        ...req.body,
-        price: toNumber(req.body.price),
-        stock: toNumber(req.body.stock),
-        width: toNumber(req.body.width),
-        height: toNumber(req.body.height),
-        length: toNumber(req.body.length),
-        weight: toNumber(req.body.weight),
-        queries: parseQueries(req.body.queries),
+        name: body.name,
+        sku: body.sku,
+        description: body.description,
+        group: body.group,
+        price: toNumber(body.price),
+        unit: body.unit,
+        availability: body.availability,
+        stock: toNumber(body.stock),
+        propsColor: body.charColor || "",
+        propsBrand: body.charBrand || "",
+        width: toNumber(body.width),
+        height: toNumber(body.height),
+        length: toNumber(body.length),
+        weight: toNumber(body.weight),
+        queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
         updatedAt: new Date(),
       };
@@ -262,89 +279,25 @@ router.patch(
       res.json(product);
     } catch (err) {
       console.error("update product error:", err);
-      res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
+      res
+        .status(400)
+        .json({ error: "Ошибка при обновлении товара", details: err.message });
     }
   }
 );
 
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    const p = await Product.findByIdAndUpdate(req.params.id, { deleted: true }, { new: true });
+    const p = await Product.findByIdAndUpdate(
+      req.params.id,
+      { deleted: true },
+      { new: true }
+    );
     if (!p) return res.status(404).json({ error: "Товар не найден" });
     res.json({ success: true });
   } catch (err) {
     console.error("delete product error:", err);
     res.status(500).json({ error: "Ошибка при удалении товара" });
-  }
-});
-
-/* ---------- legacy admin paths ---------- */
-router.put("/admin/:id", authMiddleware, async (req, res) => {
-  try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body, updatedAt: new Date() },
-      { new: true }
-    );
-    if (!product) return res.status(404).json({ error: "Товар не найден" });
-    res.json(product);
-  } catch (err) {
-    console.error("admin PUT product error:", err);
-    res.status(400).json({ error: "Ошибка при обновлении товара" });
-  }
-});
-
-router.delete("/admin/:id", authMiddleware, async (req, res) => {
-  try {
-    const p = await Product.findByIdAndUpdate(req.params.id, { deleted: true }, { new: true });
-    if (!p) return res.status(404).json({ error: "Товар не найден" });
-    res.json({ success: true });
-  } catch (err) {
-    console.error("admin DELETE product error:", err);
-    res.status(500).json({ error: "Ошибка при удалении товара" });
-  }
-});
-
-router.put("/:id/restore", authMiddleware, async (req, res) => {
-  try {
-    const p = await Product.findByIdAndUpdate(req.params.id, { deleted: false }, { new: true });
-    if (!p) return res.status(404).json({ error: "Товар не найден" });
-    res.json({ success: true });
-  } catch (err) {
-    console.error("restore product error:", err);
-    res.status(500).json({ error: "Ошибка при восстановлении товара" });
-  }
-});
-
-router.put("/admin/:id/restore", authMiddleware, async (req, res) => {
-  try {
-    const p = await Product.findByIdAndUpdate(req.params.id, { deleted: false }, { new: true });
-    if (!p) return res.status(404).json({ error: "Товар не найден" });
-    res.json({ success: true });
-  } catch (err) {
-    console.error("admin restore product error:", err);
-    res.status(500).json({ error: "Ошибка при восстановлении товара" });
-  }
-});
-
-router.post("/admin/import", authMiddleware, async (req, res) => {
-  try {
-    const { items } = req.body;
-    if (!Array.isArray(items)) {
-      return res.status(400).json({ error: "Неверные данные для импорта" });
-    }
-    const ops = items.map((it) => ({
-      updateOne: {
-        filter: { sku: it.sku },
-        update: { $set: it },
-        upsert: true,
-      },
-    }));
-    await Product.bulkWrite(ops);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("import error:", err);
-    res.status(500).json({ error: "Ошибка при импорте товаров" });
   }
 });
 
