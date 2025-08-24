@@ -5,9 +5,10 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const tenantScope = require('../plugins/tenantScope'); // если есть — ок; если нет — можно убрать
+const tenantScope = require('../plugins/tenantScope'); // если есть — ок, если нет — можно убрать
 const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
+/* ====================== Утилита ====================== */
 function touchUpdatedAt(schema) {
   schema.pre('save', function (next) {
     this.updatedAt = new Date();
@@ -19,7 +20,7 @@ function touchUpdatedAt(schema) {
   });
 }
 
-/* Tenant */
+/* ====================== Tenant ====================== */
 const TenantSchema = new Schema({
   name:        { type: String, required: true },
   subdomain:   { type: String, unique: true, sparse: true },
@@ -34,7 +35,7 @@ const TenantSchema = new Schema({
 }, { timestamps: true });
 touchUpdatedAt(TenantSchema);
 
-/* User */
+/* ====================== User ====================== */
 const UserSchema = new Schema({
   tenantId:     { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   email:        { type: String, required: true },
@@ -44,7 +45,7 @@ const UserSchema = new Schema({
   phone:        { type: String, default: '' },
   isAdmin:      { type: Boolean, default: false },
   role:         { type: String, enum: ['owner','admin','manager','viewer','customer'], default: 'customer' },
-  status:       { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
+  status:       { type: String, enum: ['new','waiting','done','missed'], default: 'waiting' },
   lastMessageAt:   { type: Date, default: Date.now },
   adminLastReadAt: { type: Date, default: null },
   lastOnlineAt:    { type: Date, default: Date.now },
@@ -56,7 +57,7 @@ const UserSchema = new Schema({
 touchUpdatedAt(UserSchema);
 if (tenantScope) UserSchema.plugin(tenantScope);
 
-/* Category */
+/* ====================== Category ====================== */
 const CategorySchema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   name:     { type: String, required: true },
@@ -65,7 +66,19 @@ const CategorySchema = new Schema({
 touchUpdatedAt(CategorySchema);
 if (tenantScope) CategorySchema.plugin(tenantScope);
 
-/* Product */
+/* ====================== Group ====================== */
+const GroupSchema = new Schema({
+  tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  name:       { type: String, required: true },
+  description:{ type: String, default: '' },
+  img:        { type: String, default: null },
+  parentId:   { type: Schema.Types.ObjectId, ref: 'Group', default: null },
+  order:      { type: Number, default: 0 },
+}, { timestamps: true });
+touchUpdatedAt(GroupSchema);
+if (tenantScope) GroupSchema.plugin(tenantScope);
+
+/* ====================== Product ====================== */
 const ProductSchema = new Schema({
   tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   name:        { type: String, required: true },
@@ -83,7 +96,7 @@ const ProductSchema = new Schema({
   unit:        { type: String, default: 'шт' },
   availability:{
     type: String,
-    enum: ['В наличии', 'Под заказ', 'Нет в наличии'],
+    enum: ['В наличии','Под заказ','Нет в наличии'],
     default: 'В наличии'
   },
   stock:       { type: String, default: '' },
@@ -92,7 +105,7 @@ const ProductSchema = new Schema({
 touchUpdatedAt(ProductSchema);
 if (tenantScope) ProductSchema.plugin(tenantScope);
 
-/* Order */
+/* ====================== Order ====================== */
 const OrderSchema = new Schema({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   user:     { type: Schema.Types.ObjectId, ref: 'User' },
@@ -100,7 +113,7 @@ const OrderSchema = new Schema({
   address:        { type: String },
   novaPoshta:     { type: String },
   paymentMethod:  { type: String },
-  status:         { type: String, enum: ['new', 'processing', 'shipped', 'done', 'cancelled'], default: 'new' },
+  status:         { type: String, enum: ['new','processing','shipped','done','cancelled'], default: 'new' },
   totalPrice:     { type: Number },
   contactName:    { type: String },
   contactSurname: { type: String },
@@ -113,7 +126,7 @@ const OrderSchema = new Schema({
 touchUpdatedAt(OrderSchema);
 if (tenantScope) OrderSchema.plugin(tenantScope);
 
-/* Message */
+/* ====================== Message ====================== */
 const MessageSchema = new Schema({
   tenantId:  { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   user:      { type: Schema.Types.ObjectId, ref: 'User' },
@@ -126,7 +139,7 @@ const MessageSchema = new Schema({
 touchUpdatedAt(MessageSchema);
 if (tenantScope) MessageSchema.plugin(tenantScope);
 
-/* SiteSettings */
+/* ====================== SiteSettings ====================== */
 const SiteSettingsSchema = new Schema({
   tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true, unique: true },
   siteName:   { type: String, default: "SteelTruck" },
@@ -167,7 +180,7 @@ const SiteSettingsSchema = new Schema({
 touchUpdatedAt(SiteSettingsSchema);
 if (tenantScope) SiteSettingsSchema.plugin(tenantScope);
 
-/* Blog */
+/* ====================== Blog ====================== */
 const BlogSchema = new Schema({
   tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   title:      { type: String, required: true },
@@ -177,7 +190,7 @@ const BlogSchema = new Schema({
 touchUpdatedAt(BlogSchema);
 if (tenantScope) BlogSchema.plugin(tenantScope);
 
-/* JWT */
+/* ====================== JWT ====================== */
 function generateToken(user) {
   return jwt.sign(
     {
@@ -195,10 +208,12 @@ function generateToken(user) {
   );
 }
 
+/* ====================== Экспорт ====================== */
 module.exports = {
   Tenant: mongoose.model('Tenant', TenantSchema),
   User: mongoose.model('User', UserSchema),
   Category: mongoose.model('Category', CategorySchema),
+  Group: mongoose.model('Group', GroupSchema),   // ✅ добавлено
   Product: mongoose.model('Product', ProductSchema),
   Order: mongoose.model('Order', OrderSchema),
   Message: mongoose.model('Message', MessageSchema),
