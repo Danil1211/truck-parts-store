@@ -9,7 +9,7 @@ const { authMiddleware } = require("./protected");
 
 router.post("/register", async (req, res, next) => {
   try {
-    const tenantId = req.tenantId || req?.tenant?.id;
+    const tenantId = req.tenantId || (req.tenant && req.tenant._id?.toString());
     if (!tenantId) return res.status(400).json({ error: "No tenant" });
 
     const { email, password, name = "", role = "admin" } = req.body;
@@ -35,7 +35,7 @@ router.post("/register", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
+    res.json({ token, user: plain, tenantId });
   } catch (err) {
     next(err);
   }
@@ -43,7 +43,7 @@ router.post("/register", async (req, res, next) => {
 
 router.post("/login", async (req, res, next) => {
   try {
-    const tenantId = req.tenantId || req?.tenant?.id;
+    const tenantId = req.tenantId || (req.tenant && req.tenant._id?.toString());
     if (!tenantId) return res.status(400).json({ error: "No tenant" });
 
     const { email, password } = req.body;
@@ -62,7 +62,7 @@ router.post("/login", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
+    res.json({ token, user: plain, tenantId });
   } catch (err) {
     next(err);
   }
@@ -74,7 +74,7 @@ router.post("/login", async (req, res, next) => {
 
 router.post("/customer/register", async (req, res, next) => {
   try {
-    const tenantId = req.tenantId || req?.tenant?.id;
+    const tenantId = req.tenantId || (req.tenant && req.tenant._id?.toString());
     if (!tenantId) return res.status(400).json({ error: "No tenant" });
 
     const { email, password, name = "" } = req.body;
@@ -98,7 +98,7 @@ router.post("/customer/register", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
+    res.json({ token, user: plain, tenantId });
   } catch (err) {
     next(err);
   }
@@ -106,7 +106,7 @@ router.post("/customer/register", async (req, res, next) => {
 
 router.post("/customer/login", async (req, res, next) => {
   try {
-    const tenantId = req.tenantId || req?.tenant?.id;
+    const tenantId = req.tenantId || (req.tenant && req.tenant._id?.toString());
     if (!tenantId) return res.status(400).json({ error: "No tenant" });
 
     const { email, password } = req.body;
@@ -125,7 +125,7 @@ router.post("/customer/login", async (req, res, next) => {
     const plain = user.toObject();
     delete plain.passwordHash;
 
-    res.json({ token, user: plain, tenantId }); // ✅ tenantId всегда есть
+    res.json({ token, user: plain, tenantId });
   } catch (err) {
     next(err);
   }
@@ -139,7 +139,7 @@ router.get("/me", authMiddleware, async (req, res, next) => {
   try {
     const u = req.user.toObject ? req.user.toObject() : req.user;
     delete u.passwordHash;
-    res.json({ user: u, tenantId: u.tenantId }); // ✅ tenantId тоже вернём
+    res.json({ user: u, tenantId: String(u.tenantId) });
   } catch (err) {
     next(err);
   }

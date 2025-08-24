@@ -1,4 +1,3 @@
-// backend/models/models.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 const dotenv = require('dotenv');
@@ -26,29 +25,18 @@ const TenantSchema = new Schema({
   subdomain:       { type: String, unique: true, sparse: true },
   customDomain:    { type: String, unique: true, sparse: true },
   plan:            { type: String, enum: ['free','basic','pro'], default: 'free' },
-  currentPeriodEnd:{ type: Date },
+  trialUntil:      { type: Date },
   isBlocked:       { type: Boolean, default: false },
-  settings: {
-    brand: {
-      logoUrl: { type: String, default: null },
-      color:   { type: String, default: '#2291ff' },
-    },
-    contacts: {
-      email: { type: String, default: '' },
-      phone: { type: String, default: '' },
-    }
+  contacts: {
+    email: { type: String, default: '' },
+    phone: { type: String, default: '' },
   },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 touchUpdatedAt(TenantSchema);
-TenantSchema.index({ subdomain: 1 }, { unique: true, sparse: true });
-TenantSchema.index({ customDomain: 1 }, { unique: true, sparse: true });
 
 /* ====================== User ====================== */
 const UserSchema = new Schema({
-  tenantId:     { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-
+  tenantId:     { type: String, required: true, index: true },   // 🔥 теперь всегда строка
   email:        { type: String, required: true },
   passwordHash: { type: String, required: true },
   name:         { type: String, required: true },
@@ -59,41 +47,34 @@ const UserSchema = new Schema({
   role:         { type: String, enum: ['owner','admin','manager','viewer','customer'], default: 'customer' },
 
   status:       { type: String, enum: ['new', 'waiting', 'done', 'missed'], default: 'waiting' },
-
   lastMessageAt:   { type: Date, default: Date.now },
   adminLastReadAt: { type: Date, default: null },
-  createdAt:       { type: Date, default: Date.now },
   lastOnlineAt:    { type: Date, default: Date.now },
 
   ip:           { type: String, default: '' },
   city:         { type: String, default: '' },
   isOnline:     { type: Boolean, default: false },
   isBlocked:    { type: Boolean, default: false },
-
-  updatedAt:    { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 touchUpdatedAt(UserSchema);
 UserSchema.plugin(tenantScope);
 
 /* ====================== Category ====================== */
 const CategorySchema = new Schema({
-  tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  tenantId: { type: String, required: true, index: true },   // 🔥 строка
   name: { type: String, required: true },
   slug: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 touchUpdatedAt(CategorySchema);
 CategorySchema.plugin(tenantScope);
 
 /* ====================== Product ====================== */
 const ProductSchema = new Schema({
-  tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  tenantId:    { type: String, required: true, index: true },   // 🔥 строка
 
   name:        { type: String, required: true },
   sku:         { type: String },
   description: { type: String },
-
   group:       { type: String, required: true },
 
   hasProps:    { type: Boolean, default: false },
@@ -116,33 +97,28 @@ const ProductSchema = new Schema({
 
   stock:       { type: String, default: '' },
   images:      [String],
-
-  createdAt:   { type: Date, default: Date.now },
-  updatedAt:   { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 touchUpdatedAt(ProductSchema);
 ProductSchema.plugin(tenantScope);
 
 /* ====================== Order ====================== */
 const OrderSchema = new Schema({
-  tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  tenantId: { type: String, required: true, index: true },   // 🔥 строка
+  user:     { type: String },
 
-  user:  { type: Schema.Types.ObjectId, ref: 'User' },
   items: [
     {
-      product:  { type: Schema.Types.ObjectId, ref: 'Product' },
-      quantity: Number
+      product:  { type: String },
+      quantity: Number,
+      price:    Number,
     }
   ],
 
-  address:        { type: String, required: true },
-  novaPoshta:     { type: String, required: true },
-  paymentMethod:  { type: String, required: true },
+  address:        { type: String },
+  novaPoshta:     { type: String },
+  paymentMethod:  { type: String },
   status:         { type: String, enum: ['new', 'processing', 'shipped', 'done', 'cancelled'], default: 'new' },
   totalPrice:     { type: Number },
-
-  createdAt:      { type: Date, default: Date.now },
-  updatedAt:      { type: Date, default: Date.now },
 
   contactName:    { type: String },
   contactSurname: { type: String },
@@ -151,63 +127,72 @@ const OrderSchema = new Schema({
   comment:        { type: String },
   deliveryType:   { type: String },
   cancelReason:   { type: String, default: '' },
-});
+}, { timestamps: true });
 touchUpdatedAt(OrderSchema);
 OrderSchema.plugin(tenantScope);
 
 /* ====================== Message (чат) ====================== */
 const MessageSchema = new Schema({
-  tenantId:  { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-
-  user:      { type: Schema.Types.ObjectId, ref: 'User' },
+  tenantId:  { type: String, required: true, index: true },   // 🔥 строка
+  userId:    { type: String },
   text:      { type: String },
   fromAdmin: { type: Boolean, default: false },
   read:      { type: Boolean, default: false },
 
   imageUrls: [String],
   audioUrl:  { type: String },
-
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 touchUpdatedAt(MessageSchema);
 MessageSchema.plugin(tenantScope);
 
 /* ====================== SiteSettings ====================== */
 const SiteSettingsSchema = new Schema({
-  tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true, unique: true },
+  tenantId:   { type: String, required: true, index: true, unique: true },   // 🔥 строка
   siteName:   { type: String, default: "SteelTruck" },
-  contacts: { phone: String, email: String },
-  display: { categories: { type: Boolean, default: true } },
-  createdAt:  { type: Date, default: Date.now },
-  updatedAt:  { type: Date, default: Date.now }
-});
+  siteLogo:   { type: String, default: null },
+  favicon:    { type: String, default: null },
+  contacts: {
+    phone: String,
+    phoneComment: String,
+    email: String,
+    contactPerson: String,
+    address: String,
+    phones: [String],
+    chatSettings: {
+      startTime: { type: String, default: '09:00' },
+      endTime: { type: String, default: '18:00' },
+      workDays: [String],
+      iconPosition: { type: String, default: 'left' },
+      color: { type: String, default: '#2291ff' },
+      greeting: { type: String, default: '' },
+    },
+  },
+  display: {
+    categories: { type: Boolean, default: true },
+    showcase: { type: Boolean, default: true },
+    promos: { type: Boolean, default: true },
+    blog: { type: Boolean, default: false },
+    chat: { type: Boolean, default: true },
+    template: { type: String, default: 'standard' },
+    palette: { type: Object, default: { primary: '#2291ff' } },
+  },
+  verticalMenu: [{ title: String, url: String, visible: Boolean, order: Number }],
+  horizontalMenu: [{ title: String, url: String, visible: Boolean, order: Number }],
+  showcase: {
+    enabled: { type: Boolean, default: false },
+    productIds: [{ type: String }],
+  },
+}, { timestamps: true });
 touchUpdatedAt(SiteSettingsSchema);
 SiteSettingsSchema.plugin(tenantScope);
 
-/* ====================== Group ====================== */
-const GroupSchema = new Schema({
-  tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-  name:        { type: String, required: true },
-  img:         { type: String, default: null },
-  description: { type: String, default: '' },
-  parentId: { type: Schema.Types.ObjectId, ref: 'Group', default: null },
-  order:    { type: Number, default: 0 },
-  createdAt:  { type: Date, default: Date.now },
-  updatedAt:  { type: Date, default: Date.now }
-});
-touchUpdatedAt(GroupSchema);
-GroupSchema.plugin(tenantScope);
-
 /* ====================== Blog ====================== */
 const BlogSchema = new Schema({
-  tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  tenantId:   { type: String, required: true, index: true },   // 🔥 строка
   title:      { type: String, required: true },
   slug:       { type: String, required: true },
   published:  { type: Boolean, default: false },
-  createdAt:  { type: Date, default: Date.now },
-  updatedAt:  { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 touchUpdatedAt(BlogSchema);
 BlogSchema.plugin(tenantScope);
 
@@ -215,8 +200,8 @@ BlogSchema.plugin(tenantScope);
 function generateToken(user) {
   return jwt.sign(
     {
-      id: user._id,
-      tenantId: user.tenantId,
+      id: user._id.toString(),
+      tenantId: String(user.tenantId),   // 🔥 всегда строка
       email: user.email,
       name: user.name,
       surname: user.surname || '',
@@ -236,7 +221,7 @@ module.exports = {
   Product: mongoose.model('Product', ProductSchema),
   Order: mongoose.model('Order', OrderSchema),
   Message: mongoose.model('Message', MessageSchema),
-  Group: mongoose.model('Group', GroupSchema),
+  Group: mongoose.model('Group', mongoose.model('Group', new Schema({})).schema), // ⚡ если нужен groups.js вынесем отдельно
   SiteSettings: mongoose.model('SiteSettings', SiteSettingsSchema),
   Blog: mongoose.model('Blog', BlogSchema),
   generateToken
