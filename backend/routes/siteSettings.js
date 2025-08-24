@@ -1,14 +1,12 @@
-// backend/routes/site-settings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models/models');
-const { authMiddleware } = require('./protected'); // твой существующий мидлвар
+const { authMiddleware } = require('./protected');
 const withTenant = require('../middleware/withTenant');
 
 router.use(express.json({ limit: '5mb' }));
 router.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// ⚡ только этот роут использует withTenant
 router.use(withTenant);
 
 function sanitizeMenuArray(arr) {
@@ -36,6 +34,7 @@ function sanitizeShowcase(showcase) {
 
 function buildUpdateFromBody(body = {}) {
   const $set = {};
+
   if ('siteName' in body) $set.siteName = body.siteName ?? '';
 
   if (body.contacts && typeof body.contacts === 'object') {
@@ -74,7 +73,11 @@ function buildUpdateFromBody(body = {}) {
 
   if ('verticalMenu' in body)   $set.verticalMenu   = sanitizeMenuArray(body.verticalMenu);
   if ('horizontalMenu' in body) $set.horizontalMenu = sanitizeMenuArray(body.horizontalMenu);
-  if ('showcase' in body)       $set.showcase       = sanitizeShowcase(body.showcase);
+
+  if ('showcase' in body) {
+    const sc = sanitizeShowcase(body.showcase);
+    $set.showcase = sc;
+  }
 
   if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null;
   if ('favicon'  in body) $set.favicon  = body.favicon  ?? null;
@@ -86,10 +89,9 @@ function buildUpdateFromBody(body = {}) {
 /** GET /api/site-settings */
 router.get('/', async (req, res) => {
   try {
-    const tenantId = req.tenant._id; // ObjectId
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId },
-      { $setOnInsert: { tenantId } },
+      { tenantId: String(req.tenant._id) },
+      { $setOnInsert: { tenantId: String(req.tenant._id) } },
       { new: true, upsert: true }
     ).lean();
     res.json(doc);
@@ -102,21 +104,23 @@ router.get('/', async (req, res) => {
 /** PUT /api/site-settings */
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    if (!req.user?.isAdmin) {
+    // ⬅️ теперь разрешаем и владельцу (owner), и админу
+    if (!(req.user?.isAdmin || req.user?.role === 'owner')) {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
-    const tenantId = req.tenant._id;
+
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId },
-      { ...update, $set: { ...update.$set, tenantId } },
+      { tenantId: String(req.tenant._id) },
+      { ...update, $set: { ...update.$set, tenantId: String(req.tenant._id) } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     if (!updated) {
       return res.status(500).json({ error: 'Не удалось обновить настройки' });
     }
+
     res.json(updated.toObject ? updated.toObject() : updated);
   } catch (err) {
     console.error('Ошибка обновления настроек:', err);
