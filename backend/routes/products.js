@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const mongoose = require("mongoose"); // ✅ добавлено
 
 const router = express.Router();
 
@@ -191,20 +192,20 @@ router.post(
       }
 
       const productData = {
-        name: body.name,
-        sku: body.sku,
-        description: body.description,
-        group: body.group,
+        name: body.name || undefined,
+        sku: body.sku || "",
+        description: body.description || "",
+        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined, // ✅
         price: toNumber(body.price),
-        unit: body.unit,
-        availability: body.availability,
-        stock: toNumber(body.stock),
+        unit: body.unit || "шт",
+        availability: body.availability || "published",
+        stock: toNumber(body.stock) ?? 0,
         propsColor: body.charColor || "",
         propsBrand: body.charBrand || "",
-        width: toNumber(body.width),
-        height: toNumber(body.height),
-        length: toNumber(body.length),
-        weight: toNumber(body.weight),
+        width: toNumber(body.width) ?? 0,
+        height: toNumber(body.height) ?? 0,
+        length: toNumber(body.length) ?? 0,
+        weight: toNumber(body.weight) ?? 0,
         queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
         tenantId: req.tenantId,
@@ -250,20 +251,20 @@ router.patch(
       }
 
       const update = {
-        name: body.name,
-        sku: body.sku,
-        description: body.description,
-        group: body.group,
+        name: body.name || undefined,
+        sku: body.sku || "",
+        description: body.description || "",
+        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined, // ✅
         price: toNumber(body.price),
-        unit: body.unit,
-        availability: body.availability,
-        stock: toNumber(body.stock),
+        unit: body.unit || "шт",
+        availability: body.availability || "published",
+        stock: toNumber(body.stock) ?? 0,
         propsColor: body.charColor || "",
         propsBrand: body.charBrand || "",
-        width: toNumber(body.width),
-        height: toNumber(body.height),
-        length: toNumber(body.length),
-        weight: toNumber(body.weight),
+        width: toNumber(body.width) ?? 0,
+        height: toNumber(body.height) ?? 0,
+        length: toNumber(body.length) ?? 0,
+        weight: toNumber(body.weight) ?? 0,
         queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
         updatedAt: new Date(),
