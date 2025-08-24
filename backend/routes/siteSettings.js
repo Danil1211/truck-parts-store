@@ -27,7 +27,7 @@ function sanitizeShowcase(showcase) {
   return {
     enabled: !!sc.enabled,
     productIds: Array.isArray(sc.productIds)
-      ? sc.productIds.filter(Boolean).map(String).slice(0, 24)
+      ? sc.productIds.filter(Boolean).map(id => id.toString()).slice(0, 24)
       : [],
   };
 }
@@ -75,8 +75,7 @@ function buildUpdateFromBody(body = {}) {
   if ('horizontalMenu' in body) $set.horizontalMenu = sanitizeMenuArray(body.horizontalMenu);
 
   if ('showcase' in body) {
-    const sc = sanitizeShowcase(body.showcase);
-    $set.showcase = sc;
+    $set.showcase = sanitizeShowcase(body.showcase);
   }
 
   if ('siteLogo' in body) $set.siteLogo = body.siteLogo ?? null;
@@ -89,9 +88,10 @@ function buildUpdateFromBody(body = {}) {
 /** GET /api/site-settings */
 router.get('/', async (req, res) => {
   try {
+    const tenantId = req.tenant._id;
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant._id) },   // ⚡ фикс
-      { $setOnInsert: { tenantId: String(req.tenant._id) } },
+      { tenantId },
+      { $setOnInsert: { tenantId } },
       { new: true, upsert: true }
     ).lean();
     res.json(doc);
@@ -108,11 +108,12 @@ router.put('/', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
 
+    const tenantId = req.tenant._id;
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant._id) }, // ⚡ фикс
-      { ...update, $set: { ...update.$set, tenantId: String(req.tenant._id) } },
+      { tenantId },
+      { ...update, $set: { ...update.$set, tenantId } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 

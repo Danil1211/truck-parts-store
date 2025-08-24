@@ -21,12 +21,12 @@ function touchUpdatedAt(schema) {
 
 /* ====================== Tenant ====================== */
 const TenantSchema = new Schema({
-  name:            { type: String, required: true },
-  subdomain:       { type: String, unique: true, sparse: true },
-  customDomain:    { type: String, unique: true, sparse: true },
-  plan:            { type: String, enum: ['free','basic','pro'], default: 'free' },
-  trialUntil:      { type: Date },
-  isBlocked:       { type: Boolean, default: false },
+  name:        { type: String, required: true },
+  subdomain:   { type: String, unique: true, sparse: true },
+  customDomain:{ type: String, unique: true, sparse: true },
+  plan:        { type: String, enum: ['free','basic','pro'], default: 'free' },
+  trialUntil:  { type: Date },
+  isBlocked:   { type: Boolean, default: false },
   contacts: {
     email: { type: String, default: '' },
     phone: { type: String, default: '' },
@@ -36,7 +36,7 @@ touchUpdatedAt(TenantSchema);
 
 /* ====================== User ====================== */
 const UserSchema = new Schema({
-  tenantId:     { type: String, required: true, index: true },   // 🔥 теперь всегда строка
+  tenantId:     { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   email:        { type: String, required: true },
   passwordHash: { type: String, required: true },
   name:         { type: String, required: true },
@@ -61,16 +61,16 @@ UserSchema.plugin(tenantScope);
 
 /* ====================== Category ====================== */
 const CategorySchema = new Schema({
-  tenantId: { type: String, required: true, index: true },   // 🔥 строка
-  name: { type: String, required: true },
-  slug: { type: String, required: true },
+  tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  name:     { type: String, required: true },
+  slug:     { type: String, required: true },
 }, { timestamps: true });
 touchUpdatedAt(CategorySchema);
 CategorySchema.plugin(tenantScope);
 
 /* ====================== Product ====================== */
 const ProductSchema = new Schema({
-  tenantId:    { type: String, required: true, index: true },   // 🔥 строка
+  tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
 
   name:        { type: String, required: true },
   sku:         { type: String },
@@ -103,12 +103,12 @@ ProductSchema.plugin(tenantScope);
 
 /* ====================== Order ====================== */
 const OrderSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },   // 🔥 строка
-  user:     { type: String },
+  tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  user:     { type: Schema.Types.ObjectId, ref: 'User' },
 
   items: [
     {
-      product:  { type: String },
+      product:  { type: Schema.Types.ObjectId, ref: 'Product' },
       quantity: Number,
       price:    Number,
     }
@@ -133,8 +133,8 @@ OrderSchema.plugin(tenantScope);
 
 /* ====================== Message (чат) ====================== */
 const MessageSchema = new Schema({
-  tenantId:  { type: String, required: true, index: true },   // 🔥 строка
-  userId:    { type: String },
+  tenantId:  { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  user:      { type: Schema.Types.ObjectId, ref: 'User' },
   text:      { type: String },
   fromAdmin: { type: Boolean, default: false },
   read:      { type: Boolean, default: false },
@@ -147,7 +147,7 @@ MessageSchema.plugin(tenantScope);
 
 /* ====================== SiteSettings ====================== */
 const SiteSettingsSchema = new Schema({
-  tenantId:   { type: String, required: true, index: true, unique: true },   // 🔥 строка
+  tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true, unique: true },
   siteName:   { type: String, default: "SteelTruck" },
   siteLogo:   { type: String, default: null },
   favicon:    { type: String, default: null },
@@ -180,7 +180,7 @@ const SiteSettingsSchema = new Schema({
   horizontalMenu: [{ title: String, url: String, visible: Boolean, order: Number }],
   showcase: {
     enabled: { type: Boolean, default: false },
-    productIds: [{ type: String }],
+    productIds: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
   },
 }, { timestamps: true });
 touchUpdatedAt(SiteSettingsSchema);
@@ -188,7 +188,7 @@ SiteSettingsSchema.plugin(tenantScope);
 
 /* ====================== Blog ====================== */
 const BlogSchema = new Schema({
-  tenantId:   { type: String, required: true, index: true },   // 🔥 строка
+  tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   title:      { type: String, required: true },
   slug:       { type: String, required: true },
   published:  { type: Boolean, default: false },
@@ -201,7 +201,7 @@ function generateToken(user) {
   return jwt.sign(
     {
       id: user._id.toString(),
-      tenantId: String(user.tenantId),   // 🔥 всегда строка
+      tenantId: user.tenantId.toString(),
       email: user.email,
       name: user.name,
       surname: user.surname || '',
@@ -221,7 +221,6 @@ module.exports = {
   Product: mongoose.model('Product', ProductSchema),
   Order: mongoose.model('Order', OrderSchema),
   Message: mongoose.model('Message', MessageSchema),
-  Group: mongoose.model('Group', mongoose.model('Group', new Schema({})).schema), // ⚡ если нужен groups.js вынесем отдельно
   SiteSettings: mongoose.model('SiteSettings', SiteSettingsSchema),
   Blog: mongoose.model('Blog', BlogSchema),
   generateToken
