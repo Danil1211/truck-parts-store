@@ -31,9 +31,9 @@ export default function AdminAddProductPage() {
 
   const [groups, setGroups] = useState([]);
   useEffect(() => {
-    api.get("/api/groups")
-      .then(res => {
-        const data = res.data;
+    (async () => {
+      try {
+        const data = await api("/api/groups");
         const flatGroups = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
@@ -43,10 +43,10 @@ export default function AdminAddProductPage() {
         };
         flatten(data);
         setGroups(flatGroups);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Ошибка загрузки групп:", err);
-      });
+      }
+    })();
   }, []);
 
   const [images, setImages] = useState([]);
@@ -55,8 +55,8 @@ export default function AdminAddProductPage() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || []);
-    setImages(prev => {
-      const prevFiles = prev.map(i => i.file);
+    setImages((prev) => {
+      const prevFiles = prev.map((i) => i.file).filter(Boolean);
       const allFiles = [...prevFiles, ...files].slice(0, 10);
       const uniqueFiles = [];
       const seen = new Set();
@@ -68,8 +68,10 @@ export default function AdminAddProductPage() {
           uniqueFiles.push(f);
         }
       }
-      return uniqueFiles.map(f => {
-        const exist = prev.find(img => img.file.name === f.name && img.file.size === f.size);
+      return uniqueFiles.map((f) => {
+        const exist = prev.find(
+          (img) => img.file && img.file.name === f.name && img.file.size === f.size
+        );
         return exist ? exist : { file: f, url: URL.createObjectURL(f), id: genId() };
       });
     });
@@ -77,21 +79,23 @@ export default function AdminAddProductPage() {
   };
 
   const handleRemoveImage = (id) => {
-    setImages(prev => {
-      const img = prev.find(i => i.id === id);
-      if (img) URL.revokeObjectURL(img.url);
-      return prev.filter(i => i.id !== id);
+    setImages((prev) => {
+      const img = prev.find((i) => i.id === id);
+      if (img?.url) URL.revokeObjectURL(img.url);
+      return prev.filter((i) => i.id !== id);
     });
   };
 
   const handleDragStart = (idx) => setDraggedIndex(idx);
-  const handleDragOver = (idx) => (e) => { e.preventDefault(); };
+  const handleDragOver = (idx) => (e) => {
+    e.preventDefault();
+  };
   const handleDrop = (idx) => {
     if (draggedIndex === null || draggedIndex === idx) {
       setDraggedIndex(null);
       return;
     }
-    setImages(prev => {
+    setImages((prev) => {
       const arr = [...prev];
       const [moved] = arr.splice(draggedIndex, 1);
       arr.splice(idx, 0, moved);
@@ -101,7 +105,9 @@ export default function AdminAddProductPage() {
   };
 
   useEffect(() => {
-    return () => { images.forEach(img => URL.revokeObjectURL(img.url)); };
+    return () => {
+      images.forEach((img) => img.url && URL.revokeObjectURL(img.url));
+    };
   }, [images]);
 
   const handleQueryInputKeyDown = (e) => {
@@ -115,7 +121,7 @@ export default function AdminAddProductPage() {
     }
   };
   const handleRemoveQuery = (val) => {
-    setQueries(queries.filter(q => q !== val));
+    setQueries(queries.filter((q) => q !== val));
   };
 
   const handleSubmit = async (e) => {
@@ -137,54 +143,58 @@ export default function AdminAddProductPage() {
     formData.append("weight", weight);
     formData.append("queries", JSON.stringify(queries));
     images.forEach((img) => {
-      formData.append("images", img.file);
+      if (img.file) formData.append("images", img.file);
     });
 
     try {
-      await api.post("/api/products", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await api("/api/products", { method: "POST", body: formData });
       navigate("/admin/products");
     } catch (err) {
       console.error("Ошибка при сохранении позиции:", err);
-      alert("Ошибка при сохранении позиции: " + err.message);
+      alert("Ошибка при сохранении позиции: " + (err?.message || "unknown"));
     }
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#f6fafd",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "stretch",
-      padding: 0,
-      boxSizing: "border-box",
-    }}>
-      <div style={{
-        width: "100%",
-        maxWidth: 1400,
-        margin: "0 auto",
-        padding: "0 32px",
-        boxSizing: "border-box",
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f6fafd",
         display: "flex",
         flexDirection: "column",
         alignItems: "stretch",
-      }}>
-        <div style={{
-          background: "#fff",
-          borderRadius: 18,
-          boxShadow: "0 4px 18px #1a90ff0b, 0 1.5px 5px #2291ff14",
-          padding: "20px 38px",
-          marginTop: 38,
-          marginBottom: 0,
+        padding: 0,
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
           width: "100%",
+          maxWidth: 1400,
+          margin: "0 auto",
+          padding: "0 32px",
+          boxSizing: "border-box",
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 16,
-          minHeight: 64,
-        }}>
+          flexDirection: "column",
+          alignItems: "stretch",
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 18,
+            boxShadow: "0 4px 18px #1a90ff0b, 0 1.5px 5px #2291ff14",
+            padding: "20px 38px",
+            marginTop: 38,
+            marginBottom: 0,
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            minHeight: 64,
+          }}
+        >
           <button
             onClick={() => navigate("/admin/products")}
             style={{
@@ -261,23 +271,35 @@ export default function AdminAddProductPage() {
             boxSizing: "border-box",
           }}
         >
-          <div style={{
-            flex: 2.2,
-            padding: "0px 18px 28px 0px",
-            borderRight: "1.5px solid #eaf1fa",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            minWidth: 0,
-            boxSizing: "border-box",
-          }}>
+          <div
+            style={{
+              flex: 2.2,
+              padding: "0px 18px 28px 0px",
+              borderRight: "1.5px solid #eaf1fa",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              minWidth: 0,
+              boxSizing: "border-box",
+            }}
+          >
             <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
               <div style={{ flex: 1.9 }}>
-                <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 3, display: "block" }}>Название позиции</label>
+                <label
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: "#223",
+                    marginBottom: 3,
+                    display: "block",
+                  }}
+                >
+                  Название позиции
+                </label>
                 <input
                   type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   required
                   placeholder="Название товара"
                   style={{
@@ -293,11 +315,21 @@ export default function AdminAddProductPage() {
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 3, display: "block" }}>Код / Артикул</label>
+                <label
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: "#223",
+                    marginBottom: 3,
+                    display: "block",
+                  }}
+                >
+                  Код / Артикул
+                </label>
                 <input
                   type="text"
                   value={sku}
-                  onChange={e => setSku(e.target.value)}
+                  onChange={(e) => setSku(e.target.value)}
                   placeholder="Артикул, код"
                   style={{
                     width: "100%",
@@ -313,7 +345,17 @@ export default function AdminAddProductPage() {
               </div>
             </div>
             <div>
-              <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 4, display: "block" }}>Описание</label>
+              <label
+                style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "#223",
+                  marginBottom: 4,
+                  display: "block",
+                }}
+              >
+                Описание
+              </label>
               <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
             </div>
 
@@ -324,17 +366,25 @@ export default function AdminAddProductPage() {
                 border: "1.2px solid #e4effe",
                 borderRadius: 14,
                 padding: 20,
-                margin: "16px 0 18px 0"
+                margin: "16px 0 18px 0",
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 17, color: "#1977cc", marginBottom: 16, letterSpacing: "0.02em" }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 17,
+                  color: "#1977cc",
+                  marginBottom: 16,
+                  letterSpacing: "0.02em",
+                }}
+              >
                 Характеристики
               </div>
               <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 10 }}>
                 <label style={{ width: 140, color: "#2a384d", fontWeight: 600 }}>Цвет</label>
                 <input
                   value={charColor}
-                  onChange={e => setCharColor(e.target.value)}
+                  onChange={(e) => setCharColor(e.target.value)}
                   placeholder="Введите цвет"
                   style={{
                     flex: 1,
@@ -342,7 +392,7 @@ export default function AdminAddProductPage() {
                     borderRadius: 8,
                     border: "1.3px solid #b6d4fc",
                     fontSize: 15,
-                    background: "#fff"
+                    background: "#fff",
                   }}
                 />
               </div>
@@ -350,7 +400,7 @@ export default function AdminAddProductPage() {
                 <label style={{ width: 140, color: "#2a384d", fontWeight: 600 }}>Производитель</label>
                 <input
                   value={charBrand}
-                  onChange={e => setCharBrand(e.target.value)}
+                  onChange={(e) => setCharBrand(e.target.value)}
                   placeholder="Введите производителя"
                   style={{
                     flex: 1,
@@ -358,7 +408,7 @@ export default function AdminAddProductPage() {
                     borderRadius: 8,
                     border: "1.3px solid #b6d4fc",
                     fontSize: 15,
-                    background: "#fff"
+                    background: "#fff",
                   }}
                 />
               </div>
@@ -371,7 +421,7 @@ export default function AdminAddProductPage() {
                 border: "1.2px solid #d4eaff",
                 borderRadius: 14,
                 padding: 20,
-                margin: "8px 0 18px 0"
+                margin: "8px 0 18px 0",
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 17, color: "#1977cc", marginBottom: 12 }}>
@@ -379,13 +429,14 @@ export default function AdminAddProductPage() {
               </div>
               <div style={{ color: "#6d85a7", fontSize: 14, marginBottom: 13 }}>
                 Здесь вы можете добавить фразы, по которым ваш товар будут искать на сайте.<br />
-                Например: <b>накладка тормозная, тормозные колодки MAN, тормоз для грузовика</b><br />
+                Например: <b>накладка тормозная, тормозные колодки MAN, тормоз для грузовика</b>
+                <br />
                 Нажимайте <b>Enter</b> после каждого запроса.
               </div>
               <input
                 ref={queryInputRef}
                 value={queryInput}
-                onChange={e => setQueryInput(e.target.value)}
+                onChange={(e) => setQueryInput(e.target.value)}
                 onKeyDown={handleQueryInputKeyDown}
                 placeholder="Добавить поисковый запрос и нажать Enter"
                 style={{
@@ -400,9 +451,11 @@ export default function AdminAddProductPage() {
               />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {queries.map((q, i) => (
-                  <span key={i}
+                  <span
+                    key={i}
                     style={{
-                      display: "flex", alignItems: "center",
+                      display: "flex",
+                      alignItems: "center",
                       background: "#f2f6fb",
                       border: "1px solid #d2e8fa",
                       borderRadius: 18,
@@ -410,7 +463,8 @@ export default function AdminAddProductPage() {
                       fontSize: 14,
                       color: "#1573bd",
                       fontWeight: 500,
-                    }}>
+                    }}
+                  >
                     {q}
                     <span
                       onClick={() => handleRemoveQuery(q)}
@@ -425,7 +479,9 @@ export default function AdminAddProductPage() {
                         transform: "translateY(1px)",
                       }}
                       title="Удалить"
-                    >&times;</span>
+                    >
+                      &times;
+                    </span>
                   </span>
                 ))}
               </div>
@@ -438,7 +494,7 @@ export default function AdminAddProductPage() {
                 border: "1.2px solid #e4effe",
                 borderRadius: 14,
                 padding: 20,
-                margin: "8px 0 18px 0"
+                margin: "8px 0 18px 0",
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 17, color: "#1977cc", marginBottom: 11 }}>
@@ -450,7 +506,7 @@ export default function AdminAddProductPage() {
               <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                 <input
                   value={width}
-                  onChange={e => setWidth(e.target.value)}
+                  onChange={(e) => setWidth(e.target.value)}
                   placeholder="Ширина (мм)"
                   type="number"
                   style={{
@@ -465,7 +521,7 @@ export default function AdminAddProductPage() {
                 />
                 <input
                   value={height}
-                  onChange={e => setHeight(e.target.value)}
+                  onChange={(e) => setHeight(e.target.value)}
                   placeholder="Высота (мм)"
                   type="number"
                   style={{
@@ -480,7 +536,7 @@ export default function AdminAddProductPage() {
                 />
                 <input
                   value={length}
-                  onChange={e => setLength(e.target.value)}
+                  onChange={(e) => setLength(e.target.value)}
                   placeholder="Длина (мм)"
                   type="number"
                   style={{
@@ -495,7 +551,7 @@ export default function AdminAddProductPage() {
                 />
                 <input
                   value={weight}
-                  onChange={e => setWeight(e.target.value)}
+                  onChange={(e) => setWeight(e.target.value)}
                   placeholder="Вес (грамм)"
                   type="number"
                   style={{
@@ -518,7 +574,7 @@ export default function AdminAddProductPage() {
                 border: "1.2px solid #d4eaff",
                 borderRadius: 14,
                 padding: 20,
-                margin: "8px 0 18px 0"
+                margin: "8px 0 18px 0",
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 17, color: "#1977cc", marginBottom: 11 }}>
@@ -526,7 +582,7 @@ export default function AdminAddProductPage() {
               </div>
               <select
                 value={group}
-                onChange={e => setGroup(e.target.value)}
+                onChange={(e) => setGroup(e.target.value)}
                 required
                 style={{
                   width: "100%",
@@ -540,7 +596,7 @@ export default function AdminAddProductPage() {
                 }}
               >
                 <option value="">Выберите группу</option>
-                {groups.map(g => (
+                {groups.map((g) => (
                   <option key={g._id} value={g._id}>
                     {g.name}
                   </option>
@@ -555,7 +611,7 @@ export default function AdminAddProductPage() {
                 border: "1.2px solid #e4effe",
                 borderRadius: 14,
                 padding: 20,
-                margin: "8px 0 18px 0"
+                margin: "8px 0 18px 0",
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 17, color: "#1977cc", marginBottom: 11 }}>
@@ -565,7 +621,7 @@ export default function AdminAddProductPage() {
                 <input
                   type="number"
                   value={price}
-                  onChange={e => setPrice(e.target.value)}
+                  onChange={(e) => setPrice(e.target.value)}
                   required
                   placeholder="Цена"
                   style={{
@@ -582,7 +638,7 @@ export default function AdminAddProductPage() {
                 <input
                   type="text"
                   value={unit}
-                  onChange={e => setUnit(e.target.value)}
+                  onChange={(e) => setUnit(e.target.value)}
                   placeholder="Ед. изм."
                   style={{
                     flex: 1,
@@ -598,7 +654,7 @@ export default function AdminAddProductPage() {
                 <input
                   type="number"
                   value={stock}
-                  onChange={e => setStock(e.target.value)}
+                  onChange={(e) => setStock(e.target.value)}
                   placeholder="Остаток"
                   style={{
                     flex: 1,
@@ -613,16 +669,61 @@ export default function AdminAddProductPage() {
                 />
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
-                <label style={{ fontWeight: 600, fontSize: 13, color: "#334", display: "flex", alignItems: "center", gap: 5 }}>
-                  <input type="radio" name="visibility" checked={availability === "published"} value="published" onChange={() => setAvailability("published")} />
+                <label
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: "#334",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="visibility"
+                    checked={availability === "published"}
+                    value="published"
+                    onChange={() => setAvailability("published")}
+                  />
                   Опубликовано
                 </label>
-                <label style={{ fontWeight: 600, fontSize: 13, color: "#334", display: "flex", alignItems: "center", gap: 5 }}>
-                  <input type="radio" name="visibility" checked={availability === "draft"} value="draft" onChange={() => setAvailability("draft")} />
+                <label
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: "#334",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="visibility"
+                    checked={availability === "draft"}
+                    value="draft"
+                    onChange={() => setAvailability("draft")}
+                  />
                   Черновик
                 </label>
-                <label style={{ fontWeight: 600, fontSize: 13, color: "#334", display: "flex", alignItems: "center", gap: 5 }}>
-                  <input type="radio" name="visibility" checked={availability === "hidden"} value="hidden" onChange={() => setAvailability("hidden")} />
+                <label
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: "#334",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="visibility"
+                    checked={availability === "hidden"}
+                    value="hidden"
+                    onChange={() => setAvailability("hidden")}
+                  />
                   Скрытый
                 </label>
               </div>
@@ -644,7 +745,17 @@ export default function AdminAddProductPage() {
           >
             {/* Фото */}
             <div>
-              <label style={{ fontWeight: 700, color: "#1b2437", fontSize: 15, marginBottom: 3, display: "block" }}>Фото товара</label>
+              <label
+                style={{
+                  fontWeight: 700,
+                  color: "#1b2437",
+                  fontSize: 15,
+                  marginBottom: 3,
+                  display: "block",
+                }}
+              >
+                Фото товара
+              </label>
               <div
                 style={{
                   background: "#f8fbff",
@@ -653,11 +764,11 @@ export default function AdminAddProductPage() {
                   padding: "13px 8px 16px 8px",
                   minHeight: 255,
                 }}
-                onDrop={e => {
+                onDrop={(e) => {
                   e.preventDefault();
                   handleImageChange({ target: { files: e.dataTransfer.files } });
                 }}
-                onDragOver={e => e.preventDefault()}
+                onDragOver={(e) => e.preventDefault()}
               >
                 <input
                   type="file"
@@ -702,24 +813,33 @@ export default function AdminAddProductPage() {
                           height: "100%",
                           objectFit: "contain",
                           borderRadius: 10,
-                          background: "#fff"
+                          background: "#fff",
                         }}
                       />
                       <button
                         type="button"
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveImage(images[0].id);
                         }}
                         style={{
-                          position: "absolute", top: 7, right: 7,
-                          background: "#fff", color: "#f25b5b",
-                          border: "none", borderRadius: "50%",
-                          width: 24, height: 24, fontWeight: 700,
-                          fontSize: 15, boxShadow: "0 2px 8px #2291ff11",
+                          position: "absolute",
+                          top: 7,
+                          right: 7,
+                          background: "#fff",
+                          color: "#f25b5b",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: 24,
+                          height: 24,
+                          fontWeight: 700,
+                          fontSize: 15,
+                          boxShadow: "0 2px 8px #2291ff11",
                           cursor: "pointer",
                         }}
-                      >×</button>
+                      >
+                        ×
+                      </button>
                     </>
                   ) : (
                     <div style={{ textAlign: "center", color: "#3b7dc6", width: "100%" }}>
@@ -728,13 +848,19 @@ export default function AdminAddProductPage() {
                         alt=""
                         style={{ width: 55, margin: "0 auto 8px auto", opacity: 0.15 }}
                       />
-                      <div style={{
-                        color: "#1977cc", fontWeight: 500, marginBottom: 7, fontSize: 15
-                      }}>
+                      <div
+                        style={{
+                          color: "#1977cc",
+                          fontWeight: 500,
+                          marginBottom: 7,
+                          fontSize: 15,
+                        }}
+                      >
                         Завантажте файл или добавьте скопійоване зображення
                       </div>
                       <div style={{ color: "#aac0dd", fontSize: 13, marginBottom: 3 }}>
-                        Форматы: JPG, GIF, PNG, WEBP.<br />Максимальный размер: 10 MB.
+                        Форматы: JPG, GIF, PNG, WEBP.<br />
+                        Максимальный размер: 10 MB.
                       </div>
                       <div style={{ color: "#f87a46", fontSize: 13, marginTop: 3 }}>
                         Без водяных знаков
@@ -743,13 +869,15 @@ export default function AdminAddProductPage() {
                   )}
                 </div>
                 {/* Сетка превью */}
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 8,
-                  margin: "0 auto",
-                  minHeight: 160,
-                }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 8,
+                    margin: "0 auto",
+                    minHeight: 160,
+                  }}
+                >
                   {/* Мини-фото (до 9) — С DRAG&DROP */}
                   {images.slice(1, 10).map((img, i) => (
                     <div
@@ -777,29 +905,41 @@ export default function AdminAddProductPage() {
                         src={img.url}
                         alt=""
                         style={{
-                          width: "100%", height: "100%", objectFit: "cover", borderRadius: 10
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: 10,
                         }}
                       />
                       <button
                         type="button"
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveImage(img.id);
                         }}
                         style={{
-                          position: "absolute", top: 5, right: 5,
-                          background: "#fff", color: "#f25b5b",
-                          border: "none", borderRadius: "50%",
-                          width: 18, height: 18, fontWeight: 700,
-                          fontSize: 12, boxShadow: "0 2px 8px #2291ff11",
+                          position: "absolute",
+                          top: 5,
+                          right: 5,
+                          background: "#fff",
+                          color: "#f25b5b",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: 18,
+                          height: 18,
+                          fontWeight: 700,
+                          fontSize: 12,
+                          boxShadow: "0 2px 8px #2291ff11",
                           cursor: "pointer",
                         }}
-                      >×</button>
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                   {/* Пустые плюсы (БЕЗ drag&drop, только onClick) */}
                   {Array.from({
-                    length: Math.max(0, 9 - Math.min(9, Math.max(0, images.length - 1)))
+                    length: Math.max(0, 9 - Math.min(9, Math.max(0, images.length - 1))),
                   }).map((_, i) => (
                     <div
                       key={i + "plus"}

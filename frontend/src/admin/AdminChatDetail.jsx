@@ -3,7 +3,11 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "../utils/api";
 import "../assets/AdminPanel.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+// Аккуратное построение абсолютных ссылок на медиа.
+// Берём базу из api.defaults.baseURL (если настроен), срезаем хвостовые слэши.
+// Если сервер уже вернул абсолютный URL — оставляем как есть.
+const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
+const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
 // Простой аудио-блок
 function VoiceMessage({ url, createdAt }) {
@@ -130,7 +134,7 @@ export default function AdminChatDetail({ userId, userName }) {
               msg.imageUrls.map((url, idx) => (
                 <div className="chat-image-wrapper" key={idx}>
                   <img
-                    src={url?.startsWith("http") ? url : `${API_URL}${url}`}
+                    src={withBase(url)}
                     alt="img"
                     className="chat-image"
                   />
@@ -140,7 +144,7 @@ export default function AdminChatDetail({ userId, userName }) {
             {/* голосовые */}
             {msg.audioUrl && (
               <VoiceMessage
-                url={msg.audioUrl.startsWith("http") ? msg.audioUrl : `${API_URL}${msg.audioUrl}`}
+                url={withBase(msg.audioUrl)}
                 createdAt={msg.createdAt}
               />
             )}

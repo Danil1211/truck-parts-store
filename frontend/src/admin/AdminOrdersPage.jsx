@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AdminSubMenu from './AdminSubMenu';
-
-const apiUrl = import.meta.env.VITE_API_URL || '';
+import api from '../api';
 
 const ORDER_STATUSES = [
   { key: "new", label: "Новый" },
@@ -20,7 +19,6 @@ const STATUS_COLORS = {
 };
 
 const PAGE_LIMITS = [20, 50, 100];
-
 const cancelReasonsList = [
   "Нет в наличии",
   "Оплата не поступила",
@@ -28,6 +26,8 @@ const cancelReasonsList = [
   "Заказ дубликат",
   "Не получилось дозвонится"
 ];
+
+const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
 function StatusDropdown({ status, onChange }) {
   const [open, setOpen] = useState(false);
@@ -206,24 +206,24 @@ export default function AdminOrdersPage() {
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams({
-      search, status: statusFilter, sort: sortOrder, page, limit
-    });
-    fetch(`${apiUrl}/api/orders/admin?${params}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    })
-      .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Ошибка при загрузке');
-        setOrders(Array.isArray(data.orders) ? data.orders : data);
-        setTotal(data.total || (Array.isArray(data.orders) ? data.orders.length : data.length) || 0);
+    (async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const { data } = await api.get('/api/orders/admin', {
+          params: { search, status: statusFilter, sort: sortOrder, page, limit }
+        });
+        const list = Array.isArray(data.orders) ? data.orders : data;
+        const totalCount = data.total ?? (Array.isArray(data.orders) ? data.orders.length : (Array.isArray(data) ? data.length : 0));
+        setOrders(list);
+        setTotal(totalCount || 0);
+      } catch (err) {
+        console.error('Orders load error:', err);
+        setError(err?.response?.data?.error || err?.message || 'Ошибка загрузки заказов');
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message || 'Ошибка загрузки заказов');
-        setLoading(false);
-      });
+      }
+    })();
   }, [search, statusFilter, sortOrder, page, limit]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -237,20 +237,14 @@ export default function AdminOrdersPage() {
       return;
     }
     try {
-      await fetch(`${apiUrl}/api/orders/${orderId}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      await api.put(`/api/orders/${orderId}/status`, { status: newStatus });
       setOrders(orders =>
         orders.map(o =>
           o._id === orderId ? { ...o, status: newStatus } : o
         )
       );
-    } catch {
+    } catch (e) {
+      console.error('Update status failed:', e);
       alert("Ошибка обновления статуса");
     }
   };
@@ -258,14 +252,7 @@ export default function AdminOrdersPage() {
   const handleCancelOrder = async () => {
     if (!cancelOrderId || !cancelReason) return;
     try {
-      await fetch(`${apiUrl}/api/orders/${cancelOrderId}/cancel`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ reason: cancelReason }),
-      });
+      await api.put(`/api/orders/${cancelOrderId}/cancel`, { reason: cancelReason });
       setOrders(orders =>
         orders.map(o =>
           o._id === cancelOrderId
@@ -277,19 +264,18 @@ export default function AdminOrdersPage() {
       setCancelReason('');
       setCancelOrderId(null);
       setPendingStatusChange(null);
-    } catch {
+    } catch (e) {
+      console.error('Cancel order failed:', e);
       alert("Ошибка отмены заказа");
     }
   };
 
   function OrderCard({ order }) {
     const item = order.items && order.items[0];
-    let img =
-      item?.product?.images?.[0]
-        ? (item.product.images[0].startsWith("http")
-            ? item.product.images[0]
-            : apiUrl + item.product.images[0])
-        : "/images/no-image.png";
+    const firstImg = item?.product?.images?.[0];
+    let img = firstImg
+      ? (firstImg.startsWith("http") ? firstImg : `${BASE_URL}${firstImg}`)
+      : "/images/no-image.png";
     const handleImgError = e => { e.target.src = "/images/no-image.png"; };
     return (
       <div style={{
@@ -328,11 +314,6 @@ export default function AdminOrdersPage() {
         </div>
         <div style={{ flex: 1.1 }}>{order.totalPrice} ₴</div>
         <div style={{ flex: 1.6, minWidth: 200 }}>
-          <span>{order.user?.name}</span><br />
-          <span style={{ color: "#808d9a" }}>{order.user?.email}</span><br />
-          <span style={{ color: "#808d9a" }}>{order.user?.phone || '—'}</span>
-        </div>
-        <div style={{ flex: 2, minWidth: 180 }}>
           📦 Новая Почта<br />
           <span style={{ color: "#1970c1" }}>{order.novaPoshta || "—"}</span><br />
           <span style={{ color: "#1970c1" }}>{order.address || "—"}</span><br />

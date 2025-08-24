@@ -1,8 +1,7 @@
 // frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API = import.meta.env.VITE_API_URL || ""; // оставь пусто — будет относительный /api/...
+import api from "../api"; // общий axios-клиент с baseURL и токеном из localStorage
 
 export default function AdminCreateGroupPage() {
   const navigate = useNavigate();
@@ -13,36 +12,28 @@ export default function AdminCreateGroupPage() {
   const [preview, setPreview] = useState(null);
 
   const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // заголовки авторизации
-  const authHeaders = {};
-  const token = localStorage.getItem("token");
-  if (token) authHeaders.Authorization = `Bearer ${token}`;
-
-  // универсальный fetch JSON (ловит HTML-ответы)
-  async function fetchJSON(url, options = {}) {
-    const res = await fetch(url, options);
-    const ct = res.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) {
-      const text = await res.text();
-      throw new Error(`Не JSON (${res.status}). ${text.slice(0, 120)}`);
+  // безопасный axios-запрос (короткий helper)
+  const axiosSafe = async (fn) => {
+    try {
+      const { data } = await fn();
+      return data;
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || "Ошибка запроса";
+      throw new Error(msg);
     }
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-    return data;
-  }
+  };
 
   useEffect(() => {
     (async () => {
       try {
-        const data = await fetchJSON(`${API}/api/groups`, { headers: { ...authHeaders } });
+        const data = await axiosSafe(() => api.get("/api/groups"));
         setGroups(Array.isArray(data) ? data : []);
       } catch {
         setGroups([]);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleImageChange = (e) => {
@@ -57,7 +48,7 @@ export default function AdminCreateGroupPage() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    setLoading(true);
+    setSaving(true);
     try {
       const payload = {
         name: name.trim(),
@@ -66,11 +57,7 @@ export default function AdminCreateGroupPage() {
         img: preview || null, // base64 или null
       };
 
-      const created = await fetchJSON(`${API}/api/groups`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders },
-        body: JSON.stringify(payload),
-      });
+      const created = await axiosSafe(() => api.post("/api/groups", payload));
 
       if (created?._id) {
         navigate("/admin/groups");
@@ -80,7 +67,7 @@ export default function AdminCreateGroupPage() {
     } catch (err) {
       alert(err.message || "Ошибка при сохранении группы");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -341,7 +328,7 @@ export default function AdminCreateGroupPage() {
           <button
             type="submit"
             style={{
-              background: loading ? "#98ccfd" : "#2291ff",
+              background: saving ? "#98ccfd" : "#2291ff",
               color: "#fff",
               padding: "15px 0",
               borderRadius: 13,
@@ -351,12 +338,12 @@ export default function AdminCreateGroupPage() {
               width: "100%",
               marginTop: 22,
               boxShadow: "0 4px 14px #2291ff19",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor: saving ? "not-allowed" : "pointer",
               transition: "background 0.16s",
             }}
-            disabled={loading}
+            disabled={saving}
           >
-            {loading ? "Сохраняем..." : "Сохранить группу"}
+            {saving ? "Сохраняем..." : "Сохранить группу"}
           </button>
         </div>
       </form>

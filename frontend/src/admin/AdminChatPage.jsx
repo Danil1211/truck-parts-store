@@ -3,7 +3,11 @@ import Picker from "emoji-picker-react";
 import "../assets/AdminPanel.css";
 import { useAdminNotify } from "../context/AdminNotifyContext";
 import api from "../utils/api";
-const API_URL = import.meta.env.VITE_API_URL || "";
+
+// База для медиа-URL: берём из api.defaults.baseURL, хвостовые слэши убираем.
+// Если сервер уже прислал абсолютный URL (http/https), оставляем как есть.
+const BASE_URL = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
 function decodeHtml(html) {
   const txt = document.createElement("textarea");
@@ -603,13 +607,13 @@ export default function AdminChatPage() {
                     {m.imageUrls?.map((u, idx) => (
                       <img
                         key={idx}
-                        src={u.startsWith("http") ? u : `${API_URL}${u}`}
+                        src={withBase(u)}
                         alt="img"
                         style={{ maxWidth: "200px", borderRadius: "8px" }}
                       />
                     ))}
                     {m.audioUrl && (
-                      <VoiceMessage audioUrl={`${API_URL}${m.audioUrl}`} createdAt={m.createdAt} />
+                      <VoiceMessage audioUrl={withBase(m.audioUrl)} createdAt={m.createdAt} />
                     )}
                     {!m.audioUrl && (
                       <div style={{ fontSize: 12, textAlign: "right", opacity: 0.6 }}>

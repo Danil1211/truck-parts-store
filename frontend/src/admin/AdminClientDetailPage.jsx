@@ -1,10 +1,10 @@
 // src/admin/AdminClientDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import api from "../api"; // общий axios-клиент (baseURL = VITE_API_URL), добавляет Bearer-токен из localStorage
 
-const RAW_API = import.meta.env.VITE_API_URL || "http://localhost:3000";
-const API_URL = String(RAW_API).replace(/\/+$/, "");
+// Базовый URL только для склейки ссылок на картинки из API
+const BASE_URL = String(api.defaults.baseURL || "").replace(/\/+$/, "");
 
 // --- маршруты для клиента ---
 const CLIENT_PATHS = [
@@ -57,7 +57,6 @@ function normalizeOrders(raw) {
 export default function AdminClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getToken } = useAuth();
 
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,75 +64,60 @@ export default function AdminClientDetailPage() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [openedOrders, setOpenedOrders] = useState({});
 
-  // --- загрузка клиента с fallback ---
+  // --- загрузка клиента с fallback (через общий api-клиент) ---
   useEffect(() => {
     if (!id) return;
-    let aborted = false;
+    const controller = new AbortController();
+
     (async () => {
       setLoading(true);
-      const headers = {};
-      const t = getToken();
-      if (t) headers.Authorization = `Bearer ${t}`;
-
       let lastErr;
       for (const build of CLIENT_PATHS) {
         try {
-          const res = await fetch(joinUrl(API_URL, build(id)), { headers });
-          if (res.status === 404) continue;
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          if (!aborted) setClient(normalizeClient(data));
+          const res = await api.get(build(id), { signal: controller.signal });
+          setClient(normalizeClient(res.data));
           setLoading(false);
           return;
         } catch (e) {
+          // 404 — пробуем следующий роут
+          if (e?.response?.status === 404) continue;
           lastErr = e;
         }
       }
-      if (!aborted) {
-        setClient(null);
-        setLoading(false);
-        console.warn("Client load failed:", lastErr);
-      }
+      console.warn("Client load failed:", lastErr);
+      setClient(null);
+      setLoading(false);
     })();
-    return () => {
-      aborted = true;
-    };
-  }, [id, getToken]);
 
-  // --- загрузка заказов с fallback ---
+    return () => controller.abort();
+  }, [id]);
+
+  // --- загрузка заказов с fallback (через общий api-клиент) ---
   useEffect(() => {
     if (!id) return;
-    let aborted = false;
+    const controller = new AbortController();
+
     (async () => {
       setOrdersLoading(true);
-      const headers = {};
-      const t = getToken();
-      if (t) headers.Authorization = `Bearer ${t}`;
-
       let lastErr;
       for (const build of ORDERS_BY_USER_PATHS) {
         try {
-          const res = await fetch(joinUrl(API_URL, build(id)), { headers });
-          if (res.status === 404) continue;
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          if (!aborted) setOrders(normalizeOrders(data));
+          const res = await api.get(build(id), { signal: controller.signal });
+          setOrders(normalizeOrders(res.data));
           setOrdersLoading(false);
           return;
         } catch (e) {
+          if (e?.response?.status === 404) continue;
           lastErr = e;
         }
       }
-      if (!aborted) {
-        setOrders([]);
-        setOrdersLoading(false);
-        console.warn("Orders load failed:", lastErr);
-      }
+      console.warn("Orders load failed:", lastErr);
+      setOrders([]);
+      setOrdersLoading(false);
     })();
-    return () => {
-      aborted = true;
-    };
-  }, [id, getToken]);
+
+    return () => controller.abort();
+  }, [id]);
 
   const toggleOrder = (orderId) => {
     setOpenedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -415,9 +399,9 @@ export default function AdminClientDetailPage() {
                         <img
                           src={
                             (items[0]?.product?.images?.[0] &&
-                              joinUrl(API_URL, items[0].product.images[0])) ||
+                              joinUrl(BASE_URL, items[0].product.images[0])) ||
                             (items[0]?.product?.image &&
-                              joinUrl(API_URL, items[0].product.image)) ||
+                              joinUrl(BASE_URL, items[0].product.image)) ||
                             "/images/no-image.png"
                           }
                           alt="Фото"
@@ -514,9 +498,9 @@ export default function AdminClientDetailPage() {
                             <img
                               src={
                                 (item.product?.images?.[0] &&
-                                  joinUrl(API_URL, item.product.images[0])) ||
+                                  joinUrl(BASE_URL, item.product.images[0])) ||
                                 (item.product?.image &&
-                                  joinUrl(API_URL, item.product.image)) ||
+                                  joinUrl(BASE_URL, item.product.image)) ||
                                 "/images/no-image.png"
                               }
                               alt="Фото"

@@ -2,9 +2,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
+import api from "../api";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
+const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
 export default function AdminEditProductPage() {
   const { id } = useParams();
@@ -30,14 +31,11 @@ export default function AdminEditProductPage() {
   const inputFileRef = useRef(null);
   const dragIndex = useRef(null);
 
-  const token = localStorage.getItem("token");
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-
   // Загрузка групп
   useEffect(() => {
-    fetch(`${API_URL}/api/groups`, { headers: authHeaders })
-      .then((res) => res.json())
-      .then((data) => {
+    (async () => {
+      try {
+        const { data } = await api.get(`/api/groups`);
         const flatGroups = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
@@ -45,21 +43,20 @@ export default function AdminEditProductPage() {
             if (g.children && g.children.length) flatten(g.children);
           });
         };
-        flatten(data);
+        flatten(Array.isArray(data) ? data : []);
         setGroups(flatGroups);
-      })
-      .catch(() => setGroups([]));
+      } catch {
+        setGroups([]);
+      }
+    })();
   }, []);
 
   // Загрузка данных товара
   useEffect(() => {
     if (!id) return;
-    fetch(`${API_URL}/api/products/${id}`, { headers: authHeaders })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Ошибка ${res.status}`);
-        return res.json();
-      })
-      .then((prod) => {
+    (async () => {
+      try {
+        const { data: prod } = await api.get(`/api/products/${id}`);
         setName(prod.name || "");
         setSku(prod.sku || "");
         setDescription(prod.description || "");
@@ -79,17 +76,19 @@ export default function AdminEditProductPage() {
           (prod.images || []).map((url, i) => ({
             id: "srv" + i,
             file: null,
-            url: url.startsWith("http") ? url : `${API_URL}${url}`,
-            serverUrl: url,
+            url: url?.startsWith("http") ? url : `${BASE_URL}${url}`,
+            serverUrl: url, // отправляем обратно как есть
           }))
         );
-      })
-      .catch(() => navigate("/admin/products"));
-  }, [id]);
+      } catch {
+        navigate("/admin/products");
+      }
+    })();
+  }, [id, navigate]);
 
   // Добавление фото
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
     setImages((prev) => {
       const prevFiles = prev.map((i) => i.file).filter(Boolean);
       const allFiles = [...prevFiles, ...files];
@@ -103,7 +102,9 @@ export default function AdminEditProductPage() {
         })
         .slice(0, 10)
         .map((f) => {
-          const exist = prev.find((img) => img.file && img.file.name === f.name && img.file.size === f.size);
+          const exist = prev.find(
+            (img) => img.file && img.file.name === f.name && img.file.size === f.size
+          );
           return exist || { file: f, url: URL.createObjectURL(f), id: genId() };
         });
       return [...prev.filter((img) => img.serverUrl && !img.file), ...newImgs];
@@ -120,8 +121,12 @@ export default function AdminEditProductPage() {
     });
   };
 
-  // Drag&Drop
+  // DnD
   const handleDragStart = (idx) => (dragIndex.current = idx);
+  const handleDragOver = (idx) => (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
   const handleDrop = (idx) => {
     if (dragIndex.current === null || dragIndex.current === idx) return;
     setImages((prev) => {
@@ -133,7 +138,7 @@ export default function AdminEditProductPage() {
     dragIndex.current = null;
   };
 
-  // Очистка URL
+  // Очистка blob URL-ов при размонтировании/смене
   useEffect(() => {
     return () => {
       images.forEach((img) => img.file && URL.revokeObjectURL(img.url));
@@ -166,32 +171,92 @@ export default function AdminEditProductPage() {
     });
 
     try {
-      const res = await fetch(`${API_URL}/api/products/${id}`, {
-        method: "PATCH",
-        headers: authHeaders,
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Ошибка при сохранении!");
+      await api.patch(`/api/products/${id}`, formData);
       navigate("/admin/products");
     } catch (err) {
-      alert("Ошибка при сохранении позиции: " + err.message);
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Ошибка при сохранении позиции";
+      alert("Ошибка при сохранении позиции: " + msg);
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f6fafd", display: "flex", flexDirection: "column", alignItems: "stretch", padding: 0, boxSizing: "border-box" }}>
-      <div style={{ width: "100%", maxWidth: 1400, margin: "0 auto", padding: "0 32px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "stretch" }}>
-        <div style={{ background: "#fff", borderRadius: 18, boxShadow: "0 4px 18px #1a90ff0b, 0 1.5px 5px #2291ff14", padding: "20px 38px", marginTop: 38, marginBottom: 0, width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, minHeight: 64 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f6fafd",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        padding: 0,
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1400,
+          margin: "0 auto",
+          padding: "0 32px",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 18,
+            boxShadow: "0 4px 18px #1a90ff0b, 0 1.5px 5px #2291ff14",
+            padding: "20px 38px",
+            marginTop: 38,
+            marginBottom: 0,
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            minHeight: 64,
+          }}
+        >
           <button
             onClick={() => navigate("/admin/products")}
-            style={{ background: "#eaf4ff", color: "#2291ff", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 16, padding: "10px 22px 10px 15px", boxShadow: "0 1px 7px #2291ff11", cursor: "pointer", display: "flex", alignItems: "center", marginLeft: 0, transition: "background 0.18s, color 0.18s" }}
+            style={{
+              background: "#eaf4ff",
+              color: "#2291ff",
+              border: "none",
+              borderRadius: 12,
+              fontWeight: 700,
+              fontSize: 16,
+              padding: "10px 22px 10px 15px",
+              boxShadow: "0 1px 7px #2291ff11",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              marginLeft: 0,
+              transition: "background 0.18s, color 0.18s",
+            }}
           >
             <span style={{ fontSize: 20, marginRight: 6 }}>←</span> Назад
           </button>
           <button
             type="submit"
             form="edit-prod-form"
-            style={{ background: "#2291ff", color: "#fff", borderRadius: 10, border: "none", fontSize: 16, padding: "10px 28px", fontWeight: 800, boxShadow: "0 2px 9px #2291ff13", cursor: "pointer", transition: "background 0.18s, color 0.18s" }}
+            style={{
+              background: "#2291ff",
+              color: "#fff",
+              borderRadius: 10,
+              border: "none",
+              fontSize: 16,
+              padding: "10px 28px",
+              fontWeight: 800,
+              boxShadow: "0 2px 9px #2291ff13",
+              cursor: "pointer",
+              transition: "background 0.18s, color 0.18s",
+            }}
           >
             Сохранить изменения
           </button>
@@ -200,74 +265,388 @@ export default function AdminEditProductPage() {
         <form
           id="edit-prod-form"
           onSubmit={handleSubmit}
-          style={{ width: "100%", display: "flex", background: "#fff", borderRadius: 14, margin: 0, marginTop: "32px", boxShadow: "0 6px 22px #2291ff0b", padding: "22px 0 0 32px", alignItems: "flex-start", gap: 0, boxSizing: "border-box" }}
+          style={{
+            width: "100%",
+            display: "flex",
+            background: "#fff",
+            borderRadius: 14,
+            margin: 0,
+            marginTop: "32px",
+            boxShadow: "0 6px 22px #2291ff0b",
+            padding: "22px 0 0 32px",
+            alignItems: "flex-start",
+            gap: 0,
+            boxSizing: "border-box",
+          }}
         >
           {/* Левая колонка */}
-          <div style={{ flex: 2.2, padding: "0px 18px 28px 0px", borderRight: "1.5px solid #eaf1fa", display: "flex", flexDirection: "column", gap: 16, minWidth: 0, boxSizing: "border-box" }}>
+          <div
+            style={{
+              flex: 2.2,
+              padding: "0px 18px 28px 0px",
+              borderRight: "1.5px solid #eaf1fa",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              minWidth: 0,
+              boxSizing: "border-box",
+            }}
+          >
             <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
               <div style={{ flex: 1.9 }}>
-                <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 3, display: "block" }}>Название позиции</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="Название товара" style={{ width: "100%", marginTop: 4, padding: "9px 11px", borderRadius: 9, border: "1.3px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }} />
+                <label
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: "#223",
+                    marginBottom: 3,
+                    display: "block",
+                  }}
+                >
+                  Название позиции
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="Название товара"
+                  style={{
+                    width: "100%",
+                    marginTop: 4,
+                    padding: "9px 11px",
+                    borderRadius: 9,
+                    border: "1.3px solid #c9e4ff",
+                    fontSize: 15,
+                    background: "#f6fafd",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 3, display: "block" }}>Код / Артикул</label>
-                <input type="text" value={sku} onChange={e => setSku(e.target.value)} placeholder="Артикул, код" style={{ width: "100%", marginTop: 4, padding: "9px 11px", borderRadius: 9, border: "1.3px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }} />
+                <label
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: "#223",
+                    marginBottom: 3,
+                    display: "block",
+                  }}
+                >
+                  Код / Артикул
+                </label>
+                <input
+                  type="text"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="Артикул, код"
+                  style={{
+                    width: "100%",
+                    marginTop: 4,
+                    padding: "9px 11px",
+                    borderRadius: 9,
+                    border: "1.3px solid #c9e4ff",
+                    fontSize: 15,
+                    background: "#f6fafd",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
             </div>
             <div>
-              <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 4, display: "block" }}>Описание</label>
-              <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
+              <label
+                style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "#223",
+                  marginBottom: 4,
+                  display: "block",
+                }}
+              >
+                Описание
+              </label>
+              <LocalEditor
+                value={description}
+                onChange={setDescription}
+                placeholder="Описание товара..."
+              />
             </div>
             <div>
-              <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 4, display: "block" }}>Группа</label>
-              <select value={group} onChange={e => setGroup(e.target.value)} required style={{ width: "100%", marginTop: 4, padding: "9px 11px", borderRadius: 9, border: "1.3px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }}>
+              <label
+                style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "#223",
+                  marginBottom: 4,
+                  display: "block",
+                }}
+              >
+                Группа
+              </label>
+              <select
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  marginTop: 4,
+                  padding: "9px 11px",
+                  borderRadius: 9,
+                  border: "1.3px solid #c9e4ff",
+                  fontSize: 15,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              >
                 <option value="">Выберите группу</option>
-                {groups.map(g => <option key={g._id} value={g._id}>{g.name}</option>)}
+                {groups.map((g) => (
+                  <option key={g._id} value={g._id}>
+                    {g.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label style={{ display: "flex", alignItems: "center", gap: 7, fontWeight: 600, marginBottom: 2 }}>
-                <input type="checkbox" checked={hasProps} onChange={e => setHasProps(e.target.checked)} style={{ accentColor: "#2291ff" }} />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  fontWeight: 600,
+                  marginBottom: 2,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={hasProps}
+                  onChange={(e) => setHasProps(e.target.checked)}
+                  style={{ accentColor: "#2291ff" }}
+                />
                 Характеристики
               </label>
               {hasProps && (
-                <div style={{ marginTop: 7, marginLeft: 7, display: "flex", gap: 10 }}>
-                  <input type="text" value={propsColor} onChange={e => setPropsColor(e.target.value)} placeholder="Цвет" style={{ width: "30%", padding: "8px 11px", borderRadius: 7, border: "1.3px solid #c9e4ff", fontSize: 14, background: "#f6fafd", boxSizing: "border-box" }} />
+                <div
+                  style={{
+                    marginTop: 7,
+                    marginLeft: 7,
+                    display: "flex",
+                    gap: 10,
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={propsColor}
+                    onChange={(e) => setPropsColor(e.target.value)}
+                    placeholder="Цвет"
+                    style={{
+                      width: "30%",
+                      padding: "8px 11px",
+                      borderRadius: 7,
+                      border: "1.3px solid #c9e4ff",
+                      fontSize: 14,
+                      background: "#f6fafd",
+                      boxSizing: "border-box",
+                    }}
+                  />
                 </div>
               )}
             </div>
             <div>
-              <label style={{ fontWeight: 700, fontSize: 15, color: "#223", marginBottom: 4, display: "block" }}>Поисковые запросы</label>
-              <input value={queries} onChange={e => setQueries(e.target.value)} placeholder="тормозная накладка, колодки..." style={{ width: "100%", marginTop: 4, padding: "8px 10px", borderRadius: 9, border: "1.3px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }} />
+              <label
+                style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: "#223",
+                  marginBottom: 4,
+                  display: "block",
+                }}
+              >
+                Поисковые запросы
+              </label>
+              <input
+                value={queries}
+                onChange={(e) => setQueries(e.target.value)}
+                placeholder="тормозная накладка, колодки..."
+                style={{
+                  width: "100%",
+                  marginTop: 4,
+                  padding: "8px 10px",
+                  borderRadius: 9,
+                  border: "1.3px solid #c9e4ff",
+                  fontSize: 15,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <input value={width} onChange={e => setWidth(e.target.value)} placeholder="Ширина (мм)" type="number" style={{ flex: 1, padding: "8px 7px", borderRadius: 8, border: "1.3px solid #c9e4ff", fontSize: 14, background: "#f6fafd", boxSizing: "border-box" }} />
-              <input value={height} onChange={e => setHeight(e.target.value)} placeholder="Высота (мм)" type="number" style={{ flex: 1, padding: "8px 7px", borderRadius: 8, border: "1.3px solid #c9e4ff", fontSize: 14, background: "#f6fafd", boxSizing: "border-box" }} />
-              <input value={length} onChange={e => setLength(e.target.value)} placeholder="Длина (мм)" type="number" style={{ flex: 1, padding: "8px 7px", borderRadius: 8, border: "1.3px solid #c9e4ff", fontSize: 14, background: "#f6fafd", boxSizing: "border-box" }} />
-              <input value={weight} onChange={e => setWeight(e.target.value)} placeholder="Вес (грамм)" type="number" style={{ flex: 1, padding: "8px 7px", borderRadius: 8, border: "1.3px solid #c9e4ff", fontSize: 14, background: "#f6fafd", boxSizing: "border-box" }} />
+              <input
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+                placeholder="Ширина (мм)"
+                type="number"
+                style={{
+                  flex: 1,
+                  padding: "8px 7px",
+                  borderRadius: 8,
+                  border: "1.3px solid #c9e4ff",
+                  fontSize: 14,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder="Высота (мм)"
+                type="number"
+                style={{
+                  flex: 1,
+                  padding: "8px 7px",
+                  borderRadius: 8,
+                  border: "1.3px solid #c9e4ff",
+                  fontSize: 14,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+                placeholder="Длина (мм)"
+                type="number"
+                style={{
+                  flex: 1,
+                  padding: "8px 7px",
+                  borderRadius: 8,
+                  border: "1.3px solid #c9e4ff",
+                  fontSize: 14,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder="Вес (грамм)"
+                type="number"
+                style={{
+                  flex: 1,
+                  padding: "8px 7px",
+                  borderRadius: 8,
+                  border: "1.3px solid #c9e4ff",
+                  fontSize: 14,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <input type="number" value={price} onChange={e => setPrice(e.target.value)} required placeholder="Цена" style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1.2px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }} />
-              <input type="text" value={unit} onChange={e => setUnit(e.target.value)} placeholder="Ед. изм." style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1.2px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }} />
-              <select value={availability} onChange={e => setAvailability(e.target.value)} style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1.2px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }}>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+                placeholder="Цена"
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1.2px solid #c9e4ff",
+                  fontSize: 15,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                type="text"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="Ед. изм."
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1.2px solid #c9e4ff",
+                  fontSize: 15,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
+              <select
+                value={availability}
+                onChange={(e) => setAvailability(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1.2px solid #c9e4ff",
+                  fontSize: 15,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              >
                 <option value="published">В наличии</option>
                 <option value="order">Под заказ</option>
                 <option value="out">Нет в наличии</option>
               </select>
-              <input type="number" value={stock} onChange={e => setStock(e.target.value)} placeholder="Остаток" style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1.2px solid #c9e4ff", fontSize: 15, background: "#f6fafd", boxSizing: "border-box" }} />
+              <input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                placeholder="Остаток"
+                style={{
+                  flex: 1,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  border: "1.2px solid #c9e4ff",
+                  fontSize: 15,
+                  background: "#f6fafd",
+                  boxSizing: "border-box",
+                }}
+              />
             </div>
           </div>
 
           {/* Правая колонка - фото */}
-          <div style={{ flex: 1, minWidth: 340, maxWidth: 410, padding: "0px 24px 28px 28px", display: "flex", flexDirection: "column", gap: 15, alignItems: "stretch", marginRight: 0, boxSizing: "border-box" }}>
-            <label style={{ fontWeight: 700, color: "#1b2437", fontSize: 15, marginBottom: 3, display: "block" }}>Фото товара</label>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 340,
+              maxWidth: 410,
+              padding: "0px 24px 28px 28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 15,
+              alignItems: "stretch",
+              marginRight: 0,
+              boxSizing: "border-box",
+            }}
+          >
+            <label
+              style={{
+                fontWeight: 700,
+                color: "#1b2437",
+                fontSize: 15,
+                marginBottom: 3,
+                display: "block",
+              }}
+            >
+              Фото товара
+            </label>
             <div
-              style={{ background: "#f8fbff", border: "1.2px dashed #b6d4fc", borderRadius: 11, padding: "13px 8px 16px 8px", minHeight: 255 }}
-              onDrop={e => {
+              style={{
+                background: "#f8fbff",
+                border: "1.2px dashed #b6d4fc",
+                borderRadius: 11,
+                padding: "13px 8px 16px 8px",
+                minHeight: 255,
+              }}
+              onDrop={(e) => {
                 e.preventDefault();
                 handleImageChange({ target: { files: e.dataTransfer.files } });
               }}
-              onDragOver={e => e.preventDefault()}
+              onDragOver={(e) => e.preventDefault()}
             >
               <input
                 type="file"
@@ -307,20 +686,33 @@ export default function AdminEditProductPage() {
                     <img
                       src={images[0].url}
                       alt="main"
-                      style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 10, background: "#fff" }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        borderRadius: 10,
+                        background: "#fff",
+                      }}
                     />
                     <button
                       type="button"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveImage(images[0].id);
                       }}
                       style={{
-                        position: "absolute", top: 7, right: 7,
-                        background: "#fff", color: "#f25b5b",
-                        border: "none", borderRadius: "50%",
-                        width: 24, height: 24, fontWeight: 700,
-                        fontSize: 15, boxShadow: "0 2px 8px #2291ff11",
+                        position: "absolute",
+                        top: 7,
+                        right: 7,
+                        background: "#fff",
+                        color: "#f25b5b",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 24,
+                        height: 24,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        boxShadow: "0 2px 8px #2291ff11",
                         cursor: "pointer",
                       }}
                     >
@@ -334,14 +726,23 @@ export default function AdminEditProductPage() {
                       alt=""
                       style={{ width: 55, margin: "0 auto 8px auto", opacity: 0.15 }}
                     />
-                    <div style={{ color: "#1977cc", fontWeight: 500, marginBottom: 7, fontSize: 15 }}>
+                    <div
+                      style={{
+                        color: "#1977cc",
+                        fontWeight: 500,
+                        marginBottom: 7,
+                        fontSize: 15,
+                      }}
+                    >
                       Завантажте файл или добавьте скопійоване зображення
                     </div>
                     <div style={{ color: "#aac0dd", fontSize: 13, marginBottom: 3 }}>
                       Форматы: JPG, GIF, PNG, WEBP.<br />
                       Максимальный размер: 10 MB.
                     </div>
-                    <div style={{ color: "#f87a46", fontSize: 13, marginTop: 3 }}>Без водяных знаков</div>
+                    <div style={{ color: "#f87a46", fontSize: 13, marginTop: 3 }}>
+                      Без водяных знаков
+                    </div>
                   </div>
                 )}
               </div>
@@ -381,11 +782,16 @@ export default function AdminEditProductPage() {
                     <img
                       src={img.url}
                       alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: 10,
+                      }}
                     />
                     <button
                       type="button"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveImage(img.id);
                       }}
@@ -409,7 +815,7 @@ export default function AdminEditProductPage() {
                     </button>
                   </div>
                 ))}
-                {[...Array(9 - (images.length - 1)).keys()].map((i) => (
+                {[...Array(Math.max(0, 9 - (images.length - 1))).keys()].map((i) => (
                   <div
                     key={i + "plus"}
                     style={{
@@ -426,9 +832,11 @@ export default function AdminEditProductPage() {
                       overflow: "hidden",
                       minHeight: 54,
                     }}
-                    onClick={() => inputFileRef.current.click()}
+                    onClick={() => inputFileRef.current?.click()}
                   >
-                    <span style={{ color: "#aac0dd", fontSize: 28, fontWeight: 500 }}>+</span>
+                    <span style={{ color: "#aac0dd", fontSize: 28, fontWeight: 500 }}>
+                      +
+                    </span>
                   </div>
                 ))}
               </div>

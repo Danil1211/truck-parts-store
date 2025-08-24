@@ -1,16 +1,7 @@
 // src/admin/AdminClientsPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-/**
- * Базовый URL API:
- * - сначала берём из VITE_API_URL,
- * - иначе — локальный бэк на 3000.
- * Хвостовой слэш убираем, чтобы не было // в запросах.
- */
-const API_URL =
-  (import.meta.env.VITE_API_URL && String(import.meta.env.VITE_API_URL).replace(/\/+$/, "")) ||
-  "http://localhost:3000";
+import api from "../api"; // общий axios-клиент с baseURL (VITE_API_URL) и токеном из localStorage
 
 /**
  * Возможные пути для списка клиентов.
@@ -62,46 +53,24 @@ export default function AdminClientsPage() {
       setLoading(true);
       setError("");
 
-      const params = new URLSearchParams({
+      const params = {
         q,
         status,
         page: String(page),
         limit: String(pageSize),
-      }).toString();
-
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
       };
-      if (token) headers.Authorization = `Bearer ${token}`;
 
       // Если уже находили рабочий путь — пробуем его первым
       const remembered = sessionStorage.getItem("admin_clients_endpoint");
       const paths = remembered
-        ? [remembered, ...CANDIDATE_PATHS.filter(p => p !== remembered)]
+        ? [remembered, ...CANDIDATE_PATHS.filter((p) => p !== remembered)]
         : [...CANDIDATE_PATHS];
 
       let lastErr;
 
       for (const path of paths) {
-        const url = `${API_URL}${path}?${params}`;
-
         try {
-          const res = await fetch(url, {
-            headers,
-            signal: controller.signal,
-            credentials: "include",
-          });
-
-          if (res.status === 404) {
-            // не тот роут — идём дальше
-            continue;
-          }
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-          }
-
-          const data = await res.json();
+          const { data } = await api.get(path, { params, signal: controller.signal });
           const normalized = normalizePayload(data);
 
           setClients(normalized.clients);
@@ -110,6 +79,9 @@ export default function AdminClientsPage() {
           setLoading(false);
           return;
         } catch (e) {
+          // Если 404 — просто пробуем следующий маршрут
+          const statusCode = e?.response?.status;
+          if (statusCode === 404) continue;
           lastErr = e;
           if (controller.signal.aborted) return; // тишина при анмаунте
         }
@@ -118,10 +90,12 @@ export default function AdminClientsPage() {
       // Если сюда дошли — ничего не сработало
       setClients([]);
       setTotal(0);
+      const msg =
+        lastErr?.response?.data?.error ||
+        lastErr?.message ||
+        "Неизвестная ошибка";
       setError(
-        `Не удалось загрузить клиентов (проверь API_URL и маршрут /api/users/admin). ${
-          lastErr ? String(lastErr) : ""
-        }`
+        `Не удалось загрузить клиентов (проверь актуальный маршрут, например /api/users/admin). ${msg}`
       );
       setLoading(false);
     }

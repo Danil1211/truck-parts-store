@@ -3,8 +3,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
+import api from "../api";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/+$/, "");
+const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
 // --- helpers ---
 function buildTree(groups, parentId = null) {
@@ -76,7 +77,7 @@ function renderGroupRows(
             <div>
               {group.img ? (
                 <img
-                  src={group.img.startsWith("http") ? group.img : `${API_URL}${group.img}`}
+                  src={group.img.startsWith("http") ? group.img : `${BASE_URL}${group.img}`}
                   alt={group.name}
                   style={{
                     width: 36,
@@ -214,11 +215,8 @@ export default function AdminGroupsPage() {
 
   async function fetchGroups() {
     setLoading(true);
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     try {
-      const res = await fetch(`${API_URL}/api/groups`, { headers });
-      const data = await res.json();
+      const { data } = await api.get(`/api/groups`);
       setGroups(Array.isArray(data) ? data : []);
     } catch {
       setGroups([]);
@@ -227,11 +225,8 @@ export default function AdminGroupsPage() {
   }
 
   async function fetchProducts(groupId) {
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     try {
-      const res = await fetch(`${API_URL}/api/products?group=${groupId}`, { headers });
-      const data = await res.json();
+      const { data } = await api.get(`/api/products`, { params: { group: groupId } });
       setProducts(Array.isArray(data) ? data : []);
     } catch {
       setProducts([]);
@@ -245,13 +240,9 @@ export default function AdminGroupsPage() {
   function handleDeleteGroupClick(group) {
     setDeleteModal(group);
   }
+
   async function handleDeleteGroupConfirm() {
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    await fetch(`${API_URL}/api/groups/${deleteModal._id}`, {
-      method: "DELETE",
-      headers,
-    });
+    await api.delete(`/api/groups/${deleteModal._id}`);
     setDeleteModal(null);
     fetchGroups();
     setSelectedGroup(null);
@@ -357,7 +348,7 @@ export default function AdminGroupsPage() {
                       product.images && product.images[0]
                         ? product.images[0].startsWith("http")
                           ? product.images[0]
-                          : `${API_URL}${product.images[0]}`
+                          : `${BASE_URL}${product.images[0]}`
                         : "https://cdn-icons-png.flaticon.com/512/3281/3281306.png"
                     }
                     alt={product.name}
