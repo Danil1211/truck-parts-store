@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const tenantScope = require('../plugins/tenantScope'); // если есть — ок, если нет — можно убрать
+const tenantScope = require('../plugins/tenantScope');
 const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
 /* ====================== Утилита ====================== */
@@ -84,22 +84,18 @@ const ProductSchema = new Schema({
   name:        { type: String, required: true },
   sku:         { type: String },
   description: { type: String },
-  group:       { type: String, required: true },
+  group:       { type: Schema.Types.ObjectId, ref: 'Group', required: true }, // ✅ ObjectId
   hasProps:    { type: Boolean, default: false },
   propsColor:  { type: String, default: '' },
-  queries:     { type: String, default: '' },
-  width:       { type: String, default: '' },
-  height:      { type: String, default: '' },
-  length:      { type: String, default: '' },
-  weight:      { type: String, default: '' },
+  queries:     [String], // ✅ массив
+  width:       { type: Number, default: 0 },
+  height:      { type: Number, default: 0 },
+  length:      { type: Number, default: 0 },
+  weight:      { type: Number, default: 0 },
   price:       { type: Number, required: true },
   unit:        { type: String, default: 'шт' },
-  availability:{
-    type: String,
-    enum: ['В наличии','Под заказ','Нет в наличии'],
-    default: 'В наличии'
-  },
-  stock:       { type: String, default: '' },
+  availability:{ type: String, enum: ['published','draft','hidden'], default: 'published' }, // ✅
+  stock:       { type: Number, default: 0 },
   images:      [String],
 }, { timestamps: true });
 touchUpdatedAt(ProductSchema);
@@ -213,7 +209,7 @@ module.exports = {
   Tenant: mongoose.model('Tenant', TenantSchema),
   User: mongoose.model('User', UserSchema),
   Category: mongoose.model('Category', CategorySchema),
-  Group: mongoose.model('Group', GroupSchema),   // ✅ добавлено
+  Group: mongoose.model('Group', GroupSchema),
   Product: mongoose.model('Product', ProductSchema),
   Order: mongoose.model('Order', OrderSchema),
   Message: mongoose.model('Message', MessageSchema),
