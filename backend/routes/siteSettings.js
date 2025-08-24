@@ -1,3 +1,4 @@
+// backend/routes/siteSettings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models/models');
@@ -46,7 +47,7 @@ function buildUpdateFromBody(body = {}) {
       email: c.email ?? '',
       contactPerson: c.contactPerson ?? '',
       address: c.address ?? '',
-      phones: Array.isArray(c.phones) ? c.phones : [],
+      phones: Array.isArray(c.phones) ? c.phones.map(String) : [],
       chatSettings: {
         startTime: ch.startTime ?? '09:00',
         endTime: ch.endTime ?? '18:00',
@@ -89,42 +90,49 @@ function buildUpdateFromBody(body = {}) {
 /** GET /api/site-settings */
 router.get('/', async (req, res) => {
   try {
+    console.log("🌍 GET /api/site-settings tenantId:", req.tenantId);
+
     const doc = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant._id) },
-      { $setOnInsert: { tenantId: String(req.tenant._id) } },
+      { tenantId: String(req.tenantId) },
+      { $setOnInsert: { tenantId: String(req.tenantId) } },
       { new: true, upsert: true }
     ).lean();
+
     res.json(doc);
   } catch (err) {
-    console.error('site-settings GET error:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    console.error('❌ site-settings GET error:', err);
+    res.status(500).json({ error: 'Ошибка сервера', details: String(err) });
   }
 });
 
 /** PUT /api/site-settings */
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    // ⬅️ теперь разрешаем и владельцу (owner), и админу
-    if (!(req.user?.isAdmin || req.user?.role === 'owner')) {
+    if (!req.user?.isAdmin && req.user?.role !== 'owner') {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
 
+    console.log("📝 PUT /api/site-settings tenantId:", req.tenantId);
+    console.log("📝 Request body:", JSON.stringify(req.body, null, 2));
+
     const update = buildUpdateFromBody(req.body);
+    console.log("🛠 Update object:", JSON.stringify(update, null, 2));
 
     const updated = await SiteSettings.findOneAndUpdate(
-      { tenantId: String(req.tenant._id) },
-      { ...update, $set: { ...update.$set, tenantId: String(req.tenant._id) } },
+      { tenantId: String(req.tenantId) },
+      { ...update, $set: { ...update.$set, tenantId: String(req.tenantId) } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     if (!updated) {
+      console.error("⚠️ SiteSettings update returned null");
       return res.status(500).json({ error: 'Не удалось обновить настройки' });
     }
 
     res.json(updated.toObject ? updated.toObject() : updated);
   } catch (err) {
-    console.error('Ошибка обновления настроек:', err);
-    res.status(500).json({ error: 'Ошибка обновления настроек' });
+    console.error('🔥 Ошибка обновления настроек:', err);
+    res.status(500).json({ error: 'Ошибка обновления настроек', details: String(err) });
   }
 });
 
