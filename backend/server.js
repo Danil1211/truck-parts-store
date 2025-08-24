@@ -81,7 +81,8 @@ app.use((req, _res, next) => {
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ВАЖНО: Render делает HEAD / — отвечаем 204 до withTenant
+// Render health-check
+app.get('/', (_req, res) => res.status(200).send('Backend is alive 🚀'));
 app.head('/', (_req, res) => res.status(204).end());
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.get('/api/cors-check', (req, res) => {

@@ -41,8 +41,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
 });
 
-const toArray = (v) =>
-  v == null ? [] : Array.isArray(v) ? v : [v];
+const toArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
 
 function parseQueries(v) {
   if (Array.isArray(v)) return v.filter(Boolean);
@@ -165,10 +164,11 @@ router.get("/:id", async (req, res) => {
 
 /* ================================ PROTECTED ================================ */
 
+// ✅ порядок: upload → authMiddleware
 router.post(
   "/",
-  authMiddleware,
   upload.fields([{ name: "images", maxCount: 10 }]),
+  authMiddleware,
   async (req, res) => {
     try {
       console.log("REQ BODY:", req.body);
@@ -215,8 +215,8 @@ router.post(
 
 router.patch(
   "/:id",
-  authMiddleware,
   upload.fields([{ name: "images", maxCount: 10 }]),
+  authMiddleware,
   async (req, res) => {
     try {
       console.log("REQ BODY:", req.body);
