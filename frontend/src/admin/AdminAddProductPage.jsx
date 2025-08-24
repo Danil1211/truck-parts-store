@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
-import api from "../utils/api.js";
+import api from "../utils/api.js"; // ← скорректируй путь при необходимости
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 
@@ -30,10 +30,12 @@ export default function AdminAddProductPage() {
   const [weight, setWeight] = useState("");
 
   const [groups, setGroups] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get("/api/groups/tree"); // ✅ дерево
+        const { data } = await api.get("/api/groups/tree"); // дерево групп
         const flatGroups = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
@@ -126,6 +128,8 @@ export default function AdminAddProductPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSaving) return;
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("sku", sku);
@@ -135,25 +139,39 @@ export default function AdminAddProductPage() {
     formData.append("unit", unit);
     formData.append("availability", availability);
     formData.append("stock", stock);
+
+    // Эти поля на бэке могут называться иначе, но передадим как есть —
+    // на сервере они либо маппятся, либо игнорируются схемой.
     formData.append("charColor", charColor);
     formData.append("charBrand", charBrand);
+
     formData.append("width", width);
     formData.append("height", height);
     formData.append("length", length);
     formData.append("weight", weight);
+
+    // Бэкенд умеет парсить JSON или "a,b,c"
     formData.append("queries", JSON.stringify(queries));
+
     images.forEach((img) => {
       if (img.file) formData.append("images", img.file);
     });
 
     try {
-      await api.post("/api/products", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      setIsSaving(true);
+      // ВАЖНО: НЕ ставим вручную Content-Type — axios сам поставит boundary
+      await api.post("/api/products", formData);
       navigate("/admin/products");
     } catch (err) {
       console.error("Ошибка при сохранении позиции:", err);
-      alert("Ошибка при сохранении позиции: " + (err?.message || "unknown"));
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.details ||
+        err?.message ||
+        "unknown";
+      alert("Ошибка при сохранении позиции: " + msg);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -214,6 +232,7 @@ export default function AdminAddProductPage() {
               marginLeft: 0,
               transition: "background 0.18s, color 0.18s",
             }}
+            type="button"
           >
             <span style={{ fontSize: 20, marginRight: 6 }}>←</span> Назад
           </button>
@@ -238,8 +257,9 @@ export default function AdminAddProductPage() {
             <button
               type="submit"
               form="add-prod-form"
+              disabled={isSaving}
               style={{
-                background: "#2291ff",
+                background: isSaving ? "#78baff" : "#2291ff",
                 color: "#fff",
                 borderRadius: 10,
                 border: "none",
@@ -247,11 +267,12 @@ export default function AdminAddProductPage() {
                 padding: "10px 28px",
                 fontWeight: 800,
                 boxShadow: "0 2px 9px #2291ff13",
-                cursor: "pointer",
+                cursor: isSaving ? "not-allowed" : "pointer",
                 transition: "background 0.18s, color 0.18s",
+                opacity: isSaving ? 0.8 : 1,
               }}
             >
-              Сохранить позицию
+              {isSaving ? "Сохраняем..." : "Сохранить позицию"}
             </button>
           </div>
         </div>
@@ -346,6 +367,7 @@ export default function AdminAddProductPage() {
                 />
               </div>
             </div>
+
             <div>
               <label
                 style={{
@@ -358,10 +380,14 @@ export default function AdminAddProductPage() {
               >
                 Описание
               </label>
-              <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
+              <LocalEditor
+                value={description}
+                onChange={setDescription}
+                placeholder="Описание товара..."
+              />
             </div>
 
-            {/* БЛОК ХАРАКТЕРИСТИК */}
+            {/* Характеристики */}
             <div
               style={{
                 background: "#f8fbff",
@@ -399,7 +425,9 @@ export default function AdminAddProductPage() {
                 />
               </div>
               <div style={{ display: "flex", gap: 18, alignItems: "center", marginBottom: 10 }}>
-                <label style={{ width: 140, color: "#2a384d", fontWeight: 600 }}>Производитель</label>
+                <label style={{ width: 140, color: "#2a384d", fontWeight: 600 }}>
+                  Производитель
+                </label>
                 <input
                   value={charBrand}
                   onChange={(e) => setCharBrand(e.target.value)}
@@ -416,7 +444,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* БЛОК ПОИСКОВЫХ ЗАПРОСОВ */}
+            {/* Поисковые запросы */}
             <div
               style={{
                 background: "#f8faff",
@@ -430,7 +458,8 @@ export default function AdminAddProductPage() {
                 Поисковые запросы
               </div>
               <div style={{ color: "#6d85a7", fontSize: 14, marginBottom: 13 }}>
-                Здесь вы можете добавить фразы, по которым ваш товар будут искать на сайте.<br />
+                Добавляйте фразы, по которым товар будут искать на сайте.
+                <br />
                 Например: <b>накладка тормозная, тормозные колодки MAN, тормоз для грузовика</b>
                 <br />
                 Нажимайте <b>Enter</b> после каждого запроса.
@@ -461,7 +490,7 @@ export default function AdminAddProductPage() {
                       background: "#f2f6fb",
                       border: "1px solid #d2e8fa",
                       borderRadius: 18,
-                      padding: "5px 13px 5px 13px",
+                      padding: "5px 13px",
                       fontSize: 14,
                       color: "#1573bd",
                       fontWeight: 500,
@@ -489,7 +518,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* БЛОК ГАБАРИТОВ */}
+            {/* Габариты */}
             <div
               style={{
                 background: "#f8fbff",
@@ -503,7 +532,7 @@ export default function AdminAddProductPage() {
                 Габариты товара
               </div>
               <div style={{ color: "#7d91ac", fontSize: 14, marginBottom: 17 }}>
-                Укажите габариты (Не обязательно)
+                Укажите габариты (необязательно)
               </div>
               <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                 <input
@@ -569,7 +598,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* ===== БЛОК ГРУППА ТОВАРА ===== */}
+            {/* Группа товара */}
             <div
               style={{
                 background: "#f8faff",
@@ -606,7 +635,7 @@ export default function AdminAddProductPage() {
               </select>
             </div>
 
-            {/* ===== БЛОК ЦЕНА И НАЛИЧИЕ ===== */}
+            {/* Цена и наличие */}
             <div
               style={{
                 background: "#f8fbff",
@@ -731,6 +760,8 @@ export default function AdminAddProductPage() {
               </div>
             </div>
           </div>
+
+          {/* Боковая колонка: Фото */}
           <div
             style={{
               flex: 1,
@@ -745,7 +776,6 @@ export default function AdminAddProductPage() {
               boxSizing: "border-box",
             }}
           >
-            {/* Фото */}
             <div>
               <label
                 style={{
@@ -781,6 +811,7 @@ export default function AdminAddProductPage() {
                   style={{ display: "none" }}
                   id="product-images-input"
                 />
+
                 {/* Главное фото */}
                 <div
                   style={{
@@ -861,7 +892,8 @@ export default function AdminAddProductPage() {
                         Завантажте файл или добавьте скопійоване зображення
                       </div>
                       <div style={{ color: "#aac0dd", fontSize: 13, marginBottom: 3 }}>
-                        Форматы: JPG, GIF, PNG, WEBP.<br />
+                        Форматы: JPG, GIF, PNG, WEBP.
+                        <br />
                         Максимальный размер: 10 MB.
                       </div>
                       <div style={{ color: "#f87a46", fontSize: 13, marginTop: 3 }}>
@@ -870,6 +902,7 @@ export default function AdminAddProductPage() {
                     </div>
                   )}
                 </div>
+
                 {/* Сетка превью */}
                 <div
                   style={{
@@ -880,7 +913,6 @@ export default function AdminAddProductPage() {
                     minHeight: 160,
                   }}
                 >
-                  {/* Мини-фото (до 9) — С DRAG&DROP */}
                   {images.slice(1, 10).map((img, i) => (
                     <div
                       key={img.id}
@@ -939,7 +971,7 @@ export default function AdminAddProductPage() {
                       </button>
                     </div>
                   ))}
-                  {/* Пустые плюсы (БЕЗ drag&drop, только onClick) */}
+
                   {Array.from({
                     length: Math.max(0, 9 - Math.min(9, Math.max(0, images.length - 1))),
                   }).map((_, i) => (
@@ -959,7 +991,7 @@ export default function AdminAddProductPage() {
                         overflow: "hidden",
                         minHeight: 54,
                       }}
-                      onClick={() => inputFileRef.current.click()}
+                      onClick={() => inputFileRef.current?.click()}
                     >
                       <span style={{ color: "#aac0dd", fontSize: 28, fontWeight: 500 }}>+</span>
                     </div>
