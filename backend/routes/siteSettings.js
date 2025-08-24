@@ -1,3 +1,4 @@
+// backend/routes/siteSettings.js
 const express = require('express');
 const router = express.Router();
 const { SiteSettings } = require('../models/models');
@@ -88,7 +89,7 @@ function buildUpdateFromBody(body = {}) {
 /** GET /api/site-settings */
 router.get('/', async (req, res) => {
   try {
-    const tenantId = req.tenant._id;
+    const tenantId = req.tenant._id; // ⚡ ObjectId, НЕ строка
     const doc = await SiteSettings.findOneAndUpdate(
       { tenantId },
       { $setOnInsert: { tenantId } },
@@ -108,7 +109,7 @@ router.put('/', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Доступ запрещён' });
     }
 
-    const tenantId = req.tenant._id;
+    const tenantId = req.tenant._id; // ⚡ ObjectId
     const update = buildUpdateFromBody(req.body);
 
     const updated = await SiteSettings.findOneAndUpdate(
