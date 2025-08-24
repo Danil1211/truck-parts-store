@@ -59,7 +59,6 @@ function parseQueries(v) {
   return [];
 }
 
-// защищённый конвертер чисел
 function toNumber(v) {
   if (v === undefined || v === null || v === "") return undefined;
   const n = Number(v);
@@ -166,92 +165,107 @@ router.get("/:id", async (req, res) => {
 
 /* ================================ PROTECTED ================================ */
 
-router.post("/", authMiddleware, upload.array("images", 10), async (req, res) => {
-  try {
-    const uploadedImages = mapFilesToPublicPaths(req.files);
+router.post(
+  "/",
+  authMiddleware,
+  upload.fields([{ name: "images", maxCount: 10 }]),
+  async (req, res) => {
+    try {
+      console.log("REQ BODY:", req.body);
+      console.log("REQ FILES:", req.files);
 
-    // 🔥 безопасно достаём serverImages
-    let serverImages = [];
-    if (req.body) {
-      if (Array.isArray(req.body.serverImages)) {
-        serverImages = req.body.serverImages;
-      } else if (typeof req.body.serverImages === "string") {
-        try {
-          serverImages = JSON.parse(req.body.serverImages);
-        } catch {
-          serverImages = [req.body.serverImages];
+      const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
+
+      let serverImages = [];
+      if (req.body) {
+        if (Array.isArray(req.body.serverImages)) {
+          serverImages = req.body.serverImages;
+        } else if (typeof req.body.serverImages === "string") {
+          try {
+            serverImages = JSON.parse(req.body.serverImages);
+          } catch {
+            serverImages = [req.body.serverImages];
+          }
+        } else if (req.body["serverImages[]"]) {
+          serverImages = toArray(req.body["serverImages[]"]);
         }
-      } else if (req.body["serverImages[]"]) {
-        serverImages = toArray(req.body["serverImages[]"]);
       }
+
+      const productData = {
+        ...req.body,
+        price: toNumber(req.body.price),
+        stock: toNumber(req.body.stock),
+        width: toNumber(req.body.width),
+        height: toNumber(req.body.height),
+        length: toNumber(req.body.length),
+        weight: toNumber(req.body.weight),
+        queries: parseQueries(req.body.queries),
+        images: [...serverImages, ...uploadedImages],
+      };
+
+      const product = new Product(productData);
+      await product.save();
+      res.json(product);
+    } catch (err) {
+      console.error("create product error:", err);
+      res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
     }
-
-    const productData = {
-      ...req.body,
-      price: toNumber(req.body.price),
-      stock: toNumber(req.body.stock),
-      width: toNumber(req.body.width),
-      height: toNumber(req.body.height),
-      length: toNumber(req.body.length),
-      weight: toNumber(req.body.weight),
-      queries: parseQueries(req.body.queries),
-      images: [...serverImages, ...uploadedImages],
-    };
-
-    const product = new Product(productData);
-    await product.save();
-    res.json(product);
-  } catch (err) {
-    console.error("create product error:", err);
-    res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
   }
-});
+);
 
-router.patch("/:id", authMiddleware, upload.array("images", 10), async (req, res) => {
-  try {
-    const uploadedImages = mapFilesToPublicPaths(req.files);
+router.patch(
+  "/:id",
+  authMiddleware,
+  upload.fields([{ name: "images", maxCount: 10 }]),
+  async (req, res) => {
+    try {
+      console.log("REQ BODY:", req.body);
+      console.log("REQ FILES:", req.files);
 
-    let serverImages = [];
-    if (req.body) {
-      if (Array.isArray(req.body.serverImages)) {
-        serverImages = req.body.serverImages;
-      } else if (typeof req.body.serverImages === "string") {
-        try {
-          serverImages = JSON.parse(req.body.serverImages);
-        } catch {
-          serverImages = [req.body.serverImages];
+      const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
+
+      let serverImages = [];
+      if (req.body) {
+        if (Array.isArray(req.body.serverImages)) {
+          serverImages = req.body.serverImages;
+        } else if (typeof req.body.serverImages === "string") {
+          try {
+            serverImages = JSON.parse(req.body.serverImages);
+          } catch {
+            serverImages = [req.body.serverImages];
+          }
+        } else if (req.body["serverImages[]"]) {
+          serverImages = toArray(req.body["serverImages[]"]);
         }
-      } else if (req.body["serverImages[]"]) {
-        serverImages = toArray(req.body["serverImages[]"]);
       }
+
+      const update = {
+        ...req.body,
+        price: toNumber(req.body.price),
+        stock: toNumber(req.body.stock),
+        width: toNumber(req.body.width),
+        height: toNumber(req.body.height),
+        length: toNumber(req.body.length),
+        weight: toNumber(req.body.weight),
+        queries: parseQueries(req.body.queries),
+        images: [...serverImages, ...uploadedImages],
+        updatedAt: new Date(),
+      };
+
+      const product = await Product.findByIdAndUpdate(
+        req.params.id,
+        { $set: update },
+        { new: true }
+      );
+
+      if (!product) return res.status(404).json({ error: "Товар не найден" });
+      res.json(product);
+    } catch (err) {
+      console.error("update product error:", err);
+      res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
     }
-
-    const update = {
-      ...req.body,
-      price: toNumber(req.body.price),
-      stock: toNumber(req.body.stock),
-      width: toNumber(req.body.width),
-      height: toNumber(req.body.height),
-      length: toNumber(req.body.length),
-      weight: toNumber(req.body.weight),
-      queries: parseQueries(req.body.queries),
-      images: [...serverImages, ...uploadedImages],
-      updatedAt: new Date(),
-    };
-
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { $set: update },
-      { new: true }
-    );
-
-    if (!product) return res.status(404).json({ error: "Товар не найден" });
-    res.json(product);
-  } catch (err) {
-    console.error("update product error:", err);
-    res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
   }
-});
+);
 
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
