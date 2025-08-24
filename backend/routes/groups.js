@@ -19,7 +19,7 @@ function buildTree(groups, parentId = null) {
 router.get('/', async (req, res, next) => {
   try {
     const { q, parentId } = req.query;
-    const filter = { tenantId: String(req.tenant.id) };
+    const filter = { tenantId: req.tenantId };
 
     if (parentId === 'null' || parentId === null) {
       filter.parentId = null;
@@ -29,10 +29,7 @@ router.get('/', async (req, res, next) => {
 
     if (q) filter.name = { $regex: q, $options: 'i' };
 
-    const list = await Group.find(filter)
-      .sort({ order: 1, name: 1 })
-      .lean();
-
+    const list = await Group.find(filter).sort({ order: 1, name: 1 }).lean();
     res.json(list);
   } catch (e) { next(e); }
 });
@@ -40,7 +37,7 @@ router.get('/', async (req, res, next) => {
 // GET /api/groups/tree
 router.get('/tree', async (req, res, next) => {
   try {
-    const list = await Group.find({ tenantId: String(req.tenant.id) })
+    const list = await Group.find({ tenantId: req.tenantId })
       .sort({ order: 1, name: 1 })
       .lean();
 
@@ -57,7 +54,7 @@ router.post('/', async (req, res, next) => {
       description: req.body.description || '',
       parentId: req.body.parentId || null,
       order: Number(req.body.order) || 0,
-      tenantId: String(req.tenant.id),   // ✅ фикс
+      tenantId: req.tenantId, // ✅ фикс
     };
 
     const doc = new Group(payload);
@@ -88,7 +85,7 @@ router.put('/:id', async (req, res, next) => {
     };
 
     const updated = await Group.findOneAndUpdate(
-      { _id: id, tenantId: String(req.tenant.id) },
+      { _id: id, tenantId: req.tenantId }, // ✅ фикс
       fields,
       { new: true }
     ).lean();
@@ -110,13 +107,13 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const child = await Group.findOne({ tenantId: String(req.tenant.id), parentId: id }).lean();
+    const child = await Group.findOne({ tenantId: req.tenantId, parentId: id }).lean();
     if (child) return res.status(400).json({ error: 'Нельзя удалить группу с подгруппами' });
 
-    const product = await Product.findOne({ tenantId: String(req.tenant.id), group: id }).lean();
+    const product = await Product.findOne({ tenantId: req.tenantId, group: id }).lean();
     if (product) return res.status(400).json({ error: 'Нельзя удалить: есть товары в группе' });
 
-    await Group.deleteOne({ _id: id, tenantId: String(req.tenant.id) });
+    await Group.deleteOne({ _id: id, tenantId: req.tenantId });
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
@@ -127,7 +124,7 @@ router.patch('/reorder', async (req, res, next) => {
     const items = Array.isArray(req.body) ? req.body : [];
     const bulk = items.map(it => ({
       updateOne: {
-        filter: { _id: it._id, tenantId: String(req.tenant.id) },
+        filter: { _id: it._id, tenantId: req.tenantId },
         update: { $set: { order: Number(it.order) || 0, updatedAt: new Date() } },
       },
     }));
