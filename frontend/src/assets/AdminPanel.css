@@ -600,3 +600,108 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .orders-search-compact{ width: 260px; }
   .products-header-left .products-search-compact{ width:260px; flex:0 0 260px; }
 }
+
+/* ===================== PRODUCTS GRID — FIX (append-only) ===================== */
+/* Лочим сетку заголовка */
+.products-page .products-grid-header{
+  display: grid !important;
+  grid-template-columns:
+    80px
+    minmax(220px, 2.2fr)
+    minmax(140px, 1.2fr)
+    minmax(120px, 1fr)
+    minmax(160px, 1.4fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.9fr)
+    minmax(140px, 1.1fr) !important;
+  gap: 14px !important;
+  padding: 0 14px 10px !important;
+  margin: 0 -14px 12px !important;
+  border-bottom: 1.5px solid #e7effa !important;
+  background: #fff !important;
+}
+
+/* Лочим сетку строк (чтобы не перетиралась старым flex/блоком) */
+.products-page .product-row{
+  display: grid !important;
+  grid-template-columns:
+    80px
+    minmax(220px, 2.2fr)
+    minmax(140px, 1.2fr)
+    minmax(120px, 1fr)
+    minmax(160px, 1.4fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.9fr)
+    minmax(140px, 1.1fr) !important;
+  align-items: center !important;
+  gap: 14px !important;
+  background: #f9fbfd !important;
+  border-radius: 14px !important;
+  padding: 14px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+.products-page .product-row > *{ min-width:0 !important; }
+
+/* Ячейки и мелочи, чтобы всё выглядело ровно */
+.products-page .cell-actions{ justify-self: end !important; }
+.products-page .cell-orders{ text-align: center !important; }
+.products-page .product-price{ white-space: nowrap !important; }
+.products-page .product-date{ white-space: nowrap !important; }
+.products-page .product-sku{ white-space: nowrap !important; }
+
+/* Фото маленькое */
+.products-page .product-photo{
+  width:72px !important; height:72px !important; object-fit:cover !important;
+  border-radius:12px; background:#e9f3fa;
+}
+
+/* Название — строго 1–2 строки; ниже группа */
+.products-page .product-link.two-lines{
+  display:-webkit-box !important;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; text-overflow:ellipsis; line-height:1.25;
+  font-weight:600; font-size:15px; color:#117fff; text-decoration:none;
+}
+.products-page .product-group{
+  margin-top:4px; font-size:13px; color:#64748b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* Наличие + Опубликован/Скрытый */
+.products-page .cell-state{ display:flex !important; flex-direction:column !important; gap:6px !important; }
+.products-page .avail{ font-weight:700; font-size:14px; }
+.products-page .avail.published{ color:#24c471; }
+.products-page .avail.order{ color:#ef9c19; }
+.products-page .avail.out{ color:#e12a2a; }
+.products-page .pub{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 8px; border-radius:999px; font-size:12.5px; font-weight:600;
+  width:fit-content; border:1px solid transparent;
+}
+.products-page .pub.on{ background:#e9f9f0; color:#15803d; border-color:#b7f0cc; }
+.products-page .pub.off{ background:#f2f4f7; color:#475569; border-color:#e2e8f0; }
+
+/* Бейдж заказов */
+.products-page .orders-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:38px; height:28px; padding:0 10px;
+  border-radius:999px; font-weight:700; font-size:13.5px;
+  background:#eef5ff; color:#0b5ed7; border:1px solid #d7e6ff;
+}
+
+/* Чтобы адаптив не ломал сетку, если есть старые медиа-правила */
+@media (max-width: 900px){
+  .products-page .products-grid-header{
+    grid-template-columns: 80px 2fr 1fr 1fr 1.4fr !important;
+  }
+  .products-page .product-row{
+    grid-template-columns: 80px 2fr 1fr 1fr 1.4fr !important;
+  }
+  .products-page .products-grid-header > :nth-child(6),
+  .products-page .products-grid-header > :nth-child(7),
+  .products-page .products-grid-header > :nth-child(8),
+  .products-page .product-row > .cell-price,
+  .products-page .product-row > .cell-orders,
+  .products-page .product-row > .cell-actions{ display:none !important; }
+}
