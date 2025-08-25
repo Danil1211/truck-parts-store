@@ -336,7 +336,8 @@ export default function AdminOrdersPage() {
             onClick={() => navigate("/admin/orders/create")}
             title="Создать заказ"
           >
-            <span style={{ fontSize: 18, marginRight: 8 }}>＋</span> Создать заказ
+            <span className="plus-icon">＋</span>
+            Создать заказ
           </button>
         </div>
       </div>

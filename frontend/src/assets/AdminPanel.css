@@ -361,8 +361,53 @@
 .products-count{ color:#2291ff; font-size:21px; font-weight:400; margin-left:6px; }
 .products-search{ padding:9px 15px; border-radius:10px; border:1.5px solid #e4e8ee; background:#f8fbff; font-size:15px; min-width:200px; }
 .products-search:focus{ border-color: var(--primary); background:#fff; }
-.btn-primary{ background:#2291ff; color:#fff; font-weight:500; font-size:15px; border:none; border-radius:10px; padding:11px 21px; box-shadow:0 2px 10px #2291ff18; cursor:pointer; transition: transform .03s, box-shadow .15s, opacity .15s; }
-.btn-primary:active{ transform: translateY(1px); }
+/* === Apple-style primary button === */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  background: linear-gradient(180deg, #2da8ff, #007aff);
+  color: #fff;
+
+  font-weight: 600;
+  font-size: 15px;
+  padding: 10px 20px;
+
+  border: none;
+  border-radius: 14px;
+
+  box-shadow: 0 4px 12px rgba(0,122,255,0.25),
+              0 1px 2px rgba(0,0,0,0.08);
+
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, #4db8ff, #0071e3);
+  box-shadow: 0 6px 16px rgba(0,122,255,0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 3px 8px rgba(0,122,255,0.3);
+}
+
+/* иконка “+” в кружке */
+.btn-primary .plus-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+}
 .add-btn{ margin-left:auto; white-space:nowrap; }
 
 .filters{ position:relative; }
