@@ -1,8 +1,9 @@
+// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
-import "../assets/AdminPanel.css";
-import api from "../utils/api.js";
+import "./assets/AdminPanel.css";
+import api from "./utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
@@ -10,10 +11,12 @@ export default function AdminProductsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [selected, setSelected] = useState("list");
+
   const [search, setSearch] = useState("");
   const [group, setGroup] = useState("all");
   const [status, setStatus] = useState("");
   const [noPhoto, setNoPhoto] = useState(false);
+
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterRef = useRef(null);
 
@@ -83,10 +86,7 @@ export default function AdminProductsPage() {
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
     if (
       search &&
-      !(
-        p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        (p.sku && p.sku.includes(search))
-      )
+      !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))
     )
       return false;
     if (status && p.availability !== status) return false;
@@ -106,7 +106,7 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="filters" ref={filterRef}>
-                <button className="filters-toggle" onClick={() => setFiltersOpen(v => !v)}>
+                <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
                   Фильтры
                 </button>
 
@@ -119,7 +119,9 @@ export default function AdminProductsPage() {
                     >
                       <option value="all">Все группы</option>
                       {groups.map((g) => (
-                        <option key={g._id} value={g._id}>{g.name}</option>
+                        <option key={g._id} value={g._id}>
+                          {g.name}
+                        </option>
                       ))}
                     </select>
 
@@ -158,7 +160,10 @@ export default function AdminProductsPage() {
                 className="products-search"
               />
 
-              <button className="btn-primary add-btn" onClick={() => navigate("/admin/products/create")}>
+              <button
+                className="btn-primary add-btn"
+                onClick={() => navigate("/admin/products/create")}
+              >
                 + Добавить позицию
               </button>
             </div>
@@ -198,19 +203,15 @@ function ProductList({ products, onEdit, onDelete }) {
 }
 
 function ProductRow({ product, onEdit, onDelete }) {
-  const [actionsOpen, setActionsOpen] = React.useState(false);
-  const actionsRef = React.useRef(null);
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
 
   useEffect(() => {
-    if (!actionsOpen) return;
-    function handleClick(e) {
-      if (actionsRef.current && !actionsRef.current.contains(e.target)) {
-        setActionsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [actionsOpen]);
+    if (!open) return;
+    const onDoc = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
 
   const photoUrl =
     product.images && product.images.length
@@ -222,7 +223,7 @@ function ProductRow({ product, onEdit, onDelete }) {
   return (
     <div className="product-row">
       <div>
-        <img src={photoUrl} alt={product.name} className="product-photo" />
+        <img className="product-photo" src={photoUrl} alt={product.name} />
       </div>
 
       <div>
@@ -247,13 +248,14 @@ function ProductRow({ product, onEdit, onDelete }) {
 
       <div>
         <span
-          className={`avail ${
-            product.availability === "published"
+          className={
+            "avail " +
+            (product.availability === "published"
               ? "published"
               : product.availability === "order"
               ? "order"
-              : "out"
-          }`}
+              : "out")
+          }
         >
           {product.availability === "published"
             ? "В наличии"
@@ -266,30 +268,17 @@ function ProductRow({ product, onEdit, onDelete }) {
       <div className="product-right">
         <span className="product-price">{product.price} ₴</span>
 
-        <div className="actions" ref={actionsRef}>
-          <button className="actions-toggle" onClick={() => setActionsOpen(v => !v)}>
-            Действия <span>▼</span>
+        <div className="actions" ref={ref}>
+          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
+            Действия <span style={{ fontSize: 13 }}>▼</span>
           </button>
 
-          {actionsOpen && (
+          {open && (
             <div className="actions-menu">
-              <button
-                className="actions-item edit"
-                onClick={() => {
-                  setActionsOpen(false);
-                  onEdit(product._id);
-                }}
-              >
+              <button className="actions-item edit" onClick={() => onEdit(product._id)}>
                 Редактировать
               </button>
-
-              <button
-                className="actions-item delete"
-                onClick={() => {
-                  setActionsOpen(false);
-                  onDelete(product._id);
-                }}
-              >
+              <button className="actions-item delete" onClick={() => onDelete(product._id)}>
                 Удалить
               </button>
             </div>
