@@ -1,7 +1,7 @@
-// src/admin/AdminOrdersPage.jsx
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import AdminSubMenu from './AdminSubMenu';
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import AdminSubMenu from "./AdminSubMenu";
 import api from "../utils/api.js";
 
 const ORDER_STATUSES = [
@@ -24,7 +24,7 @@ const cancelReasonsList = [
   "Оплата не поступила",
   "По просьбе покупателя",
   "Заказ дубликат",
-  "Не получилось дозвонится"
+  "Не получилось дозвониться",
 ];
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
@@ -36,15 +36,15 @@ function StatusDropdown({ status, onChange }) {
   return (
     <div className="status-dd">
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         className="status-dd-btn"
         style={{
           background: color.bg,
           color: color.text,
-          borderColor: color.border
+          borderColor: color.border,
         }}
       >
-        {ORDER_STATUSES.find(s => s.key === status)?.label || "Статус"}
+        {ORDER_STATUSES.find((s) => s.key === status)?.label || "Статус"}
         <span className="status-dd-arrow">{open ? "▲" : "▼"}</span>
       </button>
 
@@ -99,12 +99,14 @@ function Pagination({ page, totalPages, setPage, limit, setLimit }) {
             {n}
           </button>
         ) : (
-          <span key={idx} className="pager-gap">{n}</span>
+          <span key={idx} className="pager-gap">
+            {n}
+          </span>
         )
       )}
       <button
         className="pager-btn next"
-        onClick={() => setPage(p => Math.min(p + 1, totalPages))}
+        onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
         disabled={page === totalPages}
       >
         Наступна →
@@ -113,12 +115,17 @@ function Pagination({ page, totalPages, setPage, limit, setLimit }) {
       <div className="pager-limit">
         <select
           value={limit}
-          onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
+          onChange={(e) => {
+            setLimit(Number(e.target.value));
+            setPage(1);
+          }}
           className="pager-select"
         >
-          {PAGE_LIMITS.map(v =>
-            <option key={v} value={v}>по {v} позиций</option>
-          )}
+          {PAGE_LIMITS.map((v) => (
+            <option key={v} value={v}>
+              по {v} позиций
+            </option>
+          ))}
         </select>
       </div>
     </div>
@@ -127,10 +134,8 @@ function Pagination({ page, totalPages, setPage, limit, setLimit }) {
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // <-- фикс: по умолчанию "all"
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [error, setError] = useState("");
+  const [sortOrder, setSortOrder] = useState("desc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
@@ -139,29 +144,42 @@ export default function AdminOrdersPage() {
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState(null);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReason, setCancelReason] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
+
+  const [searchParams] = useSearchParams();
+  const statusFilter = searchParams.get("status") || "all";
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setError('');
+      setError("");
       try {
-        const { data } = await api.get('/api/orders/admin', {
-          params: { search, status: statusFilter, sort: sortOrder, page, limit }
+        const { data } = await api.get("/api/orders/admin", {
+          params: { status: statusFilter, sort: sortOrder, page, limit },
         });
         const list = Array.isArray(data.orders) ? data.orders : data;
-        const totalCount = data.total ?? (Array.isArray(data.orders) ? data.orders.length : (Array.isArray(data) ? data.length : 0));
+        const totalCount =
+          data.total ??
+          (Array.isArray(data.orders)
+            ? data.orders.length
+            : Array.isArray(data)
+            ? data.length
+            : 0);
         setOrders(list);
         setTotal(totalCount || 0);
       } catch (err) {
-        console.error('Orders load error:', err);
-        setError(err?.response?.data?.error || err?.message || 'Ошибка загрузки заказов');
+        console.error("Orders load error:", err);
+        setError(
+          err?.response?.data?.error ||
+            err?.message ||
+            "Ошибка загрузки заказов"
+        );
       } finally {
         setLoading(false);
       }
     })();
-  }, [search, statusFilter, sortOrder, page, limit]);
+  }, [statusFilter, sortOrder, page, limit]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -170,18 +188,16 @@ export default function AdminOrdersPage() {
       setShowCancelModal(true);
       setCancelOrderId(orderId);
       setPendingStatusChange(newStatus);
-      setCancelReason('');
+      setCancelReason("");
       return;
     }
     try {
       await api.put(`/api/orders/${orderId}/status`, { status: newStatus });
-      setOrders(orders =>
-        orders.map(o =>
-          o._id === orderId ? { ...o, status: newStatus } : o
-        )
+      setOrders((orders) =>
+        orders.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
       );
     } catch (e) {
-      console.error('Update status failed:', e);
+      console.error("Update status failed:", e);
       alert("Ошибка обновления статуса");
     }
   };
@@ -189,20 +205,22 @@ export default function AdminOrdersPage() {
   const handleCancelOrder = async () => {
     if (!cancelOrderId || !cancelReason) return;
     try {
-      await api.put(`/api/orders/${cancelOrderId}/cancel`, { reason: cancelReason });
-      setOrders(orders =>
-        orders.map(o =>
+      await api.put(`/api/orders/${cancelOrderId}/cancel`, {
+        reason: cancelReason,
+      });
+      setOrders((orders) =>
+        orders.map((o) =>
           o._id === cancelOrderId
             ? { ...o, status: "cancelled", cancelReason }
             : o
         )
       );
       setShowCancelModal(false);
-      setCancelReason('');
+      setCancelReason("");
       setCancelOrderId(null);
       setPendingStatusChange(null);
     } catch (e) {
-      console.error('Cancel order failed:', e);
+      console.error("Cancel order failed:", e);
       alert("Ошибка отмены заказа");
     }
   };
@@ -211,47 +229,58 @@ export default function AdminOrdersPage() {
     const item = order.items && order.items[0];
     const firstImg = item?.product?.images?.[0];
     let img = firstImg
-      ? (firstImg.startsWith("http") ? firstImg : `${BASE_URL}${firstImg}`)
+      ? firstImg.startsWith("http")
+        ? firstImg
+        : `${BASE_URL}${firstImg}`
       : "/images/no-image.png";
 
-    const handleImgError = e => { e.target.src = "/images/no-image.png"; };
+    const handleImgError = (e) => {
+      e.target.src = "/images/no-image.png";
+    };
 
     return (
       <div className="order-card">
-        <img
-          src={img}
-          alt="Товар"
-          className="order-img"
-          onError={handleImgError}
-        />
+        <img src={img} alt="Товар" className="order-img" onError={handleImgError} />
 
         <div className="order-info">
           <div className="order-number">№ {order._id.slice(-6)}</div>
           <div className="order-date">
-            {new Date(order.createdAt).toLocaleString('ru-RU')}
+            {new Date(order.createdAt).toLocaleString("ru-RU")}
           </div>
           <div className="order-title">
-            {item?.product?.name || 'Товар'} ×{order.items.reduce((s,i)=>s+i.quantity,0)} шт.
+            {item?.product?.name || "Товар"} ×
+            {order.items.reduce((s, i) => s + i.quantity, 0)} шт.
           </div>
         </div>
 
         <div className="order-total">{order.totalPrice} ₴</div>
 
         <div className="order-shipping">
-          📦 Новая Почта<br />
-          <span className="order-shipping-highlight">{order.novaPoshta || "—"}</span><br />
-          <span className="order-shipping-highlight">{order.address || "—"}</span><br />
-          <span className={`order-pay ${order.paymentMethod === 'cod' ? 'cod' : 'card'}`}>
-            {order.paymentMethod === 'cod' ? 'Наложка' : 'Карта'}
+          📦 Новая Почта
+          <br />
+          <span className="order-shipping-highlight">
+            {order.novaPoshta || "—"}
+          </span>
+          <br />
+          <span className="order-shipping-highlight">
+            {order.address || "—"}
+          </span>
+          <br />
+          <span
+            className={`order-pay ${
+              order.paymentMethod === "cod" ? "cod" : "card"
+            }`}
+          >
+            {order.paymentMethod === "cod" ? "Наложка" : "Карта"}
           </span>
         </div>
 
         <div className="order-status">
           <StatusDropdown
             status={order.status}
-            onChange={newStatus => handleStatusChange(order._id, newStatus)}
+            onChange={(newStatus) => handleStatusChange(order._id, newStatus)}
           />
-          {order.status === 'cancelled' && order.cancelReason && (
+          {order.status === "cancelled" && order.cancelReason && (
             <div className="order-cancel-reason">
               Причина: {order.cancelReason}
             </div>
@@ -263,18 +292,13 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="orders-page">
-      <AdminSubMenu
-        type="orders"
-        title="Управление заказами"
-        activeKey={statusFilter}
-        onSelect={key => { setStatusFilter(key); setPage(1); }}
-      />
+      <AdminSubMenu type="orders" activeKey={statusFilter} />
 
       <div className="orders-content">
         <div className="orders-filters">
           <select
             value={sortOrder}
-            onChange={e => setSortOrder(e.target.value)}
+            onChange={(e) => setSortOrder(e.target.value)}
             className="orders-select"
           >
             <option value="desc">Сначала новые</option>
@@ -284,8 +308,8 @@ export default function AdminOrdersPage() {
           <input
             type="text"
             placeholder="Поиск..."
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            value={""}
+            onChange={() => {}}
             className="orders-search"
           />
         </div>
@@ -297,7 +321,7 @@ export default function AdminOrdersPage() {
         ) : orders.length === 0 ? (
           <div className="orders-empty">Нет заказов</div>
         ) : (
-          orders.map(order => <OrderCard key={order._id} order={order} />)
+          orders.map((order) => <OrderCard key={order._id} order={order} />)
         )}
 
         <Pagination
@@ -310,22 +334,34 @@ export default function AdminOrdersPage() {
       </div>
 
       {showCancelModal && (
-        <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowCancelModal(false)}>×</button>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowCancelModal(false)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="modal-close"
+              onClick={() => setShowCancelModal(false)}
+            >
+              ×
+            </button>
             <div className="modal-title">Изменение статуса</div>
             <select
               value={cancelReason}
-              onChange={e => setCancelReason(e.target.value)}
+              onChange={(e) => setCancelReason(e.target.value)}
               className="modal-select"
             >
               <option value="">Выберите причину...</option>
-              {cancelReasonsList.map(r => <option key={r} value={r}>{r}</option>)}
+              {cancelReasonsList.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </select>
             <button
               onClick={handleCancelOrder}
               disabled={!cancelReason}
-              className={`modal-danger ${!cancelReason ? 'is-disabled' : ''}`}
+              className={`modal-danger ${!cancelReason ? "is-disabled" : ""}`}
             >
               Отменить заказ
             </button>
