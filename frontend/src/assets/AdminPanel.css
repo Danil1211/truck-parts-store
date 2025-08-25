@@ -253,11 +253,13 @@
   padding: 0 0 38px 0;
 }
 
-/* фиксированная шапка контента, без зазора от topbar */
 .orders-header {
   position: fixed;
   top: var(--topbar-h);
-  left: var(--sidebar-w); /* без submenu — начинаем сразу после левого меню */
+
+  /* учитываем sidebar + submenu */
+  left: calc(var(--sidebar-w) + var(--submenu-w));
+
   right: 0;
   height: 64px;
 
@@ -272,7 +274,7 @@
   border-bottom: 1px solid rgba(0,0,0,.06);
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
 
-  border-radius: 0; /* убрали скругления */
+  border-radius: 0;
   z-index: 130;
 }
 /* адаптация, когда правое меню скрыто */
