@@ -80,14 +80,23 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Фильтрация
   const filtered = products.filter((p) => {
-    if (noPhoto && (!p.images || !p.images.length)) return false;
+    // Показать только БЕЗ фото, если чекбокс включён
+    if (noPhoto && (p.images && p.images.length)) return false;
+
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
+
     if (
       search &&
-      !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))
-    )
+      !(
+        p.name?.toLowerCase().includes(search.toLowerCase()) ||
+        (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
+      )
+    ) {
       return false;
+    }
+
     if (status && p.availability !== status) return false;
     return true;
   });
@@ -140,7 +149,7 @@ export default function AdminProductsPage() {
                     checked={noPhoto}
                     onChange={(e) => setNoPhoto(e.target.checked)}
                   />
-                  Без фото
+                  Только без фото
                 </label>
 
                 <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
@@ -150,7 +159,7 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* Поиск ОБЯЗАТЕЛЬНО сразу после «Фильтры» */}
+          {/* Поиск сразу после «Фильтры» */}
           <input
             type="text"
             placeholder="Поиск…"
@@ -194,11 +203,12 @@ function ProductList({ products, onEdit, onDelete }) {
     <div>
       <div className="products-grid-header">
         <div>Фото</div>
-        <div>Название</div>
+        <div>Название / Группа</div>
         <div>Дата</div>
         <div>Код</div>
-        <div>Наличие</div>
+        <div>Наличие / Отображение</div>
         <div>Цена</div>
+        <div>Заказы</div>
         <div>Действия</div>
       </div>
 
@@ -225,20 +235,44 @@ function ProductRow({ product, onEdit, onDelete }) {
       ? product.images[0].startsWith("http")
         ? product.images[0]
         : `${BASE_URL}${product.images[0]}`
-      : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
+      : "https://dummyimage.com/140x140/eeeeee/222.png&text=Нет+фото";
+
+  // Показатель "Опубликован / Скрытый" — подстрахуемся под разные поля
+  const isPublished =
+    typeof product.isPublished === "boolean"
+      ? product.isPublished
+      : typeof product.published === "boolean"
+      ? product.published
+      : product.visibility
+      ? product.visibility === "published"
+      : true;
+
+  const availability = product.availability || ""; // 'published' | 'order' | 'out'
+  const availabilityLabel =
+    availability === "published" ? "В наличии" : availability === "order" ? "Под заказ" : "Нет на складе";
+
+  const ordersCount =
+    product.ordersCount ??
+    product.orderCount ??
+    (product.stats && product.stats.orders) ??
+    0;
 
   return (
     <div className="product-row">
+      {/* Фото */}
       <div className="cell-photo">
-        <img className="product-photo" src={photoUrl} alt={product.name} />
+        <img className="product-photo" src={photoUrl} alt={product.name || "Фото"} />
       </div>
 
+      {/* Название + Группа (компактно, название в 1–2 строки) */}
       <div className="cell-name">
-        <Link to={`/admin/products/${product._id}/edit`} className="product-link">
+        <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
         </Link>
+        <div className="product-group">{product.group?.name || "—"}</div>
       </div>
 
+      {/* Дата (мелким) */}
       <div className="cell-date product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleString("ru-RU", {
@@ -251,31 +285,35 @@ function ProductRow({ product, onEdit, onDelete }) {
           : "—"}
       </div>
 
+      {/* Код (SKU) */}
       <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
-      <div className="cell-avail">
+      {/* Наличие + (ниже) Опубликован/Скрытый */}
+      <div className="cell-state">
         <span
           className={
             "avail " +
-            (product.availability === "published"
-              ? "published"
-              : product.availability === "order"
-              ? "order"
-              : "out")
+            (availability === "published" ? "published" : availability === "order" ? "order" : "out")
           }
         >
-          {product.availability === "published"
-            ? "В наличии"
-            : product.availability === "order"
-            ? "Под заказ"
-            : "Нет на складе"}
+          {availabilityLabel}
+        </span>
+        <span className={"pub " + (isPublished ? "on" : "off")}>
+          {isPublished ? "Опубликован" : "Скрытый"}
         </span>
       </div>
 
+      {/* Цена */}
       <div className="cell-price">
-        <span className="product-price">{product.price} ₴</span>
+        <span className="product-price">{Number(product.price || 0).toLocaleString("uk-UA")} ₴</span>
       </div>
 
+      {/* Заказы (счётчик) */}
+      <div className="cell-orders">
+        <span className="orders-badge">{ordersCount}</span>
+      </div>
+
+      {/* Действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
           <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>

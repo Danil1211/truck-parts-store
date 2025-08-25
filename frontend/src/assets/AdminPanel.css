@@ -37,7 +37,9 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
 
+/* небольшая анимация появления */
 @keyframes fadein {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: none; }
@@ -339,7 +341,7 @@
 
   display:flex;
   align-items:center;
-  justify-content:flex-start;   /* важно: всё слева, кнопка справа */
+  justify-content:flex-start;   /* всё слева, кнопка справа */
   gap:16px;
   padding:0 20px;
 
@@ -367,9 +369,9 @@
 }
 .products-count{ color:#007aff; font-weight:400; }
 
-/* Кнопка «Добавить товар» как в заказах */
+/* Кнопка «Добавить товар» */
 .products-header-right .btn-primary{
-  height: 40px;          /* одинаково с заказами */
+  height: 40px;
   padding: 0 16px;
   border-radius: 10px;
   display: inline-flex;
@@ -378,14 +380,13 @@
   font-size: 14px;
 }
 
-
 /* Поиск сразу после «Фильтры» — как в заказах */
 .products-header-left .products-search-compact{
   height: 38px;
   line-height: 38px;
   padding: 0 14px 0 34px;
 
-  width: 280px;                /* как в заказах */
+  width: 280px;
   max-width: 45vw;
   flex: 0 0 280px;
 
@@ -443,63 +444,20 @@
   padding:16px 20px 24px; min-height:280px;
 }
 
-/* таблица товаров */
-.products-grid-header{
-  position: sticky; top: 0; z-index: 2;
-  display:grid; grid-template-columns: 94px 1.7fr 1.2fr 1fr 1fr 1.2fr;
-  gap:13px; padding:0 12px 7px; margin:0 -12px 8px;
-  font-weight:500; font-size:14px; color:#7a91aa;
-  border-bottom:1.5px solid #e7effa; background:#fff;
-}
-.product-row{
-  display:grid; grid-template-columns: 94px 1.7fr 1.2fr 1fr 1fr 1.2fr;
-  gap:13px; align-items:center; background:#f7fbff; border-radius:12px; margin-bottom:10px; padding:12px 12px;
-  font-size:15px; font-weight:400; box-shadow:0 1px 6px #2291ff0a; transition:background .15s, box-shadow .15s;
-}
-.product-row:hover{ background: rgba(0,0,0,.035); box-shadow: inset 0 0 0 1px rgba(0,0,0,.02), 0 1px 10px #2291ff12; }
-.product-photo{ width:84px; height:84px; object-fit:cover; border-radius:14px; background:#e9f3fa; box-shadow:0 3px 8px #1a90ff11; }
-.product-link{ font-weight:600; font-size:15px; color:#2291ff; text-decoration:none; transition:color .18s; }
-.product-link:hover{ color:#0b5ed7; }
-.product-date{ color:#93a1b5; font-size:13px; }
-.product-sku{ font-weight:600; color:#2291ff; font-size:15px; }
-.avail{ font-weight:600; }
-.avail.published{ color:#24c471; } .avail.order{ color:#ef9c19; } .avail.out{ color:#e12a2a; }
-.product-right{ display:flex; align-items:center; gap:12px; min-width:0; }
-.product-price{ font-weight:600; font-size:15px; color:#252525; }
-
-.actions{ position:relative; }
-.actions-toggle{ background:#eaf4ff; color:#2291ff; border:none; border-radius:10px; padding:6px 13px; font-weight:500; font-size:14px; cursor:pointer; min-width:0; box-shadow:0 2px 8px #2291ff13; }
-.actions-menu{ position:absolute; top:38px; right:0; background:#fff; box-shadow:0 8px 30px #2291ff17; border-radius:9px; border:1px solid #e3f1ff; padding:4px 0; z-index:100; min-width:160px; display:flex; flex-direction:column; }
-.actions-item{ background:none; border:none; padding:8px 14px; text-align:left; font-weight:500; font-size:14px; cursor:pointer; width:100%; transition: background .13s; }
-.actions-item:last-child{ border-bottom:0; }
-.actions-item.edit{ color:#157ce8; } .actions-item.delete{ color:#e84242; }
-.actions-item:hover{ background:#f6f9ff; }
-
-/* 9) Медиа */
-@media (max-width: 1100px){
-  .admin-nav-menu{ display:none; }
-  .admin-content.with-submenu{ padding-left: var(--sidebar-w); }
-  .products-header{ left: var(--sidebar-w); }
-}
-@media (max-width: 780px){
-  .admin-content{ min-width:0 !important; }
-  .orders-search-compact{ width: 260px; }
-  .products-header-left .products-search-compact{ width:260px; flex:0 0 260px; }
-}
-
-
-/* === Products list — финальная сетка с именованными областями === */
+/* === Products list — финальная сетка === */
 
 .products-grid-header{
   position: sticky; top: 0; z-index: 2;
   display: grid;
   grid-template-columns:
-    94px
-    minmax(220px, 2fr)
-    minmax(160px, 1.2fr)
-    minmax(110px, 1fr)
-    minmax(120px, 1fr)
-    minmax(180px, 1.2fr);
+    80px                        /* фото */
+    minmax(220px, 2.2fr)        /* название + группа */
+    minmax(140px, 1.2fr)        /* дата */
+    minmax(120px, 1fr)          /* код */
+    minmax(160px, 1.4fr)        /* наличие + опубликован/скрытый */
+    minmax(120px, 1fr)          /* цена */
+    minmax(100px, 0.9fr)        /* заказы */
+    minmax(140px, 1.1fr);       /* действия */
   gap: 14px;
   padding: 0 14px 10px;
   margin: 0 -14px 12px;
@@ -512,13 +470,14 @@
 .product-row{
   display: grid;
   grid-template-columns:
-    94px
-    minmax(220px, 2fr)
-    minmax(160px, 1.2fr)
-    minmax(110px, 1fr)
+    80px
+    minmax(220px, 2.2fr)
+    minmax(140px, 1.2fr)
     minmax(120px, 1fr)
-    minmax(180px, 1.2fr);
-  grid-template-areas: "photo name date sku avail price";
+    minmax(160px, 1.4fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.9fr)
+    minmax(140px, 1.1fr);
   align-items: center;
   gap: 14px;
 
@@ -530,50 +489,76 @@
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05);
   transition: all .18s;
 }
-
-/* очень важно, чтобы ячейки могли сжиматься и не ломали сетку */
-.product-row > * { min-width: 0; }
+.product-row > * { min-width: 0; } /* чтобы ячейки сжимались */
 
 .product-row:hover{
   background: #fff;
   box-shadow: 0 4px 12px rgba(17,127,255,0.12);
 }
 
-/* Привязка ячеек к областям */
-.cell-photo{ grid-area: photo; }
-.cell-name{ grid-area: name; }
-.cell-date{ grid-area: date; }
-.cell-sku{ grid-area: sku; }
-.cell-avail{ grid-area: avail; }
-.cell-price{ grid-area: price; }
-
 /* Фото */
 .product-photo{
-  width: 84px; height: 84px; object-fit: cover;
+  width: 72px; height: 72px; object-fit: cover;
   border-radius: 12px; background: #e9f3fa;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.04);
 }
 
-/* Название — обрезаем по строке */
+/* Название — строго компактно в 1–2 строки */
 .product-link{
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+
   font-weight: 600; font-size: 15px; color: #117fff; text-decoration: none;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.25;
 }
 .product-link:hover{ color:#0b5ed7; }
 
-/* Дата / код / наличие */
-.product-date{ color:#93a1b5; font-size:13px; }
-.product-sku{ font-weight:600; color:#2291ff; font-size:14px; }
-.avail{ font-weight:600; font-size:14px; }
-.avail.published{ color:#24c471; } .avail.order{ color:#ef9c19; } .avail.out{ color:#e12a2a; }
-
-/* Цена + Действия справа */
-.product-right{
-  display:flex; align-items:center; gap:12px; justify-content:flex-end;
+/* Группа */
+.product-group{
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.product-price{ font-weight:700; font-size:15px; color:#0f172a; }
+
+/* Дата / код / наличие */
+.product-date{ color:#93a1b5; font-size:13px; white-space: nowrap; }
+.product-sku{ font-weight:600; color:#2291ff; font-size:14px; white-space: nowrap; }
+
+/* Колонка "Наличие / Отображение" */
+.cell-state{ display:flex; flex-direction:column; gap:6px; min-width: 0; }
+.avail{ font-weight:700; font-size:14px; }
+.avail.published{ color:#24c471; } /* в наличии */
+.avail.order{ color:#ef9c19; }     /* под заказ */
+.avail.out{ color:#e12a2a; }       /* нет на складе */
+
+.pub{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 8px; border-radius:999px; font-size:12.5px; font-weight:600;
+  width: fit-content; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pub.on{ background:#e9f9f0; color:#15803d; border-color:#b7f0cc; }    /* Опубликован */
+.pub.off{ background:#f2f4f7; color:#475569; border-color:#e2e8f0; }   /* Скрытый */
+
+/* Цена */
+.product-price{ font-weight:700; font-size:15px; color:#0f172a; white-space: nowrap; }
+
+/* Заказы */
+.cell-orders{ text-align:center; }
+.orders-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width: 38px; height: 28px; padding: 0 10px;
+  border-radius: 999px; font-weight: 700; font-size: 13.5px;
+  background:#eef5ff; color:#0b5ed7; border:1px solid #d7e6ff;
+}
 
 /* Действия */
+.cell-actions{ display:flex; justify-content:flex-end; }
 .actions{ position:relative; }
 .actions-toggle{
   background:#f1f7ff; color:#2291ff; border:none; border-radius:10px;
@@ -592,3 +577,26 @@
 }
 .actions-item.edit{ color:#157ce8; } .actions-item.delete{ color:#e84242; }
 .actions-item:hover{ background:#f6f9ff; }
+
+/* 9) Медиа */
+@media (max-width: 1100px){
+  .admin-nav-menu{ display:none; }
+  .admin-content.with-submenu{ padding-left: var(--sidebar-w); }
+  .products-header{ left: var(--sidebar-w); }
+}
+@media (max-width: 900px){
+  /* адаптив: скрывать второстепенные колонки, если нужно */
+  .products-grid-header { grid-template-columns: 80px 2fr 1.2fr 1fr 1.4fr; }
+  .product-row { grid-template-columns: 80px 2fr 1.2fr 1fr 1.4fr; }
+  .products-grid-header > :nth-child(6),
+  .products-grid-header > :nth-child(7),
+  .products-grid-header > :nth-child(8),
+  .product-row > .cell-price,
+  .product-row > .cell-orders,
+  .product-row > .cell-actions { display:none; }
+}
+@media (max-width: 780px){
+  .admin-content{ min-width:0 !important; }
+  .orders-search-compact{ width: 260px; }
+  .products-header-left .products-search-compact{ width:260px; flex:0 0 260px; }
+}
