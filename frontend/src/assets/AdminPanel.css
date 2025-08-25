@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Admin UI — Apple style (fixed topbar/left sidebar/right submenu)
+   Admin UI — Apple style (fixed topbar / left sidebar / right submenu)
    ========================================================================== */
 
 /* 1) База и ресеты */
@@ -124,22 +124,18 @@
 .admin-menu a:hover .admin-menu-icon-svg,
 .admin-menu a.active .admin-menu-icon-svg{ filter: grayscale(0); }
 
+/* Контентная область */
 .admin-content {
   flex: 1; min-width: 0;
   height: 100vh;
   overflow: auto;
   background: var(--bg);
   position: relative;
-
-  /* только отступ сверху */
   padding-top: var(--topbar-h);
-  padding-left: 0; /* убираем лишний левый отступ */
+  padding-left: 0;
 }
-
-/* когда на странице есть правое подменю — контент начинается сразу после него */
-.admin-content.with-submenu{
-  padding-left: calc(var(--sidebar-w) + var(--submenu-w)); /* без gutter */
-}
+/* когда есть правое подменю — контент начинается сразу после него */
+.admin-content.with-submenu{ padding-left: calc(var(--sidebar-w) + var(--submenu-w)); }
 
 /* 3) Правое подменю (фикс) */
 .admin-nav-menu{
@@ -210,12 +206,8 @@
   border-color: rgba(17,127,255,.28);
 }
 .admin-nav-menu button.admin-nav-link{
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font: inherit;
+  appearance: none; -webkit-appearance: none;
+  background: transparent; border: 0; outline: 0; font: inherit;
 }
 
 /* 4) Общие компоненты */
@@ -347,7 +339,7 @@
   left: calc(var(--sidebar-w) + var(--submenu-w));
   right: 0; height: 64px;
   display:flex; align-items:center;
-  justify-content: flex-start;     /* КЛЮЧ: элементы слева подряд */
+  justify-content: space-between;     /* кнопка прижата вправо */
   gap:16px; padding:0 20px;
   background:#fff; border-bottom:1px solid rgba(0,0,0,.06);
   box-shadow:0 1px 2px rgba(0,0,0,.04);
@@ -355,13 +347,9 @@
 }
 @media (max-width:1100px){ .products-header{ left: var(--sidebar-w); } }
 
-/* левая часть тянется, правая прижимается вправо */
-.products-header-left{ display:flex; align-items:center; gap:12px; flex:1 1 auto; min-width:0; }
+/* левая часть — по контенту (не тянется) */
+.products-header-left{ display:flex; align-items:center; gap:12px; flex:0 0 auto; min-width:0; }
 .products-header-right{ margin-left:auto; flex:0 0 auto; }
-
-/* порядок на всякий случай */
-.products-h1{ order:0; }
-.filters{ order:1; }
 
 .products-h1{
   font-weight:500; font-size:17px; color:#0f172a;
@@ -369,15 +357,15 @@
 }
 .products-count{ color:#007aff; font-weight:400; }
 
-/* Поиск — сразу после «Фильтры» */
+/* Поиск — сразу после «Фильтры», фикс ширины */
 .products-header-left .products-search-compact{
   order:2;
   height: var(--ctl-h);
   line-height: var(--ctl-h);
   padding: 0 14px 0 34px;
-  width: 360px;                 /* базовая ширина */
+  width: 360px;            /* базовая ширина */
   max-width: 46vw;
-  flex: 0 0 360px;              /* фиксируем — не «едет» вправо */
+  flex: 0 0 360px;
 
   border-radius: 12px;
   border: 1px solid #d0d7e2;
@@ -392,8 +380,7 @@
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
   transition: all .2s ease;
 
-  margin: 2px 0 0 0 !important;  /* глушим сторонние правила */
-  margin-inline-start: 0 !important;
+  margin: 2px 0 0 0 !important;  /* глушим внешние стили */
   float: none !important;
 }
 .products-header-left .products-search-compact:focus{
@@ -401,7 +388,7 @@
   box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none;
 }
 
-/* чтобы «Фильтры» совпадали по высоте с поиском */
+/* «Фильтры» — той же высоты, что и поиск */
 .products-header-left .filters-toggle{
   height: var(--ctl-h);
   padding: 0 16px;

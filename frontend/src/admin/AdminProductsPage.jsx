@@ -157,7 +157,7 @@ export default function AdminProductsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="products-search-compact"
-            style={{ order: 2, marginLeft: 0 }} // страховка против стороннего CSS
+            style={{ marginLeft: 0 }}   // <— важный фикс
           />
         </div>
 
