@@ -192,12 +192,12 @@ function ProductList({ products, onEdit, onDelete }) {
 
   const toggleAll = () => {
     if (allSelected) setSelectedIds([]);
-    else setSelectedIds(products.map(p => p._id));
+    else setSelectedIds(products.map((p) => p._id));
   };
 
   const toggleOne = (id) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
@@ -212,10 +212,14 @@ function ProductList({ products, onEdit, onDelete }) {
           <div className="bulk-actions">
             Действия для {selectedIds.length} позиций ▾
             <div className="bulk-menu">
-              <button onClick={() => {
-                selectedIds.forEach(id => onDelete(id));
-                setSelectedIds([]);
-              }}>Удалить</button>
+              <button
+                onClick={() => {
+                  selectedIds.forEach((id) => onDelete(id));
+                  setSelectedIds([]);
+                }}
+              >
+                Удалить
+              </button>
             </div>
           </div>
         )}
@@ -255,15 +259,20 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
 
   return (
     <div className="product-row">
-      <label className="apple-checkbox">
-        <input type="checkbox" checked={selected} onChange={onToggle} />
-        <span />
-      </label>
+      {/* чекбокс */}
+      <div className="cell-check">
+        <label className="apple-checkbox">
+          <input type="checkbox" checked={selected} onChange={onToggle} />
+          <span />
+        </label>
+      </div>
 
+      {/* фото */}
       <div className="cell-photo">
         <img className="product-photo" src={photoUrl} alt={product.name} />
       </div>
 
+      {/* название + группа */}
       <div className="cell-name">
         <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
@@ -271,6 +280,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         <div className="product-group">{product.group?.name || "—"}</div>
       </div>
 
+      {/* дата */}
       <div className="cell-date product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleString("ru-RU", {
@@ -283,8 +293,10 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
           : "—"}
       </div>
 
+      {/* код */}
       <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
+      {/* наличие + статус */}
       <div className="cell-state">
         <span
           className={
@@ -307,17 +319,20 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         </span>
       </div>
 
+      {/* цена */}
       <div className="cell-price">
         <span className="product-price">{product.price} ₴</span>
       </div>
 
+      {/* заказы */}
       <div className="cell-orders">
         <span className="orders-badge">{product.ordersCount || 0}</span>
       </div>
 
+      {/* действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
-          <button className="actions-toggle" onClick={() => setOpen(v => !v)}>
+          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
             Действия <span style={{ fontSize: 13 }}>▼</span>
           </button>
           {open && (
