@@ -601,7 +601,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .products-header-left .products-search-compact{ width:260px; flex:0 0 260px; }
 }
 
-/* ===================== PRODUCTS GRID — FINAL APPLE STYLE ===================== */
+/* ===================== PRODUCTS GRID — FINAL APPLE LIGHT STYLE ===================== */
 
 /* Заголовок таблицы */
 .products-page .products-grid-header{
@@ -614,12 +614,13 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
     minmax(160px, 1.4fr)   /* Наличие / Отображение */
     minmax(120px, 1fr)     /* Цена */
     minmax(100px, 0.9fr)   /* Заказы */
-    120px !important;      /* Действия (фикс ширина) */
+    120px !important;      /* Действия */
   gap: 14px !important;
   padding: 0 14px 10px !important;
   margin: 0 -14px 12px !important;
   border-bottom: 1.5px solid #e7effa !important;
   background: #fff !important;
+  font-weight: 400 !important;
 }
 
 /* Строка */
@@ -641,6 +642,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   padding: 14px !important;
   margin-bottom: 12px !important;
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05) !important;
+  font-weight: 400 !important;
 }
 .products-page .product-row > *{ min-width:0 !important; }
 
@@ -657,7 +659,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   -webkit-line-clamp:2; -webkit-box-orient:vertical;
   overflow:hidden; text-overflow:ellipsis;
   line-height:1.25;
-  font-weight:500 !important;
+  font-weight:400 !important;  /* было 500 */
   font-size:14px !important;
   color:#0a84ff !important;
   text-decoration:none;
@@ -667,21 +669,24 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   font-size:12.5px !important;
   color:#8ea0b3 !important;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:400 !important;
 }
 
 /* Дата / код */
-.products-page .product-date{ font-size:12.5px !important; color:#9aa8b7 !important; white-space:nowrap; }
-.products-page .product-sku{ font-weight:500 !important; font-size:13px !important; color:#0a84ff !important; white-space:nowrap; }
+.products-page .product-date{ font-size:12.5px !important; color:#9aa8b7 !important; white-space:nowrap; font-weight:400 !important; }
+.products-page .product-sku{ font-weight:400 !important; font-size:13px !important; color:#0a84ff !important; white-space:nowrap; }
 
 /* Наличие + статус */
 .products-page .cell-state{ display:flex !important; flex-direction:column !important; gap:6px !important; }
-.products-page .avail{ font-weight:500 !important; font-size:13.5px !important; }
+.products-page .avail{ font-weight:400 !important; font-size:13.5px !important; }
 .products-page .avail.published{ color:#24c471; }
 .products-page .avail.order{ color:#ef9c19; }
 .products-page .avail.out{ color:#e12a2a; }
 .products-page .pub{
-  padding:4px 8px; border-radius:999px;
-  font-size:12.5px !important; font-weight:600;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12.5px !important;
+  font-weight:400 !important;
   border:1px solid transparent;
   width:fit-content;
 }
@@ -690,7 +695,9 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 
 /* Цена */
 .products-page .product-price{
-  font-weight:500 !important; font-size:14px !important; color:#111827 !important;
+  font-weight:400 !important;
+  font-size:14px !important;
+  color:#111827 !important;
   white-space:nowrap;
 }
 
@@ -698,9 +705,9 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 .products-page .cell-orders{ text-align:center !important; }
 .products-page .orders-badge{
   min-width:34px; height:26px; padding:0 10px;
-  font-size:13px; font-weight:600;
-  background:#f3f7ff; color:#0a84ff;
-  border:1px solid #dde8ff; border-radius:999px;
+  font-size:13px; font-weight:400 !important;
+  background:#f6f8fc !important; color:#0a84ff !important;
+  border:1px solid #e2e8f0 !important; border-radius:999px;
   display:inline-flex; align-items:center; justify-content:center;
 }
 
@@ -710,9 +717,10 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 .products-page .actions-toggle{
   padding:6px 12px !important;
   font-size:13px !important;
-  background:#f5f8ff !important;
+  font-weight:400 !important;
+  background:#f8faff !important;
   color:#0a84ff !important;
-  border:1px solid #dfe7f3 !important;
+  border:1px solid #e2e8f0 !important;
   border-radius:10px !important;
   line-height:1 !important;
   transition: background .18s ease, border-color .18s ease, transform .03s ease !important;
@@ -728,7 +736,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 }
 .products-page .actions-item{
   font-size:13.5px !important;
-  font-weight:500 !important;
+  font-weight:400 !important;
   padding:9px 12px !important;
 }
 .products-page .actions-item:hover{ background:#f6f9ff !important; }
@@ -747,4 +755,19 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .products-page .product-row > .cell-price,
   .products-page .product-row > .cell-orders,
   .products-page .product-row > .cell-actions{ display:none !important; }
+}
+
+/* ===================== PRODUCTS ROW HOVER ANIMATION ===================== */
+.products-page .product-row{
+  transition: background 0.25s ease,
+              box-shadow 0.25s ease,
+              transform 0.2s ease;
+  will-change: transform, box-shadow, background;
+}
+
+.products-page .product-row:hover{
+  background: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(17,127,255,0.12),
+              0 2px 6px rgba(0,0,0,0.08) !important;
+  transform: translateY(-2px);
 }
