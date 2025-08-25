@@ -204,7 +204,10 @@
   padding: 0 var(--gutter) 38px 0;
 }
 .orders-content{
-  background:#fff; border-radius:18px; box-shadow:0 2px 12px #2291ff0c; padding:24px;
+  background:#fff;
+  border-radius: 0 0 18px 18px; /* скругление только снизу */
+  box-shadow:0 2px 12px #2291ff0c;
+  padding:24px;
 }
 .orders-filters{ display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
 .orders-select{ padding:7px 17px; border-radius:9px; border:1.5px solid #e4e8ee; background:#fafcff; font-size:15px; outline:none; }
