@@ -350,8 +350,8 @@
 }
 @media (max-width:1100px){ .products-header{ left: var(--sidebar-w); } }
 
-.products-header-left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.products-header-right{ margin-left:auto; }
+.products-header-left{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+.products-header-right{ margin-left:auto; flex:0 0 auto; }
 
 .products-h1{
   font-weight:500; font-size:17px; color:#0f172a;

@@ -1,4 +1,3 @@
-// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
@@ -97,14 +96,13 @@ export default function AdminProductsPage() {
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
-      {/* ФИКСИРОВАННАЯ ШАПКА ПРОДУКТОВ */}
-      <div className="products-header" role="region" aria-label="Фильтры и поиск товаров">
+      {/* Фиксированный хедер под топбаром */}
+      <div className="products-header">
         <div className="products-header-left">
           <div className="products-h1">
             Позиции <span className="products-count">({filtered.length})</span>
           </div>
 
-          {/* Фильтры */}
           <div className="filters" ref={filterRef}>
             <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
               Фильтры
@@ -152,14 +150,12 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* Поиск с маленькой лупой */}
           <input
             type="text"
             placeholder="Поиск…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="products-search-compact"
-            aria-label="Поиск по товарам"
           />
         </div>
 
@@ -167,20 +163,27 @@ export default function AdminProductsPage() {
           <button
             className="btn-primary"
             onClick={() => navigate("/admin/products/create")}
-            title="Добавить позицию"
           >
-            <span className="plus-icon">＋</span> Добавить товар
+            <span className="plus-icon">+</span> Добавить позицию
           </button>
         </div>
       </div>
 
-      {/* Контент под шапкой */}
+      {/* Контент под фиксированным хедером */}
       <div className="products-content-wrap">
         <div className="products-content">
-          {loading ? (
-            <div className="products-empty muted">Загрузка...</div>
-          ) : (
-            <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+          {selected === "list" && (
+            <>
+              {loading ? (
+                <div className="products-empty muted">Загрузка...</div>
+              ) : (
+                <ProductList
+                  products={filtered}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
