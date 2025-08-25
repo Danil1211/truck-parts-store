@@ -150,7 +150,7 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* Поиск обязателен сразу после «Фильтры» */}
+          {/* Поиск ОБЯЗАТЕЛЬНО сразу после «Фильтры» */}
           <input
             type="text"
             placeholder="Поиск…"
@@ -199,6 +199,7 @@ function ProductList({ products, onEdit, onDelete }) {
         <div>Код</div>
         <div>Наличие</div>
         <div>Цена</div>
+        <div>Действия</div>
       </div>
 
       {products.map((p) => (
@@ -234,7 +235,7 @@ function ProductRow({ product, onEdit, onDelete }) {
 
       <div className="cell-name">
         <Link to={`/admin/products/${product._id}/edit`} className="product-link">
-          {product.name}
+          {product.name || "—"}
         </Link>
       </div>
 
@@ -271,9 +272,11 @@ function ProductRow({ product, onEdit, onDelete }) {
         </span>
       </div>
 
-      <div className="cell-price product-right">
+      <div className="cell-price">
         <span className="product-price">{product.price} ₴</span>
+      </div>
 
+      <div className="cell-actions">
         <div className="actions" ref={ref}>
           <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
             Действия <span style={{ fontSize: 13 }}>▼</span>
