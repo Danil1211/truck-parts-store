@@ -4,23 +4,22 @@ import "../assets/AdminPanel.css";
 
 const MENUS = {
   products: [
-    { key: "list", label: "Позиции", link: "/admin/products" },
-    { key: "groups", label: "Группы / Подгруппы", link: "/admin/groups" },
+    { key: "list",   label: "Позиции",              link: "/admin/products" },
+    { key: "groups", label: "Группы / Подгруппы",   link: "/admin/groups"   },
   ],
   orders: [
-    { key: "all", label: "Все заказы", filter: "all" },
-    { key: "new", label: "Новые", filter: "new" },
-    { key: "processing", label: "В обработке", filter: "processing" },
-    { key: "done", label: "Выполнены", filter: "done" },
-    { key: "cancelled", label: "Отменённые", filter: "cancelled" },
+    { key: "all",        label: "Все заказы",   filter: "all"        },
+    { key: "new",        label: "Новые",        filter: "new"        },
+    { key: "processing", label: "В обработке",  filter: "processing" },
+    { key: "done",       label: "Выполнены",    filter: "done"       },
+    { key: "cancelled",  label: "Отменённые",   filter: "cancelled"  },
   ],
   settings: [
     { key: "main", label: "Основные настройки" },
-    { key: "site", label: "Управление сайтом" },
-  ]
+    { key: "site", label: "Управление сайтом"  },
+  ],
 };
 
-// props: type = "products" | "orders" | "settings"
 export default function AdminSubMenu({
   type = "products",
   activeKey,
@@ -30,30 +29,22 @@ export default function AdminSubMenu({
 }) {
   const location = useLocation();
   const menu = MENUS[type] || [];
+  const defaultTitle =
+    type === "orders"   ? "Управление заказами" :
+    type === "products" ? "Управление товарами" :
+    "Меню";
 
   return (
     <aside className="admin-nav-menu" style={style}>
-      {/* Заголовок меню */}
-      <div
-        className="admin-nav-title"
-        style={{
-          fontWeight: 400,
-          fontSize: 17,
-          color: "#117fff",
-          margin: "0 0 8px 18px",
-          letterSpacing: 0.2
-        }}
-      >
-        {title || "Управление товарами"}
-      </div>
+      <div className="admin-nav-title">{title || defaultTitle}</div>
 
-      {menu.map(item =>
+      {menu.map((item) =>
         item.link ? (
           <Link
             key={item.key}
             to={item.link}
             className={
-              location.pathname === item.link
+              location.pathname.startsWith(item.link)
                 ? "admin-nav-link active"
                 : "admin-nav-link"
             }
@@ -63,13 +54,13 @@ export default function AdminSubMenu({
         ) : (
           <button
             key={item.key}
+            type="button"
             className={
               activeKey === (item.filter || item.key)
                 ? "admin-nav-link active"
                 : "admin-nav-link"
             }
             onClick={() => onSelect && onSelect(item.filter || item.key)}
-            type="button"
           >
             {item.label}
           </button>
