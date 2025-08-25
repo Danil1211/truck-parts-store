@@ -174,13 +174,15 @@
 .admin-nav-link,
 .admin-nav-menu button.admin-nav-link {
   display: block;
-  position: relative;
+  width: calc(100% - 16px); /* полная ширина минус внешние отступы */
+  text-align: left;
   padding: 9px 14px 9px 18px;
   margin: 2px 8px;
   border-radius: 10px;
   font-size: 14px;
+  font-weight: 400;         /* не жирный */
   line-height: 1.35;
-  color: var(--text-main);
+  color: var(--text-main);  /* всегда чёрный текст */
   text-decoration: none;
   border: 1px solid transparent;
   border-left: 3px solid transparent;
@@ -196,16 +198,15 @@
   border-color: rgba(0,0,0,.06);
 }
 
-/* active */
+/* active — единый вид для всех страниц */
 .admin-nav-link.active,
 .admin-nav-menu button.admin-nav-link.active {
-  color: var(--text-main);             /* ⚡ чёрный текст */
-  background: rgba(17,127,255,.10);    /* синий фон */
-  border-left-color: var(--primary);   /* синий бордер слева */
-  border-color: rgba(17,127,255,.22);
-  box-shadow: 0 1px 0 rgba(255,255,255,.55) inset,
-              0 1px 6px rgba(17,127,255,.10);
-  font-weight: 400; /* ⚡ обычный вес текста */
+  color: var(--text-main);        /* чёрный */
+  background: #eaf3ff;            /* как в «Товарах» */
+  border-left-color: var(--primary);
+  border-color: #bcdcff;
+  box-shadow: 0 1px 2px rgba(17,127,255,.15);
+  font-weight: 400;               /* не жирный */
 }
 
 /* focus */
@@ -215,7 +216,6 @@
   box-shadow: 0 0 0 3px rgba(17,127,255,.18);
   border-color: rgba(17,127,255,.28);
 }
-
 
 /* 4) Общие компоненты */
 ::-webkit-scrollbar { width: 6px; background: #ecf1f6; }
@@ -422,4 +422,14 @@
 }
 @media (max-width: 780px){
   .admin-content, .admin-chat-root{ min-width:0 !important; }
+}
+
+/* Сброс нативных стилей у кнопок, чтобы они вели себя как ссылки и занимали всю ширину */
+.admin-nav-menu button.admin-nav-link{
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
 }
