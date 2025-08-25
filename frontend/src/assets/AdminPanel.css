@@ -19,23 +19,34 @@
 
   --status-dot: #32d16d;
   --transition: 0.17s cubic-bezier(.4,0,.2,1);
+
+  /* высота верхнего меню */
+  --topbar-h: 56px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 
 @keyframes fadein {
   from { opacity: 0; transform: translateY(-8px);}
   to   { opacity: 1; transform: none;}
 }
 
-/* ===== Верхнее меню ===== */
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  min-height: 100vh;
+  width: 100vw;
+  min-width: 360px;
+  overflow: hidden;
+}
+
+/* ===== Верхнее меню ====================================================== */
 .admin-topbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: var(--topbar-h);
   background: #fff;
   border-bottom: 1px solid #e4e8ee;
   display: flex;
@@ -53,11 +64,8 @@
   position: relative;
   transition: color 0.18s;
 }
-
 .admin-topbar a.active,
-.admin-topbar a:hover {
-  color: #117fff;
-}
+.admin-topbar a:hover { color: var(--primary); }
 
 .topbar-badge {
   background: #f44336;
@@ -69,15 +77,7 @@
   margin-left: 6px;
 }
 
-.admin-layout {
-  display: flex;
-  height: 100vh;
-  min-height: 100vh;
-  width: 100vw;
-  min-width: 360px;
-  overflow: hidden;
-}
-
+/* ===== Контент / смещение под шапку ===================================== */
 .admin-content {
   flex: 1;
   min-width: 0;
@@ -85,23 +85,20 @@
   background: var(--bg);
   position: relative;
   min-height: 100vh;
+  padding-top: var(--topbar-h);
 }
 
-.admin-menu-icon {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
-  filter: grayscale(0.18);
-  transition: filter 0.18s;
+/* дубль (оставлен намеренно, т.к. внизу файла есть повтор определения) */
+.admin-content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--bg);
+  position: relative;
+  padding-top: var(--topbar-h);
 }
 
-.admin-menu a.active .admin-menu-icon,
-.admin-menu a:hover .admin-menu-icon {
-  filter: grayscale(0) drop-shadow(0 0 2px #2291ff44);
-}
-
+/* ===== Сайдбар =========================================================== */
 .admin-sidebar {
   width: 76px;
   background: var(--sidebar);
@@ -111,6 +108,9 @@
   padding: 16px 0;
   border-right: 1px solid #e4e8ee;
   min-width: 76px;
+
+  /* сдвиг вниз под фикс. шапку */
+  padding-top: calc(16px + var(--topbar-h));
 }
 
 .admin-profile {
@@ -165,6 +165,23 @@
   background: #eaf4ff;
 }
 
+/* поддержка inline-SVG иконок */
+.admin-menu-icon,
+.admin-menu-icon-svg {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  filter: grayscale(0.18);
+  transition: filter 0.18s;
+}
+.admin-menu a.active .admin-menu-icon-svg,
+.admin-menu a:hover .admin-menu-icon-svg {
+  filter: grayscale(0) drop-shadow(0 0 2px #2291ff44);
+}
+
 .admin-footer {
   margin-top: auto;
   padding: 12px;
@@ -175,17 +192,57 @@
   text-decoration: none;
 }
 
-.admin-content {
-  flex: 1;
-  min-width: 0;
-  overflow: auto;
-  background: var(--bg);
-  position: relative;
+/* ===== SubMenu (справа от сайдбара) ===================================== */
+.admin-nav-menu {
+  width: 260px;
+  min-width: 180px;
+  background: #f7fafd;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px #2291ff0a;
+  margin-left: 0;
+  margin-right: 24px;
+  margin-top: 0;               /* раньше было -12px */
+  padding: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: max-content;
+  position: sticky;
+  top: var(--topbar-h);         /* липнет строго под шапкой */
+  z-index: 1;
 }
 
+.admin-nav-title {
+  font-weight: 400;
+  font-size: 17px;
+  color: #117fff;
+  margin: 0 0 8px 18px;
+  letter-spacing: 0.2px;
+}
+
+.admin-nav-link {
+  background: none;
+  color: #222;
+  font-weight: 400;
+  border: none;
+  border-radius: 9px;
+  font-size: 15px;
+  padding: 11px 18px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s, color 0.14s;
+  text-decoration: none;
+  display: block;
+}
+.admin-nav-link.active {
+  background: #eaf4ff;
+  color: #2291ff;
+}
+
+/* ===== Чат =============================================================== */
 .admin-chat-root {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - var(--topbar-h)); /* учитываем шапку */
   background: var(--bg);
 }
 
@@ -249,41 +306,6 @@
   background: var(--status-dot);
   border-radius: 50%;
   border: 2px solid #fff;
-}
-
-.admin-chat-list > div .details {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-chat-list > div .details .name {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.admin-chat-list > div .details .phone {
-  font-size: 13px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.admin-chat-list > div .details .preview {
-  font-size: 12px;
-  color: #a6b1bc;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.admin-chat-list > div .status-badge {
-  font-size: 19px;
-  margin-left: 6px;
-  opacity: 0.75;
 }
 
 .admin-chat-messages-block {
@@ -631,17 +653,10 @@
   user-select: none;
   pointer-events: none;
 }
-
 @keyframes pulseBadge {
-  0%, 100% {
-    box-shadow: 0 0 8px rgba(244, 67, 54, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(244, 67, 54, 1);
-  }
+  0%, 100% { box-shadow: 0 0 8px rgba(244, 67, 54, 0.6); }
+  50%      { box-shadow: 0 0 12px rgba(244, 67, 54, 1); }
 }
-
-
 
 
 .clients-admin-root {
