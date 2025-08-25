@@ -199,13 +199,13 @@
 /* active */
 .admin-nav-link.active,
 .admin-nav-menu button.admin-nav-link.active {
-  color: var(--primary);
-  background: rgba(17,127,255,.10);
-  border-left-color: var(--primary);
+  color: var(--text-main);             /* ⚡ чёрный текст */
+  background: rgba(17,127,255,.10);    /* синий фон */
+  border-left-color: var(--primary);   /* синий бордер слева */
   border-color: rgba(17,127,255,.22);
   box-shadow: 0 1px 0 rgba(255,255,255,.55) inset,
               0 1px 6px rgba(17,127,255,.10);
-  font-weight: 600;
+  font-weight: 400; /* ⚡ обычный вес текста */
 }
 
 /* focus */
