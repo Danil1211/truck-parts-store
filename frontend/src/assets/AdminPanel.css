@@ -239,20 +239,83 @@
 
 /* 5) Страницы
    ── Orders ─────────────────────────────────────────────────────────────── */
+
+/* растягиваем страницу заказов на весь контент — без «пустот» слева/справа */
 .orders-page{
-  /* теперь подменю фиксировано, поэтому просто внутри контента */
-  padding: 0 var(--gutter) 38px 0;
+  padding: 0 0 38px 0;
+  margin-left: calc(var(--gutter) * -1);
+  margin-right: calc(var(--gutter) * -1);
 }
+
+/* фиксированная шапка (прилипает под верхним топбаром) */
+.orders-header {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 50;
+
+  background: #fff;
+  border-bottom: 1px solid #e4e8ee;
+  padding: 14px 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.orders-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+
+.orders-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.orders-header .orders-select {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e4e8ee;
+  background: #fafcff;
+  font-size: 14px;
+}
+
+.orders-header .orders-search {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e4e8ee;
+  background: #fafcff;
+  font-size: 14px;
+}
+
+.orders-header .btn-primary {
+  background: #2291ff;
+  color: #fff;
+  font-weight: 500;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  box-shadow: 0 2px 8px #2291ff20;
+  cursor: pointer;
+  transition: all .15s;
+}
+.orders-header .btn-primary:hover { background:#117fff; }
+
+/* сам контейнер контента */
 .orders-content{
+  margin-top: 66px; /* чтобы не прилипало к шапке */
   background:#fff;
-  border-radius: 0 0 18px 18px; /* скругление только снизу */
+  border-radius: 0 0 18px 18px;
   box-shadow:0 2px 12px #2291ff0c;
   padding:24px;
 }
-.orders-filters{ display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
-.orders-select{ padding:7px 17px; border-radius:9px; border:1.5px solid #e4e8ee; background:#fafcff; font-size:15px; outline:none; }
-.orders-search{ padding:11px 19px; border-radius:12px; border:1.5px solid #e4e8ee; min-width:270px; outline:none; }
-.orders-search:focus{ border-color: var(--primary); background:#fff; }
+
 .orders-error{ color:#f34c4c; }
 .orders-empty{ text-align:center; margin:60px 0; color:#64748b; }
 
@@ -279,7 +342,7 @@
 .status-dd-item:hover{ background:#f6f9ff; }
 .status-dd-item.current{ opacity:.54; cursor: default; }
 
-/* ── Products ───────────────────────────────────────────────────────────── */
+/* ── Products (без изменений, для единообразия) ─────────────────────────── */
 .products-page{ padding: 0 var(--gutter) 38px 0; }
 .products-content{ background:#fff; border-radius:18px; box-shadow:0 2px 12px #2291ff0c; padding:24px 28px; }
 
@@ -329,7 +392,7 @@
 .actions-item.edit{ color:#157ce8; } .actions-item.delete{ color:#e84242; }
 .actions-item:hover{ background:#f6f9ff; }
 
-/* 6) Чат (без изменений по фиксации) */
+/* 6) Чат */
 .admin-chat-root { display:flex; height:calc(100vh - var(--topbar-h)); background:var(--bg); }
 .admin-chat-list { width:320px; min-width:260px; background:var(--surface); border-right:1px solid #e4e8ee; padding:22px 0 0; overflow-y:auto; transition:.2s; }
 .admin-chat-list h2 { font-size:18px; font-weight:600; padding:0 28px 20px 32px; color:var(--primary-dark); }
@@ -419,12 +482,14 @@
 @media (max-width: 1100px){
   .admin-nav-menu{ display:none; }
   .admin-content.with-submenu{ padding-left: var(--sidebar-w); }
+  /* на узких экранах убираем отрицательные отступы, чтобы не «уползало» */
+  .orders-page{ margin-left: 0; margin-right: 0; }
 }
 @media (max-width: 780px){
   .admin-content, .admin-chat-root{ min-width:0 !important; }
 }
 
-/* Сброс нативных стилей у кнопок, чтобы они вели себя как ссылки и занимали всю ширину */
+/* Сброс нативных стилей у кнопок в подменю (если где-то остаются) */
 .admin-nav-menu button.admin-nav-link{
   appearance: none;
   -webkit-appearance: none;

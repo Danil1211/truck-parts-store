@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AdminSubMenu from "./AdminSubMenu";
 import api from "../utils/api.js";
@@ -24,7 +23,7 @@ const cancelReasonsList = [
   "Оплата не поступила",
   "По просьбе покупателя",
   "Заказ дубликат",
-  "Не получилось дозвониться",
+  "Не получилось дозвонится",
 ];
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
@@ -133,13 +132,15 @@ function Pagination({ page, totalPages, setPage, limit, setLimit }) {
 }
 
 export default function AdminOrdersPage() {
+  const { user } = useAuth(); // сейчас не используется, можно убрать если не нужен
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("desc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -147,16 +148,13 @@ export default function AdminOrdersPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
 
-  const [searchParams] = useSearchParams();
-  const statusFilter = searchParams.get("status") || "all";
-
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError("");
       try {
         const { data } = await api.get("/api/orders/admin", {
-          params: { status: statusFilter, sort: sortOrder, page, limit },
+          params: { search, status: statusFilter, sort: sortOrder, page, limit },
         });
         const list = Array.isArray(data.orders) ? data.orders : data;
         const totalCount =
@@ -179,7 +177,7 @@ export default function AdminOrdersPage() {
         setLoading(false);
       }
     })();
-  }, [statusFilter, sortOrder, page, limit]);
+  }, [search, statusFilter, sortOrder, page, limit]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -228,7 +226,7 @@ export default function AdminOrdersPage() {
   function OrderCard({ order }) {
     const item = order.items && order.items[0];
     const firstImg = item?.product?.images?.[0];
-    let img = firstImg
+    const img = firstImg
       ? firstImg.startsWith("http")
         ? firstImg
         : `${BASE_URL}${firstImg}`
@@ -292,10 +290,19 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="orders-page">
-      <AdminSubMenu type="orders" activeKey={statusFilter} />
+      <AdminSubMenu
+        type="orders"
+        title="Управление заказами"
+        activeKey={statusFilter}
+        onSelect={(key) => {
+          setStatusFilter(key);
+          setPage(1);
+        }}
+      />
 
-      <div className="orders-content">
-        <div className="orders-filters">
+      {/* ===== Фиксированная шапка внутри контента ===== */}
+      <div className="orders-header">
+        <div className="orders-header-left">
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
@@ -308,12 +315,27 @@ export default function AdminOrdersPage() {
           <input
             type="text"
             placeholder="Поиск..."
-            value={""}
-            onChange={() => {}}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="orders-search"
           />
         </div>
 
+        <div className="orders-header-right">
+          <button
+            className="btn-primary"
+            onClick={() => alert("Создание заказа (заглушка)")}
+          >
+            + Создать заказ
+          </button>
+        </div>
+      </div>
+
+      {/* ===== Контент ===== */}
+      <div className="orders-content">
         {error && <div className="orders-error">{error}</div>}
 
         {loading ? (
@@ -334,10 +356,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {showCancelModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowCancelModal(false)}
-        >
+        <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal-close"
