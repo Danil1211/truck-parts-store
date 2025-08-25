@@ -82,11 +82,8 @@ export default function AdminProductsPage() {
 
   // Фильтрация
   const filtered = products.filter((p) => {
-    // Показать только БЕЗ фото, если чекбокс включён
-    if (noPhoto && (p.images && p.images.length)) return false;
-
+    if (noPhoto && (p.images && p.images.length)) return false; // показывать только без фото
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
-
     if (
       search &&
       !(
@@ -96,7 +93,6 @@ export default function AdminProductsPage() {
     ) {
       return false;
     }
-
     if (status && p.availability !== status) return false;
     return true;
   });
@@ -105,7 +101,7 @@ export default function AdminProductsPage() {
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
-      {/* Фиксированный хедер под топбаром */}
+      {/* Фиксированный хедер */}
       <div className="products-header">
         <div className="products-header-left">
           <div className="products-h1" style={{ order: 0 }}>
@@ -159,7 +155,6 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* Поиск сразу после «Фильтры» */}
           <input
             type="text"
             placeholder="Поиск…"
@@ -177,7 +172,7 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Контент под фиксированным хедером */}
+      {/* Контент */}
       <div className="products-content-wrap">
         <div className="products-content">
           {selected === "list" && (
@@ -237,7 +232,6 @@ function ProductRow({ product, onEdit, onDelete }) {
         : `${BASE_URL}${product.images[0]}`
       : "https://dummyimage.com/140x140/eeeeee/222.png&text=Нет+фото";
 
-  // Показатель "Опубликован / Скрытый" — подстрахуемся под разные поля
   const isPublished =
     typeof product.isPublished === "boolean"
       ? product.isPublished
@@ -264,7 +258,7 @@ function ProductRow({ product, onEdit, onDelete }) {
         <img className="product-photo" src={photoUrl} alt={product.name || "Фото"} />
       </div>
 
-      {/* Название + Группа (компактно, название в 1–2 строки) */}
+      {/* Название + Группа */}
       <div className="cell-name">
         <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
@@ -272,7 +266,7 @@ function ProductRow({ product, onEdit, onDelete }) {
         <div className="product-group">{product.group?.name || "—"}</div>
       </div>
 
-      {/* Дата (мелким) */}
+      {/* Дата */}
       <div className="cell-date product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleString("ru-RU", {
@@ -285,10 +279,10 @@ function ProductRow({ product, onEdit, onDelete }) {
           : "—"}
       </div>
 
-      {/* Код (SKU) */}
+      {/* Код */}
       <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
-      {/* Наличие + (ниже) Опубликован/Скрытый */}
+      {/* Наличие + Опубликован/Скрытый */}
       <div className="cell-state">
         <span
           className={
@@ -308,7 +302,7 @@ function ProductRow({ product, onEdit, onDelete }) {
         <span className="product-price">{Number(product.price || 0).toLocaleString("uk-UA")} ₴</span>
       </div>
 
-      {/* Заказы (счётчик) */}
+      {/* Заказы */}
       <div className="cell-orders">
         <span className="orders-badge">{ordersCount}</span>
       </div>
