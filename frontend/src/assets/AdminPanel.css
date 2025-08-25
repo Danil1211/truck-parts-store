@@ -729,3 +729,113 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .products-page .product-row > .cell-orders,
   .products-page .product-row > .cell-actions{ display:none !important; }
 }
+
+/* ===================== APPLE POLISH + ACTIONS CONTAIN ===================== */
+/* 1) Колонка действий — внутрь карточки и всегда по правому краю */
+.products-page .product-row{
+  padding-right: 28px !important;   /* запас справа, чтобы кнопка не упиралась в край */
+}
+.products-page .cell-actions{
+  justify-self: end !important;
+  align-self: center !important;
+  margin-right: 0 !important;
+}
+.products-page .actions{
+  position: relative !important;
+  right: 0 !important;
+}
+
+/* Кнопка действий — компактная, «эпл»-стиль, без сильных теней */
+.products-page .actions-toggle{
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  background: #f5f8ff !important;                 /* светлый, сдержанный */
+  color: #0a84ff !important;
+  border: 1px solid #dfe7f3 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  transition: background .18s ease, border-color .18s ease, transform .03s ease !important;
+}
+.products-page .actions-toggle:hover{
+  background: #eef4ff !important;
+  border-color: #cfe0fb !important;
+}
+.products-page .actions-toggle:active{ transform: translateY(1px) !important; }
+
+/* Меню всегда внутри карточки */
+.products-page .actions-menu{
+  right: 0 !important;         /* не вылезает за край */
+  left: auto !important;
+  box-shadow: 0 8px 24px rgba(16, 76, 186, .12) !important;
+  border: 1px solid #e7effa !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+.products-page .actions-item{
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  padding: 9px 12px !important;
+}
+.products-page .actions-item:hover{ background:#f6f9ff !important; }
+
+/* 2) «Эпл»-стили типографики и цветов — сдержанно и чисто */
+.products-page .product-link.two-lines{
+  font-weight: 500 !important;     /* убрали жир */
+  font-size: 14px !important;
+  color: #0a84ff !important;
+}
+.products-page .product-group{
+  font-size: 12.5px !important;
+  color: #8ea0b3 !important;
+}
+.products-page .product-date{
+  font-size: 12.5px !important;
+  color: #9aa8b7 !important;
+}
+.products-page .product-sku{
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  color: #0a84ff !important;
+}
+.products-page .avail{
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
+}
+.products-page .pub{
+  padding: 4px 8px !important;
+  font-size: 12.5px !important;
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+}
+.products-page .pub.on{ background:#e9f9f0 !important; color:#15803d !important; border-color:#b7f0cc !important; }
+.products-page .pub.off{ background:#f2f4f7 !important; color:#475569 !important; border-color:#e2e8f0 !important; }
+.products-page .product-price{
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  color: #111827 !important;
+}
+
+/* 3) Бейдж заказов — нейтральный, ровный */
+.products-page .orders-badge{
+  min-width: 34px !important;
+  height: 26px !important;
+  padding: 0 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  background: #f3f7ff !important;
+  color: #0a84ff !important;
+  border: 1px solid #dde8ff !important;
+  border-radius: 999px !important;
+}
+
+/* 4) На всякий: чтобы текст не рвался и сетка держалась */
+.products-page .product-price,
+.products-page .product-date,
+.products-page .product-sku{ white-space: nowrap !important; }
+.products-page .cell-orders{ text-align: center !important; }
+
+/* 5) Узкие экраны — меню не уезжает */
+@media (max-width: 1200px){
+  .products-page .actions-menu{ right: 0 !important; }
+}
