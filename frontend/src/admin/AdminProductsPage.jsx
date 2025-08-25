@@ -1,4 +1,3 @@
-// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
@@ -100,11 +99,11 @@ export default function AdminProductsPage() {
       {/* Фиксированный хедер под топбаром */}
       <div className="products-header">
         <div className="products-header-left">
-          <div className="products-h1">
+          <div className="products-h1" style={{ order: 0 }}>
             Позиции <span className="products-count">({filtered.length})</span>
           </div>
 
-          <div className="filters" ref={filterRef}>
+          <div className="filters" ref={filterRef} style={{ order: 1 }}>
             <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
               Фильтры
             </button>
@@ -151,20 +150,19 @@ export default function AdminProductsPage() {
             )}
           </div>
 
+          {/* Поиск ОБЯЗАТЕЛЬНО сразу после «Фильтры» */}
           <input
             type="text"
             placeholder="Поиск…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="products-search-compact"
+            style={{ order: 2, marginLeft: 0 }} // страховка против стороннего CSS
           />
         </div>
 
         <div className="products-header-right">
-          <button
-            className="btn-primary"
-            onClick={() => navigate("/admin/products/create")}
-          >
+          <button className="btn-primary" onClick={() => navigate("/admin/products/create")}>
             <span className="plus-icon">+</span> Добавить товар
           </button>
         </div>
@@ -178,11 +176,7 @@ export default function AdminProductsPage() {
               {loading ? (
                 <div className="products-empty muted">Загрузка...</div>
               ) : (
-                <ProductList
-                  products={filtered}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
+                <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
               )}
             </>
           )}
