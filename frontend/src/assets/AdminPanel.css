@@ -256,21 +256,25 @@
 /* фиксированная шапка контента, без зазора от topbar */
 .orders-header {
   position: fixed;
-  top: calc(var(--topbar-h) + 6px);  /* добавляем 6px отступа от верхнего меню */
-  left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 20px; /* ← теперь есть отступ справа */
-  height: 56px; /* делаем по высоте как верхнее меню */
+  top: var(--topbar-h);
+  left: var(--sidebar-w); /* без submenu — начинаем сразу после левого меню */
+  right: 0;
+  height: 64px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 16px;
+
+  padding: 0 20px;
   background: #fff;
-  border: 1px solid rgba(0,0,0,.06);
-  border-radius: 12px;
+
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+
+  border-radius: 0; /* убрали скругления */
   z-index: 130;
 }
-
 /* адаптация, когда правое меню скрыто */
 @media (max-width: 1100px){
   .orders-header{ left: var(--sidebar-w); }
