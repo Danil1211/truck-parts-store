@@ -340,12 +340,14 @@
 /* страница + фиксированная шапка под топбаром */
 .products-page{ padding: 0 0 38px 0; }
 
+/* фиксированная шапка под топбаром */
 .products-header{
   position: fixed;
   top: var(--topbar-h);
   left: calc(var(--sidebar-w) + var(--submenu-w));
   right: 0; height: 64px;
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:center;
+  justify-content: flex-start;     /* было space-between */
   gap:16px; padding:0 20px;
   background:#fff; border-bottom:1px solid rgba(0,0,0,.06);
   box-shadow:0 1px 2px rgba(0,0,0,.04);
@@ -353,7 +355,7 @@
 }
 @media (max-width:1100px){ .products-header{ left: var(--sidebar-w); } }
 
-/* ВАЖНО: левая часть тянется, кнопка прижимается вправо */
+/* левая часть тянется, правая прижимается вправо */
 .products-header-left{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
 .products-header-right{ margin-left:auto; flex:0 0 auto; }
 
@@ -363,16 +365,14 @@
 }
 .products-count{ color:#007aff; font-weight:400; }
 
-/* Поиск с маленькой лупой — ШИРЕ */
+/* Поиск — шире, без авто-маргина/флоатов */
 .products-header-left .products-search-compact{
   height: var(--ctl-h);
   line-height: var(--ctl-h);
   padding: 0 14px 0 34px;
-  display: inline-block;
-
-  width: 360px;                /* базовая ширина */
-  max-width: 46vw;             /* чтобы не ломал строку при узких экранах */
-  flex: 0 1 360px;             /* держим ширину, но можно сжимать */
+  width: 360px;
+  max-width: 46vw;
+  flex: 0 1 360px;
 
   border-radius: 12px;
   border: 1px solid #d0d7e2;
@@ -386,18 +386,18 @@
   color: #0f172a;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
   transition: all .2s ease;
-  margin-top: 2px; /* оптический центр */
-}
-.products-header-left .products-search-compact::placeholder{ color:#8fa0b3; }
+  margin: 2px 0 0 0;
 
+  /* глушим возможные сторонние правила */
+  margin-left: 0 !important;
+  float: none !important;
+}
 .products-header-left .products-search-compact:focus{
-  border-color:#007aff;
-  background-color:#fff;
-  box-shadow:0 0 0 3px rgba(0,122,255,.15);
-  outline:none;
+  border-color:#007aff; background-color:#fff;
+  box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none;
 }
 
-/* чтобы «Фильтры» совпадали по высоте с поиском */
+/* «Фильтры» — той же высоты, что и поиск */
 .products-header-left .filters-toggle{
   height: var(--ctl-h);
   padding: 0 16px;
