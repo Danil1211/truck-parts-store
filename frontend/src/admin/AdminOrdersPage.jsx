@@ -334,10 +334,9 @@ export default function AdminOrdersPage() {
           <button
             className="btn-primary orders-create-btn"
             onClick={() => navigate("/admin/orders/create")}
-            title="Создать заказ"
           >
             <span className="plus-icon">＋</span>
-            Создать заказ
+            Добавить заказ
           </button>
         </div>
       </div>

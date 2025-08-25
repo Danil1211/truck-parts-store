@@ -165,7 +165,7 @@ export default function AdminProductsPage() {
             className="btn-primary"
             onClick={() => navigate("/admin/products/create")}
           >
-            <span className="plus-icon">+</span> Добавить позицию
+            <span className="plus-icon">+</span> Добавить товар
           </button>
         </div>
       </div>
