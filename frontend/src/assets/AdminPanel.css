@@ -331,7 +331,7 @@
 .btn-primary:active { transform: translateY(1px); box-shadow: 0 3px 8px rgba(0,122,255,0.3); }
 .btn-primary .plus-icon{
   display:flex; align-items:center; justify-content:center;
-  width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,.25);
+  width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,.25);
   font-size:15px; font-weight:600; line-height:1;
 }
 
