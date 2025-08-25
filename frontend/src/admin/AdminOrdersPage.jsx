@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AdminSubMenu from "./AdminSubMenu";
 import api from "../utils/api.js";
@@ -132,7 +133,6 @@ function Pagination({ page, totalPages, setPage, limit, setLimit }) {
 }
 
 export default function AdminOrdersPage() {
-  const { user } = useAuth(); // сейчас не используется, можно убрать если не нужен
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -141,12 +141,15 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -290,6 +293,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="orders-page">
+      {/* правое подменю */}
       <AdminSubMenu
         type="orders"
         title="Управление заказами"
@@ -300,13 +304,14 @@ export default function AdminOrdersPage() {
         }}
       />
 
-      {/* ===== Фиксированная шапка внутри контента ===== */}
-      <div className="orders-header">
+      {/* фиксированная «шапка контента» */}
+      <div className="orders-header" role="region" aria-label="Фильтры заказов">
         <div className="orders-header-left">
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
-            className="orders-select"
+            className="orders-sort"
+            aria-label="Сортировка"
           >
             <option value="desc">Сначала новые</option>
             <option value="asc">Сначала старые</option>
@@ -314,49 +319,56 @@ export default function AdminOrdersPage() {
 
           <input
             type="text"
-            placeholder="Поиск..."
+            placeholder="Поиск…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="orders-search"
+            className="orders-search-compact"
+            aria-label="Поиск по заказам"
           />
         </div>
 
         <div className="orders-header-right">
           <button
-            className="btn-primary"
-            onClick={() => alert("Создание заказа (заглушка)")}
+            className="btn-primary orders-create-btn"
+            onClick={() => navigate("/admin/orders/create")}
+            title="Создать заказ"
           >
-            + Создать заказ
+            <span style={{ fontSize: 18, marginRight: 8 }}>＋</span> Создать заказ
           </button>
         </div>
       </div>
 
-      {/* ===== Контент ===== */}
-      <div className="orders-content">
-        {error && <div className="orders-error">{error}</div>}
+      {/* контент под шапкой */}
+      <div className="orders-content-wrap">
+        <div className="orders-content">
+          {error && <div className="orders-error">{error}</div>}
 
-        {loading ? (
-          <div className="orders-empty">Загрузка...</div>
-        ) : orders.length === 0 ? (
-          <div className="orders-empty">Нет заказов</div>
-        ) : (
-          orders.map((order) => <OrderCard key={order._id} order={order} />)
-        )}
+          {loading ? (
+            <div className="orders-empty">Загрузка…</div>
+          ) : orders.length === 0 ? (
+            <div className="orders-empty">Нет заказов</div>
+          ) : (
+            orders.map((order) => <OrderCard key={order._id} order={order} />)
+          )}
 
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          setPage={setPage}
-          limit={limit}
-          setLimit={setLimit}
-        />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            setPage={setPage}
+            limit={limit}
+            setLimit={setLimit}
+          />
+        </div>
       </div>
 
       {showCancelModal && (
-        <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowCancelModal(false)}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal-close"
@@ -370,7 +382,7 @@ export default function AdminOrdersPage() {
               onChange={(e) => setCancelReason(e.target.value)}
               className="modal-select"
             >
-              <option value="">Выберите причину...</option>
+              <option value="">Выберите причину…</option>
               {cancelReasonsList.map((r) => (
                 <option key={r} value={r}>
                   {r}
