@@ -1,14 +1,13 @@
-// src/admin/AdminOrdersPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AdminSubMenu from './AdminSubMenu';
 import api from "../utils/api.js";
 
 const ORDER_STATUSES = [
-  { key: "new", label: "Новый" },
+  { key: "new",        label: "Новый" },
   { key: "processing", label: "В обработке" },
-  { key: "done", label: "Выполнен" },
-  { key: "cancelled", label: "Отменённый" },
+  { key: "done",       label: "Выполнен" },
+  { key: "cancelled",  label: "Отменённый" },
 ];
 
 const STATUS_COLORS = {
@@ -32,75 +31,41 @@ const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 function StatusDropdown({ status, onChange }) {
   const [open, setOpen] = useState(false);
   const color = STATUS_COLORS[status] || STATUS_COLORS["new"];
+
   return (
-    <div style={{ position: "relative", minWidth: 142, width: 160 }}>
+    <div className="status-dd">
       <button
         onClick={() => setOpen(v => !v)}
+        className="status-dd-btn"
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 7,
-          fontWeight: 400,
-          borderRadius: 12,
-          fontSize: 15,
-          height: 38,
-          width: "100%",
           background: color.bg,
           color: color.text,
-          border: `1.5px solid ${color.border}`,
-          boxShadow: "0 0 5px #90ffd929",
-          cursor: "pointer",
-          outline: "none",
+          borderColor: color.border
         }}
       >
         {ORDER_STATUSES.find(s => s.key === status)?.label || "Статус"}
-        <span style={{ fontSize: 13, marginLeft: 7, opacity: 0.77 }}>
-          {open ? "▲" : "▼"}
-        </span>
+        <span className="status-dd-arrow">{open ? "▲" : "▼"}</span>
       </button>
+
       {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: 41,
-            left: 0,
-            zIndex: 100,
-            width: "100%",
-            background: "#fff",
-            border: "1.2px solid #eee",
-            borderRadius: 12,
-            boxShadow: "0 6px 20px #00ffc51d",
-            padding: "7px 0",
-            display: "flex",
-            flexDirection: "column",
-            gap: 2
-          }}
-        >
-          {ORDER_STATUSES.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => {
-                setOpen(false);
-                if (s.key !== status) onChange(s.key);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "8px 0",
-                color: STATUS_COLORS[s.key]?.text || "#1a1a1a",
-                fontSize: 15,
-                cursor: s.key === status ? "default" : "pointer",
-                opacity: s.key === status ? 0.54 : 1,
-                textAlign: "center",
-                borderRadius: 8,
-                margin: "0 7px"
-              }}
-              disabled={s.key === status}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className="status-dd-list">
+          {ORDER_STATUSES.map((s) => {
+            const isCurrent = s.key === status;
+            return (
+              <button
+                key={s.key}
+                className={`status-dd-item${isCurrent ? " current" : ""}`}
+                onClick={() => {
+                  setOpen(false);
+                  if (!isCurrent) onChange(s.key);
+                }}
+                style={{ color: STATUS_COLORS[s.key]?.text || "#1a1a1a" }}
+                disabled={isCurrent}
+              >
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -109,6 +74,7 @@ function StatusDropdown({ status, onChange }) {
 
 function Pagination({ page, totalPages, setPage, limit, setLimit }) {
   if (totalPages <= 1) return null;
+
   let arr = [];
   let min = Math.max(1, page - 1);
   let max = Math.min(totalPages, page + 1);
@@ -120,64 +86,34 @@ function Pagination({ page, totalPages, setPage, limit, setLimit }) {
   if (page < totalPages - 1) arr.push(totalPages);
 
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-      margin: "18px 0 0 0",
-      flexWrap: "wrap",
-    }}>
+    <div className="pager">
       {arr.map((n, idx) =>
         typeof n === "number" ? (
           <button
             key={n}
-            style={{
-              background: n === page ? "#751fff" : "#fff",
-              color: n === page ? "#fff" : "#5733b3",
-              border: n === page ? "1.7px solid #751fff" : "1.7px solid #e2e0ef",
-              borderRadius: 10,
-              fontSize: 17,
-              padding: "10px 24px",
-              cursor: "pointer",
-            }}
+            className={`pager-btn ${n === page ? "is-active" : ""}`}
             onClick={() => setPage(n)}
             disabled={n === page}
           >
             {n}
           </button>
         ) : (
-          <span key={idx} style={{ padding: "0 10px", color: "#aaa", fontSize: 18 }}>{n}</span>
+          <span key={idx} className="pager-gap">{n}</span>
         )
       )}
       <button
-        style={{
-          background: "#fff",
-          color: "#5733b3",
-          border: "1.7px solid #e2e0ef",
-          borderRadius: 10,
-          fontSize: 17,
-          padding: "10px 24px",
-          marginLeft: 3,
-          cursor: page === totalPages ? "default" : "pointer",
-          opacity: page === totalPages ? 0.45 : 1,
-        }}
+        className="pager-btn next"
         onClick={() => setPage(p => Math.min(p + 1, totalPages))}
         disabled={page === totalPages}
       >
         Наступна →
       </button>
-      <div style={{ marginLeft: 22 }}>
+
+      <div className="pager-limit">
         <select
           value={limit}
           onChange={e => { setLimit(Number(e.target.value)); setPage(1); }}
-          style={{
-            borderRadius: 10,
-            border: "1.5px solid #e4e8ee",
-            background: "#fafcff",
-            fontSize: 15,
-            padding: "9px 21px 9px 15px",
-            cursor: "pointer"
-          }}
+          className="pager-select"
         >
           {PAGE_LIMITS.map(v =>
             <option key={v} value={v}>по {v} позиций</option>
@@ -276,58 +212,46 @@ export default function AdminOrdersPage() {
     let img = firstImg
       ? (firstImg.startsWith("http") ? firstImg : `${BASE_URL}${firstImg}`)
       : "/images/no-image.png";
+
     const handleImgError = e => { e.target.src = "/images/no-image.png"; };
+
     return (
-      <div style={{
-        background: "#f7fbff",
-        borderRadius: 12,
-        padding: "19px",
-        marginBottom: 17,
-        boxShadow: "0 1px 8px #2291ff0b",
-        fontSize: 15,
-        display: "flex",
-        alignItems: "center",
-        gap: 26
-      }}>
+      <div className="order-card">
         <img
           src={img}
           alt="Товар"
-          style={{
-            width: 54,
-            height: 54,
-            objectFit: "cover",
-            borderRadius: 9,
-            background: "#e9f3fa"
-          }}
+          className="order-img"
           onError={handleImgError}
         />
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ color: "#2291ff", fontSize: 16 }}>
-            № {order._id.slice(-6)}
-          </div>
-          <div style={{ color: "#8ba0b7", fontSize: 15 }}>
+
+        <div className="order-info">
+          <div className="order-number">№ {order._id.slice(-6)}</div>
+          <div className="order-date">
             {new Date(order.createdAt).toLocaleString('ru-RU')}
           </div>
-          <div>
+          <div className="order-title">
             {item?.product?.name || 'Товар'} ×{order.items.reduce((s,i)=>s+i.quantity,0)} шт.
           </div>
         </div>
-        <div style={{ flex: 1.1 }}>{order.totalPrice} ₴</div>
-        <div style={{ flex: 1.6, minWidth: 200 }}>
+
+        <div className="order-total">{order.totalPrice} ₴</div>
+
+        <div className="order-shipping">
           📦 Новая Почта<br />
-          <span style={{ color: "#1970c1" }}>{order.novaPoshta || "—"}</span><br />
-          <span style={{ color: "#1970c1" }}>{order.address || "—"}</span><br />
-          <span style={{
-            color: order.paymentMethod === 'cod' ? "#ef9c19" : "#24c471"
-          }}>{order.paymentMethod === 'cod' ? 'Наложка' : 'Карта'}</span>
+          <span className="order-shipping-highlight">{order.novaPoshta || "—"}</span><br />
+          <span className="order-shipping-highlight">{order.address || "—"}</span><br />
+          <span className={`order-pay ${order.paymentMethod === 'cod' ? 'cod' : 'card'}`}>
+            {order.paymentMethod === 'cod' ? 'Наложка' : 'Карта'}
+          </span>
         </div>
-        <div>
+
+        <div className="order-status">
           <StatusDropdown
             status={order.status}
             onChange={newStatus => handleStatusChange(order._id, newStatus)}
           />
           {order.status === 'cancelled' && order.cancelReason && (
-            <div style={{ color: "#e12a2a", marginTop: 8, fontSize: 14 }}>
+            <div className="order-cancel-reason">
               Причина: {order.cancelReason}
             </div>
           )}
@@ -337,7 +261,7 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div style={{ display: "flex", padding: "38px 0" }}>
+    <div className="orders-page">
       <AdminSubMenu
         type="orders"
         title="Управление заказами"
@@ -345,44 +269,32 @@ export default function AdminOrdersPage() {
         onSelect={key => { setStatusFilter(key); setPage(1); }}
       />
 
-      <div style={{
-        flex: 1,
-        background: "#fff",
-        borderRadius: 18,
-        boxShadow: "0 2px 12px #2291ff0c",
-        padding: "28px 24px",
-      }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          marginBottom: 26,
-          flexWrap: "wrap",
-        }}>
-          <select value={sortOrder} onChange={e => setSortOrder(e.target.value)}
-            style={{ padding: "7px 17px", borderRadius: 9 }}>
+      <div className="orders-content">
+        <div className="orders-filters">
+          <select
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value)}
+            className="orders-select"
+          >
             <option value="desc">Сначала новые</option>
             <option value="asc">Сначала старые</option>
           </select>
+
           <input
             type="text"
             placeholder="Поиск..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{
-              padding: "11px 19px",
-              borderRadius: 12,
-              border: "1.5px solid #e4e8ee",
-              minWidth: 270,
-            }}
+            className="orders-search"
           />
         </div>
 
-        {error && <div style={{ color: "#f34c4c" }}>{error}</div>}
+        {error && <div className="orders-error">{error}</div>}
+
         {loading ? (
-          <div style={{ textAlign: "center", marginTop: 60 }}>Загрузка...</div>
+          <div className="orders-empty">Загрузка...</div>
         ) : orders.length === 0 ? (
-          <div style={{ textAlign: "center", marginTop: 80 }}>Нет заказов</div>
+          <div className="orders-empty">Нет заказов</div>
         ) : (
           orders.map(order => <OrderCard key={order._id} order={order} />)
         )}
@@ -397,22 +309,14 @@ export default function AdminOrdersPage() {
       </div>
 
       {showCancelModal && (
-        <div style={{
-          position: 'absolute', left: 0, top: 0, width: '100%', minHeight: '100%', zIndex: 1001,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }} onClick={() => setShowCancelModal(false)}>
-          <div style={{
-            background: '#fff', borderRadius: 16, padding: 34, minWidth: 330,
-            boxShadow: '0 8px 44px #174ec32f'
-          }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowCancelModal(false)} style={{
-              position: "absolute", top: 14, right: 16, fontSize: 22, background: "none", border: "none"
-            }}>×</button>
-            <div style={{ fontSize: 20, marginBottom: 18 }}>Изменение статуса</div>
+        <div className="modal-overlay" onClick={() => setShowCancelModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowCancelModal(false)}>×</button>
+            <div className="modal-title">Изменение статуса</div>
             <select
               value={cancelReason}
               onChange={e => setCancelReason(e.target.value)}
-              style={{ width: '100%', marginBottom: 22 }}
+              className="modal-select"
             >
               <option value="">Выберите причину...</option>
               {cancelReasonsList.map(r => <option key={r} value={r}>{r}</option>)}
@@ -420,11 +324,7 @@ export default function AdminOrdersPage() {
             <button
               onClick={handleCancelOrder}
               disabled={!cancelReason}
-              style={{
-                width: "100%", background: "#e12a2a", color: "#fff",
-                borderRadius: 9, padding: "11px 0", cursor: !cancelReason ? "not-allowed" : "pointer",
-                opacity: !cancelReason ? 0.65 : 1
-              }}
+              className={`modal-danger ${!cancelReason ? 'is-disabled' : ''}`}
             >
               Отменить заказ
             </button>
