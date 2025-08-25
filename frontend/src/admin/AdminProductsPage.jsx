@@ -1,3 +1,4 @@
+// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
@@ -5,6 +6,9 @@ import "../assets/AdminPanel.css";
 import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
+
+// контекст для доступа к списку групп
+const GroupsContext = React.createContext([]);
 
 export default function AdminProductsPage() {
   const location = useLocation();
@@ -175,7 +179,9 @@ export default function AdminProductsPage() {
               {loading ? (
                 <div className="products-empty muted">Загрузка...</div>
               ) : (
-                <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+                <GroupsContext.Provider value={{ groups }}>
+                  <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+                </GroupsContext.Provider>
               )}
             </>
           )}
@@ -242,6 +248,7 @@ function ProductList({ products, onEdit, onDelete }) {
 function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
+  const { groups } = React.useContext(GroupsContext);
 
   useEffect(() => {
     if (!open) return;
@@ -256,6 +263,15 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         ? product.images[0]
         : `${BASE_URL}${product.images[0]}`
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
+
+  // определяем имя группы
+  let groupName = "—";
+  if (typeof product.group === "object" && product.group?.name) {
+    groupName = product.group.name;
+  } else if (typeof product.group === "string") {
+    const found = groups.find((g) => g._id === product.group);
+    if (found) groupName = found.name;
+  }
 
   return (
     <div className="product-row">
@@ -277,7 +293,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
         </Link>
-        <div className="product-group">{product.group?.name || "—"}</div>
+        <div className="product-group">{groupName}</div>
       </div>
 
       {/* дата */}

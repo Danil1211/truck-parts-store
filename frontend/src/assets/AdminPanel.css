@@ -641,7 +641,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   gap: 14px !important;
   background: #f9fbfd !important;
   border-radius: 14px !important;
-  padding: 14px !important;
+  padding: 14px 20px 14px 14px !important; /* добавил правый паддинг */
   margin-bottom: 12px !important;
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05) !important;
   font-weight: 400 !important;
@@ -720,8 +720,8 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 }
 
 /* Действия */
-.products-page .cell-actions{ justify-self:center !important; align-self:center !important; }
-.products-page .actions{ position:relative !important; }
+.products-page .cell-actions{ justify-self:end !important; align-self:center !important; }
+.products-page .actions{ position:relative !important; right:0 !important; }
 .products-page .actions-toggle{
   padding:6px 12px !important;
   font-size:13px !important;
