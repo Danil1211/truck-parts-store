@@ -256,17 +256,18 @@
 /* фиксированная шапка контента, без зазора от topbar */
 .orders-header {
   position: fixed;
-  top: var(--topbar-h);
+  top: calc(var(--topbar-h) + 6px);  /* добавляем 6px отступа от верхнего меню */
   left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 0;
-  height: 64px;
+  right: 20px; /* ← теперь есть отступ справа */
+  height: 56px; /* делаем по высоте как верхнее меню */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 8px 20px;  /* было 0 20px → теперь сверху есть 8px */
+  padding: 0 16px;
   background: #fff;
-  border-bottom: 1px solid rgba(0,0,0,.06);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 12px;
   z-index: 130;
 }
 
