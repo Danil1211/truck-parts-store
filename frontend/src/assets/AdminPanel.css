@@ -31,6 +31,9 @@
   --sidebar-w: 76px;   /* ширина левого сайдбара */
   --submenu-w: 240px;  /* ширина правого подменю */
   --gutter: 24px;      /* отступ между подменю и контентом */
+
+  /* NEW: высота компактных контролов (поиск/кнопки) */
+  --ctl-h: 36px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -350,6 +353,7 @@
 }
 @media (max-width:1100px){ .products-header{ left: var(--sidebar-w); } }
 
+/* ВАЖНО: левая часть тянется, кнопка прижимается вправо */
 .products-header-left{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
 .products-header-right{ margin-left:auto; flex:0 0 auto; }
 
@@ -359,12 +363,16 @@
 }
 .products-count{ color:#007aff; font-weight:400; }
 
-/* Поиск с маленькой лупой */
+/* Поиск с маленькой лупой — ШИРЕ */
 .products-header-left .products-search-compact{
   height: var(--ctl-h);
   line-height: var(--ctl-h);
-  padding: 0 14px 0 34px;            /* место под лупу слева */
+  padding: 0 14px 0 34px;
   display: inline-block;
+
+  width: 360px;                /* базовая ширина */
+  max-width: 46vw;             /* чтобы не ломал строку при узких экранах */
+  flex: 0 1 360px;             /* держим ширину, но можно сжимать */
 
   border-radius: 12px;
   border: 1px solid #d0d7e2;
@@ -378,10 +386,9 @@
   color: #0f172a;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
   transition: all .2s ease;
-
-  /* оптический центр относительно нижней границы хедера */
-  margin-top: 2px;
+  margin-top: 2px; /* оптический центр */
 }
+.products-header-left .products-search-compact::placeholder{ color:#8fa0b3; }
 
 .products-header-left .products-search-compact:focus{
   border-color:#007aff;
@@ -390,7 +397,7 @@
   outline:none;
 }
 
-/* чтобы «Фильтры» были одной высоты с поиском */
+/* чтобы «Фильтры» совпадали по высоте с поиском */
 .products-header-left .filters-toggle{
   height: var(--ctl-h);
   padding: 0 16px;
@@ -398,7 +405,7 @@
   align-items: center;
 }
 
-/* фильтры (кнопка/поповер) — как было */
+/* фильтры (кнопка/поповер) */
 .filters{ position:relative; }
 .filters-toggle{ padding:11px 24px 11px 22px; border-radius:10px; background:#eaf4ff; color:#2291ff; font-weight:500; font-size:15px; border:none; cursor:pointer; box-shadow:0 1px 7px #2291ff10; white-space:nowrap; }
 .filters-popover{ position:absolute; left:0; top:48px; z-index:150; background:#fff; border:1.5px solid #dbefff; border-radius:14px; box-shadow:0 12px 44px #2291ff11; min-width:210px; padding:16px 19px; display:flex; flex-direction:column; gap:12px; }
@@ -454,5 +461,5 @@
 @media (max-width: 780px){
   .admin-content, .admin-chat-root{ min-width:0 !important; }
   .orders-search-compact{ width: 260px; }
-  .products-search-compact{ width: 260px; }
+  .products-search-compact{ width: 260px; flex: 0 1 260px; }
 }
