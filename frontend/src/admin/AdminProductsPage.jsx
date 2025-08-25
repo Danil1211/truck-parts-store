@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
-import api from "./utils/api.js";
+import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
