@@ -157,62 +157,86 @@
 }
 
 /* ============================== Сайдбар ================================ */
-.admin-sidebar {
-  width: 76px;
-  background: var(--sidebar);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  border-right: 1px solid #e4e8ee;
-  min-width: 76px;
+/* ===== sidebar — Apple glass style ===== */
+.admin-sidebar{
+  width:76px;
+  min-width:76px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 
-  /* под шапку */
-  padding-top: calc(16px + var(--topbar-h));
+  /* отступ под верхнюю шапку */
+  padding: calc(16px + var(--topbar-h)) 0 16px;
+
+  /* стекло + аккуратная рамка */
+  background: rgba(255,255,255,.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-right: 1px solid rgba(0,0,0,.06);
+
+  /* лёгкое скругление правого края, как у macOS-панелей */
+  border-radius: 0 16px 16px 0;
+
+  /* еле заметная внутренняя “подсветка” */
+  box-shadow: inset 1px 0 0 rgba(255,255,255,.35);
 }
 
-.admin-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin-top: 6px;
+/* навигация-иконки в сайдбаре */
+.admin-menu{
+  display:flex;
+  flex-direction:column;
+  gap:18px;           /* чуть плотнее, чем было */
+  margin-top:6px;
 }
 
-.admin-menu a {
-  font-size: 25px;
-  color: #98a2b3;
-  border-radius: 10px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-}
-.admin-menu a.active,
-.admin-menu a:hover {
-  color: var(--sidebar-active);
-  background: #eaf4ff;
+/* пункты меню — минимализм */
+.admin-menu a{
+  width:44px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  color:#475569;                 /* slate-600 */
+  font-size:25px;
+  border-radius:12px;            /* мягче */
+  border:1px solid transparent;  /* для hover/active */
+  background: transparent;
+
+  transition: background .18s, color .18s, border-color .18s, box-shadow .18s;
 }
 
-/* inline-SVG иконки */
-.admin-menu-icon-svg {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  filter: grayscale(.18);
+/* hover — лёгкая подсветка, как в macOS */
+.admin-menu a:hover{
+  background: rgba(0,0,0,.05);
+  border-color: rgba(0,0,0,.08);
+  color:#0f172a;                 /* slate-900 */
+  box-shadow: 0 1px 2px rgba(0,0,0,.06) inset;
+}
+
+/* active — фирменный синий, но полупрозрачный */
+.admin-menu a.active{
+  background: rgba(17,127,255,.12);
+  border-color: rgba(17,127,255,.28);
+  color: var(--sidebar-active);  /* #117fff */
+  box-shadow: 0 0 0 1px rgba(17,127,255,.18) inset;
+}
+
+/* inline-SVG иконки — без серого фильтра в активном/hover */
+.admin-menu-icon-svg{
+  width:38px;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto;
+  filter: grayscale(.15);
   transition: filter .18s;
 }
-.admin-menu a.active .admin-menu-icon-svg,
-.admin-menu a:hover .admin-menu-icon-svg {
-  filter: grayscale(0) drop-shadow(0 0 2px #2291ff44);
+.admin-menu a:hover .admin-menu-icon-svg,
+.admin-menu a.active .admin-menu-icon-svg{
+  filter: grayscale(0);
 }
-
-.admin-footer { margin-top: auto; padding: 12px; }
-.go-to-site { font-size: 22px; color: var(--primary-dark); text-decoration: none; }
 
 /* ============================ SubMenu справа =========================== */
 .admin-nav-menu {
