@@ -1,3 +1,4 @@
+// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
