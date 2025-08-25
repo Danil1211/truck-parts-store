@@ -150,14 +150,14 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* Поиск ОБЯЗАТЕЛЬНО сразу после «Фильтры» */}
+          {/* Поиск обязателен сразу после «Фильтры» */}
           <input
             type="text"
             placeholder="Поиск…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="products-search-compact"
-            style={{ marginLeft: 0 }}   // <— важный фикс
+            style={{ marginLeft: 0 }}
           />
         </div>
 
@@ -228,17 +228,17 @@ function ProductRow({ product, onEdit, onDelete }) {
 
   return (
     <div className="product-row">
-      <div>
+      <div className="cell-photo">
         <img className="product-photo" src={photoUrl} alt={product.name} />
       </div>
 
-      <div>
+      <div className="cell-name">
         <Link to={`/admin/products/${product._id}/edit`} className="product-link">
           {product.name}
         </Link>
       </div>
 
-      <div className="product-date">
+      <div className="cell-date product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleString("ru-RU", {
               day: "2-digit",
@@ -247,12 +247,12 @@ function ProductRow({ product, onEdit, onDelete }) {
               hour: "2-digit",
               minute: "2-digit",
             })
-          : ""}
+          : "—"}
       </div>
 
-      <div className="product-sku">{product.sku}</div>
+      <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
-      <div>
+      <div className="cell-avail">
         <span
           className={
             "avail " +
@@ -271,7 +271,7 @@ function ProductRow({ product, onEdit, onDelete }) {
         </span>
       </div>
 
-      <div className="product-right">
+      <div className="cell-price product-right">
         <span className="product-price">{product.price} ₴</span>
 
         <div className="actions" ref={ref}>
