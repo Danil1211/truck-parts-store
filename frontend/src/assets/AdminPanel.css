@@ -121,7 +121,6 @@
 .admin-menu a:hover .admin-menu-icon-svg,
 .admin-menu a.active .admin-menu-icon-svg{ filter: grayscale(0); }
 
-/* ── Контент (скроллится только он) */
 .admin-content {
   flex: 1; min-width: 0;
   height: 100vh;
@@ -129,9 +128,15 @@
   background: var(--bg);
   position: relative;
 
-  /* отступы под зафиксированные панели */
+  /* только отступ сверху */
   padding-top: var(--topbar-h);
-  padding-left: var(--sidebar-w);
+  padding-left: 0; /* убираем лишний левый отступ */
+}
+
+/* когда есть правое подменю — просто добавляем отступ справа */
+.admin-content.with-submenu {
+  margin-left: var(--submenu-w); /* отталкиваемся от правого меню */
+  padding-left: 0;
 }
 
 /* когда на странице есть правое подменю — добавь .with-submenu на .admin-content */
