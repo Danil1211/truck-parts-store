@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
@@ -81,32 +81,22 @@ export default function AdminProductsPage() {
   };
 
   const filtered = products.filter((p) => {
-    if (noPhoto && (p.images && p.images.length)) return false;
+    if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
     if (
       search &&
-      !(
-        p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-      )
-    ) {
+      !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))
+    )
       return false;
-    }
     if (status && p.availability !== status) return false;
     return true;
   });
-
-  // карта id->name для групп (чтобы показывать имя даже если в продукте group = ObjectId)
-  const groupById = useMemo(() => {
-    const map = {};
-    for (const g of groups) map[String(g._id)] = g.name;
-    return map;
-  }, [groups]);
 
   return (
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
+      {/* Фиксированный хедер */}
       <div className="products-header">
         <div className="products-header-left">
           <div className="products-h1" style={{ order: 0 }}>
@@ -150,7 +140,7 @@ export default function AdminProductsPage() {
                     checked={noPhoto}
                     onChange={(e) => setNoPhoto(e.target.checked)}
                   />
-                  Только без фото
+                  Без фото
                 </label>
 
                 <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
@@ -177,6 +167,7 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {/* Контент */}
       <div className="products-content-wrap">
         <div className="products-content">
           {selected === "list" && (
@@ -184,12 +175,7 @@ export default function AdminProductsPage() {
               {loading ? (
                 <div className="products-empty muted">Загрузка...</div>
               ) : (
-                <ProductList
-                  products={filtered}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  groupById={groupById}
-                />
+                <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
               )}
             </>
           )}
@@ -199,37 +185,57 @@ export default function AdminProductsPage() {
   );
 }
 
-function ProductList({ products, onEdit, onDelete, groupById }) {
-  if (!products.length) {
-    return <div className="products-empty">Нет позиций по выбранным параметрам.</div>;
-  }
+/* ================== ProductList + ProductRow ================== */
+function ProductList({ products, onEdit, onDelete }) {
+  const [selectedIds, setSelectedIds] = React.useState([]);
+  const allSelected = products.length > 0 && selectedIds.length === products.length;
+
+  const toggleAll = () => {
+    if (allSelected) setSelectedIds([]);
+    else setSelectedIds(products.map(p => p._id));
+  };
+
+  const toggleOne = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
   return (
-    <div>
-      <div className="products-grid-header">
-        <div>Фото</div>
-        <div>Название / Группа</div>
-        <div>Дата</div>
-        <div>Код</div>
-        <div>Наличие / Отображение</div>
-        <div>Цена</div>
-        <div>Заказы</div>
-        <div>Действия</div>
+    <div className="products-list-wrap">
+      <div className="products-bulk-header">
+        <label className="apple-checkbox">
+          <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+          <span />
+        </label>
+        {selectedIds.length > 0 && (
+          <div className="bulk-actions">
+            Действия для {selectedIds.length} позиций ▾
+            <div className="bulk-menu">
+              <button onClick={() => {
+                selectedIds.forEach(id => onDelete(id));
+                setSelectedIds([]);
+              }}>Удалить</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {products.map((p) => (
         <ProductRow
           key={p._id}
           product={p}
+          selected={selectedIds.includes(p._id)}
+          onToggle={() => toggleOne(p._id)}
           onEdit={onEdit}
           onDelete={onDelete}
-          groupById={groupById}
         />
       ))}
     </div>
   );
 }
 
-function ProductRow({ product, onEdit, onDelete, groupById }) {
+function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
 
@@ -245,48 +251,26 @@ function ProductRow({ product, onEdit, onDelete, groupById }) {
       ? product.images[0].startsWith("http")
         ? product.images[0]
         : `${BASE_URL}${product.images[0]}`
-      : "https://dummyimage.com/140x140/eeeeee/222.png&text=Нет+фото";
-
-  const isPublished =
-    typeof product.isPublished === "boolean"
-      ? product.isPublished
-      : typeof product.published === "boolean"
-      ? product.published
-      : product.visibility
-      ? product.visibility === "published"
-      : true;
-
-  const availability = product.availability || ""; // 'published' | 'order' | 'out'
-  const availabilityLabel =
-    availability === "published" ? "В наличии" : availability === "order" ? "Под заказ" : "Нет на складе";
-
-  const ordersCount =
-    product.ordersCount ??
-    product.orderCount ??
-    (product.stats && product.stats.orders) ??
-    0;
-
-  const groupName =
-    product.group?.name ||
-    (product.group && groupById ? groupById[String(product.group)] : null) ||
-    "—";
+      : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
   return (
     <div className="product-row">
-      {/* Фото */}
+      <label className="apple-checkbox">
+        <input type="checkbox" checked={selected} onChange={onToggle} />
+        <span />
+      </label>
+
       <div className="cell-photo">
-        <img className="product-photo" src={photoUrl} alt={product.name || "Фото"} />
+        <img className="product-photo" src={photoUrl} alt={product.name} />
       </div>
 
-      {/* Название + Группа */}
       <div className="cell-name">
         <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
         </Link>
-        <div className="product-group">{groupName}</div>
+        <div className="product-group">{product.group?.name || "—"}</div>
       </div>
 
-      {/* Дата */}
       <div className="cell-date product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleString("ru-RU", {
@@ -299,41 +283,43 @@ function ProductRow({ product, onEdit, onDelete, groupById }) {
           : "—"}
       </div>
 
-      {/* Код */}
       <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
-      {/* Наличие + Опубликован/Скрытый */}
       <div className="cell-state">
         <span
           className={
             "avail " +
-            (availability === "published" ? "published" : availability === "order" ? "order" : "out")
+            (product.availability === "published"
+              ? "published"
+              : product.availability === "order"
+              ? "order"
+              : "out")
           }
         >
-          {availabilityLabel}
+          {product.availability === "published"
+            ? "В наличии"
+            : product.availability === "order"
+            ? "Под заказ"
+            : "Нет на складе"}
         </span>
-        <span className={"pub " + (isPublished ? "on" : "off")}>
-          {isPublished ? "Опубликован" : "Скрытый"}
+        <span className={`pub ${product.status === "published" ? "on" : "off"}`}>
+          {product.status === "published" ? "Опубликован" : "Скрытый"}
         </span>
       </div>
 
-      {/* Цена */}
       <div className="cell-price">
-        <span className="product-price">{Number(product.price || 0).toLocaleString("uk-UA")} ₴</span>
+        <span className="product-price">{product.price} ₴</span>
       </div>
 
-      {/* Заказы */}
       <div className="cell-orders">
-        <span className="orders-badge">{ordersCount}</span>
+        <span className="orders-badge">{product.ordersCount || 0}</span>
       </div>
 
-      {/* Действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
-          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
+          <button className="actions-toggle" onClick={() => setOpen(v => !v)}>
             Действия <span style={{ fontSize: 13 }}>▼</span>
           </button>
-
           {open && (
             <div className="actions-menu">
               <button className="actions-item edit" onClick={() => onEdit(product._id)}>

@@ -757,17 +757,88 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .products-page .product-row > .cell-actions{ display:none !important; }
 }
 
-/* ===================== PRODUCTS ROW HOVER ANIMATION ===================== */
+/* ===================== PRODUCTS ROW HOVER CLEAN ===================== */
 .products-page .product-row{
-  transition: background 0.25s ease,
-              box-shadow 0.25s ease,
-              transform 0.2s ease;
-  will-change: transform, box-shadow, background;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+  will-change: background, box-shadow;
 }
 
 .products-page .product-row:hover{
   background: #ffffff !important;
   box-shadow: 0 6px 20px rgba(17,127,255,0.12),
-              0 2px 6px rgba(0,0,0,0.08) !important;
-  transform: translateY(-2px);
+              0 2px 6px rgba(0,0,0,0.06) !important;
+  /* убрали transform: translateY → больше никакого блюра */
 }
+
+
+/* ===================== APPLE STYLE CHECKBOX + BULK ACTIONS ===================== */
+.apple-checkbox{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px;
+  cursor:pointer;
+}
+.apple-checkbox input{ display:none; }
+.apple-checkbox span{
+  display:block;
+  width:18px; height:18px;
+  border-radius:6px;
+  border:1.6px solid #cfd8e3;
+  background:#fff;
+  transition: all .2s ease;
+  position:relative;
+}
+.apple-checkbox input:checked + span{
+  background:#0a84ff;
+  border-color:#0a84ff;
+}
+.apple-checkbox input:checked + span::after{
+  content:"";
+  position:absolute;
+  left:4px; top:1px;
+  width:6px; height:11px;
+  border:solid #fff;
+  border-width:0 2px 2px 0;
+  transform:rotate(45deg);
+}
+
+/* Bulk header */
+.products-bulk-header{
+  display:flex; align-items:center; gap:14px;
+  margin:0 0 14px;
+  padding:6px 14px;
+  background:#f8faff;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+}
+.bulk-actions{
+  position:relative;
+  font-size:13.5px;
+  color:#0f172a;
+  cursor:pointer;
+  user-select:none;
+}
+.bulk-actions:hover .bulk-menu{ display:block; }
+.bulk-menu{
+  display:none;
+  position:absolute;
+  top:120%;
+  left:0;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.08);
+  min-width:160px;
+  z-index:100;
+}
+.bulk-menu button{
+  display:block;
+  width:100%;
+  padding:8px 12px;
+  background:none;
+  border:none;
+  text-align:left;
+  font-size:13px;
+  cursor:pointer;
+  color:#e53935;
+}
+.bulk-menu button:hover{ background:#f9f9f9; }
