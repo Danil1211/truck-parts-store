@@ -169,7 +169,7 @@ export default function AdminProductsPage() {
             onClick={() => navigate("/admin/products/create")}
             title="Добавить позицию"
           >
-            <span className="plus-icon">＋</span> Добавить позицию
+            <span className="plus-icon">＋</span> Добавить
           </button>
         </div>
       </div>
