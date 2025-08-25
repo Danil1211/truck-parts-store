@@ -1,3 +1,4 @@
+// src/admin/AdminOrdersPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AdminSubMenu from './AdminSubMenu';
@@ -128,7 +129,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('new');
+  const [statusFilter, setStatusFilter] = useState('all'); // <-- фикс: по умолчанию "all"
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
