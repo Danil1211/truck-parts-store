@@ -641,7 +641,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   gap: 14px !important;
   background: #f9fbfd !important;
   border-radius: 14px !important;
-  padding: 14px 20px 14px 14px !important; /* добавил правый паддинг */
+  padding: 14px 20px 14px 14px !important; /* запас справа */
   margin-bottom: 12px !important;
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05) !important;
   font-weight: 400 !important;
@@ -720,8 +720,17 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 }
 
 /* Действия */
-.products-page .cell-actions{ justify-self:end !important; align-self:center !important; }
-.products-page .actions{ position:relative !important; right:0 !important; }
+.products-page .cell-actions{
+  justify-self:end !important;
+  align-self:center !important;
+  position:relative !important;
+  overflow:visible !important;
+  max-width:120px !important;
+}
+.products-page .actions{
+  position:relative !important;
+  display:inline-block !important;
+}
 .products-page .actions-toggle{
   padding:6px 12px !important;
   font-size:13px !important;
@@ -731,21 +740,37 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   border:1px solid #e2e8f0 !important;
   border-radius:10px !important;
   line-height:1 !important;
+  white-space:nowrap !important;
+  max-width:100% !important;
+  overflow:hidden;
+  text-overflow:ellipsis;
   transition: background .18s ease, border-color .18s ease, transform .03s ease !important;
 }
 .products-page .actions-toggle:hover{ background:#eef4ff !important; border-color:#cfe0fb !important; }
 .products-page .actions-toggle:active{ transform: translateY(1px) !important; }
 .products-page .actions-menu{
-  right:0 !important; left:auto !important;
+  position:absolute !important;
+  top:100% !important;
+  right:0 !important;
+  left:auto !important;
+  margin-top:6px !important;
+  background:#fff;
   box-shadow:0 8px 24px rgba(16,76,186,.12) !important;
   border:1px solid #e7effa !important;
   border-radius:12px !important;
   overflow:hidden;
+  z-index:1000;
+  min-width:160px;
 }
 .products-page .actions-item{
   font-size:13.5px !important;
   font-weight:400 !important;
   padding:9px 12px !important;
+  width:100% !important;
+  text-align:left !important;
+  background:none;
+  border:none;
+  cursor:pointer;
 }
 .products-page .actions-item:hover{ background:#f6f9ff !important; }
 
