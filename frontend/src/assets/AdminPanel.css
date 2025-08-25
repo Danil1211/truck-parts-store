@@ -601,7 +601,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .products-header-left .products-search-compact{ width:260px; flex:0 0 260px; }
 }
 
-/* ===================== PRODUCTS GRID — FIX (append-only) ===================== */
+/* ===================== PRODUCTS GRID — FIX (append-only, polished) ===================== */
 /* Лочим сетку заголовка */
 .products-page .products-grid-header{
   display: grid !important;
@@ -621,7 +621,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   background: #fff !important;
 }
 
-/* Лочим сетку строк (чтобы не перетиралась старым flex/блоком) */
+/* Лочим сетку строк */
 .products-page .product-row{
   display: grid !important;
   grid-template-columns:
@@ -637,40 +637,49 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   gap: 14px !important;
   background: #f9fbfd !important;
   border-radius: 14px !important;
-  padding: 14px !important;
+  padding: 14px 18px 14px 14px !important; /* +правый внутренний отступ */
   margin-bottom: 12px !important;
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05) !important;
 }
 .products-page .product-row > *{ min-width:0 !important; }
 
-/* Ячейки и мелочи, чтобы всё выглядело ровно */
-.products-page .cell-actions{ justify-self: end !important; }
-.products-page .cell-orders{ text-align: center !important; }
-.products-page .product-price{ white-space: nowrap !important; }
-.products-page .product-date{ white-space: nowrap !important; }
-.products-page .product-sku{ white-space: nowrap !important; }
+/* Ячейки и мелочи */
+.products-page .cell-actions{ justify-self:end !important; padding-right:8px !important; }
+.products-page .cell-orders{ text-align:center !important; }
+.products-page .product-price{ white-space:nowrap !important; }
+.products-page .product-date{ white-space:nowrap !important; }
+.products-page .product-sku{ white-space:nowrap !important; }
 
-/* Фото маленькое */
+/* Фото */
 .products-page .product-photo{
   width:72px !important; height:72px !important; object-fit:cover !important;
   border-radius:12px; background:#e9f3fa;
 }
 
-/* Название — строго 1–2 строки; ниже группа */
+/* Название — 1–2 строки; ниже группа (уменьшили кегли, убрали жирный) */
 .products-page .product-link.two-lines{
   display:-webkit-box !important;
   -webkit-line-clamp:2; -webkit-box-orient:vertical;
   overflow:hidden; text-overflow:ellipsis; line-height:1.25;
-  font-weight:600; font-size:15px; color:#117fff; text-decoration:none;
+  font-weight:500 !important;            /* было 600 */
+  font-size:14px !important;             /* было 15 */
+  color:#0a84ff !important;              /* мягкий apple-синий */
+  text-decoration:none;
 }
 .products-page .product-group{
-  margin-top:4px; font-size:13px; color:#64748b;
+  margin-top:4px;
+  font-size:12.5px !important;
+  color:#8ea0b3 !important;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* Наличие + Опубликован/Скрытый */
+/* Дата / код — компактнее */
+.products-page .product-date{ font-size:12.5px !important; color:#9aa8b7 !important; }
+.products-page .product-sku{ font-weight:500 !important; font-size:13px !important; color:#0a84ff !important; }
+
+/* Наличие + Опубликован/Скрытый — компактнее */
 .products-page .cell-state{ display:flex !important; flex-direction:column !important; gap:6px !important; }
-.products-page .avail{ font-weight:700; font-size:14px; }
+.products-page .avail{ font-weight:500 !important; font-size:13.5px !important; }
 .products-page .avail.published{ color:#24c471; }
 .products-page .avail.order{ color:#ef9c19; }
 .products-page .avail.out{ color:#e12a2a; }
@@ -682,15 +691,30 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 .products-page .pub.on{ background:#e9f9f0; color:#15803d; border-color:#b7f0cc; }
 .products-page .pub.off{ background:#f2f4f7; color:#475569; border-color:#e2e8f0; }
 
-/* Бейдж заказов */
-.products-page .orders-badge{
-  display:inline-flex; align-items:center; justify-content:center;
-  min-width:38px; height:28px; padding:0 10px;
-  border-radius:999px; font-weight:700; font-size:13.5px;
-  background:#eef5ff; color:#0b5ed7; border:1px solid #d7e6ff;
+/* Цена — мягче */
+.products-page .product-price{
+  font-weight:500 !important; font-size:14px !important; color:#111827 !important;
 }
 
-/* Чтобы адаптив не ломал сетку, если есть старые медиа-правила */
+/* Бейдж заказов — тоньше */
+.products-page .orders-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:34px; height:26px; padding:0 10px;
+  border-radius:999px; font-weight:600; font-size:13px;
+  background:#f3f7ff; color:#0a84ff; border:1px solid #dde8ff;
+}
+
+/* Кнопка действий — компактная и не вылезает */
+.products-page .actions-toggle{
+  padding:6px 10px !important;
+  font-size:13px !important;
+  background:#eef4ff !important;
+  color:#0a84ff !important;
+  border-radius:10px !important;
+}
+.products-page .actions-menu{ right:8px !important; }
+
+/* Мобила: сохраняем сетку, скрываем второстепенное */
 @media (max-width: 900px){
   .products-page .products-grid-header{
     grid-template-columns: 80px 2fr 1fr 1fr 1.4fr !important;

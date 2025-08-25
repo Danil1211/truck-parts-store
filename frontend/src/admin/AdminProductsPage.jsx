@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
@@ -80,9 +80,8 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Фильтрация
   const filtered = products.filter((p) => {
-    if (noPhoto && (p.images && p.images.length)) return false; // показывать только без фото
+    if (noPhoto && (p.images && p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
     if (
       search &&
@@ -97,11 +96,17 @@ export default function AdminProductsPage() {
     return true;
   });
 
+  // карта id->name для групп (чтобы показывать имя даже если в продукте group = ObjectId)
+  const groupById = useMemo(() => {
+    const map = {};
+    for (const g of groups) map[String(g._id)] = g.name;
+    return map;
+  }, [groups]);
+
   return (
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
-      {/* Фиксированный хедер */}
       <div className="products-header">
         <div className="products-header-left">
           <div className="products-h1" style={{ order: 0 }}>
@@ -172,7 +177,6 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Контент */}
       <div className="products-content-wrap">
         <div className="products-content">
           {selected === "list" && (
@@ -180,7 +184,12 @@ export default function AdminProductsPage() {
               {loading ? (
                 <div className="products-empty muted">Загрузка...</div>
               ) : (
-                <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+                <ProductList
+                  products={filtered}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  groupById={groupById}
+                />
               )}
             </>
           )}
@@ -190,7 +199,7 @@ export default function AdminProductsPage() {
   );
 }
 
-function ProductList({ products, onEdit, onDelete }) {
+function ProductList({ products, onEdit, onDelete, groupById }) {
   if (!products.length) {
     return <div className="products-empty">Нет позиций по выбранным параметрам.</div>;
   }
@@ -208,13 +217,19 @@ function ProductList({ products, onEdit, onDelete }) {
       </div>
 
       {products.map((p) => (
-        <ProductRow key={p._id} product={p} onEdit={onEdit} onDelete={onDelete} />
+        <ProductRow
+          key={p._id}
+          product={p}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          groupById={groupById}
+        />
       ))}
     </div>
   );
 }
 
-function ProductRow({ product, onEdit, onDelete }) {
+function ProductRow({ product, onEdit, onDelete, groupById }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
 
@@ -251,6 +266,11 @@ function ProductRow({ product, onEdit, onDelete }) {
     (product.stats && product.stats.orders) ??
     0;
 
+  const groupName =
+    product.group?.name ||
+    (product.group && groupById ? groupById[String(product.group)] : null) ||
+    "—";
+
   return (
     <div className="product-row">
       {/* Фото */}
@@ -263,7 +283,7 @@ function ProductRow({ product, onEdit, onDelete }) {
         <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
         </Link>
-        <div className="product-group">{product.group?.name || "—"}</div>
+        <div className="product-group">{groupName}</div>
       </div>
 
       {/* Дата */}
