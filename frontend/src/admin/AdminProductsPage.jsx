@@ -97,84 +97,92 @@ export default function AdminProductsPage() {
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
-      <div className="products-content">
-        {selected === "list" && (
-          <>
-            <div className="products-toolbar">
-              <div className="products-title">
-                Позиции <span className="products-count">({filtered.length})</span>
-              </div>
+      {/* ФИКСИРОВАННАЯ ШАПКА ПРОДУКТОВ */}
+      <div className="products-header" role="region" aria-label="Фильтры и поиск товаров">
+        <div className="products-header-left">
+          <div className="products-h1">
+            Позиции <span className="products-count">({filtered.length})</span>
+          </div>
 
-              <div className="filters" ref={filterRef}>
-                <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
-                  Фильтры
+          {/* Фильтры */}
+          <div className="filters" ref={filterRef}>
+            <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
+              Фильтры
+            </button>
+
+            {filtersOpen && (
+              <div className="filters-popover">
+                <select
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                  className="filters-select"
+                >
+                  <option value="all">Все группы</option>
+                  {groups.map((g) => (
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="filters-select"
+                >
+                  <option value="">Все</option>
+                  <option value="published">В наличии</option>
+                  <option value="order">Под заказ</option>
+                  <option value="out">Нет на складе</option>
+                </select>
+
+                <label className="filters-check">
+                  <input
+                    type="checkbox"
+                    checked={noPhoto}
+                    onChange={(e) => setNoPhoto(e.target.checked)}
+                  />
+                  Без фото
+                </label>
+
+                <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
+                  Применить
                 </button>
-
-                {filtersOpen && (
-                  <div className="filters-popover">
-                    <select
-                      value={group}
-                      onChange={(e) => setGroup(e.target.value)}
-                      className="filters-select"
-                    >
-                      <option value="all">Все группы</option>
-                      {groups.map((g) => (
-                        <option key={g._id} value={g._id}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      className="filters-select"
-                    >
-                      <option value="">Все</option>
-                      <option value="published">В наличии</option>
-                      <option value="order">Под заказ</option>
-                      <option value="out">Нет на складе</option>
-                    </select>
-
-                    <label className="filters-check">
-                      <input
-                        type="checkbox"
-                        checked={noPhoto}
-                        onChange={(e) => setNoPhoto(e.target.checked)}
-                      />
-                      Без фото
-                    </label>
-
-                    <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
-                      Применить
-                    </button>
-                  </div>
-                )}
               </div>
-
-              <input
-                type="text"
-                placeholder="Поиск по названию или артикулу"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="products-search"
-              />
-
-              <button
-                className="btn-primary add-btn"
-                onClick={() => navigate("/admin/products/create")}
-              >
-                + Добавить позицию
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="products-empty muted">Загрузка...</div>
-            ) : (
-              <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
             )}
-          </>
-        )}
+          </div>
+
+          {/* Поиск с маленькой лупой */}
+          <input
+            type="text"
+            placeholder="Поиск…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="products-search-compact"
+            aria-label="Поиск по товарам"
+          />
+        </div>
+
+        <div className="products-header-right">
+          <button
+            className="btn-primary"
+            onClick={() => navigate("/admin/products/create")}
+            title="Добавить позицию"
+          >
+            <span className="plus-icon">＋</span> Добавить позицию
+          </button>
+        </div>
+      </div>
+
+      {/* Контент под шапкой */}
+      <div className="products-content-wrap">
+        <div className="products-content">
+          {loading ? (
+            <div className="products-empty muted">Загрузка...</div>
+          ) : (
+            <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+          )}
+        </div>
       </div>
     </div>
   );
