@@ -1,4 +1,3 @@
-// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
@@ -66,9 +65,7 @@ export default function AdminProductsPage() {
     return () => document.removeEventListener("mousedown", close);
   }, [filtersOpen]);
 
-  const handleEdit = (id) => {
-    navigate(`/admin/products/${id}/edit`);
-  };
+  const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Удалить позицию?")) return;
@@ -97,131 +94,47 @@ export default function AdminProductsPage() {
   });
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        minHeight: "calc(100vh - 60px)",
-        padding: "38px 0",
-      }}
-    >
-      {/* Обрати внимание: AdminSubMenu принимает props activeKey/onSelect в своей реализации */}
+    <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          background: "#fff",
-          borderRadius: 18,
-          boxShadow: "0 2px 12px #2291ff0c",
-          padding: "28px 24px",
-        }}
-      >
+
+      <div className="products-content">
         {selected === "list" && (
           <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-                flexWrap: "wrap",
-                marginBottom: 28,
-              }}
-            >
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: 28,
-                  marginRight: 10,
-                  whiteSpace: "nowrap",
-                  letterSpacing: 0,
-                  color: "#1a232b",
-                }}
-              >
-                Позиции{" "}
-                <span style={{ color: "#2291ff", fontSize: 21, fontWeight: 400 }}>
-                  ({filtered.length})
-                </span>
+            <div className="products-toolbar">
+              <div className="products-title">
+                Позиции <span className="products-count">({filtered.length})</span>
               </div>
-              <div style={{ position: "relative" }} ref={filterRef}>
-                <button
-                  onClick={() => setFiltersOpen((v) => !v)}
-                  style={{
-                    padding: "11px 24px 11px 22px",
-                    borderRadius: 10,
-                    background: "#eaf4ff",
-                    color: "#2291ff",
-                    fontWeight: 400,
-                    fontSize: 15,
-                    border: "none",
-                    cursor: "pointer",
-                    boxShadow: "0 1px 7px #2291ff10",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+
+              <div className="filters" ref={filterRef}>
+                <button className="filters-toggle" onClick={() => setFiltersOpen(v => !v)}>
                   Фильтры
                 </button>
+
                 {filtersOpen && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: 0,
-                      top: 48,
-                      zIndex: 50,
-                      background: "#fff",
-                      border: "1.5px solid #dbefff",
-                      borderRadius: 14,
-                      boxShadow: "0 12px 44px #2291ff11",
-                      minWidth: 210,
-                      padding: "16px 19px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                    }}
-                  >
+                  <div className="filters-popover">
                     <select
                       value={group}
                       onChange={(e) => setGroup(e.target.value)}
-                      style={{
-                        padding: "7px 13px",
-                        borderRadius: 8,
-                        border: "1.5px solid #e4e8ee",
-                        background: "#f4f7fa",
-                        fontSize: 14,
-                      }}
+                      className="filters-select"
                     >
                       <option value="all">Все группы</option>
                       {groups.map((g) => (
-                        <option key={g._id} value={g._id}>
-                          {g.name}
-                        </option>
+                        <option key={g._id} value={g._id}>{g.name}</option>
                       ))}
                     </select>
+
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      style={{
-                        padding: "7px 13px",
-                        borderRadius: 8,
-                        border: "1.5px solid #e4e8ee",
-                        background: "#f4f7fa",
-                        fontSize: 14,
-                      }}
+                      className="filters-select"
                     >
                       <option value="">Все</option>
                       <option value="published">В наличии</option>
                       <option value="order">Под заказ</option>
                       <option value="out">Нет на складе</option>
                     </select>
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        fontWeight: 400,
-                        fontSize: 15,
-                        gap: 7,
-                      }}
-                    >
+
+                    <label className="filters-check">
                       <input
                         type="checkbox"
                         checked={noPhoto}
@@ -229,68 +142,29 @@ export default function AdminProductsPage() {
                       />
                       Без фото
                     </label>
-                    <button
-                      onClick={() => setFiltersOpen(false)}
-                      style={{
-                        background: "#2291ff",
-                        color: "#fff",
-                        fontWeight: 400,
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "7px 0",
-                        marginTop: 5,
-                        fontSize: 15,
-                        cursor: "pointer",
-                        transition: ".12s",
-                      }}
-                    >
+
+                    <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
                       Применить
                     </button>
                   </div>
                 )}
               </div>
+
               <input
                 type="text"
                 placeholder="Поиск по названию или артикулу"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  padding: "9px 15px",
-                  borderRadius: 10,
-                  border: "1.5px solid #e4e8ee",
-                  background: "#f8fbff",
-                  fontSize: 15,
-                  minWidth: 200,
-                  fontWeight: 400,
-                  marginTop: 0,
-                }}
+                className="products-search"
               />
-              <button
-                style={{
-                  background: "#2291ff",
-                  color: "#fff",
-                  fontWeight: 400,
-                  fontSize: 15,
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "11px 21px",
-                  marginLeft: "auto",
-                  boxShadow: "0 2px 10px #2291ff18",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  marginTop: 0,
-                  transition: ".15s",
-                }}
-                onClick={() => navigate("/admin/products/create")}
-              >
+
+              <button className="btn-primary add-btn" onClick={() => navigate("/admin/products/create")}>
                 + Добавить позицию
               </button>
             </div>
-            <div style={{ height: 12 }}></div>
+
             {loading ? (
-              <div style={{ color: "#8ba0b7", textAlign: "center", marginTop: 80 }}>
-                Загрузка...
-              </div>
+              <div className="products-empty muted">Загрузка...</div>
             ) : (
               <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
             )}
@@ -303,35 +177,11 @@ export default function AdminProductsPage() {
 
 function ProductList({ products, onEdit, onDelete }) {
   if (!products.length) {
-    return (
-      <div
-        style={{
-          color: "#8ba0b7",
-          fontSize: 17,
-          fontWeight: 400,
-          textAlign: "center",
-          marginTop: 80,
-        }}
-      >
-        Нет позиций по выбранным параметрам.
-      </div>
-    );
+    return <div className="products-empty">Нет позиций по выбранным параметрам.</div>;
   }
   return (
     <div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "94px 1.7fr 1.2fr 1fr 1fr 1.2fr",
-          gap: 13,
-          padding: "0 0 7px 0",
-          fontWeight: 400,
-          fontSize: 14,
-          color: "#7a91aa",
-          borderBottom: "1.5px solid #e7effa",
-          marginBottom: 8,
-        }}
-      >
+      <div className="products-grid-header">
         <div>Фото</div>
         <div>Название</div>
         <div>Дата</div>
@@ -339,6 +189,7 @@ function ProductList({ products, onEdit, onDelete }) {
         <div>Наличие</div>
         <div>Цена</div>
       </div>
+
       {products.map((p) => (
         <ProductRow key={p._id} product={p} onEdit={onEdit} onDelete={onDelete} />
       ))}
@@ -369,52 +220,18 @@ function ProductRow({ product, onEdit, onDelete }) {
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "94px 1.7fr 1.2fr 1fr 1fr 1.2fr",
-        gap: 13,
-        alignItems: "center",
-        background: "#f7fbff",
-        borderRadius: 12,
-        marginBottom: 10,
-        padding: "12px 0 12px 0",
-        fontSize: 15,
-        fontWeight: 400,
-        boxShadow: "0 1px 6px #2291ff0a",
-      }}
-    >
+    <div className="product-row">
       <div>
-        <img
-          src={photoUrl}
-          alt={product.name}
-          style={{
-            width: 84,
-            height: 84,
-            objectFit: "cover",
-            borderRadius: 14,
-            background: "#e9f3fa",
-            boxShadow: "0 3px 8px #1a90ff11",
-          }}
-        />
+        <img src={photoUrl} alt={product.name} className="product-photo" />
       </div>
+
       <div>
-        <Link
-          to={`/admin/products/${product._id}/edit`}
-          style={{
-            fontWeight: 500,
-            fontSize: 15,
-            marginBottom: 3,
-            color: "#2291ff",
-            textDecoration: "none",
-            transition: "color 0.18s",
-            cursor: "pointer",
-          }}
-        >
+        <Link to={`/admin/products/${product._id}/edit`} className="product-link">
           {product.name}
         </Link>
       </div>
-      <div style={{ color: "#93a1b5", fontSize: 13 }}>
+
+      <div className="product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleString("ru-RU", {
               day: "2-digit",
@@ -425,18 +242,18 @@ function ProductRow({ product, onEdit, onDelete }) {
             })
           : ""}
       </div>
-      <div style={{ fontWeight: 500, color: "#2291ff", fontSize: 15 }}>{product.sku}</div>
+
+      <div className="product-sku">{product.sku}</div>
+
       <div>
         <span
-          style={{
-            fontWeight: 500,
-            color:
-              product.availability === "published"
-                ? "#2291ff"
-                : product.availability === "order"
-                ? "#ef9c19"
-                : "#f34c4c",
-          }}
+          className={`avail ${
+            product.availability === "published"
+              ? "published"
+              : product.availability === "order"
+              ? "order"
+              : "out"
+          }`}
         >
           {product.availability === "published"
             ? "В наличии"
@@ -445,67 +262,19 @@ function ProductRow({ product, onEdit, onDelete }) {
             : "Нет на складе"}
         </span>
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          minWidth: 0,
-        }}
-      >
-        <span style={{ fontWeight: 500, fontSize: 15, color: "#252525" }}>
-          {product.price} ₴
-        </span>
-        <div style={{ position: "relative" }} ref={actionsRef}>
-          <button
-            onClick={() => setActionsOpen((v) => !v)}
-            style={{
-              background: "#eaf4ff",
-              color: "#2291ff",
-              border: "none",
-              borderRadius: 10,
-              padding: "6px 13px",
-              fontWeight: 400,
-              fontSize: 14,
-              cursor: "pointer",
-              minWidth: 0,
-              boxShadow: "0 2px 8px #2291ff13",
-            }}
-          >
-            Действия <span style={{ fontSize: 13 }}>▼</span>
+
+      <div className="product-right">
+        <span className="product-price">{product.price} ₴</span>
+
+        <div className="actions" ref={actionsRef}>
+          <button className="actions-toggle" onClick={() => setActionsOpen(v => !v)}>
+            Действия <span>▼</span>
           </button>
+
           {actionsOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "38px",
-                left: 0,
-                background: "#fff",
-                boxShadow: "0 8px 30px #2291ff17",
-                borderRadius: 9,
-                border: "1px solid #e3f1ff",
-                padding: "4px 0",
-                zIndex: 100,
-                minWidth: 142,
-                display: "flex",
-                flexDirection: "column",
-                gap: 0,
-              }}
-            >
+            <div className="actions-menu">
               <button
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "8px 14px",
-                  textAlign: "left",
-                  fontWeight: 400,
-                  color: "#157ce8",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  width: "100%",
-                  borderBottom: "1px solid #f2f4f8",
-                  transition: "background 0.13s",
-                }}
+                className="actions-item edit"
                 onClick={() => {
                   setActionsOpen(false);
                   onEdit(product._id);
@@ -513,19 +282,9 @@ function ProductRow({ product, onEdit, onDelete }) {
               >
                 Редактировать
               </button>
+
               <button
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "8px 14px",
-                  textAlign: "left",
-                  fontWeight: 400,
-                  color: "#e84242",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  width: "100%",
-                  transition: "background 0.13s",
-                }}
+                className="actions-item delete"
                 onClick={() => {
                   setActionsOpen(false);
                   onDelete(product._id);

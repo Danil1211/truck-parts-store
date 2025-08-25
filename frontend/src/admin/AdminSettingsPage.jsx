@@ -42,11 +42,6 @@ const COLOR_PALETTE = [
 const SETTINGS_MENU = [
   { key: "main", title: "Основные настройки" },
   { key: "site", title: "Управление сайтом" },
-  { key: "delivery", title: "Способы доставки" },
-  { key: "payment", title: "Способы оплаты" },
-  { key: "schedule", title: "График работы" },
-  { key: "return", title: "Возврат и гарантия" },
-  { key: "managers", title: "Менеджеры" },
 ];
 
 // Подбираем корректную палитру (с футер-цветами) под выбранный основной цвет сайта
