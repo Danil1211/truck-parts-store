@@ -254,18 +254,20 @@
 }
 
 /* фиксированная шапка контента, без зазора от topbar */
-.orders-header{
+.orders-header {
   position: fixed;
   top: var(--topbar-h);
-  left: calc(var(--sidebar-w) + var(--submenu-w)); /* было + var(--gutter) */
+  left: calc(var(--sidebar-w) + var(--submenu-w));
   right: 0;
   height: 64px;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  padding: 5 20px;
+  padding: 8px 20px;  /* было 0 20px → теперь сверху есть 8px */
   background: #fff;
   border-bottom: 1px solid rgba(0,0,0,.06);
-  z-index: 130; /* выше правого подменю (120) */
+  z-index: 130;
 }
 
 /* адаптация, когда правое меню скрыто */
