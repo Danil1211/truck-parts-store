@@ -304,6 +304,16 @@
   box-shadow: 0 0 0 1px rgba(17,127,255,.18) inset;
 }
 
+/* ► Правое подменю вплотную к шапке */
+.admin-nav-menu{
+  top: var(--topbar-h) !important;   /* было calc(var(--topbar-h) + 12px) */
+  margin-top: 0 !important;          /* убираем визуальную "пустоту" сверху */
+}
+
+/* чуть «соберём» внутренности, чтобы выглядело плотнее */
+.admin-nav-menu { padding-top: 8px; }
+.admin-nav-title { margin-top: 2px; }
+
 /* прячем правое меню на узких экранах */
 @media (max-width: 1100px){
   .admin-nav-menu{ display: none; }
