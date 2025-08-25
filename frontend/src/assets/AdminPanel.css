@@ -250,13 +250,15 @@
 
 /* 5) Страницы — Orders */
 .orders-page{ padding: 0; } /* без лишних боковых отступов */
-.orders-toolbar{
-  position: sticky; top: var(--topbar-h); z-index: 50;
+.orders-toolbar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 50;
   display: grid;
   grid-template-columns: 220px minmax(240px, 360px) 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 12px;               /* плотно к topbar, как просили */
+  padding: 4px 12px 8px;  /* ← было 10px 12px, стало меньше сверху */
   background: rgba(255,255,255,.8);
   backdrop-filter: saturate(180%) blur(12px);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
