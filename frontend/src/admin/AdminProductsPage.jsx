@@ -209,6 +209,7 @@ function ProductList({ products, onEdit, onDelete }) {
 
   return (
     <div className="products-list-wrap">
+      {/* заголовок для массовых действий */}
       <div className="products-bulk-header">
         <label className="apple-checkbox">
           <input type="checkbox" checked={allSelected} onChange={toggleAll} />
@@ -259,12 +260,10 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
 
   const photoUrl =
     product.images && product.images.length
-      ? product.images[0].startsWith("http")
-        ? product.images[0]
-        : `${BASE_URL}${product.images[0]}`
+      ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
-  // определяем имя группы
+  // имя группы
   let groupName = "—";
   if (typeof product.group === "object" && product.group?.name) {
     groupName = product.group.name;
@@ -312,7 +311,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
       {/* код */}
       <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
-      {/* наличие + статус */}
+      {/* наличие + статус публикации */}
       <div className="cell-state">
         <span
           className={
@@ -330,6 +329,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
             ? "Под заказ"
             : "Нет на складе"}
         </span>
+
         <span className={`pub ${product.status === "published" ? "on" : "off"}`}>
           {product.status === "published" ? "Опубликован" : "Скрытый"}
         </span>
@@ -348,8 +348,8 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
       {/* действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
-          <button className="actions-toggle" onClick={() => setOpen(v => !v)}>
-            ⋮
+          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
+            Дії ▾
           </button>
           {open && (
             <div className="actions-menu">
