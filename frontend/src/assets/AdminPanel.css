@@ -733,7 +733,7 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
 }
 
 .quota-bar-vertical {
-  width: 8px;                 /* чуть толще, чем 6px */
+  width: 15px;                 /* чуть толще, чем 6px */
   height: 100px;              /* средняя высота */
   border-radius: 999px;       /* капсула */
   background: #f1f5f9;        /* светлый фон */
