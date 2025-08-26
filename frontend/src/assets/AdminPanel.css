@@ -326,210 +326,103 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   font-size:15px; font-weight:600; line-height:1;
 }
 
-/* ========= Products ========= */
+/* ========= Products (обновлённо) ========= */
 
 .products-page{ padding: 0 0 38px 0; }
 
-/* фиксированная шапка под топбаром */
+/* фиксированная шапка */
 .products-header{
-  position: fixed;
-  top: var(--topbar-h);
-  left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 0;
-  height: 64px;
-
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  gap:16px;
-  padding:0 20px;
-
-  background:#fff;
-  border-bottom:1px solid rgba(0,0,0,.06);
-  box-shadow:0 1px 2px rgba(0,0,0,.04);
+  position: fixed; top: var(--topbar-h);
+  left: calc(var(--sidebar-w) + var(--submenu-w)); right: 0; height: 64px;
+  display:flex; align-items:center; gap:16px; padding:0 20px;
+  background:#fff; border-bottom:1px solid rgba(0,0,0,.06); box-shadow:0 1px 2px rgba(0,0,0,.04);
   z-index:130;
 }
 @media (max-width:1100px){ .products-header{ left: var(--sidebar-w); } }
+.products-header-left{ display:flex; align-items:center; gap:12px; flex:0 1 auto; min-width:0; }
+.products-header-right{ margin-left:auto; }
 
-.products-header-left{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex:0 1 auto;
-  min-width:0;
-}
-.products-header-right{ margin-left:auto; flex:0 0 auto; }
-
-.products-h1{
-  font-weight:500; font-size:17px; color:#0f172a;
-  letter-spacing:.2px; white-space:nowrap;
-}
-.products-count{ color:#007aff; font-weight:400; }
-
-.products-header-right .btn-primary{
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-
-/* Поиск */
+/* поиск */
 .products-header-left .products-search-compact{
-  height: 38px;
-  line-height: 38px;
-  padding: 0 14px 0 34px;
-
-  width: 280px;
-  max-width: 45vw;
-  flex: 0 0 280px;
-
-  border-radius: 12px;
-  border: 1px solid #d0d7e2;
-  background:
-    #f9fbfd
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364758b' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E")
-    10px 50% no-repeat;
-  background-size: 14px;
-
-  font-size: 14px;
-  color: #0f172a;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-  transition: all .2s ease;
-
-  margin: 0 !important;
-  float: none !important;
+  height: 38px; line-height: 38px; padding: 0 14px 0 34px;
+  width: 280px; max-width: 45vw; flex: 0 0 280px;
+  border-radius: 12px; border: 1px solid #d0d7e2;
+  background:#f9fbfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364758b' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") 10px 50% no-repeat;
+  background-size: 14px; font-size: 14px; color:#0f172a; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
-.products-header-left .products-search-compact::placeholder{ color:#8fa0b3; }
-.products-header-left .products-search-compact:focus{
-  border-color:#007aff; background-color:#fff;
-  box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none;
-}
-
-/* Фильтры */
-.products-header-left .filters-toggle{
-  height: var(--ctl-h);
-  padding: 0 16px;
-  display: inline-flex;
-  align-items: center;
-}
-.filters{ position:relative; }
-.filters-toggle{
-  padding:11px 24px 11px 22px; border-radius:10px;
-  background:#eaf4ff; color:#2291ff; font-weight:500; font-size:15px;
-  border:none; cursor:pointer; box-shadow:0 1px 7px #2291ff10; white-space:nowrap;
-}
-.filters-popover{
-  position:absolute; left:0; top:48px; z-index:150;
-  background:#fff; border:1.5px solid #dbefff; border-radius:14px;
-  box-shadow:0 12px 44px #2291ff11; min-width:210px;
-  padding:16px 19px; display:flex; flex-direction:column; gap:12px;
-}
-.filters-select{ padding:7px 13px; border-radius:8px; border:1.5px solid #e4e8ee; background:#f4f7fa; font-size:14px; outline:none; }
-.filters-check{ display:flex; align-items:center; gap:7px; font-weight:500; font-size:15px; }
-.filters-apply{ background:#2291ff; color:#fff; font-weight:500; border:none; border-radius:8px; padding:7px 0; margin-top:5px; font-size:15px; cursor:pointer; }
 
 /* контент под шапкой */
 .products-content-wrap{ padding-top: 70px; }
-.products-content{
-  background:#fff; border-radius:0; box-shadow:none;
-  padding:16px 20px 24px; min-height:280px;
-}
+.products-content{ background:#fff; padding:16px 20px 24px; }
 
-/* === Products list — сетка (9 колонок: чекбокс, фото, имя, дата, код, наличие, цена, заказы, действия) === */
-
+/* ===== Сетка списка ===== */
+/* заголовок колонок (если используешь) — те же треки, что и у строки */
 .products-grid-header{
   position: sticky; top: 0; z-index: 2;
   display: grid;
   grid-template-columns:
-    40px                   /* чекбокс */
-    80px                   /* фото */
-    minmax(220px, 2.2fr)   /* название + группа */
-    minmax(140px, 1.2fr)   /* дата */
-    minmax(120px, 1fr)     /* код */
-    minmax(160px, 1.4fr)   /* наличие + опубликован/скрытый */
-    minmax(120px, 1fr)     /* цена */
-    minmax(100px, 0.9fr)   /* заказы */
-    120px;                 /* действия */
+    40px                     /* чекбокс */
+    80px                     /* фото */
+    minmax(180px, 2fr)       /* название + группа */
+    minmax(110px, 1.1fr)     /* дата */
+    minmax(80px, 0.9fr)      /* код */
+    minmax(130px, 1.2fr)     /* наличие + статус */
+    minmax(90px, 0.9fr)      /* цена */
+    minmax(70px, 0.8fr)      /* заказы */
+    100px;                   /* действия */
   gap: 14px;
-  padding: 0 14px 10px;
-  margin: 0 -14px 12px;
+  padding: 0 14px 10px; margin: 0 -14px 12px;
   font-weight: 500; font-size: 14px; color: #7a91aa;
-  border-bottom: 1.5px solid #e7effa;
-  background: #fff;
+  border-bottom: 1.5px solid #e7effa; background:#fff;
 }
 
+/* строка товара */
 .product-row{
   display: grid;
   grid-template-columns:
     40px
     80px
-    minmax(220px, 2.2fr)
-    minmax(140px, 1.2fr)
-    minmax(120px, 1fr)
-    minmax(160px, 1.4fr)
-    minmax(120px, 1fr)
-    minmax(100px, 0.9fr)
-    120px;
+    minmax(180px, 2fr)
+    minmax(110px, 1.1fr)
+    minmax(80px, 0.9fr)
+    minmax(130px, 1.2fr)
+    minmax(90px, 0.9fr)
+    minmax(70px, 0.8fr)
+    100px;
   align-items: center;
   gap: 14px;
 
-  background: #f9fbfd;
-  border-radius: 14px;
-  margin-bottom: 12px;
-  padding: 14px;
-
-  box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05);
-  transition: all .18s;
+  background:#f9fbfd; border-radius:14px; padding:14px;
+  margin-bottom:12px; box-shadow:0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05);
+  overflow:hidden;              /* ничего не выйдет за рамки карточки */
 }
-.product-row > *{ min-width:0; max-width:100%; }
-.product-row:hover{
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(17,127,255,0.12);
-}
+.product-row > *{ min-width:0; max-width:100%; } /* важно для ellipsis */
 
-/* чекбокс/фото фикс-ширины */
+/* фикс ширины узких ячеек */
 .cell-check{ width:40px; }
 .cell-photo{ width:80px; }
+.cell-actions{ width:100px; max-width:100px; justify-self:end; position:relative; overflow:hidden; }
 
-/* Фото */
+/* фото */
 .product-photo{
-  width: 70px; height: 70px; object-fit: cover;
-  border-radius: 12px; background: #e9f3fa;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.04);
+  width:70px; height:70px; object-fit:cover;
+  border-radius:12px; background:#e9f3fa; box-shadow: inset 0 0 0 1px rgba(0,0,0,.04);
 }
 
-/* Название — 2 строки */
+/* имя/группа */
 .product-link{
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  font-weight: 600; font-size: 15px; color: #117fff; text-decoration: none;
-  line-height: 1.25;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; text-overflow:ellipsis; line-height:1.25;
+  font-weight:600; font-size:15px; color:#117fff; text-decoration:none;
 }
-.product-link:hover{ color:#0b5ed7; }
-
-/* Группа */
 .product-group{
-  margin-top: 4px;
-  font-size: 13px;
-  color: #64748b;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top:4px; font-size:13px; color:#64748b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* Дата / код / цена / заказы — не переносятся */
-.product-date,
-.product-sku,
-.cell-price,
-.cell-orders{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* дата/код/цена/заказы — одно слovo, не переносятся */
+.product-date,.product-sku,.cell-price,.cell-orders{
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .product-date{ color:#93a1b5; font-size:13px; }
 .product-sku{ font-weight:600; color:#2291ff; font-size:14px; }
@@ -537,68 +430,37 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 .cell-orders{ text-align:center; }
 .orders-badge{
   display:inline-flex; align-items:center; justify-content:center;
-  min-width: 34px; height: 26px; padding: 0 10px;
-  border-radius: 999px; font-weight: 700; font-size: 13px;
-  background:#eef5ff; color:#0b5ed7; border:1px solid #d7e6ff;
+  min-width:34px; height:26px; padding:0 10px;
+  border-radius:999px; font-size:13px; background:#eef5ff; color:#0b5ed7; border:1px solid #d7e6ff;
 }
 
-/* Наличие / публикация */
+/* наличие/публикация */
 .cell-state{ display:flex; flex-direction:column; gap:6px; min-width:0; }
 .avail{ font-weight:700; font-size:14px; }
-.avail.published{ color:#24c471; }
-.avail.order{ color:#ef9c19; }
-.avail.out{ color:#e12a2a; }
-.pub{
-  display:inline-flex; align-items:center; gap:6px;
-  padding:4px 8px; border-radius:999px; font-size:12.5px; font-weight:600;
-  width: fit-content; white-space: nowrap;
-  border: 1px solid transparent;
-}
+.avail.published{ color:#24c471; } .avail.order{ color:#ef9c19; } .avail.out{ color:#e12a2a; }
+.pub{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-size:12.5px; font-weight:600; width:fit-content; border:1px solid transparent; }
 .pub.on{ background:#e9f9f0; color:#15803d; border-color:#b7f0cc; }
 .pub.off{ background:#f2f4f7; color:#475569; border-color:#e2e8f0; }
 
-/* Действия — строго в пределах колонки */
-.cell-actions{
-  width:120px; max-width:120px;
-  justify-self:end; align-self:center;
-  position:relative; overflow:hidden;
-}
+/* действия */
 .actions{ position:relative; display:inline-block; }
-
-/* компактная кнопка ⋮ */
 .actions-toggle{
-  width:32px; height:32px;
-  display:flex; align-items:center; justify-content:center;
+  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
   font-size:18px; font-weight:600; line-height:1;
-  background:#f8faff; color:#0a84ff; border:1px solid #e2e8f0; border-radius:8px;
-  cursor:pointer;
-  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-  transition: background .18s ease, border-color .18s ease, transform .03s ease;
+  background:#f8faff; color:#0a84ff; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;
 }
 .actions-toggle:hover{ background:#eef4ff; border-color:#cfe0fb; }
 .actions-toggle:active{ transform: translateY(1px); }
-
-/* меню */
 .actions-menu{
-  position:absolute; top:100%; right:0;
-  margin-top:6px; min-width:160px;
-  background:#fff; border:1px solid #e7effa; border-radius:12px;
-  box-shadow:0 8px 24px rgba(16,76,186,.12);
+  position:absolute; top:100%; right:0; margin-top:6px; min-width:160px;
+  background:#fff; border:1px solid #e7effa; border-radius:12px; box-shadow:0 8px 24px rgba(16,76,186,.12);
   z-index:10; overflow:hidden;
 }
-.actions-item{
-  background:none; border:none; padding:9px 12px; text-align:left;
-  font-size:13.5px; font-weight:400; cursor:pointer;
-}
+.actions-item{ padding:9px 12px; font-size:13.5px; background:none; border:none; text-align:left; cursor:pointer; }
 .actions-item.edit{ color:#157ce8; } .actions-item.delete{ color:#e84242; }
 .actions-item:hover{ background:#f6f9ff; }
 
-/* Адаптив — скрыть второстепенные колонки */
-@media (max-width: 1100px){
-  .admin-nav-menu{ display:none; }
-  .admin-content.with-submenu{ padding-left: var(--sidebar-w); }
-  .products-header{ left: var(--sidebar-w); }
-}
+/* адаптив: на узких экранах скрываем второстепенное */
 @media (max-width: 900px){
   .products-grid-header{ grid-template-columns: 40px 80px 2fr 1fr 1fr; }
   .product-row{ grid-template-columns: 40px 80px 2fr 1fr 1fr; }
@@ -609,6 +471,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   .product-row > .cell-orders,
   .product-row > .cell-actions{ display:none; }
 }
+
 @media (max-width: 780px){
   .admin-content{ min-width:0 !important; }
   .orders-search-compact{ width: 260px; }
