@@ -280,18 +280,16 @@ function ProductList({ products, onEdit, onDelete }) {
           </div>
         ) : (
           <div className="products-grid-header">
-            <div></div>
-            <div></div>
-            <div>Название</div>
-            <div>Дата</div>
-            <div>Код</div>
-            <div>Отображение</div>
-            <div>Цена</div>
-            <div>Заказы</div>
-            <div></div>
+            <div className="cell-check"></div>
+            <div className="cell-photo"></div>
+            <div className="cell-name">Название</div>
+            <div className="cell-date">Дата</div>
+            <div className="cell-sku">Код</div>
+            <div className="cell-state">Отображение</div>
+            <div className="cell-price">Цена</div>
+            <div className="cell-orders">Заказы</div>
+            <div className="cell-actions"></div>
           </div>
-        )}
-      </div>
 
       {products.map((p) => (
         <ProductRow

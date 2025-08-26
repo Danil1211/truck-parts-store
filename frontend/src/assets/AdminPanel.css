@@ -258,6 +258,38 @@ html, body {
 .products-content{ background:#fff; border-radius:0; box-shadow:none; padding:16px 20px 24px; min-height:280px; }
 
 /* === Products — единая сетка (источник истины) === */
+/* === Выравнивание заголовков в products-grid-header === */
+.products-grid-header .cell-check {
+  display: flex;
+  justify-content: center;
+}
+
+.products-grid-header .cell-photo {
+  justify-self: center;
+}
+
+.products-grid-header .cell-name {
+  justify-self: start;
+}
+
+.products-grid-header .cell-date,
+.products-grid-header .cell-sku,
+.products-grid-header .cell-state {
+  justify-self: start;
+}
+
+.products-grid-header .cell-price {
+  justify-self: end;
+}
+
+.products-grid-header .cell-orders {
+  text-align: center;
+}
+
+.products-grid-header .cell-actions {
+  justify-self: end;
+}
+
 .products-page .products-grid-header,
 .products-page .product-row{
   display:grid;
