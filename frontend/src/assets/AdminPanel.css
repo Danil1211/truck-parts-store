@@ -476,30 +476,47 @@ html, body {
 
 /* ================== Inline editing ================== */
 
+/* контейнер */
 .editable-cell {
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative;
 }
 
-.editable-cell span {
-  font-size: 14px;
-  color: #0f172a;
-}
-
+/* иконка карандаша */
 .edit-btn {
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
-  font-size: 14px;
-  opacity: 0.4;
+  opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-.edit-btn:hover {
-  opacity: 0.8;
+.product-row:hover .edit-btn {
+  opacity: 0.6;
 }
 
+.edit-btn:hover {
+  opacity: 1;
+}
+
+/* svg иконка */
+.edit-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: #64748b;
+  transition: stroke 0.2s ease;
+}
+
+.edit-btn:hover svg {
+  stroke: #0a84ff;
+}
+
+/* инпут */
 .editable-input {
   font-size: 14px;
   padding: 4px 6px;

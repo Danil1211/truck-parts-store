@@ -58,7 +58,19 @@ function EditableCell({ value, onSave, type = "text", options }) {
     <div className="editable-cell">
       <span>{value}</span>
       <button className="edit-btn" onClick={() => setEditing(true)}>
-        ✏️
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth="2"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M16.862 4.487l1.651-1.651a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.805.805-2.685a4.5 4.5 0 011.13-1.897l10.927-10.936z"
+          />
+        </svg>
       </button>
     </div>
   );
