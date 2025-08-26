@@ -208,30 +208,10 @@ export default function AdminProductsPage() {
     }
   };
 
-  // ВАЖНО: сохраняем только поле, но на бэкенд отправляем ПОЛНЫЙ текущий товар,
-  // чтобы сервер ничего не затёр (фото, sku и др. остаются).
+  // Сохраняем только изменяемое поле, через PATCH — ничего лишнего не трогаем
   const handleEditField = async (id, field, value) => {
-    const current = products.find((p) => p._id === id);
-    if (!current) return;
-
-    // берём все текущие поля из фронта и убираем служебные
-    const {
-      _id, __v, createdAt, updatedAt, ordersCount, // не отправляем
-      ...rest
-    } = current;
-
-    // если group объект — отправим его id
-    if (rest.group && typeof rest.group === "object" && rest.group._id) {
-      rest.group = rest.group._id;
-    }
-
-    // подменяем редактируемое поле
-    const payload = { ...rest, [field]: value };
-
     try {
-      // используем PUT целым объектом — сервер не потеряет другие поля
-      await api.put(`/api/products/${id}`, payload);
-      // локально меняем ТОЛЬКО поле
+      await api.patch(`/api/products/${id}`, { [field]: value });
       setProducts((prev) =>
         prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
       );
