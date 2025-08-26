@@ -52,7 +52,7 @@ function Icon({ name }) {
     case "settings":
       return (
         <svg {...p}>
-          <path d="M15.5 14h.79l.28.27a2 2 0 0 1 0 2.83l-1.79 1.79a2 2 0 0 1-2.83 0l-.27-.28v-.79l-5.5-5.5V8.5l1.5-1.5h3l5.5 5.5zm-7-7l-1.5 1.5h-2V5.5l1.5-1.5h2v3z" />
+          <path d="M15.7 4.3a6 6 0 0 0-8.4 7.1L3 16v5h5l4.6-4.3a6 6 0 0 0 7.1-8.4l-2 2-4-4 2-2z" />
         </svg>
       );
     case "support":
