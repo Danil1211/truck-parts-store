@@ -106,6 +106,20 @@ export default function AdminProductsPage() {
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
+      {/* Вертикальный прогресс-бар тарифа */}
+      <div className="quota-progress">
+        <div className="quota-bar-vertical">
+          <div
+            className="quota-fill-vertical"
+            style={{
+              height: `${percent}%`,
+              background: quotaColor,
+            }}
+          ></div>
+        </div>
+        <span className="quota-text-vertical">{Math.round(percent)}%</span>
+      </div>
+
       {/* Фиксированный хедер */}
       <div className="products-header">
         <div className="products-header-left">
@@ -171,20 +185,6 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="products-header-right">
-          {/* прогресс бар */}
-          <div className="products-quota">
-            <div className="quota-bar">
-              <div
-                className="quota-fill"
-                style={{
-                  width: `${percent}%`,
-                  background: quotaColor,
-                }}
-              ></div>
-            </div>
-            <span className="quota-text">{Math.round(percent)}%</span>
-          </div>
-
           <button className="btn-primary" onClick={() => navigate("/admin/products/create")}>
             <span className="plus-icon">+</span> Добавить товар
           </button>
