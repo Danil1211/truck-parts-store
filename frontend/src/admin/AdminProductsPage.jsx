@@ -242,6 +242,8 @@ export default function AdminProductsPage() {
 /* ================== ProductList + ProductRow ================== */
 function ProductList({ products, onEdit, onDelete }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
+  const [showHeader, setShowHeader] = React.useState(true);
+
   const allSelected = products.length > 0 && selectedIds.length === products.length;
 
   const toggleAll = () => {
@@ -257,7 +259,34 @@ function ProductList({ products, onEdit, onDelete }) {
 
   return (
     <div className="products-list-wrap">
-      {/* заголовок для массовых действий */}
+      {/* переключатель для заголовков */}
+      <div className="products-grid-toggle">
+        <label>
+          <input
+            type="checkbox"
+            checked={showHeader}
+            onChange={(e) => setShowHeader(e.target.checked)}
+          />{" "}
+          Показывать заголовки
+        </label>
+      </div>
+
+      {/* шапка */}
+      {showHeader && (
+        <div className="products-grid-header">
+          <div></div>
+          <div></div>
+          <div>Название</div>
+          <div>Дата</div>
+          <div>Код</div>
+          <div>Отображение</div>
+          <div>Цена</div>
+          <div>Заказы</div>
+          <div></div>
+        </div>
+      )}
+
+      {/* bulk actions */}
       <div className="products-bulk-header">
         <label className="apple-checkbox">
           <input type="checkbox" checked={allSelected} onChange={toggleAll} />
@@ -311,7 +340,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
       ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
-  // имя группы
   let groupName = "—";
   if (typeof product.group === "object" && product.group?.name) {
     groupName = product.group.name;
@@ -322,7 +350,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
 
   return (
     <div className="product-row">
-      {/* чекбокс */}
       <div className="cell-check">
         <label className="apple-checkbox">
           <input type="checkbox" checked={selected} onChange={onToggle} />
@@ -330,12 +357,10 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         </label>
       </div>
 
-      {/* фото */}
       <div className="cell-photo">
         <img className="product-photo" src={photoUrl} alt={product.name} />
       </div>
 
-      {/* название + группа */}
       <div className="cell-name">
         <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
           {product.name || "—"}
@@ -343,7 +368,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         <div className="product-group">{groupName}</div>
       </div>
 
-      {/* дата */}
       <div className="cell-date product-date">
         {product.updatedAt
           ? new Date(product.updatedAt).toLocaleDateString("ru-RU", {
@@ -354,10 +378,8 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
           : "—"}
       </div>
 
-      {/* код */}
       <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
-      {/* наличие + статус публикации */}
       <div className="cell-state">
         <span
           className={
@@ -375,25 +397,19 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
             ? "Под заказ"
             : "Нет на складе"}
         </span>
-
         <span className={`pub ${product.status === "published" ? "on" : "off"}`}>
           {product.status === "published" ? "Опубликован" : "Скрытый"}
         </span>
       </div>
 
-      {/* цена */}
       <div className="cell-price">
         <span className="product-price">{product.price} ₴</span>
       </div>
 
-      {/* количество заказов */}
       <div className="cell-orders">
-        <span className="orders-badge">
-          {product.ordersCount ?? 0}
-        </span>
+        <span className="orders-badge">{product.ordersCount ?? 0}</span>
       </div>
 
-      {/* действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
           <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>

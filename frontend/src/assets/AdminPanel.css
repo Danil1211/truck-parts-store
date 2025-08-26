@@ -489,7 +489,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   overflow: visible;
   max-width: 120px;
 
-  margin-right: 12px; /* ← двигаем левее */
+  margin-right: 10px; /* ← двигаем левее */
 }
 
 .products-page .actions-item.danger {
@@ -944,4 +944,31 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 .tariff-chip b {
   margin-left: 4px;
   color: #007aff;
+}
+
+.products-page .products-grid-toggle {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.products-page .products-grid-header {
+  display: grid;
+  grid-template-columns:
+    40px  /* чекбокс */
+    90px  /* фото */
+    1fr   /* название */
+    120px /* дата */
+    110px /* код */
+    150px /* наличие */
+    100px /* цена */
+    80px  /* заказы */
+    110px; /* действия */
+  gap: 12px;
+  padding: 6px 14px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  border-bottom: 1px solid #e7effa;
 }
