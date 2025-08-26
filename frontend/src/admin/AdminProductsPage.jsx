@@ -242,8 +242,6 @@ export default function AdminProductsPage() {
 /* ================== ProductList + ProductRow ================== */
 function ProductList({ products, onEdit, onDelete }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
-  const [showHeader, setShowHeader] = React.useState(true);
-
   const allSelected = products.length > 0 && selectedIds.length === products.length;
 
   const toggleAll = () => {
@@ -259,40 +257,14 @@ function ProductList({ products, onEdit, onDelete }) {
 
   return (
     <div className="products-list-wrap">
-      {/* переключатель для заголовков */}
-      <div className="products-grid-toggle">
-        <label>
-          <input
-            type="checkbox"
-            checked={showHeader}
-            onChange={(e) => setShowHeader(e.target.checked)}
-          />{" "}
-          Показывать заголовки
-        </label>
-      </div>
-
-      {/* шапка */}
-      {showHeader && (
-        <div className="products-grid-header">
-          <div></div>
-          <div></div>
-          <div>Название</div>
-          <div>Дата</div>
-          <div>Код</div>
-          <div>Отображение</div>
-          <div>Цена</div>
-          <div>Заказы</div>
-          <div></div>
-        </div>
-      )}
-
-      {/* bulk actions */}
+      {/* верхняя строка */}
       <div className="products-bulk-header">
         <label className="apple-checkbox">
           <input type="checkbox" checked={allSelected} onChange={toggleAll} />
           <span />
         </label>
-        {selectedIds.length > 0 && (
+
+        {selectedIds.length > 0 ? (
           <div className="bulk-actions">
             Действия для {selectedIds.length} позиций ▾
             <div className="bulk-menu">
@@ -305,6 +277,18 @@ function ProductList({ products, onEdit, onDelete }) {
                 Удалить
               </button>
             </div>
+          </div>
+        ) : (
+          <div className="products-grid-header">
+            <div></div>
+            <div></div>
+            <div>Название</div>
+            <div>Дата</div>
+            <div>Код</div>
+            <div>Отображение</div>
+            <div>Цена</div>
+            <div>Заказы</div>
+            <div></div>
           </div>
         )}
       </div>

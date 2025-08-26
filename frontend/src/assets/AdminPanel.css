@@ -946,29 +946,87 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   color: #007aff;
 }
 
-.products-page .products-grid-toggle {
-  margin: 6px 0 10px;
-  font-size: 13px;
-  color: #475569;
-}
-
-.products-page .products-grid-header {
+/* Заголовки таблицы */
+.products-grid-header {
   display: grid;
   grid-template-columns:
-    40px  /* чекбокс */
-    90px  /* фото */
-    1fr   /* название */
-    120px /* дата */
-    110px /* код */
-    150px /* наличие */
-    100px /* цена */
-    80px  /* заказы */
-    110px; /* действия */
+    40px      /* чекбокс */
+    90px      /* фото */
+    1fr       /* название */
+    120px     /* дата */
+    110px     /* код */
+    150px     /* наличие */
+    100px     /* цена */
+    80px      /* заказы */
+    110px;    /* действия */
+  align-items: center;
   gap: 12px;
+
   padding: 6px 14px;
   margin-bottom: 8px;
+
   font-size: 13px;
   font-weight: 500;
-  color: #64748b;
-  border-bottom: 1px solid #e7effa;
+  color: #64748b; /* серый текст */
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Чтобы заголовки не прыгали */
+.products-grid-header > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Bulk header (массовые действия) */
+.products-bulk-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 8px 14px;
+  background: #f8faff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13.5px;
+}
+
+.bulk-actions {
+  position: relative;
+  color: #0f172a;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bulk-actions:hover .bulk-menu {
+  display: block;
+}
+
+.bulk-menu {
+  display: none;
+  position: absolute;
+  top: 120%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  min-width: 160px;
+  z-index: 100;
+}
+
+.bulk-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  color: #e53935;
+}
+
+.bulk-menu button:hover {
+  background: #f9f9f9;
 }
