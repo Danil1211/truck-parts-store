@@ -452,18 +452,18 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   z-index: 2;
   display: grid;
   grid-template-columns:
-    40px                  /* чекбокс */
-    70px                  /* фото (чуть меньше) */
-    minmax(200px, 2fr)    /* название / группа */
-    minmax(120px, 1fr)    /* дата */
-    minmax(100px, 0.8fr)  /* код */
-    minmax(150px, 1.2fr)  /* наличие */
-    minmax(110px, 0.9fr)  /* цена */
-    minmax(90px, 0.7fr)   /* заказы */
-    90px;                 /* действия (компактнее) */
-  gap: 12px;
-  padding: 0 14px 10px;
-  margin: 0 -14px 12px;
+    40px
+    80px
+    minmax(220px, 2.2fr)
+    minmax(140px, 1.2fr)
+    minmax(120px, 1fr)
+    minmax(160px, 1.4fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.9fr)
+    120px;
+  gap: 8px; /* было 14px */
+  padding: 0 10px 8px; /* компактнее */
+  margin: 0 -10px 10px;
   border-bottom: 1.5px solid #e7effa;
   background: #fff;
   font-weight: 400;
@@ -475,21 +475,21 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   display: grid;
   grid-template-columns:
     40px
-    70px
-    minmax(200px, 2fr)
+    80px
+    minmax(220px, 2.2fr)
+    minmax(140px, 1.2fr)
     minmax(120px, 1fr)
-    minmax(100px, 0.8fr)
-    minmax(150px, 1.2fr)
-    minmax(110px, 0.9fr)
-    minmax(90px, 0.7fr)
-    90px;
+    minmax(160px, 1.4fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.9fr)
+    120px;
   align-items: center;
-  gap: 12px;
+  gap: 8px; /* было 14px */
 
   background: #f9fbfd;
   border-radius: 14px;
-  padding: 14px 18px 14px 14px;
-  margin-bottom: 12px;
+  padding: 12px 16px; /* чуть меньше */
+  margin-bottom: 10px;
 
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05);
   transition: background 0.25s ease, box-shadow 0.25s ease;
