@@ -10,62 +10,6 @@ const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 // контекст для доступа к списку групп
 const GroupsContext = React.createContext([]);
 
-/* ================== EditableCell ================== */
-function EditableCell({ value, onSave, type = "text", options }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  const handleSave = () => {
-    setEditing(false);
-    if (draft !== value) onSave(draft);
-  };
-
-  if (editing) {
-    if (type === "select") {
-      return (
-        <select
-          className="editable-input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={handleSave}
-          autoFocus
-        >
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    return (
-      <input
-        className="editable-input"
-        type={type}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSave();
-          if (e.key === "Escape") setEditing(false);
-        }}
-        autoFocus
-      />
-    );
-  }
-
-  return (
-    <div className="editable-cell">
-      <span>{value}</span>
-      <button className="edit-btn" onClick={() => setEditing(true)}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M15.58 3.41a2 2 0 012.83 2.83l-9.17 9.17a4 4 0 01-1.69 1.01l-3.11.89a.5.5 0 01-.62-.62l.89-3.11a4 4 0 011.01-1.69l9.17-9.17z" />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
 export default function AdminProductsPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -139,18 +83,6 @@ export default function AdminProductsPage() {
     } catch (e) {
       console.error("Delete product failed:", e);
       alert("Ошибка при удалении позиции");
-    }
-  };
-
-  const handleEditField = async (id, field, value) => {
-    try {
-      await api.patch(`/api/products/${id}`, { [field]: value });
-      setProducts((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
-      );
-    } catch (e) {
-      console.error("Ошибка при сохранении:", e);
-      alert("Не удалось сохранить изменения");
     }
   };
 
@@ -296,12 +228,7 @@ export default function AdminProductsPage() {
                 </div>
               ) : (
                 <GroupsContext.Provider value={{ groups }}>
-                  <ProductList
-                    products={filtered}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onEditField={handleEditField}
-                  />
+                  <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
                 </GroupsContext.Provider>
               )}
             </>
@@ -313,7 +240,7 @@ export default function AdminProductsPage() {
 }
 
 /* ================== ProductList + ProductRow ================== */
-function ProductList({ products, onEdit, onDelete, onEditField }) {
+function ProductList({ products, onEdit, onDelete }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
   const allSelected = products.length > 0 && selectedIds.length === products.length;
 
@@ -388,14 +315,13 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
           onToggle={() => toggleOne(p._id)}
           onEdit={onEdit}
           onDelete={onDelete}
-          onEditField={onEditField}
         />
       ))}
     </div>
   );
 }
 
-function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField }) {
+function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
   const { groups } = React.useContext(GroupsContext);
@@ -434,10 +360,9 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
       </div>
 
       <div className="cell-name">
-        <EditableCell
-          value={product.name || "—"}
-          onSave={(val) => onEditField(product._id, "name", val)}
-        />
+        <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
+          {product.name || "—"}
+        </Link>
         <div className="product-group">{groupName}</div>
       </div>
 
@@ -451,35 +376,32 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           : "—"}
       </div>
 
-      <div className="cell-sku">
-        <EditableCell
-          value={product.sku || "—"}
-          onSave={(val) => onEditField(product._id, "sku", val)}
-        />
-      </div>
+      <div className="cell-sku product-sku">{product.sku || "—"}</div>
 
       <div className="cell-state">
-        <EditableCell
-          value={product.availability}
-          type="select"
-          options={[
-            { value: "published", label: "В наличии" },
-            { value: "order", label: "Под заказ" },
-            { value: "out", label: "Нет на складе" },
-          ]}
-          onSave={(val) => onEditField(product._id, "availability", val)}
-        />
+        <span
+          className={
+            "avail " +
+            (product.availability === "published"
+              ? "published"
+              : product.availability === "order"
+              ? "order"
+              : "out")
+          }
+        >
+          {product.availability === "published"
+            ? "В наличии"
+            : product.availability === "order"
+            ? "Под заказ"
+            : "Нет на складе"}
+        </span>
         <span className={`pub ${product.status === "published" ? "on" : "off"}`}>
           {product.status === "published" ? "Опубликован" : "Скрытый"}
         </span>
       </div>
 
       <div className="cell-price">
-        <EditableCell
-          value={product.price}
-          type="number"
-          onSave={(val) => onEditField(product._id, "price", val)}
-        />
+        <span className="product-price">{product.price} ₴</span>
       </div>
 
       <div className="cell-orders">
