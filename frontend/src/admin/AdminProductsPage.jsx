@@ -397,7 +397,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
       <div className="cell-actions">
         <div className="actions" ref={ref}>
           <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
-            ▾
+            Действия ▾
           </button>
           {open && (
             <div className="actions-menu">
