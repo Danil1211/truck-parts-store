@@ -96,6 +96,12 @@ export default function AdminProductsPage() {
     return true;
   });
 
+  // считаем процент для тарифа Free (1000 позиций)
+  const percent = Math.min((filtered.length / 1000) * 100, 100);
+  let quotaColor = "#0a84ff"; // blue
+  if (percent >= 95) quotaColor = "#ef4444"; // red
+  else if (percent >= 80) quotaColor = "#f59e0b"; // orange
+
   return (
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
@@ -170,33 +176,35 @@ export default function AdminProductsPage() {
             <div className="quota-bar">
               <div
                 className="quota-fill"
-                style={{ width: `${Math.min((filtered.length / 1000) * 100, 100)}%` }}
+                style={{
+                  width: `${percent}%`,
+                  background: quotaColor,
+                }}
               ></div>
             </div>
-            <span className="quota-text">
-              {Math.round((filtered.length / 1000) * 100)}%
-            </span>
+            <span className="quota-text">{Math.round(percent)}%</span>
           </div>
 
           <button className="btn-primary" onClick={() => navigate("/admin/products/create")}>
             <span className="plus-icon">+</span> Добавить товар
           </button>
         </div>
+      </div>
 
       {/* Контент */}
       <div className="products-content-wrap">
         <div className="products-content">
           {selected === "list" && (
             <>
-            {loading ? (
-              <div className="loader-wrap">
-                <div className="loader"></div>
-              </div>
-            ) : (
-              <GroupsContext.Provider value={{ groups }}>
-                <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
-              </GroupsContext.Provider>
-            )}
+              {loading ? (
+                <div className="loader-wrap">
+                  <div className="loader"></div>
+                </div>
+              ) : (
+                <GroupsContext.Provider value={{ groups }}>
+                  <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+                </GroupsContext.Provider>
+              )}
             </>
           )}
         </div>

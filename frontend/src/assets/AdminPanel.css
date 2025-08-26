@@ -719,32 +719,35 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
 
 
 /* quota progress */
-.products-quota{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-right:16px;
+.products-quota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
 }
 
-.quota-bar{
-  position:relative;
-  width:120px;
-  height:6px;
-  border-radius:4px;
-  background:#e5e7eb;
-  overflow:hidden;
+.quota-bar {
+  position: relative;
+  width: 120px;
+  height: 6px;
+  border-radius: 4px;
+  background: #e5e7eb; /* светло-серый фон */
+  overflow: hidden;
 }
 
-.quota-fill{
-  position:absolute;
-  top:0; left:0; bottom:0;
-  background:#0a84ff;
-  transition:width .3s ease;
+.quota-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: #0a84ff; /* дефолт — синий */
+  transition: width .3s ease, background .3s ease;
 }
 
-.quota-text{
-  font-size:13px;
-  color:#475569;
-  min-width:32px;
-  text-align:right;
+.quota-text {
+  font-size: 13px;
+  color: #475569;
+  min-width: 32px;
+  text-align: right;
 }
