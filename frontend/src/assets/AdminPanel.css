@@ -445,71 +445,49 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   padding:16px 20px 24px; min-height:280px;
 }
 
-/* === Products list — заголовок + карточка (Единая версия, без дублей) === */
-.products-page .products-grid-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: grid;
-  grid-template-columns:
-    40px
-    80px
-    minmax(220px, 2.2fr)
-    minmax(120px, 1fr)
-    minmax(110px, 1fr)
-    minmax(150px, 1.4fr)
-    minmax(100px, 1fr)
-    minmax(80px, 0.8fr)
-    100px;
-  gap: 6px; /* меньше */
-  padding: 0 8px 6px;
-  margin: 0 -8px 8px;
-  border-bottom: 1.5px solid #e7effa;
-  background: #fff;
-  font-weight: 400;
-  color: #7a91aa;
-}
-
-/* Карточка-строка */
+.products-page .products-grid-header,
 .products-page .product-row {
   display: grid;
   grid-template-columns:
-    40px                  /* чекбокс */
-    80px                  /* фото */
-    minmax(200px, 2fr)    /* название */
-    minmax(110px, 1fr)    /* дата */
-    minmax(100px, 1fr)    /* код */
-    minmax(140px, 1.2fr)  /* наличие */
-    minmax(90px, 1fr)     /* цена */
-    minmax(70px, 0.8fr)   /* заказы */
-    100px;                /* действия (фикс) */
+    40px      /* чекбокс */
+    80px      /* фото */
+    1fr       /* название (растягивается) */
+    110px     /* дата */
+    100px     /* код */
+    140px     /* наличие */
+    90px      /* цена */
+    70px      /* заказы */
+    100px;    /* действия */
+  gap: 6px;
   align-items: center;
-  gap: 6px; /* компактнее */
+}
 
+/* Контейнер для скролла */
+.products-page .products-list-wrap {
+  overflow-x: auto;
+}
+
+/* Чтобы не схлопывалось при узком экране */
+.products-page .product-row {
+  min-width: 950px;
   background: #f9fbfd;
   border-radius: 14px;
   padding: 10px 14px;
   margin-bottom: 8px;
-
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05);
   transition: background 0.25s ease, box-shadow 0.25s ease;
-  font-weight: 400;
-
-  overflow: hidden; /* ← не даст элементам вылазить */
 }
-
-.products-page .product-row > *{ min-width:0; }
-.products-page .product-row:hover{
+.products-page .product-row:hover {
   background: #fff;
   box-shadow: 0 6px 18px rgba(17,127,255,0.10), 0 2px 6px rgba(0,0,0,0.05);
 }
 
 .products-page .cell-actions {
   justify-self: end;
-  min-width: 100px;
-  max-width: 100px;  /* фикс ширины */
+  width: 100px;
   white-space: nowrap;
 }
+
 
 /* чекбокс как у Apple */
 .apple-checkbox{
