@@ -298,12 +298,10 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
       {/* дата */}
       <div className="cell-date product-date">
         {product.updatedAt
-          ? new Date(product.updatedAt).toLocaleString("ru-RU", {
+          ? new Date(product.updatedAt).toLocaleDateString("ru-RU", {
               day: "2-digit",
               month: "2-digit",
               year: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
             })
           : "—"}
       </div>

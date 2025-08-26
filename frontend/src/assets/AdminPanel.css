@@ -684,3 +684,13 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
   color:#e53935;
 }
 .bulk-menu button:hover{ background:#f9f9f9; }
+
+
+/* все ячейки кроме названия/группы */
+.products-page .cell-date,
+.products-page .cell-sku,
+.products-page .cell-state,
+.products-page .cell-price,
+.products-page .cell-actions {
+  padding-left: 12px; /* сдвиг вправо */
+}
