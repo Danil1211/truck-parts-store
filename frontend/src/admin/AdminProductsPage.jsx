@@ -386,6 +386,13 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         <span className="product-price">{product.price} ₴</span>
       </div>
 
+      {/* количество заказов */}
+      <div className="cell-orders">
+        <span className="orders-badge">
+          {product.ordersCount ?? 0}
+        </span>
+      </div>
+
       {/* действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
