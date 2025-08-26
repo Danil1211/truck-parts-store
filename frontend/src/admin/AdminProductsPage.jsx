@@ -12,7 +12,7 @@ const GroupsContext = React.createContext([]);
 
 /* ================== Мини-компонент EditableCell ==================
    - Поддерживает text / number / select
-   - Карандаш (SVG) виден только, если showEditIcon === true
+   - Карандаш (SVG) виден только при ховере строки (showEditIcon)
    - Сохраняет по blur или Enter; Esc — отмена
    - Ничего не ломает: можно отдать кастомный renderDisplay (например, Link)
 =================================================================== */
@@ -28,7 +28,6 @@ function EditableCell({
   const [draft, setDraft] = useState(value ?? "");
 
   useEffect(() => {
-    // если value пришло новое извне — синхронизируем черновик
     setDraft(value ?? "");
   }, [value]);
 
@@ -50,6 +49,7 @@ function EditableCell({
           autoFocus
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
+          className="editable-input"
           style={{
             height: 32,
             borderRadius: 10,
@@ -77,6 +77,7 @@ function EditableCell({
           if (e.key === "Enter") commit();
           if (e.key === "Escape") setEditing(false);
         }}
+        className="editable-input"
         style={{
           height: 32,
           borderRadius: 10,
@@ -94,19 +95,11 @@ function EditableCell({
   return (
     <span
       className="editable-cell"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        minWidth: 0,
-      }}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}
     >
-      {/* отображение значения (можно передать кастом-рендер) */}
       <span style={{ minWidth: 0 }}>
         {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
       </span>
-
-      {/* кнопка-карандаш */}
       <button
         type="button"
         onClick={() => setEditing(true)}
@@ -124,16 +117,11 @@ function EditableCell({
           lineHeight: 0,
         }}
       >
-        {/* минималистичный SVG-карандаш (feather-like) */}
+        {/* минималистичный SVG-карандаш */}
         <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          width="16" height="16" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" strokeWidth="1.7"
+          strokeLinecap="round" strokeLinejoin="round"
           style={{ color: "#64748b" }}
         >
           <path d="M12 20h9" />
@@ -220,10 +208,30 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Инлайн-обновление конкретного поля без трогания остальных (чтобы фото/группа не терялись)
+  // ВАЖНО: сохраняем только поле, но на бэкенд отправляем ПОЛНЫЙ текущий товар,
+  // чтобы сервер ничего не затёр (фото, sku и др. остаются).
   const handleEditField = async (id, field, value) => {
+    const current = products.find((p) => p._id === id);
+    if (!current) return;
+
+    // берём все текущие поля из фронта и убираем служебные
+    const {
+      _id, __v, createdAt, updatedAt, ordersCount, // не отправляем
+      ...rest
+    } = current;
+
+    // если group объект — отправим его id
+    if (rest.group && typeof rest.group === "object" && rest.group._id) {
+      rest.group = rest.group._id;
+    }
+
+    // подменяем редактируемое поле
+    const payload = { ...rest, [field]: value };
+
     try {
-      await api.patch(`/api/products/${id}`, { [field]: value });
+      // используем PUT, раз сервер, похоже, перезаписывает документ
+      await api.put(`/api/products/${id}`, payload);
+      // локально меняем ТОЛЬКО поле
       setProducts((prev) =>
         prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
       );
@@ -297,7 +305,7 @@ export default function AdminProductsPage() {
             Позиции <span className="products-count">({filtered.length})</span>
           </div>
 
-          <div className="filters" ref={filterRef} style={{ order: 1 }}>
+        <div className="filters" ref={filterRef} style={{ order: 1 }}>
             <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
               Фильтры
             </button>
@@ -411,7 +419,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
               <span />
             </label>
           </div>
-          <div className="cell-photo" />
+          <div className="cell-photo"></div>
           <div className="cell-name">
             Действия для {selectedIds.length} позиций ▾
             <div className="bulk-menu">
@@ -425,12 +433,12 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
               </button>
             </div>
           </div>
-          <div className="cell-date" />
-          <div className="cell-sku" />
-          <div className="cell-state" />
-          <div className="cell-price" />
-          <div className="cell-orders" />
-          <div className="cell-actions" />
+          <div className="cell-date"></div>
+          <div className="cell-sku"></div>
+          <div className="cell-state"></div>
+          <div className="cell-price"></div>
+          <div className="cell-orders"></div>
+          <div className="cell-actions"></div>
         </div>
       ) : (
         <div className="products-grid-header">
@@ -440,14 +448,14 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
               <span />
             </label>
           </div>
-          <div className="cell-photo" />
+          <div className="cell-photo"></div>
           <div className="cell-name">Название</div>
           <div className="cell-date">Дата</div>
           <div className="cell-sku">Код</div>
           <div className="cell-state">Отображение</div>
           <div className="cell-price">Цена</div>
           <div className="cell-orders">Заказы</div>
-          <div className="cell-actions" />
+          <div className="cell-actions"></div>
         </div>
       )}
 
