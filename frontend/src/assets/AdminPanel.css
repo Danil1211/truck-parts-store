@@ -282,40 +282,6 @@ html, body {
 }
 .products-grid-header > div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* === ВЫРАВНИВАНИЕ КОЛОНОК — шапка и строки одинаково === */
-.products-grid-header > div,
-.products-page .product-row > div{
-  display:flex;
-  align-items:center;
-}
-
-.products-grid-header > div:nth-child(1),
-.products-page .product-row > div:nth-child(1){ justify-content:center; }     /* чекбокс */
-
-.products-grid-header > div:nth-child(2),
-.products-page .product-row > div:nth-child(2){ justify-content:center; }     /* фото */
-
-.products-grid-header > div:nth-child(3),
-.products-page .product-row > div:nth-child(3){ justify-content:flex-start; } /* название */
-
-.products-grid-header > div:nth-child(4),
-.products-page .product-row > div:nth-child(4){ justify-content:flex-start; } /* дата */
-
-.products-grid-header > div:nth-child(5),
-.products-page .product-row > div:nth-child(5){ justify-content:flex-start; } /* код */
-
-.products-grid-header > div:nth-child(6),
-.products-page .product-row > div:nth-child(6){ justify-content:flex-start; } /* отображение */
-
-.products-grid-header > div:nth-child(7),
-.products-page .product-row > div:nth-child(7){ justify-content:flex-end; }   /* цена */
-
-.products-grid-header > div:nth-child(8),
-.products-page .product-row > div:nth-child(8){ justify-content:center; }     /* заказы */
-
-.products-grid-header > div:nth-child(9),
-.products-page .product-row > div:nth-child(9){ justify-content:flex-end; }   /* действия */
-
 /* Строка товара */
 .products-page .products-list-wrap{ overflow-x:auto; }
 .products-page .product-row{
@@ -370,10 +336,7 @@ html, body {
 }
 
 /* Действия */
-.products-page .cell-actions{
-  justify-self:end; align-self:center; position:relative; overflow:visible; max-width:120px;
-  margin-right:0; /* было 10px — из-за него «Действия» визуально съезжали */
-}
+.products-page .cell-actions{ justify-self:end; align-self:center; position:relative; overflow:visible; max-width:120px; margin-right:10px; }
 .products-page .actions{ position:relative; display:inline-block; }
 .products-page .actions-toggle{
   padding:6px 12px; font-size:13px; font-weight:400; background:#f8faff; color:#0a84ff;
