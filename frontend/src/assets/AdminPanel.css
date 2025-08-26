@@ -318,6 +318,12 @@ html, body {
   justify-self: end;
   text-align: right;
 }
+.products-grid-header .cell-check,
+.product-row .cell-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .products-grid-header > div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Строка товара */
