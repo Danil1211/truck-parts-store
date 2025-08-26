@@ -291,20 +291,21 @@ html, body {
 }
 
 .products-page .products-grid-header,
-.products-page .product-row{
-  display:grid;
+.products-page .product-row,
+.products-page .products-bulk-header {
+  display: grid;
   grid-template-columns:
-    40px  /* чекбокс */
-    90px  /* фото */
-    1fr   /* название */
-    120px /* дата */
-    110px /* код */
-    150px /* отображение */
-    100px /* цена */
-    80px  /* заказы */
-    110px /* действия */;
-  gap:12px;
-  align-items:center;
+    40px   /* чекбокс */
+    90px   /* фото */
+    1fr    /* название */
+    120px  /* дата */
+    110px  /* код */
+    150px  /* отображение */
+    100px  /* цена */
+    80px   /* заказы */
+    110px; /* действия */
+  gap: 12px;
+  align-items: center;
 }
 
 /* Заголовки колонок */
