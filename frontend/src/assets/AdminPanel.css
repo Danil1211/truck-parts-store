@@ -529,7 +529,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   overflow:hidden; text-overflow:ellipsis; line-height:1.25;
   font-weight:400; font-size:14px; color:#0a84ff; text-decoration:none;
 }
-.products-page .product-link.two-lines:hover{ color:#0b5ed7; }
+.products-page .product-link.two-lines:hover{ color:#000; }
 .products-page .product-group{
   margin-top:4px; font-size:12.5px; color:#8ea0b3;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:400;
