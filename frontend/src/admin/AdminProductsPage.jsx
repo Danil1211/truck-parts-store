@@ -340,16 +340,11 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         <span className="product-price">{product.price} ₴</span>
       </div>
 
-      {/* заказы */}
-      <div className="cell-orders">
-        <span className="orders-badge">{product.ordersCount || 0}</span>
-      </div>
-
       {/* действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
           <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
-            Дії ▾
+            ▾
           </button>
           {open && (
             <div className="actions-menu">
