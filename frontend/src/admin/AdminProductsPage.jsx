@@ -130,17 +130,17 @@ export default function AdminProductsPage() {
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
             <button className="quota-close" onClick={() => setQuotaOpen(false)}>×</button>
 
-            <h3 className="quota-title">Додано {Math.round(percent)}% товарів</h3>
+            <h3 className="quota-title">Добавлено {Math.round(percent)}% товаров</h3>
             <hr className="quota-divider" />
 
             <div className="quota-details">
-              <div><strong>Ліміт товарів:</strong> 1000</div>
-              <div>• <strong>Додано:</strong> {filtered.length} з 1000</div>
-              <div>• <strong>Опубліковано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
+              <div><strong>Лимит товаров:</strong> 1000</div>
+              <div>• <strong>Добавлено:</strong> {filtered.length} з 1000</div>
+              <div>• <strong>Опубликовано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
             </div>
 
             <div className="quota-remaining">
-              Можна додати ще: {1000 - filtered.length} товарів
+              Можно добавить еще: {1000 - filtered.length} товаров
             </div>
           </div>
         </div>
