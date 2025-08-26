@@ -720,18 +720,18 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 }
 
 /* Действия */
-.products-page .cell-actions{
-  justify-self:end !important;
-  align-self:center !important;
-  position:relative !important;
-  overflow:visible !important;
-  max-width:120px !important;
+.products-page .cell-actions {
+  justify-self: end !important;
+  align-self: center !important;
+  position: relative !important;
+  overflow: hidden !important;   /* скрываем выход */
+  max-width: 120px !important;   /* фиксированная ширина */
 }
 .products-page .actions{
   position:relative !important;
   display:inline-block !important;
 }
-.products-page .actions-toggle{
+.products-page .actions-toggle {
   padding:6px 12px !important;
   font-size:13px !important;
   font-weight:400 !important;
@@ -741,9 +741,11 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   border-radius:10px !important;
   line-height:1 !important;
   white-space:nowrap !important;
-  max-width:100% !important;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  width: 100% !important;       /* добавляем */
+  max-width: 100% !important;   /* оставляем */
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  text-align: center !important;/* добавляем */
   transition: background .18s ease, border-color .18s ease, transform .03s ease !important;
 }
 .products-page .actions-toggle:hover{ background:#eef4ff !important; border-color:#cfe0fb !important; }
