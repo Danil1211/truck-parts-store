@@ -484,8 +484,12 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 
 .products-page .cell-actions {
   justify-self: end;
-  width: 100px;
-  white-space: nowrap;
+  align-self: center;
+  position: relative;
+  overflow: visible;
+  max-width: 120px;
+
+  margin-right: 12px; /* ← двигаем левее */
 }
 
 .products-page .actions-item.danger {
