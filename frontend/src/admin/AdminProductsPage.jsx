@@ -27,6 +27,8 @@ export default function AdminProductsPage() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [quotaOpen, setQuotaOpen] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
@@ -108,7 +110,7 @@ export default function AdminProductsPage() {
 
       {/* Вертикальный прогресс-бар тарифа */}
       {!loading && (
-        <div className="quota-progress">
+        <div className="quota-progress" onClick={() => setQuotaOpen(true)}>
           <div className="quota-bar-vertical">
             <div
               className="quota-fill-vertical"
@@ -119,6 +121,26 @@ export default function AdminProductsPage() {
             ></div>
           </div>
           <span className="quota-text-vertical">{Math.round(percent)}%</span>
+        </div>
+      )}
+
+      {/* Панель с лимитом */}
+      {quotaOpen && (
+        <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
+          <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
+            <button className="quota-close" onClick={() => setQuotaOpen(false)}>×</button>
+            <h3 className="quota-title">Добавлено: {filtered.length}</h3>
+            <div className="quota-sub">Лимит товаров: 1000</div>
+
+            <ul className="quota-list">
+              <li>🔵 Добавлено: {filtered.length}</li>
+              <li>🟢 Опубликовано: {filtered.filter(p => p.status === "published").length}</li>
+            </ul>
+
+            <div className="quota-remaining">
+              Можно добавить ещё {1000 - filtered.length} товаров.
+            </div>
+          </div>
         </div>
       )}
 
