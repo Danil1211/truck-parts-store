@@ -450,15 +450,15 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   display: grid;
   grid-template-columns:
     40px      /* чекбокс */
-    80px      /* фото */
-    1fr       /* название (растягивается) */
-    110px     /* дата */
-    100px     /* код */
-    140px     /* наличие */
-    90px      /* цена */
-    70px      /* заказы */
-    100px;    /* действия */
-  gap: 6px;
+    90px      /* фото */
+    1fr       /* название */
+    120px     /* дата */
+    110px     /* код */
+    150px     /* наличие */
+    100px     /* цена */
+    80px      /* заказы */
+    110px;    /* действия */
+  gap: 12px; /* чуть больше отступ между колонками */
   align-items: center;
 }
 
