@@ -722,24 +722,27 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
 .quota-progress {
   position: fixed;
   top: 50%;
-  right: 10px;
+  right: 12px;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   z-index: 200;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .quota-bar-vertical {
-  width: 6px;             /* тоньше */
-  height: 80px;          /* меньше по высоте */
-  border-radius: 999px;   /* капсула */
-  background: #f1f5f9;    /* светлый серый фон */
+  width: 8px;                 /* чуть толще, чем 6px */
+  height: 100px;              /* средняя высота */
+  border-radius: 999px;       /* капсула */
+  background: #f1f5f9;        /* светлый фон */
   overflow: hidden;
   position: relative;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+
+  /* белая обводка вокруг + Apple тень */
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06);
 }
 
 .quota-fill-vertical {
@@ -748,14 +751,14 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
   left: 0;
   right: 0;
   border-radius: 999px;
-  background: linear-gradient(180deg,#4da9ff,#007aff); /* Apple blue gradient */
+  background: #0a84ff; /* дефолтный цвет, динамика в JSX */
   transition: height .35s ease, background .3s ease;
 }
 
 /* проценты */
 .quota-text-vertical {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: #475569;
   letter-spacing: 0.3px;
 }
