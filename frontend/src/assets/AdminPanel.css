@@ -474,24 +474,28 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 .products-page .product-row {
   display: grid;
   grid-template-columns:
-    40px
-    80px
-    minmax(220px, 2.2fr)
-    minmax(120px, 1fr)
-    minmax(110px, 1fr)
-    minmax(150px, 1.4fr)
-    minmax(100px, 1fr)
-    minmax(80px, 0.8fr)
-    100px;
+    40px                  /* чекбокс */
+    80px                  /* фото */
+    minmax(200px, 2fr)    /* название */
+    minmax(110px, 1fr)    /* дата */
+    minmax(100px, 1fr)    /* код */
+    minmax(140px, 1.2fr)  /* наличие */
+    minmax(90px, 1fr)     /* цена */
+    minmax(70px, 0.8fr)   /* заказы */
+    100px;                /* действия (фикс) */
   align-items: center;
-  gap: 6px; /* меньше */
+  gap: 6px; /* компактнее */
+
   background: #f9fbfd;
   border-radius: 14px;
   padding: 10px 14px;
   margin-bottom: 8px;
+
   box-shadow: 0 2px 6px rgba(17,127,255,0.06), 0 1px 2px rgba(0,0,0,0.05);
   transition: background 0.25s ease, box-shadow 0.25s ease;
   font-weight: 400;
+
+  overflow: hidden; /* ← не даст элементам вылазить */
 }
 
 .products-page .product-row > *{ min-width:0; }
@@ -502,6 +506,9 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
 
 .products-page .cell-actions {
   justify-self: end;
+  min-width: 100px;
+  max-width: 100px;  /* фикс ширины */
+  white-space: nowrap;
 }
 
 /* чекбокс как у Apple */
