@@ -730,13 +730,14 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
   gap: 4px;
   z-index: 200;
   opacity: 0.9;
+  cursor: pointer;
 }
 
 .quota-bar-vertical {
-  width: 15px;                 /* чуть толще, чем 6px */
-  height: 100px;              /* средняя высота */
-  border-radius: 999px;       /* капсула */
-  background: #f1f5f9;        /* светлый фон */
+  width: 15px;
+  height: 100px;
+  border-radius: 999px;
+  background: #f1f5f9;
   overflow: hidden;
   position: relative;
 
@@ -755,7 +756,7 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
   transition: height .35s ease, background .3s ease;
 }
 
-/* проценты */
+/* проценты рядом с полоской */
 .quota-text-vertical {
   font-size: 12px;
   font-weight: 600;
@@ -776,16 +777,17 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
 
 /* Панель справа */
 .quota-panel {
-  width: 280px;
+  width: 300px;
   max-width: 80%;
   height: 100%;
   background: #fff;
   box-shadow: -4px 0 16px rgba(0,0,0,0.12);
-  padding: 20px;
+  padding: 24px 20px;
   display: flex;
   flex-direction: column;
   position: relative;
   animation: slideIn .25s ease;
+  font-family: Inter, system-ui, sans-serif;
 }
 
 @keyframes slideIn {
@@ -800,39 +802,42 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
   right: 14px;
   border: none;
   background: none;
-  font-size: 20px;
+  font-size: 22px;
   cursor: pointer;
   color: #64748b;
 }
 .quota-close:hover { color: #0f172a; }
 
-/* Заголовки и текст */
+/* Заголовок */
 .quota-title {
   font-size: 16px;
   font-weight: 600;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+/* Линия-разделитель */
+.quota-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0 0 16px;
+}
+
+/* Список деталей */
+.quota-details {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0f172a;
+  margin-bottom: 18px;
+}
+.quota-details strong {
+  font-weight: 600;
+}
+.quota-details div {
   margin-bottom: 6px;
-  color: #0f172a;
-}
-.quota-sub {
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 14px;
 }
 
-.quota-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 14px;
-  color: #0f172a;
-}
-.quota-list li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
+/* Оставшиеся товары */
 .quota-remaining {
   margin-top: auto;
   font-size: 14px;
