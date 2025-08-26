@@ -348,8 +348,8 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
       {/* действия */}
       <div className="cell-actions">
         <div className="actions" ref={ref}>
-          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
-            Действия <span style={{ fontSize: 13 }}>▼</span>
+          <button className="actions-toggle" onClick={() => setOpen(v => !v)}>
+            ⋮
           </button>
           {open && (
             <div className="actions-menu">
