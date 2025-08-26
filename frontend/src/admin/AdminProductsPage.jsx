@@ -58,18 +58,8 @@ function EditableCell({ value, onSave, type = "text", options }) {
     <div className="editable-cell">
       <span>{value}</span>
       <button className="edit-btn" onClick={() => setEditing(true)}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="2"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M16.862 4.487l1.651-1.651a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13l-2.685.805.805-2.685a4.5 4.5 0 011.13-1.897l10.927-10.936z"
-          />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M15.58 3.41a2 2 0 012.83 2.83l-9.17 9.17a4 4 0 01-1.69 1.01l-3.11.89a.5.5 0 01-.62-.62l.89-3.11a4 4 0 011.01-1.69l9.17-9.17z" />
         </svg>
       </button>
     </div>
@@ -206,9 +196,7 @@ export default function AdminProductsPage() {
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
-            <button className="quota-close" onClick={() => setQuotaOpen(false)}>
-              ×
-            </button>
+            <button className="quota-close" onClick={() => setQuotaOpen(false)}>×</button>
 
             <h3 className="quota-title">Добавлено {Math.round(percent)}% товаров</h3>
             <hr className="quota-divider" />
@@ -345,21 +333,41 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
       {/* верхняя строка */}
       {selectedIds.length > 0 ? (
         <div className="products-bulk-header">
-          Действия для {selectedIds.length} позиций ▾
-          <div className="bulk-menu">
-            <button
-              onClick={() => {
-                selectedIds.forEach((id) => onDelete(id));
-                setSelectedIds([]);
-              }}
-            >
-              Удалить
-            </button>
+          <div className="cell-check">
+            <label className="apple-checkbox">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+              <span />
+            </label>
           </div>
+          <div className="cell-photo"></div>
+          <div className="cell-name">
+            Действия для {selectedIds.length} позиций ▾
+            <div className="bulk-menu">
+              <button
+                onClick={() => {
+                  selectedIds.forEach((id) => onDelete(id));
+                  setSelectedIds([]);
+                }}
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+          <div className="cell-date"></div>
+          <div className="cell-sku"></div>
+          <div className="cell-state"></div>
+          <div className="cell-price"></div>
+          <div className="cell-orders"></div>
+          <div className="cell-actions"></div>
         </div>
       ) : (
         <div className="products-grid-header">
-          <div className="cell-check"></div>
+          <div className="cell-check">
+            <label className="apple-checkbox">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+              <span />
+            </label>
+          </div>
           <div className="cell-photo"></div>
           <div className="cell-name">Название</div>
           <div className="cell-date">Дата</div>
@@ -401,9 +409,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
 
   const photoUrl =
     product.images && product.images.length
-      ? product.images[0].startsWith("http")
-        ? product.images[0]
-        : `${BASE_URL}${product.images[0]}`
+      ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
   let groupName = "—";
