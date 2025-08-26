@@ -176,13 +176,15 @@ export default function AdminProductsPage() {
         <div className="products-content">
           {selected === "list" && (
             <>
-              {loading ? (
-                <div className="products-empty muted">Загрузка...</div>
-              ) : (
-                <GroupsContext.Provider value={{ groups }}>
-                  <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
-                </GroupsContext.Provider>
-              )}
+            {loading ? (
+              <div className="loader-wrap">
+                <div className="loader"></div>
+              </div>
+            ) : (
+              <GroupsContext.Provider value={{ groups }}>
+                <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+              </GroupsContext.Provider>
+            )}
             </>
           )}
         </div>

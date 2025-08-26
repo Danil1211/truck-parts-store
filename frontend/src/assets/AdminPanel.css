@@ -694,3 +694,25 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
 .products-page .cell-actions {
   padding-left: 12px; /* сдвиг вправо */
 }
+
+
+/* Apple-style loader */
+.loader-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:240px; /* центрируем по высоте блока */
+}
+
+.loader{
+  width:40px;
+  height:40px;
+  border:3px solid #e5e7eb;        /* светло-серый фон */
+  border-top-color:#0a84ff;        /* акцент Apple Blue */
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+
+@keyframes spin{
+  to { transform: rotate(360deg); }
+}
