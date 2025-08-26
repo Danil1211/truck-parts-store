@@ -570,7 +570,7 @@ html, body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubu
   transition: background .18s ease, border-color .18s ease, transform .03s ease;
 }
 .products-page .actions-toggle:hover{ background:#eef4ff; border-color:#cfe0fb; }
-products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but not critical */
+.products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but not critical */
 .products-page .actions-menu{
   position:absolute; top:100%; right:0; margin-top:6px;
   background:#fff; box-shadow:0 8px 24px rgba(16,76,186,.12);
