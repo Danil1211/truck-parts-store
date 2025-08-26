@@ -258,14 +258,16 @@ function ProductList({ products, onEdit, onDelete }) {
   return (
     <div className="products-list-wrap">
       {/* верхняя строка */}
-      <div className="products-bulk-header">
-        <label className="apple-checkbox">
-          <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-          <span />
-        </label>
-
-        {selectedIds.length > 0 ? (
-          <div className="bulk-actions">
+      {selectedIds.length > 0 ? (
+        <div className="products-bulk-header">
+          <div className="cell-check">
+            <label className="apple-checkbox">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+              <span />
+            </label>
+          </div>
+          <div className="cell-photo"></div>
+          <div className="cell-name">
             Действия для {selectedIds.length} позиций ▾
             <div className="bulk-menu">
               <button
@@ -278,20 +280,31 @@ function ProductList({ products, onEdit, onDelete }) {
               </button>
             </div>
           </div>
-        ) : (
-          <div className="products-grid-header">
-            <div className="cell-check"></div>
-            <div className="cell-photo"></div>
-            <div className="cell-name">Название</div>
-            <div className="cell-date">Дата</div>
-            <div className="cell-sku">Код</div>
-            <div className="cell-state">Отображение</div>
-            <div className="cell-price">Цена</div>
-            <div className="cell-orders">Заказы</div>
-            <div className="cell-actions"></div>
+          <div className="cell-date"></div>
+          <div className="cell-sku"></div>
+          <div className="cell-state"></div>
+          <div className="cell-price"></div>
+          <div className="cell-orders"></div>
+          <div className="cell-actions"></div>
+        </div>
+      ) : (
+        <div className="products-grid-header">
+          <div className="cell-check">
+            <label className="apple-checkbox">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+              <span />
+            </label>
           </div>
-        )}
-      </div>
+          <div className="cell-photo"></div>
+          <div className="cell-name">Название</div>
+          <div className="cell-date">Дата</div>
+          <div className="cell-sku">Код</div>
+          <div className="cell-state">Отображение</div>
+          <div className="cell-price">Цена</div>
+          <div className="cell-orders">Заказы</div>
+          <div className="cell-actions"></div>
+        </div>
+      )}
 
       {/* товары */}
       {products.map((p) => (
