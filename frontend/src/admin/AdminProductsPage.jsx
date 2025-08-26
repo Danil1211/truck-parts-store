@@ -107,18 +107,19 @@ export default function AdminProductsPage() {
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
       {/* Вертикальный прогресс-бар тарифа */}
-      <div className="quota-progress">
-        <div className="quota-bar-vertical">
-          <div
-            className="quota-fill-vertical"
-            style={{
-              height: `${percent}%`,
-              background: quotaColor,
-            }}
-          ></div>
+      {!loading && (
+        <div className="quota-progress">
+          <div className="quota-bar-vertical">
+            <div
+              className="quota-fill-vertical"
+              style={{
+                height: `${percent}%`,
+                background: quotaColor,
+              }}
+            ></div>
+          </div>
+          <span className="quota-text-vertical">{Math.round(percent)}%</span>
         </div>
-        <span className="quota-text-vertical">{Math.round(percent)}%</span>
-      </div>
 
       {/* Фиксированный хедер */}
       <div className="products-header">
