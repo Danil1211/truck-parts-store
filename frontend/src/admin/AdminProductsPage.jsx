@@ -265,7 +265,7 @@ function ProductList({ products, onEdit, onDelete }) {
         </label>
 
         {selectedIds.length > 0 ? (
-          <div className="products-bulk-header">
+          <div className="bulk-actions">
             Действия для {selectedIds.length} позиций ▾
             <div className="bulk-menu">
               <button
@@ -291,17 +291,19 @@ function ProductList({ products, onEdit, onDelete }) {
             <div className="cell-actions"></div>
           </div>
         )}
+      </div>
 
-        {products.map((p) => (
-          <ProductRow
-            key={p._id}
-            product={p}
-            selected={selectedIds.includes(p._id)}
-            onToggle={() => toggleOne(p._id)}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ))}
+      {/* товары */}
+      {products.map((p) => (
+        <ProductRow
+          key={p._id}
+          product={p}
+          selected={selectedIds.includes(p._id)}
+          onToggle={() => toggleOne(p._id)}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ))}
     </div>
   );
 }
