@@ -839,8 +839,8 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
 
 /* Оставшиеся товары */
 .quota-remaining {
-  margin-top: auto;
+  margin-top: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #0a84ff;
+  color: #0f172a;     
 }
