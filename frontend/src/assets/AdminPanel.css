@@ -313,6 +313,11 @@ html, body {
   padding:6px 14px; margin-bottom:8px; font-size:13px; font-weight:500; color:#64748b;
   border-bottom:1px solid #e5e7eb;
 }
+
+.products-page .cell-price {
+  justify-self: end;
+  text-align: right;
+}
 .products-grid-header > div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Строка товара */
