@@ -10,6 +10,140 @@ const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 // контекст для доступа к списку групп
 const GroupsContext = React.createContext([]);
 
+/* ================== Мини-компонент EditableCell ==================
+   - Поддерживает text / number / select
+   - Карандаш (SVG) виден только, если showEditIcon === true
+   - Сохраняет по blur или Enter; Esc — отмена
+   - Ничего не ломает: можно отдать кастомный renderDisplay (например, Link)
+=================================================================== */
+function EditableCell({
+  value,
+  onSave,
+  type = "text",
+  options = [],
+  renderDisplay,       // (val) => ReactNode
+  showEditIcon = false // приходит от ProductRow при ховере строки
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+
+  useEffect(() => {
+    // если value пришло новое извне — синхронизируем черновик
+    setDraft(value ?? "");
+  }, [value]);
+
+  const commit = () => {
+    setEditing(false);
+    let v = draft;
+    if (type === "number") {
+      const n = Number(String(draft).toString().replace(",", "."));
+      if (!Number.isNaN(n)) v = n;
+    }
+    if (v !== value) onSave(v);
+  };
+
+  if (editing) {
+    if (type === "select") {
+      return (
+        <select
+          value={draft}
+          autoFocus
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          style={{
+            height: 32,
+            borderRadius: 10,
+            border: "1.5px solid #d0d7e2",
+            background: "#f9fbfd",
+            padding: "0 10px",
+            fontSize: 14,
+            outline: "none",
+          }}
+        >
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      );
+    }
+    return (
+      <input
+        type={type}
+        value={draft}
+        autoFocus
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") setEditing(false);
+        }}
+        style={{
+          height: 32,
+          borderRadius: 10,
+          border: "1.5px solid #d0d7e2",
+          background: "#f9fbfd",
+          padding: "0 10px",
+          fontSize: 14,
+          outline: "none",
+          maxWidth: type === "number" ? 120 : "100%",
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="editable-cell"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        minWidth: 0,
+      }}
+    >
+      {/* отображение значения (можно передать кастом-рендер) */}
+      <span style={{ minWidth: 0 }}>
+        {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
+      </span>
+
+      {/* кнопка-карандаш */}
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="edit-btn"
+        aria-label="Изменить"
+        title="Изменить"
+        style={{
+          opacity: showEditIcon ? 1 : 0,
+          transition: "opacity .18s ease",
+          background: "transparent",
+          border: "1px solid transparent",
+          padding: 4,
+          borderRadius: 8,
+          cursor: "pointer",
+          lineHeight: 0,
+        }}
+      >
+        {/* минималистичный SVG-карандаш (feather-like) */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ color: "#64748b" }}
+        >
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
 export default function AdminProductsPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -86,6 +220,19 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Инлайн-обновление конкретного поля без трогания остальных (чтобы фото/группа не терялись)
+  const handleEditField = async (id, field, value) => {
+    try {
+      await api.patch(`/api/products/${id}`, { [field]: value });
+      setProducts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
+      );
+    } catch (e) {
+      console.error("Ошибка при сохранении:", e);
+      alert("Не удалось сохранить изменения");
+    }
+  };
+
   const filtered = products.filter((p) => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
@@ -114,11 +261,8 @@ export default function AdminProductsPage() {
           <div className="quota-bar-vertical">
             <div
               className="quota-fill-vertical"
-              style={{
-                height: `${percent}%`,
-                background: quotaColor,
-              }}
-            ></div>
+              style={{ height: `${percent}%`, background: quotaColor }}
+            />
           </div>
           <span className="quota-text-vertical">{Math.round(percent)}%</span>
         </div>
@@ -167,9 +311,7 @@ export default function AdminProductsPage() {
                 >
                   <option value="all">Все группы</option>
                   {groups.map((g) => (
-                    <option key={g._id} value={g._id}>
-                      {g.name}
-                    </option>
+                    <option key={g._id} value={g._id}>{g.name}</option>
                   ))}
                 </select>
 
@@ -223,12 +365,15 @@ export default function AdminProductsPage() {
           {selected === "list" && (
             <>
               {loading ? (
-                <div className="loader-wrap">
-                  <div className="loader"></div>
-                </div>
+                <div className="loader-wrap"><div className="loader" /></div>
               ) : (
                 <GroupsContext.Provider value={{ groups }}>
-                  <ProductList products={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+                  <ProductList
+                    products={filtered}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onEditField={handleEditField}
+                  />
                 </GroupsContext.Provider>
               )}
             </>
@@ -240,7 +385,7 @@ export default function AdminProductsPage() {
 }
 
 /* ================== ProductList + ProductRow ================== */
-function ProductList({ products, onEdit, onDelete }) {
+function ProductList({ products, onEdit, onDelete, onEditField }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
   const allSelected = products.length > 0 && selectedIds.length === products.length;
 
@@ -266,7 +411,7 @@ function ProductList({ products, onEdit, onDelete }) {
               <span />
             </label>
           </div>
-          <div className="cell-photo"></div>
+          <div className="cell-photo" />
           <div className="cell-name">
             Действия для {selectedIds.length} позиций ▾
             <div className="bulk-menu">
@@ -280,12 +425,12 @@ function ProductList({ products, onEdit, onDelete }) {
               </button>
             </div>
           </div>
-          <div className="cell-date"></div>
-          <div className="cell-sku"></div>
-          <div className="cell-state"></div>
-          <div className="cell-price"></div>
-          <div className="cell-orders"></div>
-          <div className="cell-actions"></div>
+          <div className="cell-date" />
+          <div className="cell-sku" />
+          <div className="cell-state" />
+          <div className="cell-price" />
+          <div className="cell-orders" />
+          <div className="cell-actions" />
         </div>
       ) : (
         <div className="products-grid-header">
@@ -295,14 +440,14 @@ function ProductList({ products, onEdit, onDelete }) {
               <span />
             </label>
           </div>
-          <div className="cell-photo"></div>
+          <div className="cell-photo" />
           <div className="cell-name">Название</div>
           <div className="cell-date">Дата</div>
           <div className="cell-sku">Код</div>
           <div className="cell-state">Отображение</div>
           <div className="cell-price">Цена</div>
           <div className="cell-orders">Заказы</div>
-          <div className="cell-actions"></div>
+          <div className="cell-actions" />
         </div>
       )}
 
@@ -315,14 +460,16 @@ function ProductList({ products, onEdit, onDelete }) {
           onToggle={() => toggleOne(p._id)}
           onEdit={onEdit}
           onDelete={onDelete}
+          onEditField={onEditField}
         />
       ))}
     </div>
   );
 }
 
-function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
+function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField }) {
   const [open, setOpen] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
   const ref = React.useRef(null);
   const { groups } = React.useContext(GroupsContext);
 
@@ -347,7 +494,11 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
   }
 
   return (
-    <div className="product-row">
+    <div
+      className="product-row"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <div className="cell-check">
         <label className="apple-checkbox">
           <input type="checkbox" checked={selected} onChange={onToggle} />
@@ -359,10 +510,21 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
         <img className="product-photo" src={photoUrl} alt={product.name} />
       </div>
 
-      <div className="cell-name">
-        <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines">
-          {product.name || "—"}
-        </Link>
+      <div className="cell-name" style={{ minWidth: 0 }}>
+        <EditableCell
+          value={product.name || "—"}
+          showEditIcon={hovered}
+          onSave={(val) => onEditField(product._id, "name", val)}
+          renderDisplay={(val) => (
+            <Link
+              to={`/admin/products/${product._id}/edit`}
+              className="product-link two-lines"
+              style={{ display: "inline-block", verticalAlign: "top" }}
+            >
+              {val || "—"}
+            </Link>
+          )}
+        />
         <div className="product-group">{groupName}</div>
       </div>
 
@@ -376,32 +538,68 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete }) {
           : "—"}
       </div>
 
-      <div className="cell-sku product-sku">{product.sku || "—"}</div>
+      <div className="cell-sku">
+        <EditableCell
+          value={product.sku || "—"}
+          showEditIcon={hovered}
+          onSave={(val) => onEditField(product._id, "sku", val)}
+          renderDisplay={(val) => <span className="product-sku">{val || "—"}</span>}
+        />
+      </div>
 
-      <div className="cell-state">
-        <span
-          className={
-            "avail " +
-            (product.availability === "published"
-              ? "published"
-              : product.availability === "order"
-              ? "order"
-              : "out")
-          }
-        >
-          {product.availability === "published"
-            ? "В наличии"
-            : product.availability === "order"
-            ? "Под заказ"
-            : "Нет на складе"}
-        </span>
-        <span className={`pub ${product.status === "published" ? "on" : "off"}`}>
-          {product.status === "published" ? "Опубликован" : "Скрытый"}
-        </span>
+      <div className="cell-state" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {/* availability */}
+        <EditableCell
+          value={product.availability}
+          type="select"
+          showEditIcon={hovered}
+          options={[
+            { value: "published", label: "В наличии" },
+            { value: "order", label: "Под заказ" },
+            { value: "out", label: "Нет на складе" },
+          ]}
+          onSave={(val) => onEditField(product._id, "availability", val)}
+          renderDisplay={(val) => (
+            <span
+              className={
+                "avail " +
+                (val === "published" ? "published" : val === "order" ? "order" : "out")
+              }
+            >
+              {val === "published" ? "В наличии" : val === "order" ? "Под заказ" : "Нет на складе"}
+            </span>
+          )}
+        />
+        {/* status (опубликован/скрытый) */}
+        <EditableCell
+          value={product.status}
+          type="select"
+          showEditIcon={hovered}
+          options={[
+            { value: "published", label: "Опубликован" },
+            { value: "hidden", label: "Скрытый" },
+          ]}
+          onSave={(val) => onEditField(product._id, "status", val)}
+          renderDisplay={(val) => (
+            <span className={`pub ${val === "published" ? "on" : "off"}`}>
+              {val === "published" ? "Опубликован" : "Скрытый"}
+            </span>
+          )}
+        />
       </div>
 
       <div className="cell-price">
-        <span className="product-price">{product.price} ₴</span>
+        <EditableCell
+          value={product.price}
+          type="number"
+          showEditIcon={hovered}
+          onSave={(val) => onEditField(product._id, "price", val)}
+          renderDisplay={(val) => (
+            <span className="product-price">
+              {val !== undefined && val !== null ? val : "—"} ₴
+            </span>
+          )}
+        />
       </div>
 
       <div className="cell-orders">
