@@ -842,5 +842,64 @@ products-page .actions-toggle:active{ transform: translateY(1px); } /* keep but 
   margin-top: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #0f172a;     
+  color: #0f172a;
+}
+
+
+/* тариф */
+.tariff-info {
+  font-size: 13.5px;
+  color: #0f172a;
+  font-weight: 500;
+  margin-right: 14px;
+}
+
+/* Apple-style переключатель */
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 14px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.theme-switch input {
+  display: none;
+}
+
+.theme-switch .slider {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  transition: all .3s ease;
+}
+
+.theme-switch .slider::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.theme-switch input:checked + .slider {
+  background: #0a84ff;
+}
+
+.theme-switch input:checked + .slider::before {
+  transform: translateX(14px);
+}
+
+.theme-switch .theme-label {
+  user-select: none;
 }

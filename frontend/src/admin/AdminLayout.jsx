@@ -1,5 +1,5 @@
 // src/admin/AdminLayout.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../assets/AdminPanel.css";
@@ -49,14 +49,13 @@ function Icon({ name }) {
           <path d="M8 8h8M8 12h5" />
         </svg>
       );
-     case "settings":
-        return (
-          <svg {...p}>
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a7.97 7.97 0 0 1-1.4 1.4l1.1 2.4-2 2-2.4-1.1a7.97 7.97 0 0 1-1.4 1.4L12 22l-1.3-2.9a7.97 7.97 0 0 1-1.4-1.4L6.9 20l-2-2 1.1-2.4a7.97 7.97 0 0 1-1.4-1.4L2 12l2.9-1.3a7.97 7.97 0 0 1 1.4-1.4L5.6 6.9l2-2 2.4 1.1a7.97 7.97 0 0 1 1.4-1.4L12 2l1.3 2.9a7.97 7.97 0 0 1 1.4 1.4L17.1 4.9l2 2-1.1 2.4a7.97 7.97 0 0 1 1.4 1.4L22 12z" />
-          </svg>
-        );
-
+    case "settings":
+      return (
+        <svg {...p}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a7.97 7.97 0 0 1-1.4 1.4l1.1 2.4-2 2-2.4-1.1a7.97 7.97 0 0 1-1.4 1.4L12 22l-1.3-2.9a7.97 7.97 0 0 1-1.4-1.4L6.9 20l-2-2 1.1-2.4a7.97 7.97 0 0 1-1.4-1.4L2 12l2.9-1.3a7.97 7.97 0 0 1 1.4-1.4L5.6 6.9l2-2 2.4 1.1a7.97 7.97 0 0 1 1.4-1.4L12 2l1.3 2.9a7.97 7.97 0 0 1 1.4 1.4L17.1 4.9l2 2-1.1 2.4a7.97 7.97 0 0 1 1.4 1.4L22 12z" />
+        </svg>
+      );
     case "globe": // иконка планеты
       return (
         <svg {...p}>
@@ -72,6 +71,7 @@ function Icon({ name }) {
 export default function AdminLayout() {
   const { user } = useAuth();
   const location = useLocation();
+  const [darkMode, setDarkMode] = useState(false);
 
   // Маршруты, где справа используется подменю (.admin-nav-menu)
   const HAS_SUBMENU = /^\/admin\/(orders|products)/.test(location.pathname);
@@ -109,6 +109,19 @@ export default function AdminLayout() {
         </div>
 
         <div className="admin-topbar-right">
+          {/* Новый блок: тариф и переключатель */}
+          <div className="tariff-info">Ваш тариф: <b>Free</b></div>
+
+          <label className="theme-switch">
+            <input
+              type="checkbox"
+              checked={darkMode}
+              onChange={() => setDarkMode(!darkMode)}
+            />
+            <span className="slider" />
+            <span className="theme-label">Тёмная тема</span>
+          </label>
+
           <div className="visitors-chip" aria-live="polite">
             Посетителей на сайте: <b>0</b>
           </div>
