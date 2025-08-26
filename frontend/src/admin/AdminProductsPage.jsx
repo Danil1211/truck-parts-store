@@ -229,7 +229,7 @@ export default function AdminProductsPage() {
     const payload = { ...rest, [field]: value };
 
     try {
-      // используем PUT, раз сервер, похоже, перезаписывает документ
+      // используем PUT целым объектом — сервер не потеряет другие поля
       await api.put(`/api/products/${id}`, payload);
       // локально меняем ТОЛЬКО поле
       setProducts((prev) =>
@@ -305,7 +305,7 @@ export default function AdminProductsPage() {
             Позиции <span className="products-count">({filtered.length})</span>
           </div>
 
-        <div className="filters" ref={filterRef} style={{ order: 1 }}>
+          <div className="filters" ref={filterRef} style={{ order: 1 }}>
             <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
               Фильтры
             </button>
