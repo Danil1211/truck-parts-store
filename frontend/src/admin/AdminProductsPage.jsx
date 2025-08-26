@@ -120,6 +120,7 @@ export default function AdminProductsPage() {
           </div>
           <span className="quota-text-vertical">{Math.round(percent)}%</span>
         </div>
+      )}
 
       {/* Фиксированный хедер */}
       <div className="products-header">
