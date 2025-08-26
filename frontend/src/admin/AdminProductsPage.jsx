@@ -165,11 +165,23 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="products-header-right">
+          {/* прогресс бар */}
+          <div className="products-quota">
+            <div className="quota-bar">
+              <div
+                className="quota-fill"
+                style={{ width: `${Math.min((filtered.length / 1000) * 100, 100)}%` }}
+              ></div>
+            </div>
+            <span className="quota-text">
+              {Math.round((filtered.length / 1000) * 100)}%
+            </span>
+          </div>
+
           <button className="btn-primary" onClick={() => navigate("/admin/products/create")}>
             <span className="plus-icon">+</span> Добавить товар
           </button>
         </div>
-      </div>
 
       {/* Контент */}
       <div className="products-content-wrap">
