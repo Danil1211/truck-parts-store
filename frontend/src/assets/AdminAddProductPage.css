@@ -1,5 +1,6 @@
 /* ==========================================================================
-   AdminAddProductPage — раскладка как Prom (узкий сайдбар, 1 большой + 9 маленьких фото)
+   AdminAddProductPage — строгий минимализм, раскладка как Prom
+   (узкий сайдбар; фото: 1 большой + 9 маленьких; видео — компактные квадраты)
    ========================================================================== */
 
 .add-prod.products-page{
@@ -28,10 +29,10 @@
 /* Form */
 .addprod-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
 
-/* ===== Две колонки — ещё компактнее справа ===== */
+/* ===== Две колонки — ещё уже сайдбар ===== */
 .layout-grid{
   display:grid; gap:20px;
-  grid-template-columns: 2.25fr 0.75fr;   /* было 1.9fr 0.9fr → ещё уже сайдбар */
+  grid-template-columns: 2.25fr 0.75fr;   /* main : side */
   align-items:start;
 }
 .main-col{ display:flex; flex-direction:column; gap:18px; }
@@ -41,20 +42,22 @@
 .card{ background:var(--surface); border:1px solid #e6ebf2; border-radius:14px; padding:16px 18px; }
 .card-title{ font-size:15px; font-weight:600; color:#0f172a; margin-bottom:10px; }
 
-/* Компактный вид карточек в сайдбаре */
+/* Компактные карточки в сайдбаре */
 .side-col .card{ padding:12px 14px; border-radius:12px; }
 .side-col .card-title{ font-size:14px; margin-bottom:8px; }
 
-/* Поля */
+/* Унифицированные поля (везде) */
 .field-col{ display:flex; flex-direction:column; gap:6px; min-width:0; }
 .field-col label{ font-size:13px; font-weight:500; color:#334155; }
-.field-col input, .field-col textarea, .main-col select{
+.field-col input,
+.field-col textarea,
+.addprod-form select{
   border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
   font-size:14px; background:#f9fbfd; transition:border-color .18s, box-shadow .18s;
 }
 .field-col input:focus,
 .field-col textarea:focus,
-.main-col select:focus{
+.addprod-form select:focus{
   outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.12);
 }
 
@@ -70,19 +73,20 @@
 .form-row.four{ flex-direction:row; gap:12px; }
 .form-row.four > *{ flex:1; }
 .form-row.radios{ flex-direction:column; gap:8px; }
+.form-row.radios input{ accent-color: var(--primary); }
+.form-row.radios label{ display:flex; gap:8px; align-items:center; color:#0f172a; font-size:14px; }
 
-/* key–value в сайдбаре */
+/* key–value (если вдруг понадобится) */
 .kv{ display:flex; flex-direction:column; gap:8px; font-size:13px; color:#64748b; }
 .kv div{ display:flex; align-items:center; justify-content:space-between; }
 .kv b{ color:#0f172a; font-weight:600; }
 
 /* ==========================================================================
    МЕДИА В САЙДБАРЕ
-   Фото: 1 большой квадрат + 9 маленьких (3×3)
-   Видео: мелкие квадраты, визуально компактнее
+   Фото: 1 большой квадрат (первый) + 9 маленьких (3×3)
+   Видео: ещё мельче (4 колонки)
    ========================================================================== */
 
-/* Универсальная плитка */
 .thumb{
   position:relative; border:1.5px solid #d0d7e2; border-radius:10px; overflow:hidden;
   background:#f9fbfd; cursor:pointer;
@@ -94,45 +98,34 @@
   background:#fff; color:#e12a2a; font-weight:700; font-size:12px; cursor:pointer;
   box-shadow:0 1px 3px rgba(0,0,0,.15);
 }
-.thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; }
+.thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:16px; }
 
-/* === Фото ===
-   Используем существующую разметку .media-grid:
-   .thumb:first-child — главный (занимает всю ширину), остальные — 3×3 маленьких.
-*/
-.side-col .media-grid{
+/* Фото: сетка */
+.media-grid{
   display:grid;
   grid-template-columns: repeat(3, 1fr);
-  gap:6px;                       /* компактнее, чем раньше */
-}
-
-/* Главный кадр */
-.side-col .media-grid .thumb:first-child{
-  grid-column: span 3;           /* на всю ширину карточки */
-  aspect-ratio: 1 / 1;           /* квадрат */
-  font-size:20px;
-}
-
-/* Маленькие превью (остальные 9) */
-.side-col .media-grid .thumb:not(:first-child){
-  aspect-ratio: 1 / 1;           /* квадраты */
-  font-size:14px;
-}
-
-/* === Видео ===
-   Ещё компактнее: 4 колонки мелких квадратов.
-*/
-.side-col .video-grid{
-  display:grid;
-  grid-template-columns: repeat(4, 1fr);  /* мельче, чем фото */
   gap:6px;
 }
-.side-col .video-grid .thumb{
-  aspect-ratio: 1 / 1;           /* квадратные превью — смотрится аккуратнее */
-  font-size:12px;
+/* Первый элемент — главный кадр */
+.media-grid .thumb:first-child{
+  grid-column: span 3;
+  aspect-ratio: 1 / 1;
+  font-size:20px;
+}
+/* Остальные — маленькие квадраты */
+.media-grid .thumb:not(:first-child){
+  aspect-ratio: 1 / 1;
 }
 
-/* Ссылка под сеткой */
+/* Видео — компактные превью */
+.video-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:6px;
+}
+.video-grid .thumb{ aspect-ratio: 1 / 1; }
+
+/* Кнопка под сетками */
 .add-by-link{
   margin-top:8px; font-size:12.5px; color:var(--primary); cursor:pointer; user-select:none;
 }

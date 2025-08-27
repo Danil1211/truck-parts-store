@@ -7,7 +7,7 @@ import "../assets/AdminPanel.css";
 import "../assets/AdminAddProductPage.css";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-const MAX_IMAGES = 10; // как на Prom: 0..10
+const MAX_IMAGES = 10; // 1 главный + 9 превью
 
 export default function AdminAddProductPage() {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ export default function AdminAddProductPage() {
   const [price, setPrice] = useState("");
   const [unit, setUnit] = useState("шт");
   const [stock, setStock] = useState("");
-  const [availability, setAvailability] = useState("published"); // Видимость: published|draft|hidden
+  const [availability, setAvailability] = useState("published"); // published|draft|hidden
 
   // Характеристики
   const [charColor, setCharColor] = useState("");
@@ -41,6 +41,7 @@ export default function AdminAddProductPage() {
   const [length, setLength] = useState("");
   const [weight, setWeight] = useState("");
 
+  // Данные
   const [groups, setGroups] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -59,8 +60,7 @@ export default function AdminAddProductPage() {
           price: setPrice, unit: setUnit, availability: setAvailability, stock: setStock,
           charColor: setCharColor, charBrand: setCharBrand,
           seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys,
-          queries: setQueries,
-          width: setWidth, height: setHeight, length: setLength, weight: setWeight,
+          queries: setQueries, width: setWidth, height: setHeight, length: setLength, weight: setWeight,
           images: setImages
         };
         Object.keys(setters).forEach((k) => obj[k] !== undefined && setters[k](obj[k]));
@@ -107,10 +107,10 @@ export default function AdminAddProductPage() {
     const files = Array.from(e.target.files || []);
     setImages((prev) => {
       const prevFiles = prev.map((i) => i.file).filter(Boolean);
-      const allFiles = [...prevFiles, ...files];
+      const all = [...prevFiles, ...files];
       const seen = new Set();
       const uniq = [];
-      for (const f of allFiles) {
+      for (const f of all) {
         const key = f.name + "_" + f.size;
         if (!seen.has(key)) {
           seen.add(key);
@@ -148,7 +148,7 @@ export default function AdminAddProductPage() {
     fd.append("group", group);
     fd.append("price", price);
     fd.append("unit", unit);
-    fd.append("availability", availability); // published|draft|hidden
+    fd.append("availability", availability);
     fd.append("stock", stock);
     fd.append("charColor", charColor);
     fd.append("charBrand", charBrand);
@@ -174,7 +174,9 @@ export default function AdminAddProductPage() {
     }
   };
 
-  const emptyTiles = Math.max(0, MAX_IMAGES - images.length);
+  // Плейсхолдеры для миниатюр
+  const emptiesWhenNoImages = MAX_IMAGES - 1; // если нет фото — 1 большой + 9 маленьких
+  const leftover = Math.max(0, MAX_IMAGES - images.length);
 
   return (
     <div className="add-prod products-page">
@@ -189,7 +191,7 @@ export default function AdminAddProductPage() {
 
       <form id="add-prod-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="layout-grid">
-          {/* ===== ЛЕВАЯ КОЛОНКА (как Prom) ===== */}
+          {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
           <div className="main-col">
             <div className="card">
               <div className="card-title">Основная информация</div>
@@ -230,16 +232,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            <div className="card">
-              <div className="card-title">Группа</div>
-              <select value={group} onChange={(e) => setGroup(e.target.value)} required>
-                <option value="">Выберите</option>
-                {groups.map((g) => (
-                  <option key={g._id} value={g._id}>{g.name}</option>
-                ))}
-              </select>
-            </div>
-
+            {/* Характеристики */}
             <div className="card">
               <div className="card-title">Характеристики</div>
               <div className="form-row two">
@@ -254,6 +247,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* SEO */}
             <div className="card">
               <div className="card-title">SEO</div>
               <div className="form-row">
@@ -270,6 +264,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* Поисковые запросы */}
             <div className="card">
               <div className="card-title">Поисковые запросы</div>
               <input
@@ -285,6 +280,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* Габариты */}
             <div className="card">
               <div className="card-title">Габариты</div>
               <div className="form-row four">
@@ -298,6 +294,7 @@ export default function AdminAddProductPage() {
 
           {/* ===== ПРАВАЯ КОЛОНКА ===== */}
           <div className="side-col">
+            {/* Видимость */}
             <div className="card">
               <div className="card-title">Видимость</div>
               <div className="form-row radios">
@@ -307,14 +304,20 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* Группа — перенесена в сайдбар */}
             <div className="card">
-              <div className="card-title">Создание и обновление</div>
-              <div className="kv">
-                <div><span>Создано:</span><b>-</b></div>
-                <div><span>Обновлено:</span><b>-</b></div>
+              <div className="card-title">Группа</div>
+              <div className="field-col">
+                <select value={group} onChange={(e) => setGroup(e.target.value)} required>
+                  <option value="">Выберите</option>
+                  {groups.map((g) => (
+                    <option key={g._id} value={g._id}>{g.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
+            {/* Изображения */}
             <div className="card">
               <div className="card-title">Изображения ({images.length} из {MAX_IMAGES})</div>
 
@@ -328,30 +331,50 @@ export default function AdminAddProductPage() {
               />
 
               <div className="media-grid">
-                {images.map((img) => (
-                  <div key={img.id} className="thumb">
-                    <img src={img.url} alt="" />
-                    <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
-                  </div>
-                ))}
-                {Array.from({ length: emptyTiles }).map((_, i) => (
-                  <div
-                    key={`empty-${i}`}
-                    className="thumb add"
-                    onClick={() => inputFileRef.current?.click()}
-                  >
-                    +
-                  </div>
-                ))}
+                {/* Если нет фото — нарисуем 1 большой + 9 маленьких «+» */}
+                {images.length === 0 && (
+                  <>
+                    <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                    {Array.from({ length: emptiesWhenNoImages }).map((_, i) => (
+                      <div
+                        key={`empty0-${i}`}
+                        className="thumb add"
+                        onClick={() => inputFileRef.current?.click()}
+                      >+</div>
+                    ))}
+                  </>
+                )}
+
+                {/* Если фото есть — выводим их, затем заполняем до 10 пустыми */}
+                {images.length > 0 && (
+                  <>
+                    {images.map((img) => (
+                      <div key={img.id} className="thumb">
+                        <img src={img.url} alt="" />
+                        <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
+                      </div>
+                    ))}
+                    {Array.from({ length: leftover }).map((_, i) => (
+                      <div
+                        key={`empty-${i}`}
+                        className="thumb add"
+                        onClick={() => inputFileRef.current?.click()}
+                      >+</div>
+                    ))}
+                  </>
+                )}
               </div>
+
               <div className="add-by-link" onClick={() => inputFileRef.current?.click()}>
                 Добавить фото
               </div>
             </div>
 
+            {/* Видео (компактные квадраты) */}
             <div className="card">
-              <div className="card-title">Видео (0 из 3)</div>
-              <div className="media-grid">
+              <div className="card-title">Видео</div>
+              <div className="video-grid">
+                <div className="thumb add">+</div>
                 <div className="thumb add">+</div>
                 <div className="thumb add">+</div>
                 <div className="thumb add">+</div>
