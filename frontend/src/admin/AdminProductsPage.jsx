@@ -7,10 +7,15 @@ import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
-// Контекст для списка групп
+// контекст для доступа к списку групп в строках
 const GroupsContext = React.createContext([]);
 
-/* ================== Мини-компонент EditableCell ================== */
+/* ================== Мини-компонент EditableCell ==================
+   - Поддерживает text / number / select
+   - Карандаш виден только при ховере строки (showEditIcon)
+   - Сохраняет по blur или Enter; Esc — отмена
+   - Можно отдать кастомный renderDisplay (например, Link)
+=================================================================== */
 function EditableCell({
   value,
   onSave,
@@ -137,7 +142,7 @@ function EditableCell({
   );
 }
 
-/* ================== Основная страница ================== */
+/* ================== Страница Позиции ================== */
 export default function AdminProductsPage() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState("list");
@@ -148,7 +153,8 @@ export default function AdminProductsPage() {
   const [noPhoto, setNoPhoto] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const filterRef = useRef(null); // реф на поповер
+  // ref — именно на ПОПОВЕР (не на кнопку)
+  const filterRef = useRef(null);
 
   const [products, setProducts] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -156,19 +162,12 @@ export default function AdminProductsPage() {
 
   const [quotaOpen, setQuotaOpen] = useState(false);
 
-  // Хелперы для названий чипсов
-  const statusLabel = (val) =>
-    val === "published" ? "Статус: В наличии" :
-    val === "order" ? "Статус: Под заказ" :
-    val === "out" ? "Статус: Нет на складе" : "";
+  // Helpers для чипсов
+  const groupNameById = (id) => groups.find((g) => g._id === id)?.name || "—";
+  const statusLabel = (s) =>
+    s === "published" ? "В наличии" : s === "order" ? "Под заказ" : s === "out" ? "Нет на складе" : "";
 
-  const groupNameById = (id) => {
-    if (!id || id === "all") return "";
-    const g = groups.find((x) => x._id === id);
-    return g ? g.name : "";
-  };
-
-  // Загрузка данных
+  // загрузка продуктов и групп
   useEffect(() => {
     (async () => {
       try {
@@ -181,6 +180,7 @@ export default function AdminProductsPage() {
         setProducts(Array.isArray(data) ? data : []);
         setLoading(false);
 
+        // расплющим дерево групп
         const groupsData = groupsRes.data || [];
         const flat = [];
         const flatten = (arr) => {
@@ -198,7 +198,7 @@ export default function AdminProductsPage() {
     })();
   }, []);
 
-  // Закрытие фильтров по клику вне и по Esc
+  // Закрывать поповер фильтров по клику вне/по Esc
   useEffect(() => {
     if (!filtersOpen) return;
 
@@ -206,9 +206,7 @@ export default function AdminProductsPage() {
       const popover = filterRef.current;
       const clickInsidePopover = popover && popover.contains(e.target);
       const clickOnToggle = !!e.target.closest(".filters-toggle");
-      if (!clickInsidePopover && !clickOnToggle) {
-        setFiltersOpen(false);
-      }
+      if (!clickInsidePopover && !clickOnToggle) setFiltersOpen(false);
     };
     const onEsc = (e) => e.key === "Escape" && setFiltersOpen(false);
 
@@ -222,7 +220,6 @@ export default function AdminProductsPage() {
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
-  // Delete / Patch
   const handleDelete = async (id, opts = {}) => {
     if (!opts.silent) {
       if (!window.confirm("Удалить позицию?")) return;
@@ -239,16 +236,14 @@ export default function AdminProductsPage() {
   const handleEditField = async (id, field, value) => {
     try {
       await api.patch(`/api/products/${id}`, { [field]: value });
-      setProducts((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
-      );
+      setProducts((prev) => prev.map((p) => (p._id === id ? { ...p, [field]: value } : p)));
     } catch (e) {
       console.error("Ошибка при сохранении:", e);
       alert("Не удалось сохранить изменения");
     }
   };
 
-  // Фильтрация
+  // фильтрация
   const filtered = products.filter((p) => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
@@ -261,7 +256,7 @@ export default function AdminProductsPage() {
     return true;
   });
 
-  // Проценты квоты
+  // процент для отображения квоты (1000 позиций)
   const percent = Math.min((filtered.length / 1000) * 100, 100);
   let quotaColor = "#0a84ff";
   if (percent >= 95) quotaColor = "#ef4444";
@@ -275,16 +270,13 @@ export default function AdminProductsPage() {
       {!loading && (
         <div className="quota-progress" onClick={() => setQuotaOpen(true)}>
           <div className="quota-bar-vertical">
-            <div
-              className="quota-fill-vertical"
-              style={{ height: `${percent}%`, background: quotaColor }}
-            />
+            <div className="quota-fill-vertical" style={{ height: `${percent}%`, background: quotaColor }} />
           </div>
           <span className="quota-text-vertical">{Math.round(percent)}%</span>
         </div>
       )}
 
-      {/* Панель с лимитом */}
+      {/* Панель квоты */}
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
@@ -296,9 +288,11 @@ export default function AdminProductsPage() {
             <hr className="quota-divider" />
 
             <div className="quota-details">
-              <div><strong>Лимит товаров:</strong> 1000</div>
+              <div>
+                <strong>Лимит товаров:</strong> 1000
+              </div>
               <div>• <strong>Добавлено:</strong> {filtered.length} з 1000</div>
-              <div>• <strong>Опубликовано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
+              <div>• <strong>Опубликовано:</strong> {filtered.filter((p) => p.status === "published").length} з 1000</div>
             </div>
 
             <div className="quota-remaining">Можно добавить еще: {1000 - filtered.length} товаров</div>
@@ -315,10 +309,7 @@ export default function AdminProductsPage() {
 
           {/* Фильтры */}
           <div className="filters" style={{ order: 1 }}>
-            <button
-              className="filters-toggle"
-              onClick={() => setFiltersOpen((v) => !v)}
-            >
+            <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
               Фильтры
             </button>
 
@@ -381,44 +372,47 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Чипсы активных фильтров — под фиксированным хедером */}
-      {(group !== "all" || status || noPhoto) && (
-        <div className="products-chips-row">
-          {group !== "all" && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setGroup("all")}
-              title="Сбросить фильтр группы"
-            >
-              Группа: {groupNameById(group)} <span aria-hidden>×</span>
-            </button>
-          )}
-          {status && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setStatus("")}
-              title="Сбросить фильтр статуса"
-            >
-              {statusLabel(status)} <span aria-hidden>×</span>
-            </button>
-          )}
-          {noPhoto && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setNoPhoto(false)}
-              title="Сбросить фильтр «Без фото»"
-            >
-              Без фото <span aria-hidden>×</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Контент */}
+      {/* Контейнер под контент страницы */}
       <div className="products-content-wrap">
+        {/* Чипсы активных фильтров — сразу под фиксированным хедером */}
+        {(group !== "all" || status || noPhoto) && (
+          <div className="products-chips-row">
+            {group !== "all" && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setGroup("all")}
+                title="Сбросить фильтр группы"
+              >
+                Группа: {groupNameById(group)} <span aria-hidden>×</span>
+              </button>
+            )}
+
+            {status && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setStatus("")}
+                title="Сбросить фильтр статуса"
+              >
+                {statusLabel(status)} <span aria-hidden>×</span>
+              </button>
+            )}
+
+            {noPhoto && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setNoPhoto(false)}
+                title="Сбросить фильтр «Без фото»"
+              >
+                Без фото <span aria-hidden>×</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Основной контент */}
         <div className="products-content">
           {selected === "list" && (
             <>
@@ -779,11 +773,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   return (
     <div className="pagination-wrap">
       <div className="pagination">
-        <button
-          className="page-btn"
-          disabled={page === 1}
-          onClick={() => changePage(page - 1)}
-        >
+        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>
           ‹
         </button>
 
@@ -801,11 +791,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
           )
         )}
 
-        <button
-          className="page-btn"
-          disabled={page === pages}
-          onClick={() => changePage(page + 1)}
-        >
+        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>
           ›
         </button>
       </div>
