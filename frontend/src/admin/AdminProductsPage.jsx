@@ -159,6 +159,13 @@ export default function AdminProductsPage() {
   const [status, setStatus] = useState(initialFilters.status || "");
   const [noPhoto, setNoPhoto] = useState(Boolean(initialFilters.noPhoto));
 
+  // Снимок значений, пришедших ИМЕННО при загрузке страницы
+  const initialPersistedRef = useRef({
+    group: initialFilters.group || "all",
+    status: initialFilters.status || "",
+    noPhoto: Boolean(initialFilters.noPhoto),
+  });
+
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterRef = useRef(null); // реф именно на поповер
 
@@ -286,6 +293,13 @@ export default function AdminProductsPage() {
   if (percent >= 95) quotaColor = "#ef4444";
   else if (percent >= 80) quotaColor = "#f59e0b";
 
+  // Показывать чипсы только если значения совпадают с "начальными" (т.е. после перезагрузки)
+  const showChips =
+    (group !== "all" || status || noPhoto) &&
+    group === initialPersistedRef.current.group &&
+    status === initialPersistedRef.current.status &&
+    noPhoto === initialPersistedRef.current.noPhoto;
+
   return (
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
@@ -345,7 +359,7 @@ export default function AdminProductsPage() {
                   value={group}
                   onChange={(e) => {
                     setGroup(e.target.value);
-                    setFiltersOpen(false); // авто-закрытие при выборе
+                    setFiltersOpen(false); // автозакрытие
                   }}
                   className="filters-select"
                 >
@@ -361,7 +375,7 @@ export default function AdminProductsPage() {
                   value={status}
                   onChange={(e) => {
                     setStatus(e.target.value);
-                    setFiltersOpen(false); // авто-закрытие при выборе
+                    setFiltersOpen(false); // автозакрытие
                   }}
                   className="filters-select"
                 >
@@ -377,7 +391,7 @@ export default function AdminProductsPage() {
                     checked={noPhoto}
                     onChange={(e) => {
                       setNoPhoto(e.target.checked);
-                      setFiltersOpen(false); // авто-закрытие при выборе
+                      setFiltersOpen(false); // автозакрытие
                     }}
                   />
                   Без фото
@@ -410,9 +424,9 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* ===== Чипсы активных фильтров (внутри content-wrap) ===== */}
+      {/* Чипсы активных фильтров — показываем только «послерелоадные» */}
       <div className="products-content-wrap">
-        {(group !== "all" || status || noPhoto) && (
+        {showChips && (
           <div className="products-chips-row">
             {group !== "all" && (
               <button
