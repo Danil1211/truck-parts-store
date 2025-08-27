@@ -206,6 +206,12 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* Описание — сразу под строкой выше */}
+            <div className="card">
+              <div className="card-title">Описание</div>
+              <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
+            </div>
+
             <div className="card">
               <div className="card-title">Цена и наличие</div>
               <div className="form-row three">
@@ -218,12 +224,6 @@ export default function AdminAddProductPage() {
                 <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
                 <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
               </div>
-            </div>
-
-            {/* Описание — сразу под строкой выше */}
-            <div className="card">
-              <div className="card-title">Описание</div>
-              <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
             </div>
 
             {/* Остальные блоки ниже — как и было */}
