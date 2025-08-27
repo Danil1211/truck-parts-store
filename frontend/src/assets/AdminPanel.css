@@ -846,5 +846,5 @@ html, body {
 /* Подвинем только заголовок "Цена" */
 .products-grid-header .cell-price {
   text-align: right;
-  padding-right: 26px; /* вместо 12px — сместим чуть левее */
+  padding-right: 30px; /* вместо 12px — сместим чуть левее */
 }
