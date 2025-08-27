@@ -350,13 +350,6 @@ transition:all .2s ease;
   box-shadow: 0 4px 12px rgba(0,122,255,0.25);
 }
 
-.filters-active {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 10px 0 0 0; /* отступ сверху */
-}
-
 /* Ряд чипсов активных фильтров */
 .products-chips-row {
   padding: 10px 20px;

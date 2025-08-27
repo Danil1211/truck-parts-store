@@ -7,7 +7,7 @@ import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
-// контекст для доступа к списку групп
+// Контекст для списка групп
 const GroupsContext = React.createContext([]);
 
 /* ================== Мини-компонент EditableCell ================== */
@@ -137,6 +137,7 @@ function EditableCell({
   );
 }
 
+/* ================== Основная страница ================== */
 export default function AdminProductsPage() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState("list");
@@ -155,6 +156,19 @@ export default function AdminProductsPage() {
 
   const [quotaOpen, setQuotaOpen] = useState(false);
 
+  // Хелперы для названий чипсов
+  const statusLabel = (val) =>
+    val === "published" ? "Статус: В наличии" :
+    val === "order" ? "Статус: Под заказ" :
+    val === "out" ? "Статус: Нет на складе" : "";
+
+  const groupNameById = (id) => {
+    if (!id || id === "all") return "";
+    const g = groups.find((x) => x._id === id);
+    return g ? g.name : "";
+  };
+
+  // Загрузка данных
   useEffect(() => {
     (async () => {
       try {
@@ -184,9 +198,10 @@ export default function AdminProductsPage() {
     })();
   }, []);
 
-  // Закрыть фильтры по клику вне поповера и по Esc
+  // Закрытие фильтров по клику вне и по Esc
   useEffect(() => {
     if (!filtersOpen) return;
+
     const onDocClick = (e) => {
       const popover = filterRef.current;
       const clickInsidePopover = popover && popover.contains(e.target);
@@ -207,7 +222,7 @@ export default function AdminProductsPage() {
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
-  // поддерживает {silent:true} для пакетного удаления
+  // Delete / Patch
   const handleDelete = async (id, opts = {}) => {
     if (!opts.silent) {
       if (!window.confirm("Удалить позицию?")) return;
@@ -233,6 +248,7 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Фильтрация
   const filtered = products.filter((p) => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
@@ -245,16 +261,11 @@ export default function AdminProductsPage() {
     return true;
   });
 
-  // процент для тарифа Free (1000 позиций)
+  // Проценты квоты
   const percent = Math.min((filtered.length / 1000) * 100, 100);
   let quotaColor = "#0a84ff";
   if (percent >= 95) quotaColor = "#ef4444";
   else if (percent >= 80) quotaColor = "#f59e0b";
-
-  // helpers для чипсов
-  const statusLabel = (s) =>
-    s === "published" ? "В наличии" : s === "order" ? "Под заказ" : "Нет на складе";
-  const groupNameById = (id) => groups.find((g) => g._id === id)?.name || "—";
 
   return (
     <div className="products-page">
@@ -285,9 +296,7 @@ export default function AdminProductsPage() {
             <hr className="quota-divider" />
 
             <div className="quota-details">
-              <div>
-                <strong>Лимит товаров:</strong> 1000
-              </div>
+              <div><strong>Лимит товаров:</strong> 1000</div>
               <div>• <strong>Добавлено:</strong> {filtered.length} з 1000</div>
               <div>• <strong>Опубликовано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
             </div>
@@ -348,10 +357,7 @@ export default function AdminProductsPage() {
                   Без фото
                 </label>
 
-                <button
-                  className="filters-apply"
-                  onClick={() => setFiltersOpen(false)}
-                >
+                <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
                   Применить
                 </button>
               </div>
@@ -375,7 +381,7 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Чипсы активных фильтров */}
+      {/* Чипсы активных фильтров — под фиксированным хедером */}
       {(group !== "all" || status || noPhoto) && (
         <div className="products-chips-row">
           {group !== "all" && (
@@ -410,6 +416,34 @@ export default function AdminProductsPage() {
           )}
         </div>
       )}
+
+      {/* Контент */}
+      <div className="products-content-wrap">
+        <div className="products-content">
+          {selected === "list" && (
+            <>
+              {loading ? (
+                <div className="loader-wrap">
+                  <div className="loader" />
+                </div>
+              ) : (
+                <GroupsContext.Provider value={{ groups }}>
+                  <ProductList
+                    products={filtered}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onEditField={handleEditField}
+                  />
+                </GroupsContext.Provider>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ================== ProductList + ProductRow ================== */
 function ProductList({ products, onEdit, onDelete, onEditField }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
@@ -745,15 +779,17 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   return (
     <div className="pagination-wrap">
       <div className="pagination">
-        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>
+        <button
+          className="page-btn"
+          disabled={page === 1}
+          onClick={() => changePage(page - 1)}
+        >
           ‹
         </button>
 
         {getRange().map((p, i) =>
           p === "..." ? (
-            <span key={i} className="dots">
-              …
-            </span>
+            <span key={i} className="dots">…</span>
           ) : (
             <button
               key={i}
@@ -765,7 +801,11 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
           )
         )}
 
-        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>
+        <button
+          className="page-btn"
+          disabled={page === pages}
+          onClick={() => changePage(page + 1)}
+        >
           ›
         </button>
       </div>
