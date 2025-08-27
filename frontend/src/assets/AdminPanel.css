@@ -254,7 +254,7 @@ html, body {
 .filters-apply{ background:#2291ff; color:#fff; font-weight:500; border:none; border-radius:8px; padding:7px 0; margin-top:5px; font-size:15px; cursor:pointer; }
 
 /* Контент под шапкой */
-products-content-wrap{ padding-top:70px; }
+.products-content-wrap{ padding-top:70px; }
 .products-content{ background:#fff; border-radius:0; box-shadow:none; padding:16px 20px 24px; min-height:280px; }
 
 /* === Products — единая сетка (источник истины) === */
@@ -475,27 +475,13 @@ products-content-wrap{ padding-top:70px; }
 .tariff-chip b{ margin-left:4px; color:#007aff; }
 
 /* ================== Inline editing ================== */
-/* (обновлено только этот блок) */
 
 /* контейнер */
 .editable-cell {
-  display: block;           /* управление макетом внутри .editable-text */
+  display: flex;
+  align-items: center;
+  gap: 6px;
   position: relative;
-  min-width: 0;
-}
-
-/* текст + карандаш в одном ряду: 1fr (текст) + auto (иконка) */
-.editable-text {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: start;
-  column-gap: 6px;
-  min-width: 0;             /* чтобы работали clamp/ellipsis */
-}
-
-/* контент (ссылка/текст) в первой колонке */
-.editable-text > :not(.edit-btn) {
-  min-width: 0;
 }
 
 /* иконка карандаша */
@@ -510,8 +496,13 @@ products-content-wrap{ padding-top:70px; }
   transition: opacity 0.2s ease;
 }
 
-.product-row:hover .edit-btn { opacity: 0.6; }
-.edit-btn:hover { opacity: 1; }
+.product-row:hover .edit-btn {
+  opacity: 0.6;
+}
+
+.edit-btn:hover {
+  opacity: 1;
+}
 
 /* svg иконка */
 .edit-btn svg {
@@ -520,12 +511,18 @@ products-content-wrap{ padding-top:70px; }
   stroke: #64748b;
   transition: stroke 0.2s ease;
 }
-.edit-btn:hover svg { stroke: #0a84ff; }
 
-/* размещение иконки во второй колонке + легкий подъем */
+.edit-btn:hover svg {
+  stroke: #0a84ff;
+}
+
+.editable-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .editable-text .edit-btn {
-  grid-column: 2;
-  align-self: start;
   position: relative;
   top: 1px;
 }
@@ -542,14 +539,22 @@ products-content-wrap{ padding-top:70px; }
   color: #0f172a;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .editable-input:focus {
   border-color: #007aff;
   box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
 }
 
-/* больше кликабельная зона */
-.editable-cell .edit-btn { padding: 6px; line-height: 0; }
-.editable-cell .edit-btn svg { width: 20px; height: 20px; stroke-width: 1.9; }
+/* Размер и кликабельная область карандаша в инлайновом редактировании */
+.editable-cell .edit-btn {
+  padding: 6px;           /* чуть больше зона клика */
+  line-height: 0;
+}
+.editable-cell .edit-btn svg {
+  width: 20px;            /* было 16px */
+  height: 20px;
+  stroke-width: 1.9;      /* немного толще линии */
+}
 
 /* 11) Медиа
    -------------------------------------------------------------------------- */
