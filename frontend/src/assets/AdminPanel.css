@@ -516,6 +516,17 @@ html, body {
   stroke: #0a84ff;
 }
 
+.editable-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editable-text .edit-btn {
+  position: relative;
+  top: 1px;
+}
+
 /* инпут */
 .editable-input {
   font-size: 14px;

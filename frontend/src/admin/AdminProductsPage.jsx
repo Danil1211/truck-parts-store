@@ -95,39 +95,51 @@ function EditableCell({
   return (
     <span
       className="editable-cell"
-      style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        minWidth: 0
+      }}
     >
-      <span style={{ minWidth: 0 }}>
-        {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
-      </span>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="edit-btn"
-        aria-label="Изменить"
-        title="Изменить"
+      <span
+        className="editable-text"
         style={{
-          opacity: showEditIcon ? 1 : 0,
-          transition: "opacity .18s ease",
-          background: "transparent",
-          border: "1px solid transparent",
-          padding: 4,
-          borderRadius: 8,
-          cursor: "pointer",
-          lineHeight: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minWidth: 0
         }}
       >
-        {/* минималистичный SVG-карандаш */}
-        <svg
-          width="20" height="20" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" strokeWidth="1.8"
-          strokeLinecap="round" strokeLinejoin="round"
-          style={{ color: "#64748b" }}
+        {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="edit-btn"
+          aria-label="Изменить"
+          title="Изменить"
+          style={{
+            opacity: showEditIcon ? 1 : 0,
+            transition: "opacity .18s ease",
+            background: "transparent",
+            border: "1px solid transparent",
+            padding: 2,
+            marginLeft: 4,   // 🔑 делает его прям в конце строки
+            borderRadius: 6,
+            cursor: "pointer",
+            lineHeight: 0
+          }}
         >
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-        </svg>
-      </button>
+          <svg
+            width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round"
+            style={{ color: "#64748b" }}
+          >
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+        </button>
+      </span>
     </span>
   );
 }
