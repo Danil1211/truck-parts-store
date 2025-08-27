@@ -350,6 +350,34 @@ transition:all .2s ease;
   box-shadow: 0 4px 12px rgba(0,122,255,0.25);
 }
 
+.filters-active {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0 0; /* отступ сверху */
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  background: #f4f7fa;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.filter-chip:hover {
+  background: #fff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 /* Контент под шапкой */
 .products-content-wrap{ padding-top:70px; }
 .products-content{ background:#fff; border-radius:0; box-shadow:none; padding:16px 20px 24px; min-height:280px; }
