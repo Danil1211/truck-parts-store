@@ -861,3 +861,32 @@ html, body {
   font-variant-numeric: tabular-nums; /* одинаковая ширина цифр */
   letter-spacing: 0.3px;
 }
+
+/* Цена — строго под правым краем */
+.product-row .cell-price {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+}
+
+/* сама цена прижата вправо */
+.product-row .product-price {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+  margin-right: 22px; /* оставляем место под карандаш */
+}
+
+/* карандаш плавает справа */
+.product-row .cell-price .edit-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+.product-row:hover .cell-price .edit-btn {
+  opacity: 0.6;
+}
