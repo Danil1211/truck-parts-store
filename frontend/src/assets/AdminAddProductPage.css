@@ -1,18 +1,21 @@
 /* ========================================================================
-   AdminAddProductPage — стили для страницы добавления товара
+   AdminAddProductPage — изолированные стили
    ======================================================================== */
 
 .add-prod-page {
-  padding: 20px;
+  padding: 20px 24px;
   background: var(--bg);
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-/* фикс пустоты слева при активном submenu */
+/* убираем пустоту слева при submenu */
 .admin-content.with-submenu .add-prod-page {
   margin-left: calc(-1 * var(--submenu-w));
-  padding-left: 20px;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 /* Заголовок */
@@ -43,7 +46,7 @@
 /* Основная сетка */
 .add-prod-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px; /* левая колонка растягивается */
+  grid-template-columns: 1fr 360px; /* левая + правая */
   gap: 28px;
   align-items: flex-start;
   width: 100%;
@@ -52,13 +55,15 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  min-width: 0; /* чтобы тянулось */
+  width: 100%;
+  min-width: 0;
 }
 .add-prod-side {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  min-width: 280px;
+  min-width: 300px;
+  max-width: 360px;
 }
 
 /* Карточки */
@@ -76,7 +81,7 @@
   margin-bottom: 12px;
 }
 
-/* Инпуты */
+/* Поля */
 .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px }
 .form-row.two { flex-direction: row; gap: 14px }
 .form-row.two > div { flex: 1 }
