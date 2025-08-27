@@ -4,8 +4,8 @@ import "../assets/AdminPanel.css";
 
 const MENUS = {
   products: [
-    { key: "list",   label: "Позиции",            link: "/admin/products" },
-    { key: "groups", label: "Группы / Подгруппы", link: "/admin/groups"   },
+    { key: "list",   label: "Товары",            link: "/admin/products" },
+    { key: "groups", label: "Группы", link: "/admin/groups"   },
   ],
   orders: [
     { key: "all",        label: "Все заказы",   link: "/admin/orders?status=all" },
