@@ -391,79 +391,57 @@ export default function AdminProductsPage() {
 function ProductList({ products, onEdit, onDelete, onEditField }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
 
-  // 🔹 ПАГИНАЦИЯ (реальная резка массива)
+  // Пагинация
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(20);
   const pages = Math.ceil(products.length / perPage);
-
-  // сбрасываем страницу, если список фильтром поменялся/укоротился
   useEffect(() => { setPage(1); }, [products.length, perPage]);
 
   const paginated = products.slice((page - 1) * perPage, page * perPage);
   const idsOnPage = paginated.map(p => p._id);
-
-  const allSelected =
-    paginated.length > 0 && idsOnPage.every(id => selectedIds.includes(id));
+  const allSelected = paginated.length > 0 && idsOnPage.every(id => selectedIds.includes(id));
 
   const toggleAll = () => {
     if (allSelected) {
-      // снять выделение только у тех, кто на текущей странице
       setSelectedIds(prev => prev.filter(id => !idsOnPage.includes(id)));
     } else {
-      // выделить всех на текущей странице (сохраняем ранее выбранных на других страницах)
       setSelectedIds(prev => Array.from(new Set([...prev, ...idsOnPage])));
     }
   };
-
   const toggleOne = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  // ▼▼▼ Выпадающее меню «Действия для N позиций»
+  // ▼ Выпадающее меню действий (только по клику)
   const [bulkOpen, setBulkOpen] = React.useState(false);
   useEffect(() => {
     if (!bulkOpen) return;
-    const onDoc = (e) => {
-      if (!e.target.closest(".bulk-actions")) setBulkOpen(false);
+    const close = (e) => {
+      if (!e.target.closest(".bulk-dd")) setBulkOpen(false);
     };
     const onEsc = (e) => e.key === "Escape" && setBulkOpen(false);
-    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("mousedown", close);
     document.addEventListener("keydown", onEsc);
     return () => {
-      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", onEsc);
     };
   }, [bulkOpen]);
 
   const bulkDelete = async () => {
     if (!selectedIds.length) return;
-    const ok = window.confirm(`Удалить выбранные ${selectedIds.length} позиций?`);
-    if (!ok) return;
-    // удаляем «тихо», без повторных confirm
+    if (!window.confirm(`Удалить выбранные ${selectedIds.length} позиций?`)) return;
     for (const id of selectedIds) {
-      // ждём последовательного удаления, чтобы корректно обновлялось состояние
-      // (можно и Promise.all, но так безопаснее для сеттера)
-      // @ts-ignore — у onDelete добавлен opts.silent
       await onDelete(id, { silent: true });
     }
     setSelectedIds([]);
     setBulkOpen(false);
   };
-  // ▲▲▲
+  // ▲
 
   if (products.length === 0) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "120px 20px",
-          fontSize: 18,
-          color: "#8e9baa",
-          fontWeight: 400,
-        }}
-      >
+      <div style={{ textAlign: "center", padding: "120px 20px", fontSize: 18, color: "#8e9baa", fontWeight: 400 }}>
         Нет товаров
       </div>
     );
@@ -471,7 +449,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
 
   return (
     <div className="products-list-wrap">
-      {/* верхняя строка */}
       {selectedIds.length > 0 ? (
         <div className="products-bulk-header">
           <div className="cell-check">
@@ -482,22 +459,19 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
           </div>
           <div className="cell-photo"></div>
 
-          {/* Кнопка + меню действий */}
-          <div className="cell-name bulk-actions">
-            <button
-              className="bulk-toggle"
-              onClick={() => setBulkOpen((v) => !v)}
-            >
-              Действия для {selectedIds.length} позиций ▾
-            </button>
+          {/* Кнопка + выпадающее меню (строгий минимализм) */}
+          <div className="cell-name">
+            <div className={`bulk-dd ${bulkOpen ? "open" : ""}`}>
+              <button className="bulk-dd-toggle" onClick={() => setBulkOpen(v => !v)}>
+                Действия для {selectedIds.length} позиций ▾
+              </button>
 
-            {bulkOpen && (
-              <div className="bulk-menu">
-                <button className="bulk-item delete" onClick={bulkDelete}>
+              <div className="bulk-dd-menu" role="menu" aria-hidden={!bulkOpen}>
+                <button className="bulk-dd-item" onClick={bulkDelete}>
                   Удалить
                 </button>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="cell-date"></div>
@@ -526,7 +500,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         </div>
       )}
 
-      {/* товары (ТОЛЬКО текущая страница) */}
+      {/* Только текущая страница */}
       {paginated.map((p) => (
         <ProductRow
           key={p._id}
@@ -539,7 +513,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         />
       ))}
 
-      {/* Пагинация (жёсткий минимализм) */}
       <Pagination
         total={products.length}
         perPage={perPage}

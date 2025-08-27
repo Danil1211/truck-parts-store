@@ -770,3 +770,65 @@ html, body {
 .bulk-item.delete:hover{
   background: rgba(217,45,32,0.08);
 }
+
+/* ===================== BULK ACTIONS DROPDOWN (Apple minimal) ===================== */
+.bulk-dd{
+  position: relative;
+  display: inline-block;
+}
+
+.bulk-dd-toggle{
+  background: transparent;
+  border: none;
+  color: var(--text-main, #0f172a);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background .18s ease;
+  outline: none;
+}
+.bulk-dd-toggle:hover{
+  background: rgba(15,23,42,0.06);
+}
+.bulk-dd-toggle:focus-visible{
+  box-shadow: 0 0 0 3px rgba(17,127,255,0.20);
+}
+
+/* Меню скрыто по умолчанию, показываем только при .open */
+.bulk-dd-menu{
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e1e7ef;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+  padding: 6px 0;
+  z-index: 20;
+}
+.bulk-dd.open .bulk-dd-menu{ display: block; }
+
+.bulk-dd-item{
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text-main, #0f172a); /* чёрный, без красного */
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+  outline: none;
+}
+.bulk-dd-item:hover{
+  background: rgba(15,23,42,0.06); /* мягкий серый hover */
+}
+.bulk-dd-item:focus-visible{
+  background: rgba(15,23,42,0.06);
+  box-shadow: inset 0 0 0 2px rgba(17,127,255,0.20);
+}
