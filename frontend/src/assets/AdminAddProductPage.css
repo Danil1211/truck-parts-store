@@ -1,12 +1,9 @@
 /* ==========================================================================
-   AdminAddProductPage — строгий минимализм, объединённый блок
+   AdminAddProductPage — раскладка как Prom в нашем стиле
    ========================================================================== */
 
 .add-prod.products-page{
   padding: 0 0 28px;
-  --photos-col-w: 220px;
-  --photo-main-h: 128px;
-  --thumb-gap: 8px;
 }
 
 .addprod-topbar{
@@ -15,7 +12,6 @@
   display:flex; align-items:center; justify-content:space-between;
   height:56px; padding:0 20px; border-bottom:1px solid #e5e7eb; border-radius:0;
 }
-
 .btn-ghost{
   appearance:none; border:none; background:transparent; color:var(--primary);
   font-size:14px; font-weight:500; cursor:pointer; padding:6px 8px; border-radius:8px;
@@ -28,62 +24,54 @@
 }
 .btn-primary:disabled{ opacity:.6; cursor:default }
 
-.addprod-form{ display:flex; flex-direction:column; gap:16px; padding:16px 20px; }
+.addprod-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
 
-.addprod-grid{ display:grid; gap:20px; grid-template-columns: minmax(0,1fr); }
-
-.left-col{ display:flex; flex-direction:column; gap:14px; }
-
-/* объединенный блок */
-.card.merged-head{ display:flex; flex-direction:column; gap:16px; }
-.merged-grid{
-  display:grid;
-  grid-template-columns: 1fr var(--photos-col-w);
-  gap:20px;
+/* ===== Две колонки (как Prom) ===== */
+.layout-grid{
+  display:grid; gap:20px;
+  grid-template-columns: 1.6fr 1fr;   /* main : side */
   align-items:start;
 }
-.price-block{
-  border-top:1px solid #e6ebf2;
-  padding-top:14px;
-}
+.main-col{ display:flex; flex-direction:column; gap:18px; }
+.side-col{ display:flex; flex-direction:column; gap:18px; }
 
-/* поля */
+/* ===== Карточки и поля ===== */
+.card{ background:var(--surface); border:1px solid #e6ebf2; border-radius:14px; padding:16px 18px; }
+.card-title{ font-size:15px; font-weight:600; color:#0f172a; margin-bottom:10px; }
+
 .field-col{ display:flex; flex-direction:column; gap:6px; min-width:0; }
 .field-col label{ font-size:13px; font-weight:500; color:#334155; }
-.field-col input, .addprod-form select, .addprod-form textarea{
+.field-col input, .field-col textarea, .main-col select{
   border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
   font-size:14px; background:#f9fbfd; transition:border-color .18s, box-shadow .18s;
 }
 .field-col input:focus,
-.addprod-form select:focus,
-.addprod-form textarea:focus{
+.field-col textarea:focus,
+.main-col select:focus{
   outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.12);
 }
 
-/* карточки */
-.card{ background:var(--surface); border:1px solid #e6ebf2; border-radius:14px; padding:16px 18px; }
-.card-title{ font-size:15px; font-weight:600; color:#0f172a; margin-bottom:10px; }
-.form-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
-.form-row.three{ flex-direction:row; gap:12px; }
-.form-row.four{ flex-direction:row; gap:12px; }
-.form-row.three > input, .form-row.four > input{ flex:1; }
-.form-row.radios{ flex-direction:row; align-items:center; gap:18px; }
+.row-name-code{
+  display:grid; gap:16px;
+  grid-template-columns: 2fr 1fr;
+  margin-bottom:12px;
+}
 
-/* фотоколонка */
-.photos-col{ display:flex; flex-direction:column; gap:10px; }
-.photo-main{
-  width:100%; height: var(--photo-main-h);
-  border:2px dashed #cfd8e3; border-radius:12px; background:#f9fbfd;
-  display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; overflow:hidden;
+.form-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.form-row.two{ flex-direction:row; gap:12px; }
+.form-row.two > *{ flex:1; }
+.form-row.four{ flex-direction:row; gap:12px; }
+.form-row.four > *{ flex:1; }
+.form-row.radios{ flex-direction:column; gap:8px; }
+
+.kv{ display:flex; flex-direction:column; gap:8px; font-size:13px; color:#64748b; }
+.kv div{ display:flex; align-items:center; justify-content:space-between; }
+.kv b{ color:#0f172a; font-weight:600; }
+
+/* ===== Медиа в сайдбаре ===== */
+.media-grid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
 }
-.photo-main img{ width:100%; height:100%; object-fit:contain; }
-.photo-main span{ font-size:22px; color:#94a3b8; }
-.photo-remove{
-  position:absolute; top:8px; right:8px; width:20px; height:20px; border:none; border-radius:50%;
-  background:#fff; color:#e12a2a; font-weight:700; font-size:13px; cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,.12);
-}
-.photo-thumbs{ display:grid; grid-template-columns: repeat(3, 1fr); gap: var(--thumb-gap); }
 .thumb{
   position:relative; border:1.5px solid #d0d7e2; border-radius:10px; overflow:hidden;
   background:#f9fbfd; aspect-ratio:1/1; cursor:pointer;
@@ -95,21 +83,24 @@
   box-shadow:0 1px 3px rgba(0,0,0,.15);
 }
 .thumb.add{ display:flex; align-items:center; justify-content:center; font-size:16px; color:#94a3b8; }
+.add-by-link{
+  margin-top:10px; font-size:13px; color:var(--primary); cursor:pointer; user-select:none;
+}
 
-/* чипсы */
-.chips{ display:flex; flex-wrap:wrap; gap:8px; }
+/* Чипсы */
+.chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
 .chip{
   display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px;
   font-size:13px; background:#f4f7fa; border:1px solid #d0d7e2; color:#0a84ff;
 }
 .chip b{ cursor:pointer; color:#e12a2a; }
 
-/* адаптив */
-@media (max-width: 900px){
-  .merged-grid{ grid-template-columns: 1fr; }
-  .photos-col{ order: 2; }
+/* Адаптив */
+@media (max-width: 1100px){
+  .layout-grid{ grid-template-columns: 1fr; }
 }
 @media (max-width: 720px){
-  .addprod-topbar{ height: 52px; padding: 0 14px; }
-  .addprod-form{ padding: 12px 14px; }
+  .addprod-topbar{ height:52px; padding:0 14px; }
+  .addprod-form{ padding:12px 14px; }
+  .row-name-code{ grid-template-columns: 1fr; }
 }
