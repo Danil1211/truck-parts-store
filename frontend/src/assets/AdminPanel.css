@@ -489,8 +489,8 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 23px;
+  height: 23px;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease;
