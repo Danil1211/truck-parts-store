@@ -1,6 +1,6 @@
 // frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
 import api from "../utils/api.js";
@@ -10,19 +10,14 @@ const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 // контекст для доступа к списку групп
 const GroupsContext = React.createContext([]);
 
-/* ================== Мини-компонент EditableCell ==================
-   - Поддерживает text / number / select
-   - Карандаш (SVG) виден только при ховере строки (showEditIcon)
-   - Сохраняет по blur или Enter; Esc — отмена
-   - Ничего не ломает: можно отдать кастомный renderDisplay (например, Link)
-=================================================================== */
+/* ================== Мини-компонент EditableCell ================== */
 function EditableCell({
   value,
   onSave,
   type = "text",
   options = [],
-  renderDisplay,       // (val) => ReactNode
-  showEditIcon = false // приходит от ProductRow при ховере строки
+  renderDisplay,
+  showEditIcon = false,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -61,7 +56,9 @@ function EditableCell({
           }}
         >
           {options.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </select>
       );
@@ -95,20 +92,11 @@ function EditableCell({
   return (
     <span
       className="editable-cell"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        minWidth: 0
-      }}
+      style={{ display: "inline-flex", alignItems: "center", minWidth: 0 }}
     >
       <span
         className="editable-text"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          minWidth: 0
-        }}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}
       >
         {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
         <button
@@ -126,13 +114,18 @@ function EditableCell({
             marginLeft: 4,
             borderRadius: 6,
             cursor: "pointer",
-            lineHeight: 0
+            lineHeight: 0,
           }}
         >
           <svg
-            width="18" height="18" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="1.8"
-            strokeLinecap="round" strokeLinejoin="round"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             style={{ color: "#64748b" }}
           >
             <path d="M12 20h9" />
@@ -145,7 +138,6 @@ function EditableCell({
 }
 
 export default function AdminProductsPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const [selected, setSelected] = useState("list");
 
@@ -155,7 +147,7 @@ export default function AdminProductsPage() {
   const [noPhoto, setNoPhoto] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const filterRef = useRef(null);
+  const filterRef = useRef(null); // ⬅️ реф ТОЛЬКО на поповер
 
   const [products, setProducts] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -192,21 +184,25 @@ export default function AdminProductsPage() {
     })();
   }, []);
 
+  // Закрыть фильтры по клику вне поповера и по Esc
   useEffect(() => {
     if (!filtersOpen) return;
-
-    const handleClickOutside = (e) => {
-      if (
-        filterRef.current &&
-        !filterRef.current.contains(e.target) &&
-        !e.target.closest(".filters-toggle") // 👈 исключаем саму кнопку
-      ) {
+    const onDocClick = (e) => {
+      const popover = filterRef.current;
+      const clickInsidePopover = popover && popover.contains(e.target);
+      const clickOnToggle = !!e.target.closest(".filters-toggle");
+      if (!clickInsidePopover && !clickOnToggle) {
         setFiltersOpen(false);
       }
     };
+    const onEsc = (e) => e.key === "Escape" && setFiltersOpen(false);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
   }, [filtersOpen]);
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
@@ -276,20 +272,22 @@ export default function AdminProductsPage() {
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
-            <button className="quota-close" onClick={() => setQuotaOpen(false)}>×</button>
+            <button className="quota-close" onClick={() => setQuotaOpen(false)}>
+              ×
+            </button>
 
             <h3 className="quota-title">Добавлено {Math.round(percent)}% товаров</h3>
             <hr className="quota-divider" />
 
             <div className="quota-details">
-              <div><strong>Лимит товаров:</strong> 1000</div>
+              <div>
+                <strong>Лимит товаров:</strong> 1000
+              </div>
               <div>• <strong>Добавлено:</strong> {filtered.length} з 1000</div>
               <div>• <strong>Опубликовано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
             </div>
 
-            <div className="quota-remaining">
-              Можно добавить еще: {1000 - filtered.length} товаров
-            </div>
+            <div className="quota-remaining">Можно добавить еще: {1000 - filtered.length} товаров</div>
           </div>
         </div>
       )}
@@ -301,13 +299,17 @@ export default function AdminProductsPage() {
             Позиции <span className="products-count">({filtered.length})</span>
           </div>
 
-          <div className="filters" ref={filterRef} style={{ order: 1 }}>
-            <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
+          {/* Фильтры */}
+          <div className="filters" style={{ order: 1 }}>
+            <button
+              className="filters-toggle"
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
               Фильтры
             </button>
 
             {filtersOpen && (
-              <div className="filters-popover">
+              <div className="filters-popover" ref={filterRef}>
                 <select
                   value={group}
                   onChange={(e) => setGroup(e.target.value)}
@@ -315,7 +317,9 @@ export default function AdminProductsPage() {
                 >
                   <option value="all">Все группы</option>
                   {groups.map((g) => (
-                    <option key={g._id} value={g._id}>{g.name}</option>
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
                   ))}
                 </select>
 
@@ -339,7 +343,10 @@ export default function AdminProductsPage() {
                   Без фото
                 </label>
 
-                <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
+                <button
+                  className="filters-apply"
+                  onClick={() => setFiltersOpen(false)}
+                >
                   Применить
                 </button>
               </div>
@@ -369,7 +376,9 @@ export default function AdminProductsPage() {
           {selected === "list" && (
             <>
               {loading ? (
-                <div className="loader-wrap"><div className="loader" /></div>
+                <div className="loader-wrap">
+                  <div className="loader" />
+                </div>
               ) : (
                 <GroupsContext.Provider value={{ groups }}>
                   <ProductList
@@ -395,25 +404,29 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
   // Пагинация
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(20);
-  const pages = Math.ceil(products.length / perPage);
-  useEffect(() => { setPage(1); }, [products.length, perPage]);
+  useEffect(() => {
+    setPage(1);
+  }, [products.length, perPage]);
 
   const paginated = products.slice((page - 1) * perPage, page * perPage);
-  const idsOnPage = paginated.map(p => p._id);
-  const allSelected = paginated.length > 0 && idsOnPage.every(id => selectedIds.includes(id));
+  const idsOnPage = paginated.map((p) => p._id);
+  const allSelected =
+    paginated.length > 0 && idsOnPage.every((id) => selectedIds.includes(id));
 
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds(prev => prev.filter(id => !idsOnPage.includes(id)));
+      setSelectedIds((prev) => prev.filter((id) => !idsOnPage.includes(id)));
     } else {
-      setSelectedIds(prev => Array.from(new Set([...prev, ...idsOnPage])));
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...idsOnPage])));
     }
   };
   const toggleOne = (id) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
-  // ▼ Выпадающее меню действий (только по клику)
+  // Выпадающее меню действий (только по клику)
   const [bulkOpen, setBulkOpen] = React.useState(false);
   useEffect(() => {
     if (!bulkOpen) return;
@@ -438,11 +451,18 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
     setSelectedIds([]);
     setBulkOpen(false);
   };
-  // ▲
 
   if (products.length === 0) {
     return (
-      <div style={{ textAlign: "center", padding: "120px 20px", fontSize: 18, color: "#8e9baa", fontWeight: 400 }}>
+      <div
+        style={{
+          textAlign: "center",
+          padding: "120px 20px",
+          fontSize: 18,
+          color: "#8e9baa",
+          fontWeight: 400,
+        }}
+      >
         Нет товаров
       </div>
     );
@@ -464,7 +484,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
 
           <div className="cell-name bulk-wide">
             <div className={`bulk-dd ${bulkOpen ? "open" : ""}`}>
-              <button className="bulk-dd-toggle" onClick={() => setBulkOpen(v => !v)}>
+              <button className="bulk-dd-toggle" onClick={() => setBulkOpen((v) => !v)}>
                 Действия для {selectedIds.length} позиций ▾
               </button>
 
@@ -520,7 +540,10 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         perPage={perPage}
         page={page}
         onPageChange={setPage}
-        onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+        onPerPageChange={(n) => {
+          setPerPage(n);
+          setPage(1);
+        }}
       />
     </div>
   );
@@ -621,8 +644,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           renderDisplay={(val) => (
             <span
               className={
-                "avail " +
-                (val === "published" ? "published" : val === "order" ? "order" : "out")
+                "avail " + (val === "published" ? "published" : val === "order" ? "order" : "out")
               }
             >
               {val === "published" ? "В наличии" : val === "order" ? "Под заказ" : "Нет на складе"}
@@ -655,9 +677,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           onSave={(val) => onEditField(product._id, "price", val)}
           renderDisplay={(val) => (
             <span className="product-price">
-              {val !== undefined && val !== null
-                ? Number(val).toLocaleString("ru-RU")
-                : "—"} ₴
+              {val !== undefined && val !== null ? Number(val).toLocaleString("ru-RU") : "—"} ₴
             </span>
           )}
         />
@@ -712,17 +732,15 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   return (
     <div className="pagination-wrap">
       <div className="pagination">
-        <button
-          className="page-btn"
-          disabled={page === 1}
-          onClick={() => changePage(page - 1)}
-        >
+        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>
           ‹
         </button>
 
         {getRange().map((p, i) =>
           p === "..." ? (
-            <span key={i} className="dots">…</span>
+            <span key={i} className="dots">
+              …
+            </span>
           ) : (
             <button
               key={i}
@@ -734,11 +752,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
           )
         )}
 
-        <button
-          className="page-btn"
-          disabled={page === pages}
-          onClick={() => changePage(page + 1)}
-        >
+        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>
           ›
         </button>
       </div>
