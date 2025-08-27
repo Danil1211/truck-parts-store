@@ -193,18 +193,20 @@ export default function AdminProductsPage() {
   }, []);
 
   useEffect(() => {
-    if (location.pathname === "/admin/products") setSelected("list");
-  }, [location.pathname]);
-
-  useEffect(() => {
     if (!filtersOpen) return;
-    const close = (e) => {
-      if (filterRef.current && !filterRef.current.contains(e.target)) {
+
+    const handleClickOutside = (e) => {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(e.target) &&
+        !e.target.closest(".filters-toggle") // 👈 исключаем саму кнопку
+      ) {
         setFiltersOpen(false);
       }
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [filtersOpen]);
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);

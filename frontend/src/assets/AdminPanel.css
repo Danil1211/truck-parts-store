@@ -250,19 +250,99 @@ transition:all .2s ease;
 .products-header-left .products-search-compact:focus{ border-color:#007aff; background-color:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none; }
 
 /* Фильтры */
-.filters{ position:relative; }
-.products-header-left .filters-toggle{ height:var(--ctl-h); padding:0 16px; display:inline-flex; align-items:center; }
-.filters-toggle{
-  padding:11px 24px 11px 22px; border-radius:10px; background:#eaf4ff; color:#2291ff; font-weight:500; font-size:15px;
-  border:none; cursor:pointer; box-shadow:0 1px 7px #2291ff10; white-space:nowrap;
+.filters { position: relative; }
+
+.products-header-left .filters-toggle {
+  height: var(--ctl-h);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
 }
-.filters-popover{
-  position:absolute; left:0; top:48px; z-index:150; background:#fff; border:1.5px solid #dbefff; border-radius:14px;
-  box-shadow:0 12px 44px #2291ff11; min-width:210px; padding:16px 19px; display:flex; flex-direction:column; gap:12px;
+
+.filters-toggle {
+  padding: 9px 18px;
+  border-radius: 8px;
+  background: #f9fbfd;
+  color: var(--primary);
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid #d0d7e2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
-.filters-select{ padding:7px 13px; border-radius:8px; border:1.5px solid #e4e8ee; background:#f4f7fa; font-size:14px; outline:none; }
-.filters-check{ display:flex; align-items:center; gap:7px; font-weight:500; font-size:15px; }
-.filters-apply{ background:#2291ff; color:#fff; font-weight:500; border:none; border-radius:8px; padding:7px 0; margin-top:5px; font-size:15px; cursor:pointer; }
+
+.filters-toggle:hover {
+  background: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(17,127,255,0.12);
+}
+
+.filters-popover {
+  position: absolute;
+  left: 0;
+  top: 48px;
+  z-index: 150;
+  background: #fff;
+  border: 1px solid #e1e7ef;
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+  min-width: 220px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadein 0.15s ease;
+}
+
+.filters-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d0d7e2;
+  background: #f9fbfd;
+  font-size: 14px;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.filters-select:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(17,127,255,0.15);
+}
+
+.filters-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-main);
+}
+
+.filters-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  background: linear-gradient(180deg, #2da8ff, #007aff);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.filters-apply:hover {
+  background: linear-gradient(180deg, #4db8ff, #0071e3);
+  box-shadow: 0 4px 12px rgba(0,122,255,0.25);
+}
 
 /* Контент под шапкой */
 .products-content-wrap{ padding-top:70px; }
