@@ -159,13 +159,6 @@ export default function AdminProductsPage() {
   const [status, setStatus] = useState(initialFilters.status || "");
   const [noPhoto, setNoPhoto] = useState(Boolean(initialFilters.noPhoto));
 
-  // Снимок значений, пришедших ИМЕННО при загрузке страницы
-  const initialPersistedRef = useRef({
-    group: initialFilters.group || "all",
-    status: initialFilters.status || "",
-    noPhoto: Boolean(initialFilters.noPhoto),
-  });
-
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterRef = useRef(null); // реф именно на поповер
 
@@ -187,7 +180,7 @@ export default function AdminProductsPage() {
     [groups]
   );
 
-  // Подгружаем данные
+  // Подгружаем данные (продукты + группы)
   useEffect(() => {
     (async () => {
       try {
@@ -198,7 +191,6 @@ export default function AdminProductsPage() {
 
         const data = prodsRes.data;
         setProducts(Array.isArray(data) ? data : []);
-        setLoading(false);
 
         const groupsData = groupsRes.data || [];
         const flat = [];
@@ -211,8 +203,9 @@ export default function AdminProductsPage() {
         flatten(groupsData);
         setGroups(flat);
       } catch (e) {
-        setLoading(false);
         console.error("Failed to load products/groups:", e);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -293,17 +286,11 @@ export default function AdminProductsPage() {
   if (percent >= 95) quotaColor = "#ef4444";
   else if (percent >= 80) quotaColor = "#f59e0b";
 
-  // Показывать чипсы только если значения совпадают с "начальными" (т.е. после перезагрузки)
-  const showChips =
-    (group !== "all" || status || noPhoto) &&
-    group === initialPersistedRef.current.group &&
-    status === initialPersistedRef.current.status &&
-    noPhoto === initialPersistedRef.current.noPhoto;
-
   return (
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
+      {/* Вертикальный прогресс-бар тарифа */}
       {!loading && (
         <div className="quota-progress" onClick={() => setQuotaOpen(true)}>
           <div className="quota-bar-vertical">
@@ -316,6 +303,7 @@ export default function AdminProductsPage() {
         </div>
       )}
 
+      {/* Панель с лимитом */}
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
@@ -359,7 +347,7 @@ export default function AdminProductsPage() {
                   value={group}
                   onChange={(e) => {
                     setGroup(e.target.value);
-                    setFiltersOpen(false); // автозакрытие
+                    setFiltersOpen(false); // авто-закрытие при выборе
                   }}
                   className="filters-select"
                 >
@@ -375,7 +363,7 @@ export default function AdminProductsPage() {
                   value={status}
                   onChange={(e) => {
                     setStatus(e.target.value);
-                    setFiltersOpen(false); // автозакрытие
+                    setFiltersOpen(false); // авто-закрытие при выборе
                   }}
                   className="filters-select"
                 >
@@ -391,7 +379,7 @@ export default function AdminProductsPage() {
                     checked={noPhoto}
                     onChange={(e) => {
                       setNoPhoto(e.target.checked);
-                      setFiltersOpen(false); // автозакрытие
+                      setFiltersOpen(false); // авто-закрытие при выборе
                     }}
                   />
                   Без фото
@@ -424,44 +412,44 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Чипсы активных фильтров — показываем только «послерелоадные» */}
-      <div className="products-content-wrap">
-        {showChips && (
-          <div className="products-chips-row">
-            {group !== "all" && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setGroup("all")}
-                title="Сбросить фильтр группы"
-              >
-                Группа: {groupNameById(group)} <span aria-hidden>×</span>
-              </button>
-            )}
-            {status && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setStatus("")}
-                title="Сбросить фильтр статуса"
-              >
-                {statusLabel(status)} <span aria-hidden>×</span>
-              </button>
-            )}
-            {noPhoto && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setNoPhoto(false)}
-                title="Сбросить фильтр «Без фото»"
-              >
-                Без фото <span aria-hidden>×</span>
-              </button>
-            )}
-          </div>
-        )}
+      {/* ===== Ряд чипсов — ПОКАЗЫВАЕМ ТОЛЬКО ПОСЛЕ ЗАГРУЗКИ ===== */}
+      {!loading && (group !== "all" || status || noPhoto) && (
+        <div className="products-chips-row">
+          {group !== "all" && (
+            <button
+              type="button"
+              className="filter-chip"
+              onClick={() => setGroup("all")}
+              title="Сбросить фильтр группы"
+            >
+              Группа: {groupNameById(group)} <span aria-hidden>×</span>
+            </button>
+          )}
+          {status && (
+            <button
+              type="button"
+              className="filter-chip"
+              onClick={() => setStatus("")}
+              title="Сбросить фильтр статуса"
+            >
+              {statusLabel(status)} <span aria-hidden>×</span>
+            </button>
+          )}
+          {noPhoto && (
+            <button
+              type="button"
+              className="filter-chip"
+              onClick={() => setNoPhoto(false)}
+              title="Сбросить фильтр «Без фото»"
+            >
+              Без фото <span aria-hidden>×</span>
+            </button>
+          )}
+        </div>
+      )}
 
-        {/* Контент */}
+      {/* Контент */}
+      <div className="products-content-wrap">
         <div className="products-content">
           {selected === "list" && (
             <>
@@ -573,6 +561,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
             </label>
           </div>
 
+          {/* Скрываем фото-колонку и тянем «Действия…» ближе к чекбоксу */}
           <div className="cell-photo hide-in-bulk"></div>
 
           <div className="cell-name bulk-wide">
@@ -615,6 +604,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         </div>
       )}
 
+      {/* Только текущая страница */}
       {paginated.map((p) => (
         <ProductRow
           key={p._id}
@@ -824,15 +814,17 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   return (
     <div className="pagination-wrap">
       <div className="pagination">
-        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>
+        <button
+          className="page-btn"
+          disabled={page === 1}
+          onClick={() => changePage(page - 1)}
+        >
           ‹
         </button>
 
         {getRange().map((p, i) =>
           p === "..." ? (
-            <span key={i} className="dots">
-              …
-            </span>
+            <span key={i} className="dots">…</span>
           ) : (
             <button
               key={i}
@@ -844,7 +836,11 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
           )
         )}
 
-        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>
+        <button
+          className="page-btn"
+          disabled={page === pages}
+          onClick={() => changePage(page + 1)}
+        >
           ›
         </button>
       </div>
