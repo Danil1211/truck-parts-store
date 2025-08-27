@@ -97,6 +97,8 @@ const ProductSchema = new Schema({
   availability:{ type: String, enum: ['published','draft','hidden'], default: 'published' }, // ✅
   stock:       { type: Number, default: 0 },
   images:      [String],
+
+  deleted:     { type: Boolean, default: false },
 }, { timestamps: true });
 touchUpdatedAt(ProductSchema);
 if (tenantScope) ProductSchema.plugin(tenantScope);
