@@ -108,7 +108,6 @@ function EditableCell({
           onClick={() => setEditing(true)}
           className="edit-btn"
           aria-label="Изменить"
-          title="Изменить"
           style={{
             opacity: showEditIcon ? 1 : 0,
             transition: "opacity .18s ease",
@@ -413,14 +412,13 @@ export default function AdminProductsPage() {
       {/* ===== ВНУТРИ content-wrap, чтобы не перекрывалось хедером ===== */}
       <div className="products-content-wrap">
         {(group !== "all" || status || noPhoto) && (
-          <div style={{ padding: "10px 20px 0" }}>
+          <div className="products-chips-row">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {group !== "all" && (
                 <button
                   type="button"
                   className="filter-chip"
                   onClick={() => setGroup("all")}
-                  title="Сбросить фильтр группы"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
