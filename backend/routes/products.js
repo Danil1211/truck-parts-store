@@ -1,8 +1,9 @@
+// backend/routes/products.js
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const mongoose = require("mongoose"); // ✅ добавлено
+const mongoose = require("mongoose");
 
 const router = express.Router();
 
@@ -42,8 +43,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
 });
 
-const toArray = (v) =>
-  v == null ? [] : Array.isArray(v) ? v : [v];
+const toArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
 
 function parseQueries(v) {
   if (Array.isArray(v)) return v.filter(Boolean);
@@ -102,6 +102,7 @@ function mapFilesToPublicPaths(files) {
 router.get("/public/showcase", async (req, res) => {
   try {
     const products = await Product.find({
+      tenantId: req.tenantId,            // ✅ фильтр по магазину
       deleted: { $ne: true },
       showcase: true,
     })
@@ -118,6 +119,8 @@ router.get("/public/showcase", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const filter = buildFilterFromQuery(req.query);
+    filter.tenantId = req.tenantId;      // ✅ фильтр по магазину
+
     const items = await Product.find(filter).sort({ updatedAt: -1 });
     res.json(items);
   } catch (err) {
@@ -131,6 +134,7 @@ router.get("/admin", authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const filter = buildFilterFromQuery(req.query);
+    filter.tenantId = req.tenantId;      // ✅ фильтр по магазину
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
@@ -153,7 +157,7 @@ router.get("/admin", authMiddleware, async (req, res) => {
 // карточка
 router.get("/:id", async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ _id: req.params.id, tenantId: req.tenantId }); // ✅
     if (!product || product.deleted) {
       return res.status(404).json({ error: "Товар не найден" });
     }
@@ -172,9 +176,6 @@ router.post(
   upload.fields([{ name: "images", maxCount: 10 }]),
   async (req, res) => {
     try {
-      console.log("REQ BODY:", req.body || {});
-      console.log("REQ FILES:", req.files || {});
-
       const body = req.body || {};
       const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
 
@@ -192,10 +193,11 @@ router.post(
       }
 
       const productData = {
+        tenantId: req.tenantId,  // ✅
         name: body.name || undefined,
         sku: body.sku || "",
         description: body.description || "",
-        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined, // ✅
+        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined,
         price: toNumber(body.price),
         unit: body.unit || "шт",
         availability: body.availability || "published",
@@ -208,10 +210,7 @@ router.post(
         weight: toNumber(body.weight) ?? 0,
         queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
-        tenantId: req.tenantId,
       };
-
-      console.log("PRODUCT DATA:", productData);
 
       const product = new Product(productData);
       await product.save();
@@ -231,9 +230,6 @@ router.patch(
   upload.fields([{ name: "images", maxCount: 10 }]),
   async (req, res) => {
     try {
-      console.log("REQ BODY:", req.body || {});
-      console.log("REQ FILES:", req.files || {});
-
       const body = req.body || {};
       const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
 
@@ -254,7 +250,7 @@ router.patch(
         name: body.name || undefined,
         sku: body.sku || "",
         description: body.description || "",
-        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined, // ✅
+        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined,
         price: toNumber(body.price),
         unit: body.unit || "шт",
         availability: body.availability || "published",
@@ -270,8 +266,8 @@ router.patch(
         updatedAt: new Date(),
       };
 
-      const product = await Product.findByIdAndUpdate(
-        req.params.id,
+      const product = await Product.findOneAndUpdate(
+        { _id: req.params.id, tenantId: req.tenantId }, // ✅
         { $set: update },
         { new: true }
       );
@@ -289,8 +285,8 @@ router.patch(
 
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    const p = await Product.findByIdAndUpdate(
-      req.params.id,
+    const p = await Product.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.tenantId }, // ✅
       { deleted: true },
       { new: true }
     );
