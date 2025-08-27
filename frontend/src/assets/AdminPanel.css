@@ -412,8 +412,10 @@ html,body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Canta
 /* ===================== ADD PRODUCT PAGE ===================== */
 
 .add-prod-page{
-  padding:32px 28px;
+  padding:20px;
   background:var(--bg);
+  width:100%;
+  height:100%;
 }
 
 .add-prod-header{
@@ -442,19 +444,20 @@ html,body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Canta
 
 /* form layout */
 .add-prod-form{
-  display:flex;
+  display:grid;
+  grid-template-columns:1fr 340px; /* левая + боковая */
   gap:28px;
+  align-items:flex-start;
+  width:100%;
 }
 .add-prod-main{
-  flex:2;
+  width:100%;
   display:flex;
   flex-direction:column;
   gap:20px;
 }
 .add-prod-side{
-  flex:1;
-  min-width:300px;
-  max-width:360px;
+  width:100%;
   display:flex;
   flex-direction:column;
   gap:20px;
@@ -466,6 +469,7 @@ html,body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Canta
   border-radius:14px;
   padding:18px 20px;
   box-shadow:0 1px 5px rgba(0,0,0,.05);
+  width:100%;
 }
 .card-title{
   font-weight:600;
