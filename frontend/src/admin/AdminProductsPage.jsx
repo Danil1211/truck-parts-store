@@ -412,44 +412,44 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* ===== Ряд чипсов — ПОКАЗЫВАЕМ ТОЛЬКО ПОСЛЕ ЗАГРУЗКИ ===== */}
-      {!loading && (group !== "all" || status || noPhoto) && (
-        <div className="products-chips-row">
-          {group !== "all" && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setGroup("all")}
-              title="Сбросить фильтр группы"
-            >
-              Группа: {groupNameById(group)} <span aria-hidden>×</span>
-            </button>
-          )}
-          {status && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setStatus("")}
-              title="Сбросить фильтр статуса"
-            >
-              {statusLabel(status)} <span aria-hidden>×</span>
-            </button>
-          )}
-          {noPhoto && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setNoPhoto(false)}
-              title="Сбросить фильтр «Без фото»"
-            >
-              Без фото <span aria-hidden>×</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Контент */}
+      {/* ===== Чипсы активных фильтров — ВНУТРИ content-wrap, чтобы их не перекрывал фикс-хедер ===== */}
       <div className="products-content-wrap">
+        {!loading && (group !== "all" || status || noPhoto) && (
+          <div className="products-chips-row">
+            {group !== "all" && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setGroup("all")}
+                title="Сбросить фильтр группы"
+              >
+                Группа: {groupNameById(group)} <span aria-hidden>×</span>
+              </button>
+            )}
+            {status && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setStatus("")}
+                title="Сбросить фильтр статуса"
+              >
+                {statusLabel(status)} <span aria-hidden>×</span>
+              </button>
+            )}
+            {noPhoto && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setNoPhoto(false)}
+                title="Сбросить фильтр «Без фото»"
+              >
+                Без фото <span aria-hidden>×</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Контент */}
         <div className="products-content">
           {selected === "list" && (
             <>
