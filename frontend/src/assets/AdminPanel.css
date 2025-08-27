@@ -368,6 +368,25 @@ transition:all .2s ease;
   }
 }
 
+/* Кнопка-группа под названием товара: серая по умолчанию, синяя при hover и когда активен фильтр */
+.products-page .product-group-btn{
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 12.5px;
+  color: #8ea0b3;         /* серый по умолчанию */
+  cursor: pointer;
+}
+.products-page .product-group-btn:hover{
+  color: #0a84ff;         /* синий при ховере */
+}
+.products-page .product-group-btn.active{
+  color: #0a84ff;         /* синий, если эта группа выбрана в фильтре */
+  font-weight: 500;
+}
+
 /* Чип фильтра */
 .filter-chip {
   display: inline-flex;
