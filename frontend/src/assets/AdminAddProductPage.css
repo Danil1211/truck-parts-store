@@ -1,22 +1,21 @@
-/* ========================================================================
-   AdminAddProductPage — изолированные стили (фикс ширины + центрирование)
-   ======================================================================== */
-
-.add-prod-page {
-  padding: 20px 24px;
-  background: var(--bg);
-  width: 100%;
-  min-height: 100%;
+/* Контентная обёртка */
+.products-content-wrap {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center; /* центрируем содержимое */
+  padding: 0 20px 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* убираем пустоту слева при submenu */
-.admin-content.with-submenu .add-prod-page {
-  margin-left: calc(-1 * var(--submenu-w));
-  padding-left: 24px;
-  padding-right: 24px;
+/* ===================== ADD PRODUCT PAGE ===================== */
+.add-prod-page {
+  padding: 20px 0;
+  background: var(--bg);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Заголовок */
@@ -28,9 +27,7 @@
   border-radius: 14px;
   padding: 14px 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,.05);
-  margin: 0 auto 24px;
-  width: 100%;
-  max-width: 1400px; /* та же ширина что и форма */
+  margin-bottom: 24px;
 }
 .add-prod-header .btn-back {
   background: #f2f6fb;
@@ -49,12 +46,10 @@
 /* Основная сетка */
 .add-prod-form {
   display: grid;
-  grid-template-columns: 1fr 360px; /* левая + правая */
+  grid-template-columns: 1fr 360px;
   gap: 28px;
   align-items: flex-start;
   width: 100%;
-  max-width: 1400px; /* ограничение по ширине */
-  margin: 0 auto; /* центрируем */
 }
 .add-prod-main {
   display: flex;

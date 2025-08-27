@@ -1,8 +1,7 @@
-// src/admin/AdminAddProductPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
-import AdminSubMenu from "./AdminSubMenu";  // ✅ добавил
+import AdminSubMenu from "./AdminSubMenu"; // ⬅️ добавили
 import api from "../utils/api.js";
 import "../assets/AdminPanel.css";
 import "../assets/AdminAddProductPage.css";
@@ -56,13 +55,14 @@ export default function AdminAddProductPage() {
         const obj = JSON.parse(draft);
         Object.keys(obj).forEach((k) => {
           if (obj[k] !== undefined) {
-            if (k === "images") return; // картинки не сохраняем
+            if (k === "images") return;
             eval(`set${k.charAt(0).toUpperCase() + k.slice(1)}(obj[k])`);
           }
         });
       } catch {}
     }
   }, []);
+
   useEffect(() => {
     const draft = {
       name,
@@ -86,7 +86,27 @@ export default function AdminAddProductPage() {
       weight,
     };
     localStorage.setItem("draftProduct", JSON.stringify(draft));
-  }, [name, sku, slug, description, group, price, unit, availability, stock, charColor, charBrand, seoTitle, seoDesc, seoKeys, queries, width, height, length, weight]);
+  }, [
+    name,
+    sku,
+    slug,
+    description,
+    group,
+    price,
+    unit,
+    availability,
+    stock,
+    charColor,
+    charBrand,
+    seoTitle,
+    seoDesc,
+    seoKeys,
+    queries,
+    width,
+    height,
+    length,
+    weight,
+  ]);
 
   // ===== Подгрузка групп =====
   useEffect(() => {
@@ -108,7 +128,9 @@ export default function AdminAddProductPage() {
   }, []);
 
   // ===== Генерация SKU/slug =====
-  const generateSku = () => setSku("SKU-" + Math.random().toString(36).substr(2, 6).toUpperCase());
+  const generateSku = () =>
+    setSku("SKU-" + Math.random().toString(36).substr(2, 6).toUpperCase());
+
   useEffect(() => {
     if (name) {
       setSlug(
@@ -140,7 +162,8 @@ export default function AdminAddProductPage() {
     });
     if (inputFileRef.current) inputFileRef.current.value = null;
   };
-  const handleRemoveImage = (id) => setImages((p) => p.filter((i) => i.id !== id));
+  const handleRemoveImage = (id) =>
+    setImages((p) => p.filter((i) => i.id !== id));
 
   // ===== Queries =====
   const handleQueryInputKeyDown = (e) => {
@@ -153,7 +176,8 @@ export default function AdminAddProductPage() {
       }
     }
   };
-  const handleRemoveQuery = (val) => setQueries(queries.filter((q) => q !== val));
+  const handleRemoveQuery = (val) =>
+    setQueries(queries.filter((q) => q !== val));
 
   // ===== Submit =====
   const handleSubmit = async (e) => {
@@ -188,7 +212,10 @@ export default function AdminAddProductPage() {
       localStorage.removeItem("draftProduct");
       navigate("/admin/products");
     } catch (err) {
-      alert("Ошибка при сохранении: " + (err?.response?.data?.error || err.message));
+      alert(
+        "Ошибка при сохранении: " +
+          (err?.response?.data?.error || err.message)
+      );
     } finally {
       setIsSaving(false);
     }
@@ -196,129 +223,301 @@ export default function AdminAddProductPage() {
 
   return (
     <div className="products-page">
-      {/* ✅ добавили субменю как в AdminProductsPage */}
+      {/* Субменю */}
       <AdminSubMenu type="products" activeKey="create" />
 
-      <div className="add-prod-page">
-        <div className="add-prod-header">
-          <button className="btn-back" onClick={() => navigate("/admin/products")}>← Назад</button>
-          <div className="add-prod-header-right">
-            <button type="button" onClick={generateSku} className="btn-primary">Сгенерировать SKU</button>
-            <button type="submit" form="add-prod-form" disabled={isSaving} className="btn-primary">
-              {isSaving ? "Сохраняем..." : "Сохранить"}
+      {/* Контент */}
+      <div className="products-content-wrap">
+        <div className="add-prod-page">
+          <div className="add-prod-header">
+            <button
+              className="btn-back"
+              onClick={() => navigate("/admin/products")}
+            >
+              ← Назад
             </button>
+            <div className="add-prod-header-right">
+              <button
+                type="button"
+                onClick={generateSku}
+                className="btn-primary"
+              >
+                Сгенерировать SKU
+              </button>
+              <button
+                type="submit"
+                form="add-prod-form"
+                disabled={isSaving}
+                className="btn-primary"
+              >
+                {isSaving ? "Сохраняем..." : "Сохранить"}
+              </button>
+            </div>
           </div>
+
+          <form
+            id="add-prod-form"
+            className="add-prod-form"
+            onSubmit={handleSubmit}
+          >
+            <div className="add-prod-main">
+              {/* Название / Артикул */}
+              <div className="form-row two">
+                <div>
+                  <label>Название*</label>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label>Артикул</label>
+                  <input
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="Авто/ручной"
+                  />
+                </div>
+              </div>
+
+              {/* Slug */}
+              <div className="form-row">
+                <label>URL slug</label>
+                <input
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                />
+              </div>
+
+              {/* Описание */}
+              <div className="form-row">
+                <label>Описание</label>
+                <LocalEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Описание товара..."
+                />
+              </div>
+
+              {/* Характеристики */}
+              <div className="card">
+                <div className="card-title">Характеристики</div>
+                <div className="form-row">
+                  <label>Цвет</label>
+                  <input
+                    value={charColor}
+                    onChange={(e) => setCharColor(e.target.value)}
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Производитель</label>
+                  <input
+                    value={charBrand}
+                    onChange={(e) => setCharBrand(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* SEO */}
+              <div className="card">
+                <div className="card-title">SEO</div>
+                <div className="form-row">
+                  <label>Title</label>
+                  <input
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Description</label>
+                  <textarea
+                    value={seoDesc}
+                    onChange={(e) => setSeoDesc(e.target.value)}
+                  />
+                </div>
+                <div className="form-row">
+                  <label>Keywords</label>
+                  <input
+                    value={seoKeys}
+                    onChange={(e) => setSeoKeys(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Поисковые запросы */}
+              <div className="card">
+                <div className="card-title">Поисковые запросы</div>
+                <input
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  onKeyDown={handleQueryInputKeyDown}
+                  placeholder="Введите и Enter"
+                />
+                <div className="chips">
+                  {queries.map((q, i) => (
+                    <span key={i} className="chip">
+                      {q}
+                      <b onClick={() => handleRemoveQuery(q)}>×</b>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Габариты */}
+              <div className="card">
+                <div className="card-title">Габариты</div>
+                <div className="form-row four">
+                  <input
+                    value={width}
+                    onChange={(e) => setWidth(e.target.value)}
+                    placeholder="Ширина"
+                  />
+                  <input
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    placeholder="Высота"
+                  />
+                  <input
+                    value={length}
+                    onChange={(e) => setLength(e.target.value)}
+                    placeholder="Длина"
+                  />
+                  <input
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="Вес"
+                  />
+                </div>
+              </div>
+
+              {/* Группа */}
+              <div className="card">
+                <div className="card-title">Группа</div>
+                <select
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                  required
+                >
+                  <option value="">Выберите</option>
+                  {groups.map((g) => (
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Цена */}
+              <div className="card">
+                <div className="card-title">Цена и наличие</div>
+                <div className="form-row three">
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    required
+                    placeholder="Цена"
+                  />
+                  <input
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="Ед. изм."
+                  />
+                  <input
+                    type="number"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    placeholder="Остаток"
+                  />
+                </div>
+                <div className="form-row radios">
+                  <label>
+                    <input
+                      type="radio"
+                      name="av"
+                      checked={availability === "published"}
+                      onChange={() => setAvailability("published")}
+                    />{" "}
+                    Опубликован
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="av"
+                      checked={availability === "draft"}
+                      onChange={() => setAvailability("draft")}
+                    />{" "}
+                    Черновик
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="av"
+                      checked={availability === "hidden"}
+                      onChange={() => setAvailability("hidden")}
+                    />{" "}
+                    Скрыт
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Фотографии */}
+            <div className="add-prod-side">
+              <div className="card">
+                <div className="card-title">Фотографии</div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  ref={inputFileRef}
+                  style={{ display: "none" }}
+                  onChange={handleImageChange}
+                />
+                <div
+                  className="main-photo"
+                  onClick={() => inputFileRef.current.click()}
+                >
+                  {images[0] ? (
+                    <img src={images[0].url} alt="" />
+                  ) : (
+                    <span>+</span>
+                  )}
+                  {images[0] && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(images[0].id)}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <div className="thumbs">
+                  {images.slice(1).map((img) => (
+                    <div key={img.id} className="thumb">
+                      <img src={img.url} alt="" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(img.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 10 && (
+                    <div
+                      className="thumb add"
+                      onClick={() => inputFileRef.current.click()}
+                    >
+                      +
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
-
-        <form id="add-prod-form" className="add-prod-form" onSubmit={handleSubmit}>
-          <div className="add-prod-main">
-            {/* Название / Артикул */}
-            <div className="form-row two">
-              <div>
-                <label>Название*</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div>
-                <label>Артикул</label>
-                <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Авто/ручной" />
-              </div>
-            </div>
-
-            {/* Slug */}
-            <div className="form-row">
-              <label>URL slug</label>
-              <input value={slug} onChange={(e) => setSlug(e.target.value)} />
-            </div>
-
-            {/* Описание */}
-            <div className="form-row">
-              <label>Описание</label>
-              <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
-            </div>
-
-            {/* Характеристики */}
-            <div className="card">
-              <div className="card-title">Характеристики</div>
-              <div className="form-row"><label>Цвет</label><input value={charColor} onChange={(e) => setCharColor(e.target.value)} /></div>
-              <div className="form-row"><label>Производитель</label><input value={charBrand} onChange={(e) => setCharBrand(e.target.value)} /></div>
-            </div>
-
-            {/* SEO */}
-            <div className="card">
-              <div className="card-title">SEO</div>
-              <div className="form-row"><label>Title</label><input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} /></div>
-              <div className="form-row"><label>Description</label><textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} /></div>
-              <div className="form-row"><label>Keywords</label><input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} /></div>
-            </div>
-
-            {/* Поисковые запросы */}
-            <div className="card">
-              <div className="card-title">Поисковые запросы</div>
-              <input value={queryInput} onChange={(e) => setQueryInput(e.target.value)} onKeyDown={handleQueryInputKeyDown} placeholder="Введите и Enter" />
-              <div className="chips">
-                {queries.map((q, i) => (
-                  <span key={i} className="chip">{q}<b onClick={() => handleRemoveQuery(q)}>×</b></span>
-                ))}
-              </div>
-            </div>
-
-            {/* Габариты */}
-            <div className="card">
-              <div className="card-title">Габариты</div>
-              <div className="form-row four">
-                <input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" />
-                <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" />
-                <input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" />
-                <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" />
-              </div>
-            </div>
-
-            {/* Группа */}
-            <div className="card">
-              <div className="card-title">Группа</div>
-              <select value={group} onChange={(e) => setGroup(e.target.value)} required>
-                <option value="">Выберите</option>
-                {groups.map((g) => <option key={g._id} value={g._id}>{g.name}</option>)}
-              </select>
-            </div>
-
-            {/* Цена */}
-            <div className="card">
-              <div className="card-title">Цена и наличие</div>
-              <div className="form-row three">
-                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="Цена" />
-                <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ед. изм." />
-                <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Остаток" />
-              </div>
-              <div className="form-row radios">
-                <label><input type="radio" name="av" checked={availability === "published"} onChange={() => setAvailability("published")} /> Опубликован</label>
-                <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
-                <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
-              </div>
-            </div>
-          </div>
-
-          {/* Фотографии */}
-          <div className="add-prod-side">
-            <div className="card">
-              <div className="card-title">Фотографии</div>
-              <input type="file" multiple accept="image/*" ref={inputFileRef} style={{ display: "none" }} onChange={handleImageChange} />
-              <div className="main-photo" onClick={() => inputFileRef.current.click()}>
-                {images[0] ? <img src={images[0].url} alt="" /> : <span>+</span>}
-                {images[0] && <button type="button" onClick={() => handleRemoveImage(images[0].id)}>×</button>}
-              </div>
-              <div className="thumbs">
-                {images.slice(1).map((img) => (
-                  <div key={img.id} className="thumb">
-                    <img src={img.url} alt="" />
-                    <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
-                  </div>
-                ))}
-                {images.length < 10 && <div className="thumb add" onClick={() => inputFileRef.current.click()}>+</div>}
-              </div>
-            </div>
-          </div>
-        </form>
       </div>
     </div>
   );
