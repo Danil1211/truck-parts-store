@@ -102,7 +102,7 @@ function mapFilesToPublicPaths(files) {
 router.get("/public/showcase", async (req, res) => {
   try {
     const products = await Product.find({
-      tenantId: req.tenantId,            // ✅ фильтр по магазину
+      tenantId: req.tenantId, // ✅ фильтр по магазину
       deleted: { $ne: true },
       showcase: true,
     })
@@ -119,7 +119,8 @@ router.get("/public/showcase", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const filter = buildFilterFromQuery(req.query);
-    filter.tenantId = req.tenantId;      // ✅ фильтр по магазину
+    filter.tenantId = req.tenantId;
+    filter.deleted = { $ne: true };   // 👈 добавили
 
     const items = await Product.find(filter).sort({ updatedAt: -1 });
     res.json(items);
@@ -134,7 +135,8 @@ router.get("/admin", authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const filter = buildFilterFromQuery(req.query);
-    filter.tenantId = req.tenantId;      // ✅ фильтр по магазину
+    filter.tenantId = req.tenantId;
+    filter.deleted = { $ne: true };   // 👈 добавили
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
@@ -193,7 +195,7 @@ router.post(
       }
 
       const productData = {
-        tenantId: req.tenantId,  // ✅
+        tenantId: req.tenantId, // ✅
         name: body.name || undefined,
         sku: body.sku || "",
         description: body.description || "",
@@ -217,9 +219,7 @@ router.post(
       res.json(product);
     } catch (err) {
       console.error("create product error:", err);
-      res
-        .status(400)
-        .json({ error: "Ошибка при создании товара", details: err.message });
+      res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
     }
   }
 );
@@ -246,25 +246,29 @@ router.patch(
         }
       }
 
-      const update = {
-        name: body.name || undefined,
-        sku: body.sku || "",
-        description: body.description || "",
-        group: body.group ? new mongoose.Types.ObjectId(body.group) : undefined,
-        price: toNumber(body.price),
-        unit: body.unit || "шт",
-        availability: body.availability || "published",
-        stock: toNumber(body.stock) ?? 0,
-        propsColor: body.charColor || "",
-        propsBrand: body.charBrand || "",
-        width: toNumber(body.width) ?? 0,
-        height: toNumber(body.height) ?? 0,
-        length: toNumber(body.length) ?? 0,
-        weight: toNumber(body.weight) ?? 0,
-        queries: parseQueries(body.queries),
-        images: [...serverImages, ...uploadedImages],
-        updatedAt: new Date(),
-      };
+      // 🔑 Обновляем только реально переданные поля
+      const update = { updatedAt: new Date() };
+
+      if ("name" in body) update.name = body.name;
+      if ("sku" in body) update.sku = body.sku;
+      if ("description" in body) update.description = body.description;
+      if ("group" in body) update.group = new mongoose.Types.ObjectId(body.group);
+      if ("price" in body) update.price = toNumber(body.price);
+      if ("unit" in body) update.unit = body.unit;
+      if ("availability" in body) update.availability = body.availability;
+      if ("stock" in body) update.stock = toNumber(body.stock);
+      if ("charColor" in body) update.propsColor = body.charColor;
+      if ("charBrand" in body) update.propsBrand = body.charBrand;
+      if ("width" in body) update.width = toNumber(body.width);
+      if ("height" in body) update.height = toNumber(body.height);
+      if ("length" in body) update.length = toNumber(body.length);
+      if ("weight" in body) update.weight = toNumber(body.weight);
+      if ("queries" in body) update.queries = parseQueries(body.queries);
+
+      // Картинки обновляем только если пришли
+      if (serverImages.length || uploadedImages.length) {
+        update.images = [...serverImages, ...uploadedImages];
+      }
 
       const product = await Product.findOneAndUpdate(
         { _id: req.params.id, tenantId: req.tenantId }, // ✅
@@ -276,9 +280,7 @@ router.patch(
       res.json(product);
     } catch (err) {
       console.error("update product error:", err);
-      res
-        .status(400)
-        .json({ error: "Ошибка при обновлении товара", details: err.message });
+      res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
     }
   }
 );
