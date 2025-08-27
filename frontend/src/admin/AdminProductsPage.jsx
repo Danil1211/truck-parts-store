@@ -155,7 +155,7 @@ export default function AdminProductsPage() {
     (async () => {
       try {
         const [prodsRes, groupsRes] = await Promise.all([
-          api.get("/api/products"),
+          api.get("/api/products/admin"),   // 👈 вместо /api/products
           api.get("/api/groups"),
         ]);
 
