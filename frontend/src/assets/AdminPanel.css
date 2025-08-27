@@ -843,8 +843,21 @@ html, body {
   }
 }
 
-.products-grid-header .cell-price,
+
+/* Цена — ровно под правый край */
 .product-row .cell-price {
-  text-align: right;   /* выравниваем и заголовок, и цифры */
-  padding-right: 12px; /* чтобы не липло к границе */
+  display: flex;
+  justify-content: flex-end;   /* цифры прижаты вправо */
+  align-items: center;
+}
+
+.product-row .cell-price .editable-text {
+  justify-content: flex-end;   /* текст + карандаш вместе вправо */
+  width: 100%;
+}
+
+/* Чтобы цифры были всегда ровно, а ₴ не отлипал */
+.product-row .product-price {
+  font-variant-numeric: tabular-nums; /* одинаковая ширина цифр */
+  letter-spacing: 0.3px;
 }
