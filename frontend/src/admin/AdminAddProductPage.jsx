@@ -206,6 +206,20 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            <div className="card">
+              <div className="card-title">Цена и наличие</div>
+              <div className="form-row three">
+                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="Цена" />
+                <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ед. изм." />
+                <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Остаток" />
+              </div>
+              <div className="form-row radios">
+                <label><input type="radio" name="av" checked={availability === "published"} onChange={() => setAvailability("published")} /> Опубликован</label>
+                <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
+                <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
+              </div>
+            </div>
+
             {/* Описание — сразу под строкой выше */}
             <div className="card">
               <div className="card-title">Описание</div>
@@ -257,20 +271,6 @@ export default function AdminAddProductPage() {
                 <option value="">Выберите</option>
                 {groups.map((g) => <option key={g._id} value={g._id}>{g.name}</option>)}
               </select>
-            </div>
-
-            <div className="card">
-              <div className="card-title">Цена и наличие</div>
-              <div className="form-row three">
-                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="Цена" />
-                <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ед. изм." />
-                <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Остаток" />
-              </div>
-              <div className="form-row radios">
-                <label><input type="radio" name="av" checked={availability === "published"} onChange={() => setAvailability("published")} /> Опубликован</label>
-                <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
-                <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
-              </div>
             </div>
           </div>
 
