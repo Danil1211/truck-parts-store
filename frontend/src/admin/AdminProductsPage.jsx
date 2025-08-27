@@ -168,7 +168,6 @@ export default function AdminProductsPage() {
 
   const [quotaOpen, setQuotaOpen] = useState(false);
 
-  // Хелперы для чипсов
   const statusLabel = (v) =>
     v === "published" ? "Статус: Опубликован" :
     v === "hidden" ? "Статус: Скрытый" : v;
@@ -244,7 +243,6 @@ export default function AdminProductsPage() {
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
-  // поддерживает {silent:true} для пакетного удаления
   const handleDelete = async (id, opts = {}) => {
     if (!opts.silent) {
       if (!window.confirm("Удалить позицию?")) return;
@@ -271,8 +269,7 @@ export default function AdminProductsPage() {
   };
 
   const filtered = products.filter((p) => {
-    // ⚠️ логика «Без фото» оставлена как была в проекте
-    if (noPhoto && (!p.images || !p.images.length)) return false;
+    if (noPhoto && (!p.images || !p.images.length)) return false; // как было
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
     if (
       search &&
@@ -293,7 +290,6 @@ export default function AdminProductsPage() {
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
-      {/* Вертикальный прогресс-бар тарифа */}
       {!loading && (
         <div className="quota-progress" onClick={() => setQuotaOpen(true)}>
           <div className="quota-bar-vertical">
@@ -306,7 +302,6 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Панель с лимитом */}
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
@@ -318,16 +313,12 @@ export default function AdminProductsPage() {
             <hr className="quota-divider" />
 
             <div className="quota-details">
-              <div>
-                <strong>Лимит товаров:</strong> 1000
-              </div>
+              <div><strong>Лимит товаров:</strong> 1000</div>
               <div>• <strong>Добавлено:</strong> {filtered.length} з 1000</div>
               <div>• <strong>Опубликовано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
             </div>
 
-            <div className="quota-remaining">
-              Можно добавить еще: {1000 - filtered.length} товаров
-            </div>
+            <div className="quota-remaining">Можно добавить еще: {1000 - filtered.length} товаров</div>
           </div>
         </div>
       )}
@@ -419,44 +410,82 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Чипсы активных фильтров */}
-      {(group !== "all" || status || noPhoto) && (
-        <div className="products-chips-row">
-          {group !== "all" && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setGroup("all")}
-              title="Сбросить фильтр группы"
-            >
-              Группа: {groupNameById(group)} <span aria-hidden>×</span>
-            </button>
-          )}
-          {status && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setStatus("")}
-              title="Сбросить фильтр статуса"
-            >
-              {statusLabel(status)} <span aria-hidden>×</span>
-            </button>
-          )}
-          {noPhoto && (
-            <button
-              type="button"
-              className="filter-chip"
-              onClick={() => setNoPhoto(false)}
-              title="Сбросить фильтр «Без фото»"
-            >
-              Без фото <span aria-hidden>×</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Контент */}
+      {/* ===== ВНУТРИ content-wrap, чтобы не перекрывалось хедером ===== */}
       <div className="products-content-wrap">
+        {(group !== "all" || status || noPhoto) && (
+          <div style={{ padding: "10px 20px 0" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {group !== "all" && (
+                <button
+                  type="button"
+                  className="filter-chip"
+                  onClick={() => setGroup("all")}
+                  title="Сбросить фильтр группы"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#f4f7fa",
+                    border: "1px solid #d0d7e2",
+                    borderRadius: 8,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Группа: {groupNameById(group)} <span aria-hidden>×</span>
+                </button>
+              )}
+              {status && (
+                <button
+                  type="button"
+                  className="filter-chip"
+                  onClick={() => setStatus("")}
+                  title="Сбросить фильтр статуса"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#f4f7fa",
+                    border: "1px solid #d0d7e2",
+                    borderRadius: 8,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {statusLabel(status)} <span aria-hidden>×</span>
+                </button>
+              )}
+              {noPhoto && (
+                <button
+                  type="button"
+                  className="filter-chip"
+                  onClick={() => setNoPhoto(false)}
+                  title="Сбросить фильтр «Без фото»"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#f4f7fa",
+                    border: "1px solid #d0d7e2",
+                    borderRadius: 8,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Без фото <span aria-hidden>×</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Контент */}
         <div className="products-content">
           {selected === "list" && (
             <>
@@ -516,7 +545,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  // Выпадающее меню действий (только по клику)
   const [bulkOpen, setBulkOpen] = React.useState(false);
   useEffect(() => {
     if (!bulkOpen) return;
@@ -569,7 +597,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
             </label>
           </div>
 
-          {/* Скрываем фото-колонку и тянем «Действия…» ближе к чекбоксу */}
           <div className="cell-photo hide-in-bulk"></div>
 
           <div className="cell-name bulk-wide">
@@ -612,7 +639,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         </div>
       )}
 
-      {/* Только текущая страница */}
       {paginated.map((p) => (
         <ProductRow
           key={p._id}
@@ -720,7 +746,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
       </div>
 
       <div className="cell-state" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {/* availability */}
         <EditableCell
           value={product.availability}
           type="select"
@@ -741,7 +766,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
             </span>
           )}
         />
-        {/* status */}
         <EditableCell
           value={product.status}
           type="select"
