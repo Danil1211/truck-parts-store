@@ -250,7 +250,10 @@ transition:all .2s ease;
 .products-header-left .products-search-compact:focus{ border-color:#007aff; background-color:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none; }
 
 /* Фильтры */
-.filters { position: relative; }
+.filters{
+  position: relative;
+  display: inline-block; /* важно для выравнивания поповера по кнопке */
+}
 
 .products-header-left .filters-toggle {
   height: var(--ctl-h);
@@ -278,21 +281,24 @@ transition:all .2s ease;
   box-shadow: 0 0 0 3px rgba(17,127,255,0.12);
 }
 
-.filters-popover {
+.filters-popover{
   position: absolute;
-  left: 0;
-  top: 48px;
+  left: 0;                    /* выравниваем по левой кромке кнопки */
+  top: calc(100% + 8px);      /* аккуратный отступ 8px от кнопки */
   z-index: 150;
-  background: #fff;
-  border: 1px solid #e1e7ef;
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.06);
-  min-width: 220px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  animation: fadein 0.15s ease;
+
+  min-width: max(240px, 100%); /* не уже, чем кнопка */
+  max-width: min(360px, 92vw);
+
+  background:#fff;
+  border:1px solid #e1e7ef;
+  border-radius:12px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.06);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  animation: fadein .15s ease;
 }
 
 .filters-select {
