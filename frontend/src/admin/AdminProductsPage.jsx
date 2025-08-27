@@ -653,7 +653,9 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           onSave={(val) => onEditField(product._id, "price", val)}
           renderDisplay={(val) => (
             <span className="product-price">
-              {val !== undefined && val !== null ? val : "—"} ₴
+              {val !== undefined && val !== null
+                ? Number(val).toLocaleString("ru-RU")
+                : "—"} ₴
             </span>
           )}
         />

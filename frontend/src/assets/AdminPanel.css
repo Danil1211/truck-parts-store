@@ -842,3 +842,9 @@ html, body {
     grid-column: 2 / -1;
   }
 }
+
+.products-grid-header .cell-price,
+.product-row .cell-price {
+  text-align: right;   /* выравниваем и заголовок, и цифры */
+  padding-right: 12px; /* чтобы не липло к границе */
+}
