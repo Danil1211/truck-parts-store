@@ -209,14 +209,17 @@ export default function AdminProductsPage() {
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Удалить позицию?")) return;
+  // ✅ теперь поддерживает {silent:true} для пакетного удаления без повторных confirm
+  const handleDelete = async (id, opts = {}) => {
+    if (!opts.silent) {
+      if (!window.confirm("Удалить позицию?")) return;
+    }
     try {
       await api.delete(`/api/products/${id}`);
       setProducts((p) => p.filter((prod) => prod._id !== id));
     } catch (e) {
       console.error("Delete product failed:", e);
-      alert("Ошибка при удалении позиции");
+      if (!opts.silent) alert("Ошибка при удалении позиции");
     }
   };
 
@@ -418,6 +421,38 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
     );
   };
 
+  // ▼▼▼ Выпадающее меню «Действия для N позиций»
+  const [bulkOpen, setBulkOpen] = React.useState(false);
+  useEffect(() => {
+    if (!bulkOpen) return;
+    const onDoc = (e) => {
+      if (!e.target.closest(".bulk-actions")) setBulkOpen(false);
+    };
+    const onEsc = (e) => e.key === "Escape" && setBulkOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [bulkOpen]);
+
+  const bulkDelete = async () => {
+    if (!selectedIds.length) return;
+    const ok = window.confirm(`Удалить выбранные ${selectedIds.length} позиций?`);
+    if (!ok) return;
+    // удаляем «тихо», без повторных confirm
+    for (const id of selectedIds) {
+      // ждём последовательного удаления, чтобы корректно обновлялось состояние
+      // (можно и Promise.all, но так безопаснее для сеттера)
+      // @ts-ignore — у onDelete добавлен opts.silent
+      await onDelete(id, { silent: true });
+    }
+    setSelectedIds([]);
+    setBulkOpen(false);
+  };
+  // ▲▲▲
+
   if (products.length === 0) {
     return (
       <div
@@ -446,19 +481,25 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
             </label>
           </div>
           <div className="cell-photo"></div>
-          <div className="cell-name">
-            Действия для {selectedIds.length} позиций ▾
-            <div className="bulk-menu">
-              <button
-                onClick={() => {
-                  selectedIds.forEach((id) => onDelete(id));
-                  setSelectedIds([]);
-                }}
-              >
-                Удалить
-              </button>
-            </div>
+
+          {/* Кнопка + меню действий */}
+          <div className="cell-name bulk-actions">
+            <button
+              className="bulk-toggle"
+              onClick={() => setBulkOpen((v) => !v)}
+            >
+              Действия для {selectedIds.length} позиций ▾
+            </button>
+
+            {bulkOpen && (
+              <div className="bulk-menu">
+                <button className="bulk-item delete" onClick={bulkDelete}>
+                  Удалить
+                </button>
+              </div>
+            )}
           </div>
+
           <div className="cell-date"></div>
           <div className="cell-sku"></div>
           <div className="cell-state"></div>

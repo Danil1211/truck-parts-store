@@ -709,3 +709,64 @@ html, body {
   .page-size{ height: 34px; padding: 0 34px 0 10px; }
   .page-btn{ min-width: 34px; height: 34px; padding: 0 10px; }
 }
+
+
+/* ===================== BULK ACTIONS MENU ===================== */
+.bulk-actions{
+  position: relative;
+  display: inline-block;
+}
+
+.bulk-toggle{
+  background: transparent;
+  border: none;
+  color: var(--text-main, #0f172a);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background .18s ease;
+}
+.bulk-toggle:hover{
+  background: rgba(17,127,255,0.08);
+}
+
+.bulk-menu{
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #e1e7ef;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  padding: 6px 0;
+  z-index: 20;
+}
+
+.bulk-item{
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text-main, #0f172a);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+
+.bulk-item:hover{
+  background: rgba(17,127,255,0.08);
+  color: var(--primary, #117fff);
+}
+
+.bulk-item.delete{
+  color: #d92d20;
+}
+.bulk-item.delete:hover{
+  background: rgba(217,45,32,0.08);
+}
