@@ -388,6 +388,22 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
     );
   };
 
+  if (products.length === 0) {
+    return (
+      <div
+        style={{
+          textAlign: "center",
+          padding: "120px 20px",
+          fontSize: 18,
+          color: "#8e9baa",
+          fontWeight: 400,
+        }}
+      >
+        Нет товаров
+      </div>
+    );
+  }
+
   return (
     <div className="products-list-wrap">
       {/* верхняя строка */}
