@@ -251,7 +251,7 @@ export default function AdminProductsPage() {
   if (percent >= 95) quotaColor = "#ef4444";
   else if (percent >= 80) quotaColor = "#f59e0b";
 
-  // helpers
+  // helpers для чипсов
   const statusLabel = (s) =>
     s === "published" ? "В наличии" : s === "order" ? "Под заказ" : "Нет на складе";
   const groupNameById = (id) => groups.find((g) => g._id === id)?.name || "—";
@@ -375,82 +375,82 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Активные фильтры — под шапкой */}
-      {(group !== "all" || status || noPhoto) && (
-        <div className="filters-active-wrap" style={{ padding: "10px 20px 0" }}>
-          <div className="filters-active" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {group !== "all" && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setGroup("all")}
-                title="Сбросить фильтр группы"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  background: "#f4f7fa",
-                  border: "1px solid #d0d7e2",
-                  borderRadius: 8,
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                }}
-              >
-                Группа: {groupNameById(group)} <span aria-hidden>×</span>
-              </button>
-            )}
-            {status && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setStatus("")}
-                title="Сбросить фильтр статуса"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  background: "#f4f7fa",
-                  border: "1px solid #d0d7e2",
-                  borderRadius: 8,
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                }}
-              >
-                {statusLabel(status)} <span aria-hidden>×</span>
-              </button>
-            )}
-            {noPhoto && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setNoPhoto(false)}
-                title="Сбросить фильтр «Без фото»"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  background: "#f4f7fa",
-                  border: "1px solid #d0d7e2",
-                  borderRadius: 8,
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                }}
-              >
-                Без фото <span aria-hidden>×</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Контент */}
+      {/* Чипсы активных фильтров — теперь ПОД фиксированным хедером */}
       <div className="products-content-wrap">
+        {(group !== "all" || status || noPhoto) && (
+          <div style={{ padding: "10px 20px 0" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {group !== "all" && (
+                <button
+                  type="button"
+                  className="filter-chip"
+                  onClick={() => setGroup("all")}
+                  title="Сбросить фильтр группы"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#f4f7fa",
+                    border: "1px solid #d0d7e2",
+                    borderRadius: 8,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Группа: {groupNameById(group)} <span aria-hidden>×</span>
+                </button>
+              )}
+              {status && (
+                <button
+                  type="button"
+                  className="filter-chip"
+                  onClick={() => setStatus("")}
+                  title="Сбросить фильтр статуса"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#f4f7fa",
+                    border: "1px solid #d0d7e2",
+                    borderRadius: 8,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {statusLabel(status)} <span aria-hidden>×</span>
+                </button>
+              )}
+              {noPhoto && (
+                <button
+                  type="button"
+                  className="filter-chip"
+                  onClick={() => setNoPhoto(false)}
+                  title="Сбросить фильтр «Без фото»"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: "#f4f7fa",
+                    border: "1px solid #d0d7e2",
+                    borderRadius: 8,
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Без фото <span aria-hidden>×</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Контент */}
         <div className="products-content">
           {selected === "list" && (
             <>
