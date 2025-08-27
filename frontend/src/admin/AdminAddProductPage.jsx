@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
-import AdminSubMenu from "./AdminSubMenu"; // ⬅️ добавили
 import api from "../utils/api.js";
 import "../assets/AdminPanel.css";
 import "../assets/AdminAddProductPage.css";
+import AdminSubMenu from "./AdminSubMenu";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 
@@ -14,7 +14,6 @@ export default function AdminAddProductPage() {
   // Основное
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
-  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [group, setGroup] = useState("");
   const [price, setPrice] = useState("");
@@ -55,19 +54,17 @@ export default function AdminAddProductPage() {
         const obj = JSON.parse(draft);
         Object.keys(obj).forEach((k) => {
           if (obj[k] !== undefined) {
-            if (k === "images") return;
+            if (k === "images") return; // картинки не сохраняем
             eval(`set${k.charAt(0).toUpperCase() + k.slice(1)}(obj[k])`);
           }
         });
       } catch {}
     }
   }, []);
-
   useEffect(() => {
     const draft = {
       name,
       sku,
-      slug,
       description,
       group,
       price,
@@ -89,7 +86,6 @@ export default function AdminAddProductPage() {
   }, [
     name,
     sku,
-    slug,
     description,
     group,
     price,
@@ -126,22 +122,6 @@ export default function AdminAddProductPage() {
       }
     })();
   }, []);
-
-  // ===== Генерация SKU/slug =====
-  const generateSku = () =>
-    setSku("SKU-" + Math.random().toString(36).substr(2, 6).toUpperCase());
-
-  useEffect(() => {
-    if (name) {
-      setSlug(
-        name
-          .toLowerCase()
-          .replace(/[^a-zа-я0-9]+/g, "-")
-          .replace(/(^-|-$)+/g, "")
-      );
-      setSeoTitle(name);
-    }
-  }, [name]);
 
   // ===== Картинки =====
   const handleImageChange = (e) => {
@@ -187,7 +167,6 @@ export default function AdminAddProductPage() {
     const fd = new FormData();
     fd.append("name", name);
     fd.append("sku", sku);
-    fd.append("slug", slug);
     fd.append("description", description);
     fd.append("group", group);
     fd.append("price", price);
@@ -223,10 +202,8 @@ export default function AdminAddProductPage() {
 
   return (
     <div className="products-page">
-      {/* Субменю */}
       <AdminSubMenu type="products" activeKey="create" />
 
-      {/* Контент */}
       <div className="products-content-wrap">
         <div className="add-prod-page">
           <div className="add-prod-header">
@@ -236,23 +213,14 @@ export default function AdminAddProductPage() {
             >
               ← Назад
             </button>
-            <div className="add-prod-header-right">
-              <button
-                type="button"
-                onClick={generateSku}
-                className="btn-primary"
-              >
-                Сгенерировать SKU
-              </button>
-              <button
-                type="submit"
-                form="add-prod-form"
-                disabled={isSaving}
-                className="btn-primary"
-              >
-                {isSaving ? "Сохраняем..." : "Сохранить"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              form="add-prod-form"
+              disabled={isSaving}
+              className="btn-primary"
+            >
+              {isSaving ? "Сохраняем..." : "Сохранить"}
+            </button>
           </div>
 
           <form
@@ -279,15 +247,6 @@ export default function AdminAddProductPage() {
                     placeholder="Авто/ручной"
                   />
                 </div>
-              </div>
-
-              {/* Slug */}
-              <div className="form-row">
-                <label>URL slug</label>
-                <input
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                />
               </div>
 
               {/* Описание */}
@@ -475,27 +434,9 @@ export default function AdminAddProductPage() {
                   style={{ display: "none" }}
                   onChange={handleImageChange}
                 />
-                <div
-                  className="main-photo"
-                  onClick={() => inputFileRef.current.click()}
-                >
-                  {images[0] ? (
-                    <img src={images[0].url} alt="" />
-                  ) : (
-                    <span>+</span>
-                  )}
-                  {images[0] && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(images[0].id)}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-                <div className="thumbs">
-                  {images.slice(1).map((img) => (
-                    <div key={img.id} className="thumb">
+                <div className="photos-grid">
+                  {images.map((img) => (
+                    <div key={img.id} className="photo-slot">
                       <img src={img.url} alt="" />
                       <button
                         type="button"
@@ -505,9 +446,9 @@ export default function AdminAddProductPage() {
                       </button>
                     </div>
                   ))}
-                  {images.length < 10 && (
+                  {images.length < 8 && (
                     <div
-                      className="thumb add"
+                      className="photo-slot add"
                       onClick={() => inputFileRef.current.click()}
                     >
                       +

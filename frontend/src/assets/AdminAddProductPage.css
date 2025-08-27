@@ -1,4 +1,7 @@
-/* Контентная обёртка */
+/* ========================================================================
+   AdminAddProductPage — стили
+   ======================================================================== */
+
 .products-content-wrap {
   flex: 1;
   display: flex;
@@ -8,12 +11,10 @@
   box-sizing: border-box;
 }
 
-/* ===================== ADD PRODUCT PAGE ===================== */
 .add-prod-page {
-  padding: 20px 0;
+  padding: 0;
   background: var(--bg);
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -24,7 +25,7 @@
   justify-content: space-between;
   align-items: center;
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 0 0 14px 14px;
   padding: 14px 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,.05);
   margin-bottom: 24px;
@@ -41,7 +42,6 @@
   transition: all .2s ease;
 }
 .add-prod-header .btn-back:hover { background: #eaf3ff }
-.add-prod-header-right { display: flex; gap: 10px }
 
 /* Основная сетка */
 .add-prod-form {
@@ -130,57 +130,50 @@
 .chip b { margin-left: 6px; cursor: pointer; font-weight: 700; color: #e12a2a }
 
 /* Фото */
-.main-photo {
-  width: 100%; aspect-ratio: 1.6/1;
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.photo-slot {
+  position: relative;
   border: 2px dashed #cfd8e3;
   border-radius: 12px;
   background: #f9fbfd;
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   overflow: hidden;
 }
-.main-photo img { width: 100%; height: 100%; object-fit: contain }
-.main-photo span { font-size: 40px; color: #94a3b8 }
-.main-photo button {
-  position: absolute; top: 8px; right: 8px;
-  width: 24px; height: 24px;
-  border: none; border-radius: 50%;
-  background: #fff; color: #e12a2a;
-  font-weight: 700; font-size: 16px;
+.photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-slot button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #e12a2a;
+  font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,.1);
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
 }
-.thumbs {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(80px,1fr));
-  gap: 8px;
-}
-.thumb {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1.5px solid #d0d7e2;
-  background: #f9fbfd;
-  cursor: pointer;
-}
-.thumb img { width: 100%; height: 100%; object-fit: cover }
-.thumb button {
-  position: absolute; top: 4px; right: 4px;
-  width: 18px; height: 18px;
-  border: none; border-radius: 50%;
-  background: #fff; color: #e12a2a;
-  font-weight: 700; font-size: 12px;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,.15);
-}
-.thumb.add {
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; color: #94a3b8;
+.photo-slot.add {
+  font-size: 32px;
+  color: #94a3b8;
 }
 
-/* ===== Адаптив ===== */
+/* Адаптив */
 @media (max-width: 1100px) {
   .add-prod-form { grid-template-columns: 1fr }
   .add-prod-side { max-width: 100% }
