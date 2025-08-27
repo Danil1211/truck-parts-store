@@ -12,9 +12,9 @@ const GroupsContext = React.createContext([]);
 
 /* ================== Мини-компонент EditableCell ==================
    - Поддерживает text / number / select
-   - Карандаш (SVG) виден только при ховере строки (showEditIcon)
+   - Карандаш виден только при ховере строки (showEditIcon)
    - Сохраняет по blur или Enter; Esc — отмена
-   - Ничего не ломает: можно отдать кастомный renderDisplay (например, Link)
+   - Карандаш рисуется сразу после текста (inline)
 =================================================================== */
 function EditableCell({
   value,
@@ -92,54 +92,56 @@ function EditableCell({
     );
   }
 
+  // VIEW: текст + карандаш в одной линии (грид 1fr auto)
   return (
     <span
       className="editable-cell"
       style={{
-        display: "inline-flex",
+        display: "inline-grid",
+        gridTemplateColumns: "1fr auto",
         alignItems: "center",
-        minWidth: 0
+        columnGap: 6,
+        minWidth: 0,    // важно, чтобы текст сжимался вместо переполнения
+        width: "100%",
       }}
     >
       <span
-        className="editable-text"
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          minWidth: 0
+          minWidth: 0,                  // разрешить сжатие колонки с текстом
+          display: "inline-block",
+          maxWidth: "100%",
         }}
       >
         {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="edit-btn"
-          aria-label="Изменить"
-          title="Изменить"
-          style={{
-            opacity: showEditIcon ? 1 : 0,
-            transition: "opacity .18s ease",
-            background: "transparent",
-            border: "1px solid transparent",
-            padding: 2,
-            marginLeft: 4,   // 🔑 делает его прям в конце строки
-            borderRadius: 6,
-            cursor: "pointer",
-            lineHeight: 0
-          }}
-        >
-          <svg
-            width="18" height="18" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="1.8"
-            strokeLinecap="round" strokeLinejoin="round"
-            style={{ color: "#64748b" }}
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-          </svg>
-        </button>
       </span>
+
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="edit-btn"
+        aria-label="Изменить"
+        title="Изменить"
+        style={{
+          opacity: showEditIcon ? 1 : 0,
+          transition: "opacity .18s ease",
+          background: "transparent",
+          border: "1px solid transparent",
+          padding: 4,
+          borderRadius: 8,
+          cursor: "pointer",
+          lineHeight: 0,
+        }}
+      >
+        <svg
+          width="20" height="20" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" strokeWidth="1.9"
+          strokeLinecap="round" strokeLinejoin="round"
+          style={{ color: "#64748b" }}
+        >
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      </button>
     </span>
   );
 }
@@ -167,7 +169,7 @@ export default function AdminProductsPage() {
     (async () => {
       try {
         const [prodsRes, groupsRes] = await Promise.all([
-          api.get("/api/products/admin"),   // 👈 вместо /api/products
+          api.get("/api/products/admin"),
           api.get("/api/groups"),
         ]);
 
@@ -220,7 +222,7 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Сохраняем только изменяемое поле, через PATCH — ничего лишнего не трогаем
+  // Сохраняем только изменяемое поле через PATCH
   const handleEditField = async (id, field, value) => {
     try {
       await api.patch(`/api/products/${id}`, { [field]: value });
@@ -247,9 +249,9 @@ export default function AdminProductsPage() {
 
   // считаем процент для тарифа Free (1000 позиций)
   const percent = Math.min((filtered.length / 1000) * 100, 100);
-  let quotaColor = "#0a84ff"; // blue
-  if (percent >= 95) quotaColor = "#ef4444"; // red
-  else if (percent >= 80) quotaColor = "#f59e0b"; // orange
+  let quotaColor = "#0a84ff";
+  if (percent >= 95) quotaColor = "#ef4444";
+  else if (percent >= 80) quotaColor = "#f59e0b";
 
   return (
     <div className="products-page">
@@ -586,7 +588,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
             </span>
           )}
         />
-        {/* status (опубликован/скрытый) */}
+        {/* status */}
         <EditableCell
           value={product.status}
           type="select"
