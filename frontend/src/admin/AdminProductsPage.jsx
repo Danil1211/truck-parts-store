@@ -375,107 +375,41 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Чипсы активных фильтров — теперь ПОД фиксированным хедером */}
-      <div className="products-content-wrap">
-        {(group !== "all" || status || noPhoto) && (
-          <div style={{ padding: "10px 20px 0" }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {group !== "all" && (
-                <button
-                  type="button"
-                  className="filter-chip"
-                  onClick={() => setGroup("all")}
-                  title="Сбросить фильтр группы"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    background: "#f4f7fa",
-                    border: "1px solid #d0d7e2",
-                    borderRadius: 8,
-                    padding: "5px 10px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Группа: {groupNameById(group)} <span aria-hidden>×</span>
-                </button>
-              )}
-              {status && (
-                <button
-                  type="button"
-                  className="filter-chip"
-                  onClick={() => setStatus("")}
-                  title="Сбросить фильтр статуса"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    background: "#f4f7fa",
-                    border: "1px solid #d0d7e2",
-                    borderRadius: 8,
-                    padding: "5px 10px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {statusLabel(status)} <span aria-hidden>×</span>
-                </button>
-              )}
-              {noPhoto && (
-                <button
-                  type="button"
-                  className="filter-chip"
-                  onClick={() => setNoPhoto(false)}
-                  title="Сбросить фильтр «Без фото»"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    background: "#f4f7fa",
-                    border: "1px solid #d0d7e2",
-                    borderRadius: 8,
-                    padding: "5px 10px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Без фото <span aria-hidden>×</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Контент */}
-        <div className="products-content">
-          {selected === "list" && (
-            <>
-              {loading ? (
-                <div className="loader-wrap">
-                  <div className="loader" />
-                </div>
-              ) : (
-                <GroupsContext.Provider value={{ groups }}>
-                  <ProductList
-                    products={filtered}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onEditField={handleEditField}
-                  />
-                </GroupsContext.Provider>
-              )}
-            </>
+      {/* Чипсы активных фильтров */}
+      {(group !== "all" || status || noPhoto) && (
+        <div className="products-chips-row">
+          {group !== "all" && (
+            <button
+              type="button"
+              className="filter-chip"
+              onClick={() => setGroup("all")}
+              title="Сбросить фильтр группы"
+            >
+              Группа: {groupNameById(group)} <span aria-hidden>×</span>
+            </button>
+          )}
+          {status && (
+            <button
+              type="button"
+              className="filter-chip"
+              onClick={() => setStatus("")}
+              title="Сбросить фильтр статуса"
+            >
+              {statusLabel(status)} <span aria-hidden>×</span>
+            </button>
+          )}
+          {noPhoto && (
+            <button
+              type="button"
+              className="filter-chip"
+              onClick={() => setNoPhoto(false)}
+              title="Сбросить фильтр «Без фото»"
+            >
+              Без фото <span aria-hidden>×</span>
+            </button>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
+      )}
 /* ================== ProductList + ProductRow ================== */
 function ProductList({ products, onEdit, onDelete, onEditField }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
