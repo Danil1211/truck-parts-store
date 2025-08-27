@@ -137,16 +137,13 @@ router.get("/admin", authMiddleware, async (req, res) => {
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
-    const [items, total] = await Promise.all([
-      Product.find(filter)
-        .sort({ updatedAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit, 10)),
-      Product.countDocuments(filter),
-    ]);
+    const items = await Product.find(filter)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit, 10));
 
-    const pages = Math.max(1, Math.ceil(total / parseInt(limit, 10)));
-    res.json({ items, total, pages });
+    // 👇 теперь отдаём просто массив
+    res.json(items);
   } catch (err) {
     console.error("admin list error:", err);
     res.status(500).json({ error: "Ошибка загрузки товаров (admin)" });
@@ -213,8 +210,7 @@ router.post(
         queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
 
-        // 👇 фикс: новый товар всегда активный
-        deleted: false,
+        deleted: false, // новый товар всегда активный
       };
 
       const product = new Product(productData);
