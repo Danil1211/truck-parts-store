@@ -387,11 +387,29 @@ export default function AdminProductsPage() {
 /* ================== ProductList + ProductRow ================== */
 function ProductList({ products, onEdit, onDelete, onEditField }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
-  const allSelected = products.length > 0 && selectedIds.length === products.length;
+
+  // 🔹 ПАГИНАЦИЯ (реальная резка массива)
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(20);
+  const pages = Math.ceil(products.length / perPage);
+
+  // сбрасываем страницу, если список фильтром поменялся/укоротился
+  useEffect(() => { setPage(1); }, [products.length, perPage]);
+
+  const paginated = products.slice((page - 1) * perPage, page * perPage);
+  const idsOnPage = paginated.map(p => p._id);
+
+  const allSelected =
+    paginated.length > 0 && idsOnPage.every(id => selectedIds.includes(id));
 
   const toggleAll = () => {
-    if (allSelected) setSelectedIds([]);
-    else setSelectedIds(products.map((p) => p._id));
+    if (allSelected) {
+      // снять выделение только у тех, кто на текущей странице
+      setSelectedIds(prev => prev.filter(id => !idsOnPage.includes(id)));
+    } else {
+      // выделить всех на текущей странице (сохраняем ранее выбранных на других страницах)
+      setSelectedIds(prev => Array.from(new Set([...prev, ...idsOnPage])));
+    }
   };
 
   const toggleOne = (id) => {
@@ -467,8 +485,8 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         </div>
       )}
 
-      {/* товары */}
-      {products.map((p) => (
+      {/* товары (ТОЛЬКО текущая страница) */}
+      {paginated.map((p) => (
         <ProductRow
           key={p._id}
           product={p}
@@ -479,6 +497,15 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
           onEditField={onEditField}
         />
       ))}
+
+      {/* Пагинация (жёсткий минимализм) */}
+      <Pagination
+        total={products.length}
+        perPage={perPage}
+        page={page}
+        onPageChange={setPage}
+        onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+      />
     </div>
   );
 }
@@ -639,6 +666,79 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ================== Pagination ================== */
+function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
+  const pages = Math.ceil(total / perPage);
+
+  const changePage = (p) => {
+    if (p < 1 || p > pages) return;
+    onPageChange(p);
+  };
+
+  const getRange = () => {
+    let arr = [];
+    if (pages <= 7) {
+      arr = Array.from({ length: pages }, (_, i) => i + 1);
+    } else {
+      if (page <= 3) arr = [1, 2, 3, "...", pages];
+      else if (page >= pages - 2) arr = [1, "...", pages - 2, pages - 1, pages];
+      else arr = [1, "...", page - 1, page, page + 1, "...", pages];
+    }
+    return arr;
+  };
+
+  return (
+    <div className="pagination-wrap">
+      <div className="pagination">
+        <button
+          className="page-btn"
+          disabled={page === 1}
+          onClick={() => changePage(page - 1)}
+        >
+          ‹
+        </button>
+
+        {getRange().map((p, i) =>
+          p === "..." ? (
+            <span key={i} className="dots">…</span>
+          ) : (
+            <button
+              key={i}
+              className={`page-btn ${p === page ? "active" : ""}`}
+              onClick={() => changePage(p)}
+            >
+              {p}
+            </button>
+          )
+        )}
+
+        <button
+          className="page-btn"
+          disabled={page === pages}
+          onClick={() => changePage(page + 1)}
+        >
+          ›
+        </button>
+      </div>
+
+      <select
+        className="page-size"
+        value={perPage}
+        onChange={(e) => {
+          onPerPageChange(Number(e.target.value));
+          onPageChange(1); // при смене "по N" возвращаем на 1-ю страницу
+        }}
+      >
+        {[10, 20, 50, 100].map((n) => (
+          <option key={n} value={n}>
+            по {n} позиций
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
