@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AdminAddProductPage — раскладка как Prom в нашем стиле (компактный сайдбар)
+   AdminAddProductPage — раскладка как Prom (узкий сайдбар, 1 большой + 9 маленьких фото)
    ========================================================================== */
 
 .add-prod.products-page{
@@ -28,10 +28,10 @@
 /* Form */
 .addprod-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
 
-/* ===== Две колонки (компактный сайдбар) ===== */
+/* ===== Две колонки — ещё компактнее справа ===== */
 .layout-grid{
   display:grid; gap:20px;
-  grid-template-columns: 1.9fr 0.9fr;   /* Сайдбар уже */
+  grid-template-columns: 2.25fr 0.75fr;   /* было 1.9fr 0.9fr → ещё уже сайдбар */
   align-items:start;
 }
 .main-col{ display:flex; flex-direction:column; gap:18px; }
@@ -41,8 +41,8 @@
 .card{ background:var(--surface); border:1px solid #e6ebf2; border-radius:14px; padding:16px 18px; }
 .card-title{ font-size:15px; font-weight:600; color:#0f172a; margin-bottom:10px; }
 
-/* Компактный вид карточек именно в сайдбаре */
-.side-col .card{ padding:14px 16px; border-radius:12px; }
+/* Компактный вид карточек в сайдбаре */
+.side-col .card{ padding:12px 14px; border-radius:12px; }
 .side-col .card-title{ font-size:14px; margin-bottom:8px; }
 
 /* Поля */
@@ -76,23 +76,63 @@
 .kv div{ display:flex; align-items:center; justify-content:space-between; }
 .kv b{ color:#0f172a; font-weight:600; }
 
-/* ===== Медиа в сайдбаре (компактно) ===== */
-.side-col .media-grid{
-  display:grid; grid-template-columns:repeat(2,1fr); /* было 3 → стало 2 */
-  gap:8px;
-}
+/* ==========================================================================
+   МЕДИА В САЙДБАРЕ
+   Фото: 1 большой квадрат + 9 маленьких (3×3)
+   Видео: мелкие квадраты, визуально компактнее
+   ========================================================================== */
+
+/* Универсальная плитка */
 .thumb{
   position:relative; border:1.5px solid #d0d7e2; border-radius:10px; overflow:hidden;
-  background:#f9fbfd; aspect-ratio:1/1; cursor:pointer;
+  background:#f9fbfd; cursor:pointer;
 }
-.side-col .thumb{ border-radius:8px; } /* чуть компактней углы */
-.thumb img{ width:100%; height:100%; object-fit:cover; }
+.side-col .thumb{ border-radius:8px; }
+.thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 .thumb button{
   position:absolute; top:4px; right:4px; width:18px; height:18px; border:none; border-radius:50%;
   background:#fff; color:#e12a2a; font-weight:700; font-size:12px; cursor:pointer;
   box-shadow:0 1px 3px rgba(0,0,0,.15);
 }
-.thumb.add{ display:flex; align-items:center; justify-content:center; font-size:16px; color:#94a3b8; }
+.thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; }
+
+/* === Фото ===
+   Используем существующую разметку .media-grid:
+   .thumb:first-child — главный (занимает всю ширину), остальные — 3×3 маленьких.
+*/
+.side-col .media-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:6px;                       /* компактнее, чем раньше */
+}
+
+/* Главный кадр */
+.side-col .media-grid .thumb:first-child{
+  grid-column: span 3;           /* на всю ширину карточки */
+  aspect-ratio: 1 / 1;           /* квадрат */
+  font-size:20px;
+}
+
+/* Маленькие превью (остальные 9) */
+.side-col .media-grid .thumb:not(:first-child){
+  aspect-ratio: 1 / 1;           /* квадраты */
+  font-size:14px;
+}
+
+/* === Видео ===
+   Ещё компактнее: 4 колонки мелких квадратов.
+*/
+.side-col .video-grid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);  /* мельче, чем фото */
+  gap:6px;
+}
+.side-col .video-grid .thumb{
+  aspect-ratio: 1 / 1;           /* квадратные превью — смотрится аккуратнее */
+  font-size:12px;
+}
+
+/* Ссылка под сеткой */
 .add-by-link{
   margin-top:8px; font-size:12.5px; color:var(--primary); cursor:pointer; user-select:none;
 }
@@ -105,7 +145,10 @@
 }
 .chip b{ cursor:pointer; color:#e12a2a; }
 
-/* ===== Адаптив ===== */
+/* Адаптив */
+@media (max-width: 1200px){
+  .layout-grid{ grid-template-columns: 2fr 0.8fr; }
+}
 @media (max-width: 1100px){
   .layout-grid{ grid-template-columns: 1fr; }
 }
