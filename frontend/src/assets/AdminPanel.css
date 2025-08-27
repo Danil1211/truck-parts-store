@@ -540,8 +540,8 @@ html, body {
   line-height: 0;
 }
 .editable-cell .edit-btn svg {
-  width: 18px;            /* было 16px */
-  height: 18px;
+  width: 20px;            /* было 16px */
+  height: 20px;
   stroke-width: 1.9;      /* немного толще линии */
 }
 
