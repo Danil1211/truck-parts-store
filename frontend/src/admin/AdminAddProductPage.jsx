@@ -192,47 +192,77 @@ export default function AdminAddProductPage() {
 
       <form id="add-prod-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="addprod-grid">
-          {/* ЛЕВАЯ КОЛОНКА — стек */}
+          {/* ЛЕВАЯ КОЛОНКА */}
           <div className="left-col">
-            {/* Название + Код в одной строке */}
-            <div className="row-name-code">
-              <div className="field-col">
-                <label>Название*</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Введите название товара" />
+
+            {/* ОБЪЕДИНЕННЫЙ БЛОК */}
+            <div className="card merged-head">
+              <div className="merged-grid">
+                <div className="row-name-code">
+                  <div className="field-col">
+                    <label>Название*</label>
+                    <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Введите название товара" />
+                  </div>
+                  <div className="field-col field-col--code">
+                    <label>Код</label>
+                    <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул / код" />
+                  </div>
+                </div>
+
+                {/* Фото */}
+                <div className="photos-col">
+                  <input type="file" multiple accept="image/*" ref={inputFileRef} style={{ display: "none" }} onChange={handleImageChange} />
+
+                  <div className="photo-main" onClick={() => inputFileRef.current?.click()}>
+                    {images[0] ? <img src={images[0].url} alt="" /> : <span>+</span>}
+                    {images[0] && (
+                      <button type="button" className="photo-remove" onClick={() => handleRemoveImage(images[0].id)}>×</button>
+                    )}
+                  </div>
+
+                  <div className="photo-thumbs">
+                    {images.slice(1).map((img) => (
+                      <div key={img.id} className="thumb">
+                        <img src={img.url} alt="" />
+                        <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
+                      </div>
+                    ))}
+                    {Array.from({ length: emptyThumbs }).map((_, i) => (
+                      <div key={`add-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="field-col field-col--code">
-                <label>Код</label>
-                <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул / код" />
+
+              {/* Цена и наличие */}
+              <div className="price-block">
+                <div className="form-row three">
+                  <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="Цена" />
+                  <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ед. изм." />
+                  <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Остаток" />
+                </div>
+                <div className="form-row radios">
+                  <label><input type="radio" name="av" checked={availability === "published"} onChange={() => setAvailability("published")} /> Опубликован</label>
+                  <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
+                  <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
+                </div>
               </div>
             </div>
 
-            {/* Описание — сразу под строкой выше */}
+            {/* Описание */}
             <div className="card">
               <div className="card-title">Описание</div>
               <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
             </div>
 
-            <div className="card">
-              <div className="card-title">Цена и наличие</div>
-              <div className="form-row three">
-                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="Цена" />
-                <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ед. изм." />
-                <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Остаток" />
-              </div>
-              <div className="form-row radios">
-                <label><input type="radio" name="av" checked={availability === "published"} onChange={() => setAvailability("published")} /> Опубликован</label>
-                <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
-                <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
-              </div>
-            </div>
-
-            {/* Остальные блоки ниже — как и было */}
+            {/* Характеристики */}
             <div className="card">
               <div className="card-title">Характеристики</div>
               <div className="form-row"><label>Цвет</label><input value={charColor} onChange={(e) => setCharColor(e.target.value)} /></div>
               <div className="form-row"><label>Производитель</label><input value={charBrand} onChange={(e) => setCharBrand(e.target.value)} /></div>
             </div>
 
+            {/* SEO */}
             <div className="card">
               <div className="card-title">SEO</div>
               <div className="form-row"><label>Title</label><input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} /></div>
@@ -240,6 +270,7 @@ export default function AdminAddProductPage() {
               <div className="form-row"><label>Keywords</label><input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} /></div>
             </div>
 
+            {/* Поисковые запросы */}
             <div className="card">
               <div className="card-title">Поисковые запросы</div>
               <input
@@ -255,6 +286,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* Габариты */}
             <div className="card">
               <div className="card-title">Габариты</div>
               <div className="form-row four">
@@ -265,43 +297,13 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* Группа */}
             <div className="card">
               <div className="card-title">Группа</div>
               <select value={group} onChange={(e) => setGroup(e.target.value)} required>
                 <option value="">Выберите</option>
                 {groups.map((g) => <option key={g._id} value={g._id}>{g.name}</option>)}
               </select>
-            </div>
-          </div>
-
-          {/* ПРАВАЯ КОЛОНКА — фото (компактно) */}
-          <div className="photos-col">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              ref={inputFileRef}
-              style={{ display: "none" }}
-              onChange={handleImageChange}
-            />
-
-            <div className="photo-main" onClick={() => inputFileRef.current?.click()}>
-              {images[0] ? <img src={images[0].url} alt="" /> : <span>+</span>}
-              {images[0] && (
-                <button type="button" className="photo-remove" onClick={() => handleRemoveImage(images[0].id)}>×</button>
-              )}
-            </div>
-
-            <div className="photo-thumbs">
-              {images.slice(1).map((img) => (
-                <div key={img.id} className="thumb">
-                  <img src={img.url} alt="" />
-                  <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
-                </div>
-              ))}
-              {Array.from({ length: emptyThumbs }).map((_, i) => (
-                <div key={`add-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
-              ))}
             </div>
           </div>
         </div>

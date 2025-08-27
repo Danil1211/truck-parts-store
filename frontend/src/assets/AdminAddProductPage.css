@@ -1,16 +1,14 @@
 /* ==========================================================================
-   AdminAddProductPage — строгий минимализм, фотоколонка меньше
+   AdminAddProductPage — строгий минимализм, объединённый блок
    ========================================================================== */
 
 .add-prod.products-page{
   padding: 0 0 28px;
-  /* можно подрегулировать эти переменные */
-  --photos-col-w: 220px;     /* ширина правой колонки фото (уменьшил) */
-  --photo-main-h: 128px;     /* высота главного фото (уменьшил) */
+  --photos-col-w: 220px;
+  --photo-main-h: 128px;
   --thumb-gap: 8px;
 }
 
-/* верхняя планка — на всю ширину, без скруглений */
 .addprod-topbar{
   position: sticky; top: 0; z-index: 12;
   background: var(--surface);
@@ -18,7 +16,6 @@
   height:56px; padding:0 20px; border-bottom:1px solid #e5e7eb; border-radius:0;
 }
 
-/* кнопки */
 .btn-ghost{
   appearance:none; border:none; background:transparent; color:var(--primary);
   font-size:14px; font-weight:500; cursor:pointer; padding:6px 8px; border-radius:8px;
@@ -31,23 +28,23 @@
 }
 .btn-primary:disabled{ opacity:.6; cursor:default }
 
-/* контейнер формы */
 .addprod-form{ display:flex; flex-direction:column; gap:16px; padding:16px 20px; }
 
-/* ДВЕ колонки: слева стек, справа фото — так убираем большую «дыру» */
-.addprod-grid{
-  display:grid; gap:20px;
-  grid-template-columns: minmax(0,1fr) var(--photos-col-w);
-  align-items:start;
-}
+.addprod-grid{ display:grid; gap:20px; grid-template-columns: minmax(0,1fr); }
 
-/* левая колонка — стек */
 .left-col{ display:flex; flex-direction:column; gap:14px; }
 
-/* строка Название / Код */
-.row-name-code{
-  display:grid; gap:16px;
-  grid-template-columns: minmax(0,1fr) 200px; /* код ужат */
+/* объединенный блок */
+.card.merged-head{ display:flex; flex-direction:column; gap:16px; }
+.merged-grid{
+  display:grid;
+  grid-template-columns: 1fr var(--photos-col-w);
+  gap:20px;
+  align-items:start;
+}
+.price-block{
+  border-top:1px solid #e6ebf2;
+  padding-top:14px;
 }
 
 /* поля */
@@ -72,7 +69,7 @@
 .form-row.three > input, .form-row.four > input{ flex:1; }
 .form-row.radios{ flex-direction:row; align-items:center; gap:18px; }
 
-/* фотоколонка — компактная */
+/* фотоколонка */
 .photos-col{ display:flex; flex-direction:column; gap:10px; }
 .photo-main{
   width:100%; height: var(--photo-main-h);
@@ -86,8 +83,6 @@
   background:#fff; color:#e12a2a; font-weight:700; font-size:13px; cursor:pointer;
   box-shadow:0 1px 4px rgba(0,0,0,.12);
 }
-
-/* 9 миниатюр — 3 × 3 */
 .photo-thumbs{ display:grid; grid-template-columns: repeat(3, 1fr); gap: var(--thumb-gap); }
 .thumb{
   position:relative; border:1.5px solid #d0d7e2; border-radius:10px; overflow:hidden;
@@ -111,11 +106,10 @@
 
 /* адаптив */
 @media (max-width: 900px){
-  .addprod-grid{ grid-template-columns: 1fr; }
+  .merged-grid{ grid-template-columns: 1fr; }
   .photos-col{ order: 2; }
 }
 @media (max-width: 720px){
   .addprod-topbar{ height: 52px; padding: 0 14px; }
   .addprod-form{ padding: 12px 14px; }
-  .row-name-code{ grid-template-columns: 1fr; }
 }
