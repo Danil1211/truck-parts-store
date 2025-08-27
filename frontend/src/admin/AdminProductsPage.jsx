@@ -123,7 +123,7 @@ function EditableCell({
             background: "transparent",
             border: "1px solid transparent",
             padding: 2,
-            marginLeft: 4,   // 🔑 делает его прям в конце строки
+            marginLeft: 4,
             borderRadius: 6,
             cursor: "pointer",
             lineHeight: 0
@@ -167,7 +167,7 @@ export default function AdminProductsPage() {
     (async () => {
       try {
         const [prodsRes, groupsRes] = await Promise.all([
-          api.get("/api/products/admin"),   // 👈 вместо /api/products
+          api.get("/api/products/admin"),
           api.get("/api/groups"),
         ]);
 
@@ -209,7 +209,7 @@ export default function AdminProductsPage() {
 
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
-  // ✅ теперь поддерживает {silent:true} для пакетного удаления без повторных confirm
+  // поддерживает {silent:true} для пакетного удаления
   const handleDelete = async (id, opts = {}) => {
     if (!opts.silent) {
       if (!window.confirm("Удалить позицию?")) return;
@@ -223,7 +223,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Сохраняем только изменяемое поле, через PATCH — ничего лишнего не трогаем
   const handleEditField = async (id, field, value) => {
     try {
       await api.patch(`/api/products/${id}`, { [field]: value });
@@ -248,11 +247,11 @@ export default function AdminProductsPage() {
     return true;
   });
 
-  // считаем процент для тарифа Free (1000 позиций)
+  // процент для тарифа Free (1000 позиций)
   const percent = Math.min((filtered.length / 1000) * 100, 100);
-  let quotaColor = "#0a84ff"; // blue
-  if (percent >= 95) quotaColor = "#ef4444"; // red
-  else if (percent >= 80) quotaColor = "#f59e0b"; // orange
+  let quotaColor = "#0a84ff";
+  if (percent >= 95) quotaColor = "#ef4444";
+  else if (percent >= 80) quotaColor = "#f59e0b";
 
   return (
     <div className="products-page">
@@ -457,10 +456,11 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
               <span />
             </label>
           </div>
-          <div className="cell-photo"></div>
 
-          {/* Кнопка + выпадающее меню (строгий минимализм) */}
-          <div className="cell-name">
+          {/* Скрываем фото-колонку и тянем «Действия…» ближе к чекбоксу */}
+          <div className="cell-photo hide-in-bulk"></div>
+
+          <div className="cell-name bulk-wide">
             <div className={`bulk-dd ${bulkOpen ? "open" : ""}`}>
               <button className="bulk-dd-toggle" onClick={() => setBulkOpen(v => !v)}>
                 Действия для {selectedIds.length} позиций ▾
@@ -627,7 +627,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
             </span>
           )}
         />
-        {/* status (опубликован/скрытый) */}
+        {/* status */}
         <EditableCell
           value={product.status}
           type="select"
@@ -744,7 +744,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
         value={perPage}
         onChange={(e) => {
           onPerPageChange(Number(e.target.value));
-          onPageChange(1); // при смене "по N" возвращаем на 1-ю страницу
+          onPageChange(1);
         }}
       >
         {[10, 20, 50, 100].map((n) => (

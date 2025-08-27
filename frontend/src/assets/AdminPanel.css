@@ -771,11 +771,8 @@ html, body {
   background: rgba(217,45,32,0.08);
 }
 
-/* ===================== BULK ACTIONS DROPDOWN (Apple minimal) ===================== */
-.bulk-dd{
-  position: relative;
-  display: inline-block;
-}
+/* ===================== BULK ACTIONS DROPDOWN — compact ===================== */
+.bulk-dd{ position: relative; display: inline-block; }
 
 .bulk-dd-toggle{
   background: transparent;
@@ -784,30 +781,26 @@ html, body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 4px 8px;          /* было 6x10 */
   border-radius: 8px;
   transition: background .18s ease;
   outline: none;
 }
-.bulk-dd-toggle:hover{
-  background: rgba(15,23,42,0.06);
-}
-.bulk-dd-toggle:focus-visible{
-  box-shadow: 0 0 0 3px rgba(17,127,255,0.20);
-}
+.bulk-dd-toggle:hover{ background: rgba(15,23,42,0.06); }
+.bulk-dd-toggle:focus-visible{ box-shadow: 0 0 0 3px rgba(17,127,255,0.20); }
 
-/* Меню скрыто по умолчанию, показываем только при .open */
+/* компактное меню */
 .bulk-dd-menu{
   display: none;
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px);     /* было +6px */
   left: 0;
-  min-width: 200px;
+  min-width: 160px;          /* было 200px */
   background: #fff;
   border: 1px solid #e1e7ef;
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
-  padding: 6px 0;
+  border-radius: 10px;       /* было 12px */
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05); /* чуть мягче и меньше */
+  padding: 4px 0;            /* было 6px 0 */
   z-index: 20;
 }
 .bulk-dd.open .bulk-dd-menu{ display: block; }
@@ -815,10 +808,11 @@ html, body {
 .bulk-dd-item{
   display: block;
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 12px;         /* было 10px 14px */
   text-align: left;
-  font-size: 14px;
-  color: var(--text-main, #0f172a); /* чёрный, без красного */
+  font-size: 13px;           /* было 14px */
+  line-height: 1.25;
+  color: var(--text-main, #0f172a); /* чёрный */
   background: none;
   border: none;
   cursor: pointer;
@@ -826,9 +820,25 @@ html, body {
   outline: none;
 }
 .bulk-dd-item:hover{
-  background: rgba(15,23,42,0.06); /* мягкий серый hover */
+  background: rgba(15,23,42,0.06);
 }
 .bulk-dd-item:focus-visible{
   background: rgba(15,23,42,0.06);
-  box-shadow: inset 0 0 0 2px rgba(17,127,255,0.20);
+  box-shadow: inset 0 0 0 2px rgba(17,127,255,0.18);
+}
+
+/* Сдвиг "Действия для N позиций" ближе к чекбоксу */
+.products-bulk-header .hide-in-bulk{
+  display: none;                /* убираем пустую колонку фото только в bulk-строке */
+}
+
+.products-bulk-header .bulk-wide{
+  grid-column: 2 / span 4;      /* начинаем с колонки, где обычно фото */
+}
+
+/* На узких экранах растянем до конца, чтобы было читабельно */
+@media (max-width: 800px){
+  .products-bulk-header .bulk-wide{
+    grid-column: 2 / -1;
+  }
 }
