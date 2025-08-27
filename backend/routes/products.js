@@ -1,4 +1,3 @@
-// backend/routes/products.js
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -42,8 +41,6 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
 });
-
-const toArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
 
 function parseQueries(v) {
   if (Array.isArray(v)) return v.filter(Boolean);
@@ -102,7 +99,7 @@ function mapFilesToPublicPaths(files) {
 router.get("/public/showcase", async (req, res) => {
   try {
     const products = await Product.find({
-      tenantId: req.tenantId, // ✅ фильтр по магазину
+      tenantId: req.tenantId,
       deleted: { $ne: true },
       showcase: true,
     })
@@ -120,7 +117,7 @@ router.get("/", async (req, res) => {
   try {
     const filter = buildFilterFromQuery(req.query);
     filter.tenantId = req.tenantId;
-    filter.deleted = { $ne: true };   // 👈 добавили
+    filter.deleted = { $ne: true };
 
     const items = await Product.find(filter).sort({ updatedAt: -1 });
     res.json(items);
@@ -136,7 +133,7 @@ router.get("/admin", authMiddleware, async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const filter = buildFilterFromQuery(req.query);
     filter.tenantId = req.tenantId;
-    filter.deleted = { $ne: true };   // 👈 добавили
+    filter.deleted = { $ne: true };
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
@@ -159,7 +156,10 @@ router.get("/admin", authMiddleware, async (req, res) => {
 // карточка
 router.get("/:id", async (req, res) => {
   try {
-    const product = await Product.findOne({ _id: req.params.id, tenantId: req.tenantId }); // ✅
+    const product = await Product.findOne({
+      _id: req.params.id,
+      tenantId: req.tenantId,
+    });
     if (!product || product.deleted) {
       return res.status(404).json({ error: "Товар не найден" });
     }
@@ -195,7 +195,7 @@ router.post(
       }
 
       const productData = {
-        tenantId: req.tenantId, // ✅
+        tenantId: req.tenantId,
         name: body.name || undefined,
         sku: body.sku || "",
         description: body.description || "",
@@ -212,6 +212,9 @@ router.post(
         weight: toNumber(body.weight) ?? 0,
         queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
+
+        // 👇 фикс: новый товар всегда активный
+        deleted: false,
       };
 
       const product = new Product(productData);
@@ -219,7 +222,9 @@ router.post(
       res.json(product);
     } catch (err) {
       console.error("create product error:", err);
-      res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
+      res
+        .status(400)
+        .json({ error: "Ошибка при создании товара", details: err.message });
     }
   }
 );
@@ -246,7 +251,6 @@ router.patch(
         }
       }
 
-      // 🔑 Обновляем только реально переданные поля
       const update = { updatedAt: new Date() };
 
       if ("name" in body) update.name = body.name;
@@ -265,13 +269,12 @@ router.patch(
       if ("weight" in body) update.weight = toNumber(body.weight);
       if ("queries" in body) update.queries = parseQueries(body.queries);
 
-      // Картинки обновляем только если пришли
       if (serverImages.length || uploadedImages.length) {
         update.images = [...serverImages, ...uploadedImages];
       }
 
       const product = await Product.findOneAndUpdate(
-        { _id: req.params.id, tenantId: req.tenantId }, // ✅
+        { _id: req.params.id, tenantId: req.tenantId },
         { $set: update },
         { new: true }
       );
@@ -280,7 +283,9 @@ router.patch(
       res.json(product);
     } catch (err) {
       console.error("update product error:", err);
-      res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
+      res
+        .status(400)
+        .json({ error: "Ошибка при обновлении товара", details: err.message });
     }
   }
 );
@@ -288,7 +293,7 @@ router.patch(
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const p = await Product.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId }, // ✅
+      { _id: req.params.id, tenantId: req.tenantId },
       { deleted: true },
       { new: true }
     );
