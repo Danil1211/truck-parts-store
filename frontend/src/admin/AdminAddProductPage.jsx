@@ -7,7 +7,10 @@ import "../assets/AdminPanel.css";
 import "../assets/AdminAddProductPage.css";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-const MAX_IMAGES = 10; // 1 главный + до 9 миниатюр
+
+// 1 главный + 9 миниатюр
+const MAX_THUMBS = 9;
+const MAX_IMAGES = 1 + MAX_THUMBS;
 
 export default function AdminAddProductPage() {
   const navigate = useNavigate();
@@ -61,9 +64,7 @@ export default function AdminAddProductPage() {
           queries: setQueries,
           width: setWidth, height: setHeight, length: setLength, weight: setWeight,
         };
-        Object.keys(setters).forEach((k) => {
-          if (obj[k] !== undefined) setters[k](obj[k]);
-        });
+        Object.keys(setters).forEach((k) => obj[k] !== undefined && setters[k](obj[k]));
       } catch {}
     }
   }, []);
@@ -80,17 +81,16 @@ export default function AdminAddProductPage() {
     width, height, length, weight
   ]);
 
-  // ===== Подгрузка групп =====
+  // Группы
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get("/api/groups/tree");
         const flat = [];
-        const walk = (arr) =>
-          arr.forEach((g) => {
-            if (g.name !== "Родительская группа") flat.push(g);
-            if (g.children?.length) walk(g.children);
-          });
+        const walk = (arr) => arr.forEach((g) => {
+          if (g.name !== "Родительская группа") flat.push(g);
+          if (g.children?.length) walk(g.children);
+        });
         walk(data);
         setGroups(flat);
       } catch (err) {
@@ -99,7 +99,7 @@ export default function AdminAddProductPage() {
     })();
   }, []);
 
-  // SEO title = имя
+  // SEO title из имени
   useEffect(() => { if (name) setSeoTitle(name); }, [name]);
 
   // ===== Картинки =====
@@ -174,15 +174,15 @@ export default function AdminAddProductPage() {
     }
   };
 
-  // Сколько пустых ячеек показать под миниатюры (чтобы всегда было видно до 9)
-  const emptyThumbs = Math.max(0, MAX_IMAGES - images.length);
+  // Сколько пустых миниатюр нужно дорисовать (строго 9)
+  const thumbsCount = Math.max(0, images.length - 1); // реальных миниатюр
+  const emptyThumbs = Math.max(0, MAX_THUMBS - thumbsCount);
 
   return (
     <div className="add-prod products-page">
-      {/* Субменю «Товары» */}
       <AdminSubMenu type="products" activeKey="create" />
 
-      {/* Верхняя полоса (строго, без скруглений) */}
+      {/* Узкая шапка на всю ширину, без скруглений */}
       <div className="addprod-topbar">
         <button className="btn-ghost" onClick={() => navigate("/admin/products")}>← Назад</button>
         <button type="submit" form="add-prod-form" disabled={isSaving} className="btn-primary">
@@ -190,69 +190,35 @@ export default function AdminAddProductPage() {
         </button>
       </div>
 
-      {/* Форма */}
       <form id="add-prod-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="addprod-grid">
-          {/* Название (широкое) */}
-          <div className="field-col">
-            <label>Название*</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Введите название товара" />
-          </div>
-
-          {/* Код (ужатый) */}
-          <div className="field-col field-col--code">
-            <label>Код</label>
-            <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул / код" />
-          </div>
-
-          {/* Фото (компактнее) */}
-          <div className="photos-col">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              ref={inputFileRef}
-              style={{ display: "none" }}
-              onChange={handleImageChange}
-            />
-            <div className="photo-main" onClick={() => inputFileRef.current?.click()}>
-              {images[0] ? <img src={images[0].url} alt="" /> : <span>+</span>}
-              {images[0] && (
-                <button type="button" className="photo-remove" onClick={() => handleRemoveImage(images[0].id)}>×</button>
-              )}
+          {/* ЛЕВАЯ КОЛОНКА — стек */}
+          <div className="left-col">
+            {/* Название + Код в одной строке */}
+            <div className="row-name-code">
+              <div className="field-col">
+                <label>Название*</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Введите название товара" />
+              </div>
+              <div className="field-col field-col--code">
+                <label>Код</label>
+                <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул / код" />
+              </div>
             </div>
 
-            <div className="photo-thumbs">
-              {images.slice(1).map((img) => (
-                <div key={img.id} className="thumb">
-                  <img src={img.url} alt="" />
-                  <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
-                </div>
-              ))}
-
-              {/* Пустые ячейки для добора до 10 штук (1 главный + 9 миниатюр) */}
-              {Array.from({ length: emptyThumbs }).map((_, i) => (
-                <div key={`add-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
-              ))}
+            {/* Описание — сразу под строкой выше */}
+            <div className="card">
+              <div className="card-title">Описание</div>
+              <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
             </div>
-          </div>
 
-          {/* Описание — сразу под Названием/Кодом (занимает 2 колонки слева) */}
-          <div className="desc-card card">
-            <div className="card-title">Описание</div>
-            <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
-          </div>
-
-          {/* Ниже: всё остальное «как было», аккуратно стопкой в 2-х левых колонках */}
-          <div className="main-stack">
-            {/* Характеристики */}
+            {/* Остальные блоки ниже — как и было */}
             <div className="card">
               <div className="card-title">Характеристики</div>
               <div className="form-row"><label>Цвет</label><input value={charColor} onChange={(e) => setCharColor(e.target.value)} /></div>
               <div className="form-row"><label>Производитель</label><input value={charBrand} onChange={(e) => setCharBrand(e.target.value)} /></div>
             </div>
 
-            {/* SEO */}
             <div className="card">
               <div className="card-title">SEO</div>
               <div className="form-row"><label>Title</label><input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} /></div>
@@ -260,7 +226,6 @@ export default function AdminAddProductPage() {
               <div className="form-row"><label>Keywords</label><input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} /></div>
             </div>
 
-            {/* Поисковые запросы */}
             <div className="card">
               <div className="card-title">Поисковые запросы</div>
               <input
@@ -276,7 +241,6 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Габариты */}
             <div className="card">
               <div className="card-title">Габариты</div>
               <div className="form-row four">
@@ -287,7 +251,6 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Группа */}
             <div className="card">
               <div className="card-title">Группа</div>
               <select value={group} onChange={(e) => setGroup(e.target.value)} required>
@@ -296,7 +259,6 @@ export default function AdminAddProductPage() {
               </select>
             </div>
 
-            {/* Цена и наличие */}
             <div className="card">
               <div className="card-title">Цена и наличие</div>
               <div className="form-row three">
@@ -309,6 +271,37 @@ export default function AdminAddProductPage() {
                 <label><input type="radio" name="av" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> Черновик</label>
                 <label><input type="radio" name="av" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> Скрыт</label>
               </div>
+            </div>
+          </div>
+
+          {/* ПРАВАЯ КОЛОНКА — фото (компактно) */}
+          <div className="photos-col">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              ref={inputFileRef}
+              style={{ display: "none" }}
+              onChange={handleImageChange}
+            />
+
+            <div className="photo-main" onClick={() => inputFileRef.current?.click()}>
+              {images[0] ? <img src={images[0].url} alt="" /> : <span>+</span>}
+              {images[0] && (
+                <button type="button" className="photo-remove" onClick={() => handleRemoveImage(images[0].id)}>×</button>
+              )}
+            </div>
+
+            <div className="photo-thumbs">
+              {images.slice(1).map((img) => (
+                <div key={img.id} className="thumb">
+                  <img src={img.url} alt="" />
+                  <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
+                </div>
+              ))}
+              {Array.from({ length: emptyThumbs }).map((_, i) => (
+                <div key={`add-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+              ))}
             </div>
           </div>
         </div>
