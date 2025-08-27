@@ -411,6 +411,12 @@ html,body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Canta
 
 /* ===================== ADD PRODUCT PAGE ===================== */
 
+/* убираем пустоту слева на AddProductPage */
+.admin-content.with-submenu .add-prod-page {
+  margin-left: calc(-1 * var(--submenu-w));
+  padding-left: 20px; /* внутренний отступ оставляем */
+}
+
 .add-prod-page {
   padding: 20px;
   background: var(--bg);
