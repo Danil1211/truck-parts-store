@@ -1,14 +1,15 @@
 /* ========================================================================
-   AdminAddProductPage — изолированные стили
+   AdminAddProductPage — изолированные стили (фикс ширины + центрирование)
    ======================================================================== */
 
 .add-prod-page {
   padding: 20px 24px;
   background: var(--bg);
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center; /* центрируем содержимое */
 }
 
 /* убираем пустоту слева при submenu */
@@ -27,7 +28,9 @@
   border-radius: 14px;
   padding: 14px 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,.05);
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
+  width: 100%;
+  max-width: 1400px; /* та же ширина что и форма */
 }
 .add-prod-header .btn-back {
   background: #f2f6fb;
@@ -50,6 +53,8 @@
   gap: 28px;
   align-items: flex-start;
   width: 100%;
+  max-width: 1400px; /* ограничение по ширине */
+  margin: 0 auto; /* центрируем */
 }
 .add-prod-main {
   display: flex;
