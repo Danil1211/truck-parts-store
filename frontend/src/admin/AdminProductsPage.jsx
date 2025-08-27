@@ -222,10 +222,36 @@ export default function AdminProductsPage() {
     setGroup(String(groupId));
   }, []);
 
+  // ===== фильтрация =====
   const filtered = products.filter((p) => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
-    if (search && !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))) return false;
+
+    // нормализация запроса: убираем NBSP, обрезаем, к нижнему регистру
+    const normalize = (s) =>
+      (s ?? "")
+        .toString()
+        .replace(/\u00A0/g, " ")   // NBSP -> обычный пробел
+        .toLowerCase()
+        .trim();
+
+    // вариант без пробелов — удобен для кода/артикулов
+    const normalizeNoSpaces = (s) => normalize(s).replace(/\s+/g, "");
+
+    const q = normalize(search);               // "   проблeм017-0000  " -> "проблeм017-0000"
+    const qNoSpaces = normalizeNoSpaces(search);
+
+    if (q) {
+      const name = normalize(p.name);
+      const sku = normalize(p.sku);
+      const skuNoSpaces = normalizeNoSpaces(p.sku);
+
+      const nameMatch = name.includes(q);
+      const skuMatch  = sku.includes(q) || skuNoSpaces.includes(qNoSpaces);
+
+      if (!nameMatch && !skuMatch) return false;
+    }
+
     if (status && p.availability !== status) return false;
     return true;
   });
