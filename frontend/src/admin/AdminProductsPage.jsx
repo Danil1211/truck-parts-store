@@ -1,4 +1,3 @@
-// frontend/src/admin/AdminProductsPage.jsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
@@ -26,9 +25,7 @@ function EditableCell({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
 
-  useEffect(() => {
-    setDraft(value ?? "");
-  }, [value]);
+  useEffect(() => { setDraft(value ?? ""); }, [value]);
 
   const commit = () => {
     setEditing(false);
@@ -50,19 +47,12 @@ function EditableCell({
           onBlur={commit}
           className="editable-input"
           style={{
-            height: 32,
-            borderRadius: 10,
-            border: "1.5px solid #d0d7e2",
-            background: "#f9fbfd",
-            padding: "0 10px",
-            fontSize: 14,
-            outline: "none",
+            height: 32, borderRadius: 10, border: "1.5px solid #d0d7e2",
+            background: "#f9fbfd", padding: "0 10px", fontSize: 14, outline: "none",
           }}
         >
           {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       );
@@ -80,13 +70,8 @@ function EditableCell({
         }}
         className="editable-input"
         style={{
-          height: 32,
-          borderRadius: 10,
-          border: "1.5px solid #d0d7e2",
-          background: "#f9fbfd",
-          padding: "0 10px",
-          fontSize: 14,
-          outline: "none",
+          height: 32, borderRadius: 10, border: "1.5px solid #d0d7e2",
+          background: "#f9fbfd", padding: "0 10px", fontSize: 14, outline: "none",
           maxWidth: type === "number" ? 120 : "100%",
         }}
       />
@@ -94,14 +79,8 @@ function EditableCell({
   }
 
   return (
-    <span
-      className="editable-cell"
-      style={{ display: "inline-flex", alignItems: "center", minWidth: 0 }}
-    >
-      <span
-        className="editable-text"
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}
-      >
+    <span className="editable-cell" style={{ display: "inline-flex", alignItems: "center", minWidth: 0 }}>
+      <span className="editable-text" style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
         {renderDisplay ? renderDisplay(value) : <span>{value ?? "—"}</span>}
         <button
           type="button"
@@ -113,24 +92,12 @@ function EditableCell({
             transition: "opacity .18s ease",
             background: "transparent",
             border: "1px solid transparent",
-            padding: 2,
-            marginLeft: 4,
-            borderRadius: 6,
-            cursor: "pointer",
-            lineHeight: 0,
+            padding: 2, marginLeft: 4, borderRadius: 6, cursor: "pointer", lineHeight: 0,
           }}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ color: "#64748b" }}
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" strokeWidth="1.8"
+               strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b" }}>
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
@@ -146,11 +113,8 @@ export default function AdminProductsPage() {
 
   // ====== Фильтры (инициализация из localStorage) ======
   const initialFilters = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(LS_FILTERS_KEY) || "{}");
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(LS_FILTERS_KEY) || "{}"); }
+    catch { return {}; }
   })();
 
   const [search, setSearch] = useState(initialFilters.search || "");
@@ -159,7 +123,7 @@ export default function AdminProductsPage() {
   const [noPhoto, setNoPhoto] = useState(Boolean(initialFilters.noPhoto));
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const filterRef = useRef(null); // реф именно на поповер
+  const filterRef = useRef(null);
 
   const [products, setProducts] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -172,10 +136,7 @@ export default function AdminProductsPage() {
     v === "hidden" ? "Статус: Скрытый" : v;
 
   const groupNameById = useCallback(
-    (id) => {
-      const g = groups.find((x) => x._id === id);
-      return g ? g.name : "—";
-    },
+    (id) => groups.find((x) => x._id === id)?.name || "—",
     [groups]
   );
 
@@ -187,20 +148,18 @@ export default function AdminProductsPage() {
           api.get("/api/products/admin"),
           api.get("/api/groups"),
         ]);
-
         const data = prodsRes.data;
         setProducts(Array.isArray(data) ? data : []);
         setLoading(false);
 
-        const groupsData = groupsRes.data || [];
         const flat = [];
         const flatten = (arr) => {
           arr.forEach((g) => {
             if (g.name !== "Родительская группа") flat.push(g);
-            if (g.children && g.children.length) flatten(g.children);
+            if (g.children?.length) flatten(g.children);
           });
         };
-        flatten(groupsData);
+        flatten(groupsRes.data || []);
         setGroups(flat);
       } catch (e) {
         setLoading(false);
@@ -209,29 +168,23 @@ export default function AdminProductsPage() {
     })();
   }, []);
 
-  // Сохраняем фильтры в localStorage при изменении
+  // Сохраняем фильтры
   useEffect(() => {
     try {
-      localStorage.setItem(
-        LS_FILTERS_KEY,
-        JSON.stringify({ search, group, status, noPhoto })
-      );
+      localStorage.setItem(LS_FILTERS_KEY, JSON.stringify({ search, group, status, noPhoto }));
     } catch {}
   }, [search, group, status, noPhoto]);
 
-  // Закрыть фильтры по клику вне поповера и по Esc
+  // Закрыть поповер по клику вне и по Esc
   useEffect(() => {
     if (!filtersOpen) return;
     const onDocClick = (e) => {
       const popover = filterRef.current;
-      const clickInsidePopover = popover && popover.contains(e.target);
-      const clickOnToggle = !!e.target.closest(".filters-toggle");
-      if (!clickInsidePopover && !clickOnToggle) {
-        setFiltersOpen(false);
-      }
+      const inside = popover && popover.contains(e.target);
+      const onToggle = !!e.target.closest(".filters-toggle");
+      if (!inside && !onToggle) setFiltersOpen(false);
     };
     const onEsc = (e) => e.key === "Escape" && setFiltersOpen(false);
-
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onEsc);
     return () => {
@@ -243,9 +196,7 @@ export default function AdminProductsPage() {
   const handleEdit = (id) => navigate(`/admin/products/${id}/edit`);
 
   const handleDelete = async (id, opts = {}) => {
-    if (!opts.silent) {
-      if (!window.confirm("Удалить позицию?")) return;
-    }
+    if (!opts.silent && !window.confirm("Удалить позицию?")) return;
     try {
       await api.delete(`/api/products/${id}`);
       setProducts((p) => p.filter((prod) => prod._id !== id));
@@ -258,31 +209,23 @@ export default function AdminProductsPage() {
   const handleEditField = async (id, field, value) => {
     try {
       await api.patch(`/api/products/${id}`, { [field]: value });
-      setProducts((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, [field]: value } : p))
-      );
+      setProducts((prev) => prev.map((p) => (p._id === id ? { ...p, [field]: value } : p)));
     } catch (e) {
       console.error("Ошибка при сохранении:", e);
       alert("Не удалось сохранить изменения");
     }
   };
 
-  // Быстрый фильтр по группе (клик по подписи группы в строке товара)
+  // Быстрый фильтр по группе (клик по подписи)
   const handleQuickFilterGroup = useCallback((groupId) => {
     if (!groupId) return;
     setGroup(String(groupId));
-    // Чуть прокрутим к началу списка (опционально)
-    // window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const filtered = products.filter((p) => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
-    if (
-      search &&
-      !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))
-    )
-      return false;
+    if (search && !(p.name?.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.includes(search)))) return false;
     if (status && p.availability !== status) return false;
     return true;
   });
@@ -300,10 +243,7 @@ export default function AdminProductsPage() {
       {!loading && (
         <div className="quota-progress" onClick={() => setQuotaOpen(true)}>
           <div className="quota-bar-vertical">
-            <div
-              className="quota-fill-vertical"
-              style={{ height: `${percent}%`, background: quotaColor }}
-            />
+            <div className="quota-fill-vertical" style={{ height: `${percent}%`, background: quotaColor }} />
           </div>
           <span className="quota-text-vertical">{Math.round(percent)}%</span>
         </div>
@@ -312,19 +252,14 @@ export default function AdminProductsPage() {
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
-            <button className="quota-close" onClick={() => setQuotaOpen(false)}>
-              ×
-            </button>
-
+            <button className="quota-close" onClick={() => setQuotaOpen(false)}>×</button>
             <h3 className="quota-title">Добавлено {Math.round(percent)}% товаров</h3>
             <hr className="quota-divider" />
-
             <div className="quota-details">
               <div><strong>Лимит товаров:</strong> 1000</div>
               <div>• <strong>Добавлено:</strong> {filtered.length} з 1000</div>
               <div>• <strong>Опубликовано:</strong> {filtered.filter(p => p.status === "published").length} з 1000</div>
             </div>
-
             <div className="quota-remaining">Можно добавить еще: {1000 - filtered.length} товаров</div>
           </div>
         </div>
@@ -339,10 +274,7 @@ export default function AdminProductsPage() {
 
           {/* Фильтры */}
           <div className="filters" style={{ order: 1 }}>
-            <button
-              className="filters-toggle"
-              onClick={() => setFiltersOpen((v) => !v)}
-            >
+            <button className="filters-toggle" onClick={() => setFiltersOpen((v) => !v)}>
               Фильтры
             </button>
 
@@ -350,26 +282,18 @@ export default function AdminProductsPage() {
               <div className="filters-popover" ref={filterRef}>
                 <select
                   value={group}
-                  onChange={(e) => {
-                    setGroup(e.target.value);
-                    setFiltersOpen(false); // авто-закрытие при выборе
-                  }}
+                  onChange={(e) => { setGroup(e.target.value); setFiltersOpen(false); }}
                   className="filters-select"
                 >
                   <option value="all">Все группы</option>
                   {groups.map((g) => (
-                    <option key={g._id} value={g._id}>
-                      {g.name}
-                    </option>
+                    <option key={g._id} value={g._id}>{g.name}</option>
                   ))}
                 </select>
 
                 <select
                   value={status}
-                  onChange={(e) => {
-                    setStatus(e.target.value);
-                    setFiltersOpen(false); // авто-закрытие при выборе
-                  }}
+                  onChange={(e) => { setStatus(e.target.value); setFiltersOpen(false); }}
                   className="filters-select"
                 >
                   <option value="">Все</option>
@@ -382,18 +306,12 @@ export default function AdminProductsPage() {
                   <input
                     type="checkbox"
                     checked={noPhoto}
-                    onChange={(e) => {
-                      setNoPhoto(e.target.checked);
-                      setFiltersOpen(false); // авто-закрытие при выборе
-                    }}
+                    onChange={(e) => { setNoPhoto(e.target.checked); setFiltersOpen(false); }}
                   />
                   Без фото
                 </label>
 
-                <button
-                  className="filters-apply"
-                  onClick={() => setFiltersOpen(false)}
-                >
+                <button className="filters-apply" onClick={() => setFiltersOpen(false)}>
                   Применить
                 </button>
               </div>
@@ -422,32 +340,17 @@ export default function AdminProductsPage() {
         {!loading && (group !== "all" || status || noPhoto) && (
           <div className="products-chips-row">
             {group !== "all" && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setGroup("all")}
-                title="Сбросить фильтр группы"
-              >
+              <button type="button" className="filter-chip" onClick={() => setGroup("all")} title="Сбросить фильтр группы">
                 Группа: {groupNameById(group)} <span aria-hidden>×</span>
               </button>
             )}
             {status && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setStatus("")}
-                title="Сбросить фильтр статуса"
-              >
+              <button type="button" className="filter-chip" onClick={() => setStatus("")} title="Сбросить фильтр статуса">
                 {statusLabel(status)} <span aria-hidden>×</span>
               </button>
             )}
             {noPhoto && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setNoPhoto(false)}
-                title="Сбросить фильтр «Без фото»"
-              >
+              <button type="button" className="filter-chip" onClick={() => setNoPhoto(false)} title="Сбросить фильтр «Без фото»">
                 Без фото <span aria-hidden>×</span>
               </button>
             )}
@@ -459,9 +362,7 @@ export default function AdminProductsPage() {
           {selected === "list" && (
             <>
               {loading ? (
-                <div className="loader-wrap">
-                  <div className="loader" />
-                </div>
+                <div className="loader-wrap"><div className="loader" /></div>
               ) : (
                 <GroupsContext.Provider value={{ groups }}>
                   <ProductList
@@ -469,7 +370,8 @@ export default function AdminProductsPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onEditField={handleEditField}
-                    onQuickFilterGroup={handleQuickFilterGroup}  // ⬅️ передаём быстрый фильтр
+                    onQuickFilterGroup={handleQuickFilterGroup}
+                    activeGroup={group}                // ⬅️ передаём выбранную группу
                   />
                 </GroupsContext.Provider>
               )}
@@ -482,7 +384,7 @@ export default function AdminProductsPage() {
 }
 
 /* ================== ProductList + ProductRow ================== */
-function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGroup }) {
+function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGroup, activeGroup }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
 
   // Пагинация с сохранением perPage в localStorage
@@ -492,24 +394,16 @@ function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGro
     return [10, 20, 50, 100].includes(saved) ? saved : 20;
   });
 
-  useEffect(() => {
-    localStorage.setItem(LS_PER_PAGE_KEY, String(perPage));
-  }, [perPage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [products.length, perPage]);
+  useEffect(() => { localStorage.setItem(LS_PER_PAGE_KEY, String(perPage)); }, [perPage]);
+  useEffect(() => { setPage(1); }, [products.length, perPage]);
 
   const paginated = products.slice((page - 1) * perPage, page * perPage);
   const idsOnPage = paginated.map((p) => p._id);
   const allSelected = paginated.length > 0 && idsOnPage.every((id) => selectedIds.includes(id));
 
   const toggleAll = () => {
-    if (allSelected) {
-      setSelectedIds((prev) => prev.filter((id) => !idsOnPage.includes(id)));
-    } else {
-      setSelectedIds((prev) => Array.from(new Set([...prev, ...idsOnPage])));
-    }
+    if (allSelected) setSelectedIds((prev) => prev.filter((id) => !idsOnPage.includes(id)));
+    else setSelectedIds((prev) => Array.from(new Set([...prev, ...idsOnPage])));
   };
   const toggleOne = (id) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -518,39 +412,23 @@ function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGro
   const [bulkOpen, setBulkOpen] = React.useState(false);
   useEffect(() => {
     if (!bulkOpen) return;
-    const close = (e) => {
-      if (!e.target.closest(".bulk-dd")) setBulkOpen(false);
-    };
+    const close = (e) => { if (!e.target.closest(".bulk-dd")) setBulkOpen(false); };
     const onEsc = (e) => e.key === "Escape" && setBulkOpen(false);
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", onEsc);
-    };
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", onEsc); };
   }, [bulkOpen]);
 
   const bulkDelete = async () => {
     if (!selectedIds.length) return;
     if (!window.confirm(`Удалить выбранные ${selectedIds.length} позиций?`)) return;
-    for (const id of selectedIds) {
-      await onDelete(id, { silent: true });
-    }
-    setSelectedIds([]);
-    setBulkOpen(false);
+    for (const id of selectedIds) await onDelete(id, { silent: true });
+    setSelectedIds([]); setBulkOpen(false);
   };
 
   if (products.length === 0) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "120px 20px",
-          fontSize: 18,
-          color: "#8e9baa",
-          fontWeight: 400,
-        }}
-      >
+      <div style={{ textAlign: "center", padding: "120px 20px", fontSize: 18, color: "#8e9baa", fontWeight: 400 }}>
         Нет товаров
       </div>
     );
@@ -566,23 +444,17 @@ function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGro
               <span />
             </label>
           </div>
-
           <div className="cell-photo hide-in-bulk"></div>
-
           <div className="cell-name bulk-wide">
             <div className={`bulk-dd ${bulkOpen ? "open" : ""}`}>
               <button className="bulk-dd-toggle" onClick={() => setBulkOpen((v) => !v)}>
                 Действия для {selectedIds.length} позиций ▾
               </button>
-
               <div className="bulk-dd-menu" role="menu" aria-hidden={!bulkOpen}>
-                <button className="bulk-dd-item" onClick={bulkDelete}>
-                  Удалить
-                </button>
+                <button className="bulk-dd-item" onClick={bulkDelete}>Удалить</button>
               </div>
             </div>
           </div>
-
           <div className="cell-date"></div>
           <div className="cell-sku"></div>
           <div className="cell-state"></div>
@@ -618,7 +490,8 @@ function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGro
           onEdit={onEdit}
           onDelete={onDelete}
           onEditField={onEditField}
-          onQuickFilterGroup={onQuickFilterGroup}   // ⬅️ вниз
+          onQuickFilterGroup={onQuickFilterGroup}
+          activeGroup={activeGroup}              // ⬅️ передаём, чтобы подсветить
         />
       ))}
 
@@ -627,16 +500,15 @@ function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGro
         perPage={perPage}
         page={page}
         onPageChange={setPage}
-        onPerPageChange={(n) => {
-          setPerPage(n);
-          setPage(1);
-        }}
+        onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
       />
     </div>
   );
 }
 
-function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField, onQuickFilterGroup }) {
+function ProductRow({
+  product, selected, onToggle, onEdit, onDelete, onEditField, onQuickFilterGroup, activeGroup
+}) {
   const [open, setOpen] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
   const ref = React.useRef(null);
@@ -650,7 +522,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
   }, [open]);
 
   const photoUrl =
-    product.images && product.images.length
+    product.images?.length
       ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
@@ -662,18 +534,14 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
     groupName = product.group.name || "—";
   } else if (typeof product.group === "string") {
     groupIdValue = product.group;
-    const found = groups.find((g) => g._id === product.group);
-    if (found) groupName = found.name;
+    groupName = groups.find((g) => g._id === product.group)?.name || "—";
   }
 
   const canQuickFilter = Boolean(groupIdValue);
+  const isActiveGroup = canQuickFilter && String(activeGroup) !== "all" && String(activeGroup) === String(groupIdValue);
 
   return (
-    <div
-      className="product-row"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div className="product-row" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="cell-check">
         <label className="apple-checkbox">
           <input type="checkbox" checked={selected} onChange={onToggle} />
@@ -691,11 +559,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           showEditIcon={hovered}
           onSave={(val) => onEditField(product._id, "name", val)}
           renderDisplay={(val) => (
-            <Link
-              to={`/admin/products/${product._id}/edit`}
-              className="product-link two-lines"
-              style={{ display: "inline-block", verticalAlign: "top" }}
-            >
+            <Link to={`/admin/products/${product._id}/edit`} className="product-link two-lines" style={{ display: "inline-block", verticalAlign: "top" }}>
               {val || "—"}
             </Link>
           )}
@@ -706,16 +570,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
               type="button"
               title={`Показать товары группы: ${groupName}`}
               onClick={() => onQuickFilterGroup(groupIdValue)}
-              style={{
-                background: "transparent",
-                border: 0,
-                padding: 0,
-                margin: 0,
-                font: "inherit",
-                fontSize: "12.5px",
-                color: "#0a84ff",
-                cursor: "pointer",
-              }}
+              className={`product-group-btn${isActiveGroup ? " active" : ""}`}
             >
               {groupName}
             </button>
@@ -727,11 +582,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
 
       <div className="cell-date product-date">
         {product.updatedAt
-          ? new Date(product.updatedAt).toLocaleDateString("ru-RU", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit",
-            })
+          ? new Date(product.updatedAt).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" })
           : "—"}
       </div>
 
@@ -756,11 +607,7 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
           ]}
           onSave={(val) => onEditField(product._id, "availability", val)}
           renderDisplay={(val) => (
-            <span
-              className={
-                "avail " + (val === "published" ? "published" : val === "order" ? "order" : "out")
-              }
-            >
+            <span className={"avail " + (val === "published" ? "published" : val === "order" ? "order" : "out")}>
               {val === "published" ? "В наличии" : val === "order" ? "Под заказ" : "Нет на складе"}
             </span>
           )}
@@ -802,17 +649,11 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
 
       <div className="cell-actions">
         <div className="actions" ref={ref}>
-          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>
-            Действия ▾
-          </button>
+          <button className="actions-toggle" onClick={() => setOpen((v) => !v)}>Действия ▾</button>
           {open && (
             <div className="actions-menu">
-              <button className="actions-item edit" onClick={() => onEdit(product._id)}>
-                Редактировать
-              </button>
-              <button className="actions-item delete" onClick={() => onDelete(product._id)}>
-                Удалить
-              </button>
+              <button className="actions-item edit" onClick={() => onEdit(product._id)}>Редактировать</button>
+              <button className="actions-item delete" onClick={() => onDelete(product._id)}>Удалить</button>
             </div>
           )}
         </div>
@@ -825,16 +666,12 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
 function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   const pages = Math.ceil(total / perPage);
 
-  const changePage = (p) => {
-    if (p < 1 || p > pages) return;
-    onPageChange(p);
-  };
+  const changePage = (p) => { if (p < 1 || p > pages) return; onPageChange(p); };
 
   const getRange = () => {
     let arr = [];
-    if (pages <= 7) {
-      arr = Array.from({ length: pages }, (_, i) => i + 1);
-    } else {
+    if (pages <= 7) arr = Array.from({ length: pages }, (_, i) => i + 1);
+    else {
       if (page <= 3) arr = [1, 2, 3, "...", pages];
       else if (page >= pages - 2) arr = [1, "...", pages - 2, pages - 1, pages];
       else arr = [1, "...", page - 1, page, page + 1, "...", pages];
@@ -845,44 +682,21 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   return (
     <div className="pagination-wrap">
       <div className="pagination">
-        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>
-          ‹
-        </button>
-
+        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>‹</button>
         {getRange().map((p, i) =>
-          p === "..." ? (
-            <span key={i} className="dots">
-              …
-            </span>
-          ) : (
-            <button
-              key={i}
-              className={`page-btn ${p === page ? "active" : ""}`}
-              onClick={() => changePage(p)}
-            >
-              {p}
-            </button>
+          p === "..." ? <span key={i} className="dots">…</span> : (
+            <button key={i} className={`page-btn ${p === page ? "active" : ""}`} onClick={() => changePage(p)}>{p}</button>
           )
         )}
-
-        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>
-          ›
-        </button>
+        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>›</button>
       </div>
 
       <select
         className="page-size"
         value={perPage}
-        onChange={(e) => {
-          onPerPageChange(Number(e.target.value));
-          onPageChange(1);
-        }}
+        onChange={(e) => { onPerPageChange(Number(e.target.value)); onPageChange(1); }}
       >
-        {[10, 20, 50, 100].map((n) => (
-          <option key={n} value={n}>
-            по {n} позиций
-          </option>
-        ))}
+        {[10, 20, 50, 100].map((n) => <option key={n} value={n}>по {n} позиций</option>)}
       </select>
     </div>
   );
