@@ -7,7 +7,7 @@ import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
-// localStorage keys
+// Ключи для localStorage
 const LS_FILTERS_KEY = "admin.products.filters";
 const LS_PER_PAGE_KEY = "admin.products.perPage";
 
@@ -108,7 +108,6 @@ function EditableCell({
           onClick={() => setEditing(true)}
           className="edit-btn"
           aria-label="Изменить"
-          title="Изменить"
           style={{
             opacity: showEditIcon ? 1 : 0,
             transition: "opacity .18s ease",
@@ -180,7 +179,7 @@ export default function AdminProductsPage() {
     [groups]
   );
 
-  // Подгружаем данные (продукты + группы)
+  // Подгружаем данные
   useEffect(() => {
     (async () => {
       try {
@@ -191,6 +190,7 @@ export default function AdminProductsPage() {
 
         const data = prodsRes.data;
         setProducts(Array.isArray(data) ? data : []);
+        setLoading(false);
 
         const groupsData = groupsRes.data || [];
         const flat = [];
@@ -203,9 +203,8 @@ export default function AdminProductsPage() {
         flatten(groupsData);
         setGroups(flat);
       } catch (e) {
-        console.error("Failed to load products/groups:", e);
-      } finally {
         setLoading(false);
+        console.error("Failed to load products/groups:", e);
       }
     })();
   }, []);
@@ -268,6 +267,14 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Быстрый фильтр по группе (клик по подписи группы в строке товара)
+  const handleQuickFilterGroup = useCallback((groupId) => {
+    if (!groupId) return;
+    setGroup(String(groupId));
+    // Чуть прокрутим к началу списка (опционально)
+    // window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const filtered = products.filter((p) => {
     if (noPhoto && (!p.images || !p.images.length)) return false;
     if (group !== "all" && String(p.group?._id || p.group) !== group) return false;
@@ -290,7 +297,6 @@ export default function AdminProductsPage() {
     <div className="products-page">
       <AdminSubMenu type="products" activeKey={selected} onSelect={setSelected} />
 
-      {/* Вертикальный прогресс-бар тарифа */}
       {!loading && (
         <div className="quota-progress" onClick={() => setQuotaOpen(true)}>
           <div className="quota-bar-vertical">
@@ -303,7 +309,6 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Панель с лимитом */}
       {quotaOpen && (
         <div className="quota-overlay" onClick={() => setQuotaOpen(false)}>
           <div className="quota-panel" onClick={(e) => e.stopPropagation()}>
@@ -412,7 +417,7 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* ===== Чипсы активных фильтров — ВНУТРИ content-wrap, чтобы их не перекрывал фикс-хедер ===== */}
+      {/* Чипсы активных фильтров — показываем только когда данные уже подгружены */}
       <div className="products-content-wrap">
         {!loading && (group !== "all" || status || noPhoto) && (
           <div className="products-chips-row">
@@ -464,6 +469,7 @@ export default function AdminProductsPage() {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onEditField={handleEditField}
+                    onQuickFilterGroup={handleQuickFilterGroup}  // ⬅️ передаём быстрый фильтр
                   />
                 </GroupsContext.Provider>
               )}
@@ -476,7 +482,7 @@ export default function AdminProductsPage() {
 }
 
 /* ================== ProductList + ProductRow ================== */
-function ProductList({ products, onEdit, onDelete, onEditField }) {
+function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGroup }) {
   const [selectedIds, setSelectedIds] = React.useState([]);
 
   // Пагинация с сохранением perPage в localStorage
@@ -561,7 +567,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
             </label>
           </div>
 
-          {/* Скрываем фото-колонку и тянем «Действия…» ближе к чекбоксу */}
           <div className="cell-photo hide-in-bulk"></div>
 
           <div className="cell-name bulk-wide">
@@ -604,7 +609,6 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
         </div>
       )}
 
-      {/* Только текущая страница */}
       {paginated.map((p) => (
         <ProductRow
           key={p._id}
@@ -614,6 +618,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
           onEdit={onEdit}
           onDelete={onDelete}
           onEditField={onEditField}
+          onQuickFilterGroup={onQuickFilterGroup}   // ⬅️ вниз
         />
       ))}
 
@@ -631,7 +636,7 @@ function ProductList({ products, onEdit, onDelete, onEditField }) {
   );
 }
 
-function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField }) {
+function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField, onQuickFilterGroup }) {
   const [open, setOpen] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
   const ref = React.useRef(null);
@@ -649,13 +654,19 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
       ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
       : "https://dummyimage.com/160x160/eeeeee/222.png&text=Нет+фото";
 
+  // Имя и id группы
   let groupName = "—";
-  if (typeof product.group === "object" && product.group?.name) {
-    groupName = product.group.name;
+  let groupIdValue = null;
+  if (typeof product.group === "object" && product.group?._id) {
+    groupIdValue = product.group._id;
+    groupName = product.group.name || "—";
   } else if (typeof product.group === "string") {
+    groupIdValue = product.group;
     const found = groups.find((g) => g._id === product.group);
     if (found) groupName = found.name;
   }
+
+  const canQuickFilter = Boolean(groupIdValue);
 
   return (
     <div
@@ -689,7 +700,29 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
             </Link>
           )}
         />
-        <div className="product-group">{groupName}</div>
+        <div className="product-group">
+          {canQuickFilter ? (
+            <button
+              type="button"
+              title={`Показать товары группы: ${groupName}`}
+              onClick={() => onQuickFilterGroup(groupIdValue)}
+              style={{
+                background: "transparent",
+                border: 0,
+                padding: 0,
+                margin: 0,
+                font: "inherit",
+                fontSize: "12.5px",
+                color: "#0a84ff",
+                cursor: "pointer",
+              }}
+            >
+              {groupName}
+            </button>
+          ) : (
+            <span style={{ color: "#8ea0b3", fontSize: "12.5px" }}>{groupName}</span>
+          )}
+        </div>
       </div>
 
       <div className="cell-date product-date">
@@ -712,7 +745,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
       </div>
 
       <div className="cell-state" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {/* availability */}
         <EditableCell
           value={product.availability}
           type="select"
@@ -733,7 +765,6 @@ function ProductRow({ product, selected, onToggle, onEdit, onDelete, onEditField
             </span>
           )}
         />
-        {/* status */}
         <EditableCell
           value={product.status}
           type="select"
@@ -814,17 +845,15 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
   return (
     <div className="pagination-wrap">
       <div className="pagination">
-        <button
-          className="page-btn"
-          disabled={page === 1}
-          onClick={() => changePage(page - 1)}
-        >
+        <button className="page-btn" disabled={page === 1} onClick={() => changePage(page - 1)}>
           ‹
         </button>
 
         {getRange().map((p, i) =>
           p === "..." ? (
-            <span key={i} className="dots">…</span>
+            <span key={i} className="dots">
+              …
+            </span>
           ) : (
             <button
               key={i}
@@ -836,11 +865,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }) {
           )
         )}
 
-        <button
-          className="page-btn"
-          disabled={page === pages}
-          onClick={() => changePage(page + 1)}
-        >
+        <button className="page-btn" disabled={page === pages} onClick={() => changePage(page + 1)}>
           ›
         </button>
       </div>
