@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
 import api from "../utils/api.js";
 import "../assets/AdminPanel.css";
+import "../assets/AdminAddProductPage.css";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 
