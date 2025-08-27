@@ -412,7 +412,7 @@ export default function AdminProductsPage() {
       {/* ===== ВНУТРИ content-wrap, чтобы не перекрывалось хедером ===== */}
       <div className="products-content-wrap">
         {(group !== "all" || status || noPhoto) && (
-          <div className="products-chips-row">
+          <div style={{ padding: "10px 10px 0" }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {group !== "all" && (
                 <button

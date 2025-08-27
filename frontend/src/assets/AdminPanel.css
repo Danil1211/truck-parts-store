@@ -350,17 +350,6 @@ transition:all .2s ease;
   box-shadow: 0 4px 12px rgba(0,122,255,0.25);
 }
 
-/* Ряд с активными фильтрами (чипсы) — чуть ближе к хедеру */
-.products-chips-row{
-  padding: 4px 20px 0;   /* было 10px — стало компактнее */
-  margin-top: -6px;      /* аккуратно подтягиваем вверх */
-}
-
-/* На очень узких экранах чуть меньше подтягиваем, чтобы ничего не наезжало */
-@media (max-width: 768px){
-  .products-chips-row{ margin-top: -4px; padding-top: 6px; }
-}
-
 /* Ряд чипсов активных фильтров */
 .products-chips-row {
   padding: 10px 20px;
