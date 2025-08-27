@@ -1,11 +1,12 @@
 /* ==========================================================================
-   AdminAddProductPage — раскладка как Prom в нашем стиле
+   AdminAddProductPage — раскладка как Prom в нашем стиле (компактный сайдбар)
    ========================================================================== */
 
 .add-prod.products-page{
   padding: 0 0 28px;
 }
 
+/* Topbar */
 .addprod-topbar{
   position: sticky; top: 0; z-index: 12;
   background: var(--surface);
@@ -24,12 +25,13 @@
 }
 .btn-primary:disabled{ opacity:.6; cursor:default }
 
+/* Form */
 .addprod-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
 
-/* ===== Две колонки (как Prom) ===== */
+/* ===== Две колонки (компактный сайдбар) ===== */
 .layout-grid{
   display:grid; gap:20px;
-  grid-template-columns: 1.6fr 1fr;   /* main : side */
+  grid-template-columns: 1.9fr 0.9fr;   /* Сайдбар уже */
   align-items:start;
 }
 .main-col{ display:flex; flex-direction:column; gap:18px; }
@@ -39,6 +41,11 @@
 .card{ background:var(--surface); border:1px solid #e6ebf2; border-radius:14px; padding:16px 18px; }
 .card-title{ font-size:15px; font-weight:600; color:#0f172a; margin-bottom:10px; }
 
+/* Компактный вид карточек именно в сайдбаре */
+.side-col .card{ padding:14px 16px; border-radius:12px; }
+.side-col .card-title{ font-size:14px; margin-bottom:8px; }
+
+/* Поля */
 .field-col{ display:flex; flex-direction:column; gap:6px; min-width:0; }
 .field-col label{ font-size:13px; font-weight:500; color:#334155; }
 .field-col input, .field-col textarea, .main-col select{
@@ -51,12 +58,12 @@
   outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.12);
 }
 
+/* Ряды */
 .row-name-code{
   display:grid; gap:16px;
   grid-template-columns: 2fr 1fr;
   margin-bottom:12px;
 }
-
 .form-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
 .form-row.two{ flex-direction:row; gap:12px; }
 .form-row.two > *{ flex:1; }
@@ -64,18 +71,21 @@
 .form-row.four > *{ flex:1; }
 .form-row.radios{ flex-direction:column; gap:8px; }
 
+/* key–value в сайдбаре */
 .kv{ display:flex; flex-direction:column; gap:8px; font-size:13px; color:#64748b; }
 .kv div{ display:flex; align-items:center; justify-content:space-between; }
 .kv b{ color:#0f172a; font-weight:600; }
 
-/* ===== Медиа в сайдбаре ===== */
-.media-grid{
-  display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+/* ===== Медиа в сайдбаре (компактно) ===== */
+.side-col .media-grid{
+  display:grid; grid-template-columns:repeat(2,1fr); /* было 3 → стало 2 */
+  gap:8px;
 }
 .thumb{
   position:relative; border:1.5px solid #d0d7e2; border-radius:10px; overflow:hidden;
   background:#f9fbfd; aspect-ratio:1/1; cursor:pointer;
 }
+.side-col .thumb{ border-radius:8px; } /* чуть компактней углы */
 .thumb img{ width:100%; height:100%; object-fit:cover; }
 .thumb button{
   position:absolute; top:4px; right:4px; width:18px; height:18px; border:none; border-radius:50%;
@@ -84,7 +94,7 @@
 }
 .thumb.add{ display:flex; align-items:center; justify-content:center; font-size:16px; color:#94a3b8; }
 .add-by-link{
-  margin-top:10px; font-size:13px; color:var(--primary); cursor:pointer; user-select:none;
+  margin-top:8px; font-size:12.5px; color:var(--primary); cursor:pointer; user-select:none;
 }
 
 /* Чипсы */
@@ -95,7 +105,7 @@
 }
 .chip b{ cursor:pointer; color:#e12a2a; }
 
-/* Адаптив */
+/* ===== Адаптив ===== */
 @media (max-width: 1100px){
   .layout-grid{ grid-template-columns: 1fr; }
 }
