@@ -199,3 +199,56 @@ input[type="file"]{ font-size:0; }
   .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
   .wh-row{ grid-template-columns: 1fr; }
 }
+
+/* ==================== БАЗОВЫЕ INPUT / TEXTAREA / SELECT ==================== */
+.addprod-form input[type="text"],
+.addprod-form input[type="number"],
+.addprod-form input[type="url"],
+.addprod-form input[type="file"],
+.addprod-form input[type="email"],
+.addprod-form input[type="password"],
+.addprod-form textarea,
+.addprod-form select {
+  width: 100%;
+  border: 1px solid #d0d7e2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f9fbfd;
+  transition: border-color .18s, box-shadow .18s;
+  box-sizing: border-box;
+}
+
+.addprod-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.addprod-form input:focus,
+.addprod-form textarea:focus,
+.addprod-form select:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,122,255,.12);
+}
+
+/* Скрываем дефолтный input[file] */
+.addprod-form input[type="file"] {
+  display: none;
+}
+
+/* Кастомный чекбокс */
+.addprod-form input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* Кастомный radio */
+.addprod-form input[type="radio"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+}
