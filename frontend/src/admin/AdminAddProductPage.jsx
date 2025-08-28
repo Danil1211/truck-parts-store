@@ -274,20 +274,22 @@ export default function AdminAddProductPage() {
   };
   const removeQuery = (val) => setQueries(queries.filter(q => q !== val));
 
-  /* ===== Дерево групп helpers ===== */
+  /* ===== Дерево групп helpers (обновлено на chevron) ===== */
   const toggleExpand = (id) => setGroupExpanded(s => ({ ...s, [id]: !s[id] }));
-  const renderTree = (arr, level = 0) => {
+  const renderTree = (arr) => {
     return (arr || []).map((g) => {
-      const hasChildren = (g.children && g.children.length > 0);
+      const hasChildren = g.children && g.children.length > 0;
       const expanded = !!groupExpanded[g._id];
       return (
-        <div className="tree-node" key={g._id} style={{ marginLeft: level * 14 }}>
+        <div className="tree-node" key={g._id}>
           <div className="tree-row">
-            {hasChildren && (
+            {hasChildren ? (
               <span
-                className={`twisty ${expanded ? "open" : ""}`}
+                className={`chev-tree ${expanded ? "open" : ""}`}
                 onClick={() => toggleExpand(g._id)}
               />
+            ) : (
+              <span className="chev-tree spacer" />
             )}
             <label className="radio-row">
               <input
@@ -302,7 +304,7 @@ export default function AdminAddProductPage() {
           </div>
           {hasChildren && expanded && (
             <div className="tree-children">
-              {renderTree(g.children, level + 1)}
+              {renderTree(g.children)}
             </div>
           )}
         </div>
@@ -335,9 +337,6 @@ export default function AdminAddProductPage() {
 
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
-    if ((priceMode === "retail" || priceMode === "both" || priceMode === "service") && !retailPrice) {
-      // мягкая проверка
-    }
 
     const fd = new FormData();
 

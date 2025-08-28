@@ -161,19 +161,27 @@
 }
 .chip b{ cursor:pointer; color:#e12a2a; }
 
-/* Дерево групп */
-.tree-wrap{ max-height:460px; overflow:auto; border:1px solid #e6ebf2; border-radius:12px; padding:8px; background:#fff; }
-.tree-node{ padding:2px 0; }
-.tree-row{ display:flex; align-items:center; gap:6px; }
-.twisty{
-  width:16px; height:16px;
-  display:inline-flex; align-items:center; justify-content:center;
-  border:1px solid #cfd5df; border-radius:3px;
-  cursor:pointer; background:#f8fafc;
-  font-size:12px; color:#334155; line-height:1;
+/* ===== Дерево групп (обновлено: chevron) ===== */
+.tree-wrap{
+  max-height:460px; overflow:auto;
+  border:1px solid #e6ebf2; border-radius:12px; padding:8px; background:#fff;
 }
-.twisty::before{ content:"+"; }
-.twisty.open::before{ content:"–"; }
+.tree-node{ padding:2px 0; }
+.tree-row{
+  display:flex; align-items:center; gap:6px;
+  padding:3px 6px; border-radius:6px;
+}
+.tree-row:hover{ background:#f9fbfd; }
+.tree-children{
+  margin-left:16px; border-left:1px dashed #e5e7eb; padding-left:10px;
+}
+.chev-tree{
+  width:16px; display:inline-block; text-align:center; color:#64748b;
+  cursor:pointer; user-select:none; transition: transform .18s;
+}
+.chev-tree::before{ content:"▶"; font-size:12px; line-height:1; display:inline-block; }
+.chev-tree.open{ transform: rotate(90deg); }
+.chev-tree.spacer{ visibility:hidden; }
 .radio-row{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
 .radio-row input{ accent-color:var(--primary); }
 .gname{ color:#0f172a; font-size:14px; }
