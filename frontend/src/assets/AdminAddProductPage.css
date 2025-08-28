@@ -1,6 +1,5 @@
 /* ==========================================================================
-   AdminAddProductPage — современный минимализм (scoped)
-   Все стили находятся под .add-prod, чтобы не конфликтовать с другими страницами
+   AdminAddProductPage — современный минимализм (scoped под .add-prod)
    ========================================================================== */
 
 :root {
@@ -9,8 +8,7 @@
   --ring: 0 0 0 3px rgba(0,122,255,.12);
 }
 
-/* Контейнер страницы */
-.add-prod.products-page { padding: 0 0 28px; }
+.add-prod.products-page{ padding: 0 0 28px; }
 
 /* Topbar */
 .add-prod .addprod-topbar{
@@ -47,7 +45,7 @@
 /* Формовая обвязка */
 .add-prod .addprod-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
 
-/* Разметка: левая + правая колонки */
+/* Разметка колонок */
 .add-prod .layout-grid{
   display:grid; gap:20px; align-items:start;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -70,7 +68,7 @@
 .add-prod .field-col label{ font-size:13px; font-weight:500; color:#334155; display:flex; gap:8px; align-items:center; }
 .add-prod .muted{ color:#94a3b8; font-weight:400; font-size:12px; }
 
-/* ===== БАЗА для полей: только прямые дети .field-col (чтобы не трогать .input-merge и др.) */
+/* База для inputs: только прямые дети .field-col */
 .add-prod .field-col > input:not([type="file"]):not(.file-input-hidden),
 .add-prod .field-col > select,
 .add-prod .field-col > textarea{
@@ -95,17 +93,11 @@
 .add-prod .form-row.four{ flex-direction:row; gap:12px; }
 .add-prod .form-row.four > *{ flex:1; min-width:0; }
 
-.add-prod .price-grid{
-  display:grid; gap:12px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-.add-prod .col-span-2{ grid-column: span 2; }
-
 .add-prod .mt6{ margin-top:6px; }
 .add-prod .mt8{ margin-top:8px; }
 .add-prod .mt14{ margin-top:14px; }
 
-/* Сегментные переключатели/видимость */
+/* Сегментные переключатели */
 .add-prod .seg{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 6px; }
 .add-prod .seg > label{ font-size:13px; color:#334155; }
 .add-prod .seg-items{ display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef; border-radius:12px; padding:3px; }
@@ -115,8 +107,6 @@
 .add-prod .seg-items button.active{ background:#fff; border:1px solid #dfe5ee; color:#0f172a; }
 
 /* Радио/чекбоксы */
-.add-prod .inline-radios{ display:flex; gap:18px; flex-wrap:wrap; margin-bottom:10px; }
-.add-prod .inline-radios input{ accent-color: var(--primary); }
 .add-prod .checkline{ display:flex; align-items:center; gap:10px; font-size:14px; color:#0f172a; }
 .add-prod .checkline input{ width:16px; height:16px; accent-color: var(--primary); }
 
@@ -132,7 +122,7 @@
 }
 .add-prod .thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px; }
 
-/* Фотосетка по-умолчанию (первое — широкое) */
+/* Фотосетка по-умолчанию */
 .add-prod .media-grid{
   display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;
 }
@@ -141,7 +131,7 @@
 }
 .add-prod .media-grid .thumb:not(:first-child){ aspect-ratio: 1 / 1; }
 
-/* Компактная фотосетка (все одинаковые квадраты) */
+/* Компактная фотосетка */
 .add-prod .media-grid.media-grid--compact{
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
@@ -219,55 +209,85 @@
   display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end;
 }
 
-/* ===== Input + Select объединённые (для цены/валюты) ===== */
-.add-prod .input-merge {
-  display: flex;
-  align-items: center;
-  border: 1px solid #d0d7e2;
-  border-radius: 10px;
-  background: #f9fbfd;
-  overflow: hidden;
-  min-width: 220px;            /* ← увеличил минимум, чтобы поле не было крошечным */
-  transition: box-shadow .18s, border-color .18s;
+/* ==================== Pricing (Цена и наличие) ==================== */
+.add-prod .pricing-card .pill-segment{
+  display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef;
+  border-radius:12px; padding:4px; margin-bottom:12px;
 }
-.add-prod .input-merge:focus-within{
+.add-prod .pricing-card .pill-segment > button{
+  border:none; background:transparent; padding:8px 12px; border-radius:8px; cursor:pointer;
+  font-size:13.5px; color:#334155;
+}
+.add-prod .pricing-card .pill-segment > button.active{
+  background:#fff; border:1px solid #dfe5ee; color:#0f172a;
+}
+
+/* Ряд цена + единица */
+.add-prod .pricing-row{
+  display:grid; grid-template-columns: 1.2fr 0.8fr; gap:16px; align-items:start; margin-bottom:8px;
+}
+@media (max-width: 720px){
+  .add-prod .pricing-row{ grid-template-columns: 1fr; }
+}
+
+/* Грид наличия */
+.add-prod .pricing-grid{
+  display:grid; gap:12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top:8px;
+}
+.add-prod .pricing-grid .col-span-2{ grid-column: span 2; }
+.add-prod .pricing-grid .col-span-3{ grid-column: span 3; }
+.add-prod .pricing-grid .col-span-5{ grid-column: span 5; }
+
+/* Тоггл "цена от" */
+.add-prod .inline-flag{
+  display:inline-flex; align-items:center; gap:10px; font-size:14px; color:#0f172a; margin-top:4px;
+}
+.add-prod .inline-flag input{ width:16px; height:16px; accent-color: var(--primary); }
+
+/* Оптовые цены */
+.add-prod .tiers{ margin-top:8px; }
+.add-prod .tier-row{
+  display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; margin-top:10px;
+}
+@media (max-width: 720px){
+  .add-prod .tier-row{ grid-template-columns: 1fr; }
+}
+.add-prod .tier-actions{ margin-top:6px; }
+
+/* Плоский объединённый инпут (не "налипает" к соседям) */
+.add-prod .input-merge--flat{
+  border-radius:10px; border:1px solid #d0d7e2; background:#f9fbfd; overflow:hidden;
+  display:flex; align-items:center; min-width: 220px;
+  transition: border-color .18s, outline .18s, background .18s;
+}
+.add-prod .input-merge--flat:focus-within{
   border-color: var(--primary);
-  box-shadow: var(--ring);
+  outline: 2px solid rgba(0,122,255,.35);
+  outline-offset: 3px;
   background:#fff;
 }
-.add-prod .input-merge input {
-  flex: 1;
-  min-width: 120px;            /* ← удобный минимум для цифр */
-  border: none;
-  background: transparent;
-  padding: 10px 12px;
-  font-size: 14px;
-  text-align: right;
-  color:#0f172a;
-  outline: none;
-  box-sizing: border-box;
+.add-prod .input-merge--flat input{
+  flex:1; min-width:120px; border:none; background:transparent; padding:10px 12px; font-size:14px; text-align:right;
+  color:#0f172a; outline:none; box-sizing:border-box;
 }
-.add-prod .input-merge select,
-.add-prod .input-merge .addon {
-  width: 72px;                 /* фикс ширина под валюту/единицу */
-  border: none;
-  border-left: 1px solid #d0d7e2;
-  background: #f3f6fb;
-  padding: 10px 8px;
-  font-size: 14px;
-  color: #0f172a;
-  outline: none;
-  box-sizing: border-box;
+.add-prod .input-merge--flat select,
+.add-prod .input-merge--flat .addon{
+  width:72px; border:none; border-left:1px solid #d0d7e2; background:#f3f6fb; padding:10px 8px; font-size:14px; color:#0f172a; outline:none;
 }
-.add-prod .input-merge select:focus{ background:#fff; }
 
-/* Оптовые ряды */
-.add-prod .wh-row{
-  display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; margin-top:8px;
-}
-.add-prod .self-end{ align-self:end; }
+/* Чуть воздуха между ценой и единицей */
+.add-prod .pricing-row .field-col:first-child .input-merge--flat{ margin-right:2px; }
 
-/* ===== Мультиселект регионов ===== */
+/* Принудительно держим промежутки в карточке цен */
+.add-prod .pricing-card .pricing-row,
+.add-prod .pricing-card .pricing-grid{
+  column-gap: 16px !important;
+  row-gap: 12px !important;
+}
+
+/* ==================== Мультиселект регионов ==================== */
 .add-prod .multi-select{ position:relative; }
 .add-prod .ms-trigger{
   width:100%; text-align:left; background:#f9fbfd; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
@@ -305,8 +325,8 @@
 
 /* ==================== Адаптив ==================== */
 @media (max-width: 920px){
-  .add-prod .price-grid{ grid-template-columns: 1fr 1fr; }
-  .add-prod .col-span-2{ grid-column: span 2; }
+  .add-prod .form-row.two{ flex-direction:column; }
+  .add-prod .pricing-grid{ grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 720px){
   .add-prod .addprod-topbar{ height:52px; padding:0 14px; }
@@ -314,32 +334,5 @@
   .add-prod .attr-row{ grid-template-columns: 1fr; }
   .add-prod .video-row{ flex-direction:column; align-items:stretch; }
   .add-prod .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
-  .add-prod .wh-row{ grid-template-columns: 1fr; }
-}
-
-/* --- HOTFIX: разделить цену и единицу измерения --- */
-.add-prod .price-grid{
-  column-gap: 16px !important;  /* явный зазор между колонками */
-  row-gap: 12px !important;
-}
-
-.add-prod .price-grid > .field-col{
-  margin: 0 !important;         /* на случай, если где-то задавали отрицательные маргины */
-  min-width: 0;
-}
-
-.add-prod .input-merge{
-  min-width: 220px;
-  max-width: 100%;
-}
-
-/* Чтоб второй контрол (Единица) не “прилипал” визуально */
-.add-prod .field-col > select{
-  background:#fff;               /* отличается от #f9fbfd блока слева => зазор заметнее */
-}
-
-/* Если у тебя есть глобалка, сбивающая gap у grid-ов: отключим её внутри карточек */
-.add-prod .card .field-col,
-.add-prod .card .price-grid{
-  gap: revert-layer;
+  .add-prod .tier-row{ grid-template-columns: 1fr; }
 }
