@@ -295,12 +295,11 @@ export default function AdminAddProductPage() {
         <div className="tree-node" key={g._id}>
           <div className="tree-row">
             {hasChildren ? (
-              <span
-                className={`chev-tree ${expanded ? "open" : ""}`}
-                onClick={() => toggleExpand(g._id)}
-              />
+              <div onClick={() => toggleExpand(g._id)} style={{ cursor: "pointer" }}>
+                <PlayBadge size={18} />
+              </div>
             ) : (
-              <span className="chev-tree spacer" />
+              <div style={{ width: 18, height: 18 }} />
             )}
             <label className="radio-row">
               <input
@@ -314,9 +313,7 @@ export default function AdminAddProductPage() {
             </label>
           </div>
           {hasChildren && expanded && (
-            <div className="tree-children">
-              {renderTree(g.children)}
-            </div>
+            <div className="tree-children">{renderTree(g.children)}</div>
           )}
         </div>
       );
