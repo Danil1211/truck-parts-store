@@ -106,10 +106,6 @@
 }
 .add-prod .seg-items button.active{ background:#fff; border:1px solid #dfe5ee; color:#0f172a; }
 
-/* Радио/чекбоксы */
-.add-prod .checkline{ display:flex; align-items:center; gap:10px; font-size:14px; color:#0f172a; }
-.add-prod .checkline input{ width:16px; height:16px; accent-color: var(--primary); }
-
 /* ==================== МЕДИА ==================== */
 .add-prod .media-block{ display:flex; flex-direction:column; gap:16px; margin-top:8px; }
 .add-prod .thumb{
@@ -222,9 +218,16 @@
   background:#fff; border:1px solid #dfe5ee; color:#0f172a;
 }
 
-/* Ряд цена + единица */
+/* Компакт: фиксим ширины */
+.add-prod .pricing-card{
+  --price-input-w: 96px;   /* ширина поля числа */
+  --currency-w: 64px;      /* ширина валюты */
+  --unit-col-w: 140px;     /* ширина колонки "Единица" */
+}
+
+/* Ряд цена + единица: первая колонка занимает ровно цену */
 .add-prod .pricing-row{
-  display:grid; grid-template-columns: 1.2fr 0.8fr; gap:16px; align-items:start; margin-bottom:8px;
+  display:grid; grid-template-columns: max-content var(--unit-col-w); gap:16px; align-items:start; margin-bottom:8px;
 }
 @media (max-width: 720px){
   .add-prod .pricing-row{ grid-template-columns: 1fr; }
@@ -256,10 +259,12 @@
 }
 .add-prod .tier-actions{ margin-top:6px; }
 
-/* Плоский объединённый инпут (не "налипает" к соседям) */
+/* Плоский объединённый инпут (компактная ширина) */
 .add-prod .input-merge--flat{
   border-radius:10px; border:1px solid #d0d7e2; background:#f9fbfd; overflow:hidden;
-  display:flex; align-items:center; min-width: 220px;
+  display:flex; align-items:center;
+  width: calc(var(--price-input-w) + var(--currency-w));
+  min-width: 0;
   transition: border-color .18s, outline .18s, background .18s;
 }
 .add-prod .input-merge--flat:focus-within{
@@ -269,12 +274,16 @@
   background:#fff;
 }
 .add-prod .input-merge--flat input{
-  flex:1; min-width:120px; border:none; background:transparent; padding:10px 12px; font-size:14px; text-align:right;
+  flex: unset;
+  width: var(--price-input-w);
+  min-width: 0;
+  border:none; background:transparent; padding:10px 12px; font-size:14px; text-align:right;
   color:#0f172a; outline:none; box-sizing:border-box;
 }
 .add-prod .input-merge--flat select,
 .add-prod .input-merge--flat .addon{
-  width:72px; border:none; border-left:1px solid #d0d7e2; background:#f3f6fb; padding:10px 8px; font-size:14px; color:#0f172a; outline:none;
+  width: var(--currency-w);
+  border:none; border-left:1px solid #d0d7e2; background:#f3f6fb; padding:10px 8px; font-size:14px; color:#0f172a; outline:none;
 }
 
 /* Чуть воздуха между ценой и единицей */
@@ -335,23 +344,4 @@
   .add-prod .video-row{ flex-direction:column; align-items:stretch; }
   .add-prod .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
   .add-prod .tier-row{ grid-template-columns: 1fr; }
-}
-
-/* === Compact price input === */
-.add-prod .pricing-card .input-merge--flat {
-  width: fit-content;        /* блок подстраивается под контент */
-  min-width: unset !important;
-  max-width: 160px;          /* ограничиваем максимум */
-}
-
-.add-prod .pricing-card .input-merge--flat input {
-  flex: unset;               /* убираем растяжение */
-  width: 80px;               /* фикс ширина самого инпута */
-  min-width: 60px;           /* можно ещё меньше */
-  text-align: right;
-}
-
-.add-prod .pricing-card .input-merge--flat select,
-.add-prod .pricing-card .input-merge--flat .addon {
-  width: 60px;               /* компактная ширина для валюты */
 }

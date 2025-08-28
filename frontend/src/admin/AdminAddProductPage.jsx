@@ -82,7 +82,7 @@ function RegionMultiSelect({ options, value = [], onChange, placeholder = "Вы�
   );
 }
 
-/* ===== SVG Play badge (чёрный фон + белая стрелка + поворот) ===== */
+/* ===== SVG Play badge ===== */
 function PlayBadge({ size = 18, open = false }) {
   return (
     <span
@@ -845,14 +845,6 @@ export default function AdminAddProductPage() {
                   </label>
                 </>
               )}
-
-              <div className="seg mt14">
-                <label>Видимость</label>
-                <div className="seg-items">
-                  <button type="button" className={visibility === "published" ? "active" : ""} onClick={() => setVisibility("published")}>Опубликовать</button>
-                  <button type="button" className={visibility === "hidden" ? "active" : ""} onClick={() => setVisibility("hidden")}>Скрыть</button>
-                </div>
-              </div>
             </div>
 
             {/* Характеристики */}
@@ -896,6 +888,34 @@ export default function AdminAddProductPage() {
               <div>
                 <button type="button" className="btn-outline" onClick={addAttr}>+ Добавить характеристику</button>
               </div>
+            </div>
+
+            {/* === Поисковые запросы (перенесено под Характеристики) === */}
+            <div className="card">
+              <div className="card-title">Поисковые запросы для сайта</div>
+              <input
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+                onKeyDown={onQueryKeyDown}
+                placeholder="Введите запрос и нажмите Enter"
+                type="text"
+              />
+              <div className="chips">
+                {queries.map((q, i) => (
+                  <span key={i} className="chip">{q}<b onClick={() => removeQuery(q)}>×</b></span>
+                ))}
+              </div>
+            </div>
+
+            {/* === Категория Google (перенесено под Поисковые запросы) === */}
+            <div className="card">
+              <div className="card-title">Категория товара для Google</div>
+              <AsyncGoogleCategorySelect
+                value={googleCategory}
+                onChange={setGoogleCategory}
+                lang="ru-RU"
+              />
+              <div className="help">Поиск по таксономии Google. Сохраняем ID категории.</div>
             </div>
 
             {/* Габариты */}
@@ -964,33 +984,18 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Поисковые запросы */}
+            {/* === Видимость (перенесено под Группы) === */}
             <div className="card">
-              <div className="card-title">Поисковые запросы для сайта</div>
-              <input
-                value={queryInput}
-                onChange={(e) => setQueryInput(e.target.value)}
-                onKeyDown={onQueryKeyDown}
-                placeholder="Введите запрос и нажмите Enter"
-                type="text"
-              />
-              <div className="chips">
-                {queries.map((q, i) => (
-                  <span key={i} className="chip">{q}<b onClick={() => removeQuery(q)}>×</b></span>
-                ))}
+              <div className="card-title">Видимость</div>
+              <div className="seg">
+                <label className="muted">Статус</label>
+                <div className="seg-items">
+                  <button type="button" className={visibility === "published" ? "active" : ""} onClick={() => setVisibility("published")}>Опубликовать</button>
+                  <button type="button" className={visibility === "hidden" ? "active" : ""} onClick={() => setVisibility("hidden")}>Скрыть</button>
+                </div>
               </div>
             </div>
 
-            {/* Категория для Google */}
-            <div className="card">
-              <div className="card-title">Категория товара для Google</div>
-              <AsyncGoogleCategorySelect
-                value={googleCategory}
-                onChange={setGoogleCategory}
-                lang="ru-RU"
-              />
-              <div className="help">Поиск по полной таксономии Google. Сохраняем ID категории.</div>
-            </div>
           </div>
         </div>
       </form>
