@@ -336,3 +336,33 @@
   .add-prod .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
   .add-prod .tier-row{ grid-template-columns: 1fr; }
 }
+
+/* === Compact price width (retail/service/both) === */
+.add-prod .pricing-card{
+  --price-w: 260px;   /* ширина колонки цены */
+  --unit-w: 140px;    /* ширина колонки единицы */
+}
+
+/* 2 колонки: цена + единица (фиксированные, не тянутся на всю ширину) */
+.add-prod .pricing-card .pricing-row{
+  grid-template-columns: minmax(140px, var(--price-w)) var(--unit-w) !important;
+  justify-content: start;
+}
+
+/* позволяем блоку цены ужиматься меньше прежнего минимума */
+.add-prod .pricing-card .input-merge--flat{
+  min-width: 0 !important;     /* было 220px */
+  width: 100%;
+}
+
+/* единица измерения выглядит аккуратно в своей узкой колонке */
+.add-prod .pricing-card .pricing-row > .field-col:nth-child(2) > select{
+  width: 100%;
+}
+
+/* на мобиле обратно в одну колонку */
+@media (max-width: 720px){
+  .add-prod .pricing-card .pricing-row{
+    grid-template-columns: 1fr !important;
+  }
+}
