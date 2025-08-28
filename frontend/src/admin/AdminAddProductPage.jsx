@@ -5,6 +5,7 @@ import AdminSubMenu from "./AdminSubMenu";
 import api from "../utils/api.js";
 import "../assets/AdminPanel.css";
 import "../assets/AdminAddProductPage.css";
+import AsyncGoogleCategorySelect from "../components/AsyncGoogleCategorySelect";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
 const MAX_IMAGES = 10; // 1 главный + 9 превью
@@ -44,7 +45,7 @@ export default function AdminAddProductPage() {
   // Google Ads / Merchant (добавлено)
   const [mpn, setMpn] = useState("");
   const [gtin, setGtin] = useState("");
-  const [googleCategory, setGoogleCategory] = useState(""); // google_product_category
+  const [googleCategory, setGoogleCategory] = useState(""); // сохраняем ID категории Google
   const [condition, setCondition] = useState("new");        // new|refurbished|used
   const [excludeFromFeed, setExcludeFromFeed] = useState(false);
 
@@ -200,7 +201,7 @@ export default function AdminAddProductPage() {
     // google feed (новое)
     fd.append("mpn", mpn);
     fd.append("gtin", gtin);
-    fd.append("googleCategory", googleCategory);
+    fd.append("googleCategory", googleCategory); // тут теперь ID категории Google
     fd.append("condition", condition);
     fd.append("excludeFromFeed", excludeFromFeed ? "1" : "0");
 
@@ -308,15 +309,12 @@ export default function AdminAddProductPage() {
               <div className="form-row two">
                 <div className="field-col">
                   <label>Google Product Category</label>
-                  <select value={googleCategory} onChange={(e) => setGoogleCategory(e.target.value)}>
-                    <option value="">— Выберите при необходимости —</option>
-                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Parts">Автозапчасти (общая)</option>
-                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Engine Parts">Двигатель</option>
-                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Braking">Тормозная система</option>
-                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Electrical">Электрика</option>
-                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Body Parts">Кузовные части</option>
-                  </select>
-                  <div className="help">Если пусто — можем маппить по нашей группе на стороне фида.</div>
+                  <AsyncGoogleCategorySelect
+                    value={googleCategory}
+                    onChange={setGoogleCategory}
+                    lang="ru-RU"
+                  />
+                  <div className="help">Храним ID категории Google. Если не выбрано — можно маппить по нашей группе на стороне фида.</div>
                 </div>
                 <div className="field-col">
                   <label>Condition</label>
