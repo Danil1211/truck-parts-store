@@ -150,3 +150,9 @@
   .addprod-form{ padding:12px 14px; }
   .row-name-code{ grid-template-columns: 1fr; }
 }
+
+
+/* Подсказки и чекбокс-линия для фид-полей */
+.help{ font-size:12px; color:#64748b; margin-top:4px; }
+.checkline{ display:flex; align-items:center; gap:10px; margin-top:6px; font-size:14px; color:#0f172a; }
+.checkline input{ width:16px; height:16px; accent-color: var(--primary); }

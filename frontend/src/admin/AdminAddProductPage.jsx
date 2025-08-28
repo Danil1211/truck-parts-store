@@ -41,6 +41,13 @@ export default function AdminAddProductPage() {
   const [length, setLength] = useState("");
   const [weight, setWeight] = useState("");
 
+  // Google Ads / Merchant (добавлено)
+  const [mpn, setMpn] = useState("");
+  const [gtin, setGtin] = useState("");
+  const [googleCategory, setGoogleCategory] = useState(""); // google_product_category
+  const [condition, setCondition] = useState("new");        // new|refurbished|used
+  const [excludeFromFeed, setExcludeFromFeed] = useState(false);
+
   // Данные
   const [groups, setGroups] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -56,11 +63,21 @@ export default function AdminAddProductPage() {
       try {
         const obj = JSON.parse(draft);
         const setters = {
+          // базовые
           name: setName, sku: setSku, description: setDescription, group: setGroup,
           price: setPrice, unit: setUnit, availability: setAvailability, stock: setStock,
+          // хар-ки
           charColor: setCharColor, charBrand: setCharBrand,
+          // SEO
           seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys,
-          queries: setQueries, width: setWidth, height: setHeight, length: setLength, weight: setWeight,
+          // queries
+          queries: setQueries,
+          // габариты
+          width: setWidth, height: setHeight, length: setLength, weight: setWeight,
+          // google feed
+          mpn: setMpn, gtin: setGtin, googleCategory: setGoogleCategory,
+          condition: setCondition, excludeFromFeed: setExcludeFromFeed,
+          // медиа
           images: setImages
         };
         Object.keys(setters).forEach((k) => obj[k] !== undefined && setters[k](obj[k]));
@@ -70,15 +87,28 @@ export default function AdminAddProductPage() {
 
   useEffect(() => {
     const draft = {
+      // базовые
       name, sku, description, group, price, unit, availability, stock,
-      charColor, charBrand, seoTitle, seoDesc, seoKeys, queries,
-      width, height, length, weight, images
+      // хар-ки
+      charColor, charBrand,
+      // SEO
+      seoTitle, seoDesc, seoKeys,
+      // queries
+      queries,
+      // габариты
+      width, height, length, weight,
+      // google feed
+      mpn, gtin, googleCategory, condition, excludeFromFeed,
+      // медиа
+      images
     };
     localStorage.setItem("draftProduct", JSON.stringify(draft));
   }, [
     name, sku, description, group, price, unit, availability, stock,
     charColor, charBrand, seoTitle, seoDesc, seoKeys, queries,
-    width, height, length, weight, images
+    width, height, length, weight,
+    mpn, gtin, googleCategory, condition, excludeFromFeed,
+    images
   ]);
 
   /* ===== Группы ===== */
@@ -142,6 +172,7 @@ export default function AdminAddProductPage() {
     if (isSaving) return;
 
     const fd = new FormData();
+    // базовые
     fd.append("name", name);
     fd.append("sku", sku);
     fd.append("description", description);
@@ -150,16 +181,29 @@ export default function AdminAddProductPage() {
     fd.append("unit", unit);
     fd.append("availability", availability);
     fd.append("stock", stock);
+    // хар-ки
     fd.append("charColor", charColor);
     fd.append("charBrand", charBrand);
+    // на всякий случай отдадим brand отдельным полем для фид-слоя
+    fd.append("brand", charBrand || "");
+    // габариты
     fd.append("width", width);
     fd.append("height", height);
     fd.append("length", length);
     fd.append("weight", weight);
+    // SEO
     fd.append("seoTitle", seoTitle);
     fd.append("seoDesc", seoDesc);
     fd.append("seoKeys", seoKeys);
+    // queries
     fd.append("queries", JSON.stringify(queries));
+    // google feed (новое)
+    fd.append("mpn", mpn);
+    fd.append("gtin", gtin);
+    fd.append("googleCategory", googleCategory);
+    fd.append("condition", condition);
+    fd.append("excludeFromFeed", excludeFromFeed ? "1" : "0");
+
     images.forEach((img) => img.file && fd.append("images", img.file));
 
     try {
@@ -241,10 +285,57 @@ export default function AdminAddProductPage() {
                   <input value={charColor} onChange={(e) => setCharColor(e.target.value)} />
                 </div>
                 <div className="field-col">
-                  <label>Производитель</label>
-                  <input value={charBrand} onChange={(e) => setCharBrand(e.target.value)} />
+                  <label>Производитель (Brand)</label>
+                  <input value={charBrand} onChange={(e) => setCharBrand(e.target.value)} placeholder="MAN / Scania / Bosch..." />
                 </div>
               </div>
+            </div>
+
+            {/* Google Реклама / Фид (новое) */}
+            <div className="card">
+              <div className="card-title">Google Реклама / Фид</div>
+              <div className="form-row two">
+                <div className="field-col">
+                  <label>MPN (артикул производителя)</label>
+                  <input value={mpn} onChange={(e) => setMpn(e.target.value)} placeholder="Оригинальный номер / MPN" />
+                </div>
+                <div className="field-col">
+                  <label>GTIN (штрихкод)</label>
+                  <input value={gtin} onChange={(e) => setGtin(e.target.value)} placeholder="EAN-13 / UPC (если есть)" />
+                </div>
+              </div>
+
+              <div className="form-row two">
+                <div className="field-col">
+                  <label>Google Product Category</label>
+                  <select value={googleCategory} onChange={(e) => setGoogleCategory(e.target.value)}>
+                    <option value="">— Выберите при необходимости —</option>
+                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Parts">Автозапчасти (общая)</option>
+                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Engine Parts">Двигатель</option>
+                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Braking">Тормозная система</option>
+                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Electrical">Электрика</option>
+                    <option value="Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Body Parts">Кузовные части</option>
+                  </select>
+                  <div className="help">Если пусто — можем маппить по нашей группе на стороне фида.</div>
+                </div>
+                <div className="field-col">
+                  <label>Condition</label>
+                  <select value={condition} onChange={(e) => setCondition(e.target.value)}>
+                    <option value="new">new</option>
+                    <option value="refurbished">refurbished</option>
+                    <option value="used">used</option>
+                  </select>
+                </div>
+              </div>
+
+              <label className="checkline">
+                <input
+                  type="checkbox"
+                  checked={excludeFromFeed}
+                  onChange={(e) => setExcludeFromFeed(e.target.checked)}
+                />
+                Исключить этот товар из товарного фида
+              </label>
             </div>
 
             {/* SEO */}
@@ -304,7 +395,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Группа — перенесена в сайдбар */}
+            {/* Группа — в сайдбаре */}
             <div className="card">
               <div className="card-title">Группа</div>
               <div className="field-col">
@@ -331,11 +422,11 @@ export default function AdminAddProductPage() {
               />
 
               <div className="media-grid">
-                {/* Если нет фото — нарисуем 1 большой + 9 маленьких «+» */}
+                {/* Если нет фото — 1 большой + 9 маленьких «+» */}
                 {images.length === 0 && (
                   <>
                     <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
-                    {Array.from({ length: emptiesWhenNoImages }).map((_, i) => (
+                    {Array.from({ length: MAX_IMAGES - 1 }).map((_, i) => (
                       <div
                         key={`empty0-${i}`}
                         className="thumb add"
@@ -345,7 +436,7 @@ export default function AdminAddProductPage() {
                   </>
                 )}
 
-                {/* Если фото есть — выводим их, затем заполняем до 10 пустыми */}
+                {/* Если фото есть — выводим их, затем пустые до 10 */}
                 {images.length > 0 && (
                   <>
                     {images.map((img) => (
@@ -354,7 +445,7 @@ export default function AdminAddProductPage() {
                         <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
                       </div>
                     ))}
-                    {Array.from({ length: leftover }).map((_, i) => (
+                    {Array.from({ length: Math.max(0, MAX_IMAGES - images.length) }).map((_, i) => (
                       <div
                         key={`empty-${i}`}
                         className="thumb add"
