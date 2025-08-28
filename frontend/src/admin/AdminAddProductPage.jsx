@@ -83,6 +83,17 @@ function RegionMultiSelect({ options, value = [], onChange, placeholder = "Вы�
   );
 }
 
+/* ===== SVG Play badge (чёрный фон + белая стрелка) ===== */
+function PlayBadge({ size = 20 }) {
+  return (
+    <span className="play-badge" style={{ width: size, height: size }} aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    </span>
+  );
+}
+
 /* ===== Эл-т «цена + валюта» в одном поле ===== */
 function PriceWithCurrency({ value, currency, onChangeValue, onChangeCurrency }) {
   return (
@@ -480,7 +491,9 @@ export default function AdminAddProductPage() {
                 </div>
 
                 <div className="field-col">
-                  <label>Видео <span className="muted">(одно)</span></label>
+                  <label style={{ gap: 8, display: "flex", alignItems: "center" }}>
+                    Видео <PlayBadge /> <span className="muted">(одно)</span>
+                  </label>
                   <div className="video-row">
                     <input
                       type="url"
@@ -497,6 +510,7 @@ export default function AdminAddProductPage() {
                   </div>
                   {(videoUrl || videoFile) && (
                     <div className="video-preview">
+                      <PlayBadge size={18} />
                       {videoUrl ? (
                         <span className="muted">Ссылка указана</span>
                       ) : (
