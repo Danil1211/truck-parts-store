@@ -83,11 +83,14 @@ function RegionMultiSelect({ options, value = [], onChange, placeholder = "Вы�
   );
 }
 
-/* ===== SVG Play badge (чёрный фон + белая стрелка) ===== */
-function PlayBadge({ size = 20 }) {
+/* ===== SVG Play badge (чёрный фон + белая стрелка + поворот) ===== */
+function PlayBadge({ size = 18, open = false }) {
   return (
-    <span className="play-badge" style={{ width: size, height: size }} aria-hidden="true">
-      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+    <span
+      className={`play-badge ${open ? "open" : ""}`}
+      style={{ width: size, height: size }}
+    >
+      <svg viewBox="0 0 24 24">
         <path d="M8 5v14l11-7z" />
       </svg>
     </span>
