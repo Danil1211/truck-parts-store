@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AdminAddProductPage — современно и минималистично
+   AdminAddProductPage — современный минимализм (aka «епел»-стайл)
    ========================================================================== */
 
 .add-prod.products-page{ padding: 0 0 28px; }
@@ -30,6 +30,10 @@
 .btn-mini{
   appearance:none; border:1px solid #d0d7e2; background:#fff; color:#0f172a;
   border-radius:8px; height:28px; padding:0 10px; cursor:pointer; font-size:12.5px;
+}
+.btn-link{
+  appearance:none; border:none; background:transparent; color:#0a84ff; cursor:pointer;
+  font-size:14px; padding:0;
 }
 
 /* Формовая обвязка */
@@ -72,7 +76,7 @@
   outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.12);
 }
 
-/* Ряды */
+/* Ряды / сетки */
 .form-row{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
 .form-row.two{ flex-direction:row; gap:12px; }
 .form-row.two > *{ flex:1; }
@@ -81,14 +85,28 @@
 .form-row.four{ flex-direction:row; gap:12px; }
 .form-row.four > *{ flex:1; }
 
-/* Сегментные переключатели */
-.seg{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 14px; }
+.price-grid{
+  display:grid; gap:12px;
+  grid-template-columns: repeat(5, 1fr);
+}
+.col-span-2{ grid-column: span 2; }
+
+.mt6{ margin-top:6px; }
+.mt8{ margin-top:8px; }
+.mt14{ margin-top:14px; }
+
+/* Сегментные переключатели/видимость */
+.seg{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 6px; }
 .seg > label{ font-size:13px; color:#334155; }
 .seg-items{ display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef; border-radius:12px; padding:3px; }
 .seg-items button{
   border:none; background:transparent; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:#334155;
 }
 .seg-items button.active{ background:#fff; border:1px solid #dfe5ee; color:#0f172a; }
+
+/* Радио-линия для режимов цены */
+.inline-radios{ display:flex; gap:18px; flex-wrap:wrap; margin-bottom:10px; }
+.inline-radios input{ accent-color: var(--primary); }
 
 /* Подсказки, чекбоксы */
 .help{ font-size:12px; color:#64748b; margin-top:6px; }
@@ -107,20 +125,17 @@
 }
 .thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px; }
 
-/* Базовая сетка (оставляем на случай переиспользования) */
+/* Базовая сетка (оставлена) */
 .media-grid{
   display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;
 }
 .media-grid .thumb:first-child{ grid-column: span 3; aspect-ratio: 1 / 1; }
 .media-grid .thumb:not(:first-child){ aspect-ratio: 1 / 1; }
 
-/* ===== Компактная фотосетка (без большого первого кадра) ===== */
+/* Компактная фотосетка 5 в ряд, без скролла */
 .media-grid.media-grid--compact{
   grid-template-columns: repeat(5, 1fr);
-  gap:8px;
-  max-height: 240px;
-  overflow: auto;
-  padding-right: 2px;
+  gap: 8px;
   background: #fff;
   border: 1px solid #e6ebf2;
   border-radius: 12px;
@@ -131,7 +146,7 @@
 .media-grid.media-grid--compact .thumb.add{ font-size: 16px; }
 
 .add-by-link{
-  margin-top:8px; font-size:12.5px; color:var(--primary); cursor:pointer; user-select:none; width:fit-content;
+  margin-top:8px; font-size:12.5px; color:#0a84ff; cursor:pointer; user-select:none; width:fit-content;
 }
 
 .video-row{ display:flex; flex-direction:row; gap:10px; }
@@ -168,6 +183,42 @@
 /* Атрибуты (характеристики) */
 .attr-row{ display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end; }
 
+/* ===== Input + Select объединённые (для цены/валюты) ===== */
+.input-merge{
+  display:flex; align-items:center; overflow:hidden; border:1px solid #d0d7e2; border-radius:10px; background:#f9fbfd;
+}
+.input-merge input{
+  flex:1; min-width:0; border:none; background:transparent; padding:10px 12px; font-size:14px;
+}
+.input-merge select, .input-merge .addon{
+  border:none; border-left:1px solid #d0d7e2; background:#f3f6fb; padding:10px 12px; font-size:14px; white-space:nowrap;
+  color:#0f172a;
+}
+.input-merge select:focus{ outline:none; }
+
+/* ===== Оптовые ряды ===== */
+.wh-row{
+  display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; margin-top:8px;
+}
+.self-end{ align-self:end; }
+
+/* ===== Мультиселект регионов ===== */
+.multi-select{ position:relative; }
+.ms-trigger{
+  width:100%; text-align:left; background:#f9fbfd; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
+  font-size:14px; color:#0f172a; display:flex; align-items:center; justify-content:space-between;
+}
+.ms-trigger.filled{ background:#fff; }
+.ms-dropdown{
+  position:absolute; z-index:20; top:100%; left:0; right:0; margin-top:6px; background:#fff; border:1px solid #e0e5eb; border-radius:10px;
+  box-shadow:0 6px 16px rgba(0,0,0,.08); max-height:260px; overflow:auto; padding:6px;
+}
+.ms-option{ display:flex; align-items:center; gap:8px; padding:6px 8px; cursor:pointer; }
+.ms-option:hover{ background:#f6f8fb; }
+.ms-option input{ accent-color: var(--primary); }
+.chev{ width:10px; height:10px; border-right:2px solid #94a3b8; border-bottom:2px solid #94a3b8; transform:rotate(45deg); margin-left:8px; }
+.chev.up{ transform:rotate(-135deg); }
+
 /* Async Google Category Select */
 .async-select { position:relative; }
 .async-select input{
@@ -184,39 +235,15 @@
 .async-select .selected button{ border:none; background:none; cursor:pointer; color:#e12a2a; font-size:16px; line-height:1; }
 
 /* Мобильная адаптация */
+@media (max-width: 920px){
+  .price-grid{ grid-template-columns: 1fr 1fr; }
+  .col-span-2{ grid-column: span 2; }
+}
 @media (max-width: 720px){
   .addprod-topbar{ height:52px; padding:0 14px; }
   .addprod-form{ padding:12px 14px; }
   .attr-row{ grid-template-columns: 1fr; }
   .video-row{ flex-direction:column; }
-  .media-grid.media-grid--compact{
-    grid-template-columns: repeat(4, 1fr);
-    max-height: none;
-  }
-}
-
-
-/* === Фото без внутреннего скролла — показываем все превью сразу === */
-.media-grid.media-grid--compact{
-  /* оставляем 5 в ряд, как тебе понравилось */
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-
-  /* выключаем ограничения по высоте и прокрутку */
-  max-height: none !important;
-  overflow: visible !important;
-
-  /* контейнер-рамка оставляем как было */
-  background: #fff;
-  border: 1px solid #e6ebf2;
-  border-radius: 12px;
-  padding: 8px;
-  padding-right: 8px; /* можно вернуть обычный отступ */
-}
-
-/* мобилка остаётся 4 в ряд */
-@media (max-width: 720px){
-  .media-grid.media-grid--compact{
-    grid-template-columns: repeat(4, 1fr);
-  }
+  .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
+  .wh-row{ grid-template-columns: 1fr; }
 }

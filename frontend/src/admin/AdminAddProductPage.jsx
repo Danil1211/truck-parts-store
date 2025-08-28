@@ -21,12 +21,81 @@ const UNITS = [
   "услуга"
 ];
 
+// регионы для мультиселекта
+const UA_REGIONS = [
+  "Киев", "Киевская область", "Львовская область", "Харьковская область",
+  "Днепропетровская область", "Одесская область", "Запорожская область",
+  "Николаевская область", "Полтавская область", "Черкасская область",
+  "Винницкая область", "Ивано-Франковская область", "Ровенская область",
+  "Тернопольская область", "Черниговская область"
+];
+
 const textLength = (html) => {
   if (!html) return 0;
   const el = document.createElement("div");
   el.innerHTML = html;
   return (el.textContent || el.innerText || "").trim().length;
 };
+
+/* ===== Простой мультиселект «Где находится товар» ===== */
+function RegionMultiSelect({ options, value = [], onChange, placeholder = "Выберите регионы" }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, []);
+
+  const toggle = (opt) => {
+    const set = new Set(value);
+    set.has(opt) ? set.delete(opt) : set.add(opt);
+    onChange(Array.from(set));
+  };
+
+  const label = value.length ? value.join(", ") : placeholder;
+
+  return (
+    <div className="multi-select" ref={wrapRef}>
+      <button type="button" className={`ms-trigger ${value.length ? "filled" : ""}`} onClick={() => setOpen(!open)}>
+        {label}
+        <span className={`chev ${open ? "up" : ""}`} />
+      </button>
+      {open && (
+        <div className="ms-dropdown">
+          {options.map((opt) => (
+            <label key={opt} className="ms-option">
+              <input
+                type="checkbox"
+                checked={value.includes(opt)}
+                onChange={() => toggle(opt)}
+              />
+              <span>{opt}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===== Эл-т «цена + валюта» в одном поле ===== */
+function PriceWithCurrency({ value, currency, onChangeValue, onChangeCurrency }) {
+  return (
+    <div className="input-merge">
+      <input type="number" value={value} onChange={e => onChangeValue(e.target.value)} placeholder="0" />
+      <select value={currency} onChange={e => onChangeCurrency(e.target.value)}>
+        <option value="UAH">₴</option>
+        <option value="USD">$</option>
+        <option value="EUR">€</option>
+      </select>
+    </div>
+  );
+}
 
 export default function AdminAddProductPage() {
   const navigate = useNavigate();
@@ -44,18 +113,22 @@ export default function AdminAddProductPage() {
   const inputFileRef = useRef(null);
   const inputVideoRef = useRef(null);
 
-  // Цена и наличие
-  const [priceType, setPriceType] = useState("retail"); // retail|wholesale
-  const [currency, setCurrency] = useState("UAH"); // UAH|USD|EUR
-  const [priceOld, setPriceOld] = useState("");
-  const [priceNew, setPriceNew] = useState("");
-  const [priceTimerOn, setPriceTimerOn] = useState(false);
-  const [priceFrom, setPriceFrom] = useState("");
-  const [priceTo, setPriceTo] = useState("");
-  const [isPromo, setIsPromo] = useState(false);
+  // Цена и наличие — НОВЫЙ БЛОК
+  const [priceMode, setPriceMode] = useState("retail"); // retail | wholesale | both | service
+  const [retailPrice, setRetailPrice] = useState("");
+  const [retailCurrency, setRetailCurrency] = useState("UAH");
+  const [priceFromFlag, setPriceFromFlag] = useState(false); // «цена от»
+
+  const [wholesaleTiers, setWholesaleTiers] = useState([
+    { id: genId(), price: "", currency: "UAH", minQty: "" },
+  ]);
+
   const [unit, setUnit] = useState("шт");
-  const [serviceCity, setServiceCity] = useState("");
+  const [stockState, setStockState] = useState("in_stock"); // in_stock | preorder | out
   const [stock, setStock] = useState("");
+  const [regions, setRegions] = useState([]);
+
+  // Публикация
   const [visibility, setVisibility] = useState("published"); // published|hidden
 
   // Размещение
@@ -99,11 +172,10 @@ export default function AdminAddProductPage() {
       const setters = {
         name: setName, sku: setSku, description: setDescription,
         images: setImages, videoUrl: setVideoUrl,
-        priceType: setPriceType, currency: setCurrency,
-        priceOld: setPriceOld, priceNew: setPriceNew,
-        priceTimerOn: setPriceTimerOn, priceFrom: setPriceFrom, priceTo: setPriceTo, isPromo: setIsPromo,
-        unit: setUnit, serviceCity: setServiceCity,
-        stock: setStock, visibility: setVisibility,
+        priceMode: setPriceMode, retailPrice: setRetailPrice, retailCurrency: setRetailCurrency,
+        priceFromFlag: setPriceFromFlag, wholesaleTiers: setWholesaleTiers,
+        unit: setUnit, stockState: setStockState, stock: setStock, regions: setRegions,
+        visibility: setVisibility,
         groupsTree: setGroupsTree, group: setGroup, queries: setQueries, googleCategory: setGoogleCategory,
         groupExpanded: setGroupExpanded,
         attrs: setAttrs,
@@ -119,8 +191,9 @@ export default function AdminAddProductPage() {
     const draft = {
       name, sku, description,
       images, videoUrl,
-      priceType, currency, priceOld, priceNew, priceTimerOn, priceFrom, priceTo, isPromo,
-      unit, serviceCity, stock, visibility,
+      priceMode, retailPrice, retailCurrency, priceFromFlag, wholesaleTiers,
+      unit, stockState, stock, regions,
+      visibility,
       groupsTree, group, queries, googleCategory, groupExpanded,
       attrs,
       width, height, length, weight,
@@ -130,8 +203,9 @@ export default function AdminAddProductPage() {
   }, [
     name, sku, description,
     images, videoUrl,
-    priceType, currency, priceOld, priceNew, priceTimerOn, priceFrom, priceTo, isPromo,
-    unit, serviceCity, stock, visibility,
+    priceMode, retailPrice, retailCurrency, priceFromFlag, wholesaleTiers,
+    unit, stockState, stock, regions,
+    visibility,
     groupsTree, group, queries, googleCategory, groupExpanded,
     attrs,
     width, height, length, weight,
@@ -240,6 +314,17 @@ export default function AdminAddProductPage() {
     setAttrs(p => p.map(a => a.id === id ? { ...a, [field]: val } : a));
   };
 
+  /* ===== Оптовые ступени ===== */
+  const addWholesale = () => {
+    setWholesaleTiers(p => [...p, { id: genId(), price: "", currency: (p[0]?.currency || "UAH"), minQty: "" }]);
+  };
+  const updateWholesale = (id, patch) => {
+    setWholesaleTiers(p => p.map(t => t.id === id ? { ...t, ...patch } : t));
+  };
+  const removeWholesale = (id) => {
+    setWholesaleTiers(p => p.filter(t => t.id !== id));
+  };
+
   /* ===== Submit ===== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -247,6 +332,9 @@ export default function AdminAddProductPage() {
 
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
+    if ((priceMode === "retail" || priceMode === "both" || priceMode === "service") && !retailPrice) {
+      // мягкая проверка
+    }
 
     const fd = new FormData();
 
@@ -260,19 +348,18 @@ export default function AdminAddProductPage() {
     if (videoFile) fd.append("video", videoFile);
     if (videoUrl) fd.append("videoUrl", videoUrl);
 
-    // Цена и наличие
-    fd.append("priceType", priceType);
-    fd.append("currency", currency);
-    fd.append("priceOld", priceOld);
-    fd.append("priceNew", priceNew);
-    fd.append("priceTimerOn", priceTimerOn ? "1" : "0");
-    fd.append("priceFrom", priceFrom || "");
-    fd.append("priceTo", priceTo || "");
-    fd.append("isPromo", isPromo ? "1" : "0");
-
+    // Цена и наличие (новая модель)
+    fd.append("priceMode", priceMode);
+    fd.append("retailPrice", retailPrice);
+    fd.append("retailCurrency", retailCurrency);
+    fd.append("priceFromFlag", priceFromFlag ? "1" : "0");
+    fd.append("wholesaleTiers", JSON.stringify(wholesaleTiers));
     fd.append("unit", unit);
-    fd.append("serviceCity", serviceCity);
+    fd.append("stockState", stockState);
     fd.append("stock", stock);
+    fd.append("regions", JSON.stringify(regions));
+
+    // Публикация
     fd.append("availability", visibility);
 
     // Размещение
@@ -307,8 +394,6 @@ export default function AdminAddProductPage() {
       setIsSaving(false);
     }
   };
-
-  const isService = unit === "услуга";
 
   return (
     <div className="add-prod products-page">
@@ -426,81 +511,241 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Цена и наличие */}
+            {/* Цена и наличие — ПЕРЕДЕЛАНО */}
             <div className="card">
               <div className="card-title">Цена и наличие</div>
 
-              <div className="seg">
-                <label>Тип цены</label>
-                <div className="seg-items">
-                  <button type="button" className={priceType === "retail" ? "active" : ""} onClick={() => setPriceType("retail")}>Розница</button>
-                  <button type="button" className={priceType === "wholesale" ? "active" : ""} onClick={() => setPriceType("wholesale")}>Опт</button>
-                </div>
+              <div className="inline-radios">
+                <label><input type="radio" name="pm" checked={priceMode==="retail"} onChange={()=>setPriceMode("retail")} /> Розница</label>
+                <label><input type="radio" name="pm" checked={priceMode==="wholesale"} onChange={()=>setPriceMode("wholesale")} /> Только опт</label>
+                <label><input type="radio" name="pm" checked={priceMode==="both"} onChange={()=>setPriceMode("both")} /> Оптом и в розницу</label>
+                <label><input type="radio" name="pm" checked={priceMode==="service"} onChange={()=>setPriceMode("service")} /> Услуга</label>
               </div>
 
-              <div className="form-row three">
-                <div className="field-col">
-                  <label>Старая цена</label>
-                  <input type="number" value={priceOld} onChange={(e) => setPriceOld(e.target.value)} placeholder="0" />
-                </div>
-                <div className="field-col">
-                  <label>Новая цена</label>
-                  <input type="number" value={priceNew} onChange={(e) => setPriceNew(e.target.value)} placeholder="0" />
-                </div>
-                <div className="field-col">
-                  <label>Валюта</label>
-                  <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                    <option value="UAH">Грн</option>
-                    <option value="USD">Доллар</option>
-                    <option value="EUR">Евро</option>
-                  </select>
-                </div>
-              </div>
+              {/* ——— РОЗНИЦА ——— */}
+              {(priceMode === "retail") && (
+                <>
+                  <div className="price-grid">
+                    <div className="field-col">
+                      <label>Розничная цена</label>
+                      <PriceWithCurrency
+                        value={retailPrice}
+                        currency={retailCurrency}
+                        onChangeValue={setRetailPrice}
+                        onChangeCurrency={setRetailCurrency}
+                      />
+                    </div>
 
-              <div className="form-row two">
-                <label className="checkline">
-                  <input type="checkbox" checked={isPromo} onChange={(e) => setIsPromo(e.target.checked)} />
-                  Пометить как акцию
-                </label>
-                <label className="checkline">
-                  <input type="checkbox" checked={priceTimerOn} onChange={(e) => setPriceTimerOn(e.target.checked)} />
-                  Включить таймер цены
-                </label>
-              </div>
+                    <div className="field-col">
+                      <label>Единица</label>
+                      <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
+                        {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
+                      </select>
+                    </div>
 
-              {priceTimerOn && (
-                <div className="form-row two">
-                  <div className="field-col">
-                    <label>Цена действует с</label>
-                    <input type="datetime-local" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} />
+                    <div className="field-col">
+                      <label>Наличие</label>
+                      <select value={stockState} onChange={(e)=>setStockState(e.target.value)}>
+                        <option value="in_stock">В наличии</option>
+                        <option value="preorder">Под заказ</option>
+                        <option value="out">Нет в наличии</option>
+                      </select>
+                    </div>
+
+                    <div className="field-col">
+                      <label>Остатки</label>
+                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
+                    </div>
+
+                    <div className="field-col col-span-2">
+                      <label>Где находится товар</label>
+                      <RegionMultiSelect
+                        options={UA_REGIONS}
+                        value={regions}
+                        onChange={setRegions}
+                        placeholder="Выберите регионы"
+                      />
+                    </div>
                   </div>
-                  <div className="field-col">
-                    <label>до</label>
-                    <input type="datetime-local" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} />
-                  </div>
-                </div>
+
+                  <label className="checkline mt8">
+                    <input type="checkbox" checked={priceFromFlag} onChange={e=>setPriceFromFlag(e.target.checked)} />
+                    Установить «цена от»
+                  </label>
+                </>
               )}
 
-              <div className="form-row three">
-                <div className="field-col">
-                  <label>Единица измерения</label>
-                  <select value={unit} onChange={(e) => setUnit(e.target.value)}>
-                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                </div>
-                {isService && (
-                  <div className="field-col">
-                    <label>Город (для услуги)</label>
-                    <input value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} placeholder="Киев / Львов / Одесса…" />
+              {/* ——— ТОЛЬКО ОПТ ——— */}
+              {(priceMode === "wholesale") && (
+                <>
+                  <div className="price-grid">
+                    <div className="field-col">
+                      <label>Наличие</label>
+                      <select value={stockState} onChange={(e)=>setStockState(e.target.value)}>
+                        <option value="in_stock">В наличии</option>
+                        <option value="preorder">Под заказ</option>
+                        <option value="out">Нет в наличии</option>
+                      </select>
+                    </div>
+                    <div className="field-col">
+                      <label>Остатки</label>
+                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
+                    </div>
+                    <div className="field-col">
+                      <label>Единица</label>
+                      <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
+                        {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
+                      </select>
+                    </div>
+                    <div className="field-col col-span-2">
+                      <label>Где находится товар</label>
+                      <RegionMultiSelect options={UA_REGIONS} value={regions} onChange={setRegions} placeholder="Выберите регионы" />
+                    </div>
                   </div>
-                )}
-                <div className="field-col">
-                  <label>Остаток</label>
-                  <input value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Количество на складе" />
-                </div>
-              </div>
 
-              <div className="seg">
+                  {wholesaleTiers.map((t, idx) => (
+                    <div className="wh-row" key={t.id}>
+                      <div className="field-col">
+                        <label>Оптовая цена</label>
+                        <PriceWithCurrency
+                          value={t.price}
+                          currency={t.currency}
+                          onChangeValue={(v)=>updateWholesale(t.id, { price: v })}
+                          onChangeCurrency={(v)=>updateWholesale(t.id, { currency: v })}
+                        />
+                      </div>
+                      <div className="field-col">
+                        <label>При заказе от</label>
+                        <div className="input-merge">
+                          <input type="number" value={t.minQty} onChange={e=>updateWholesale(t.id, { minQty: e.target.value })} placeholder="0" />
+                          <div className="addon">{unit}.</div>
+                        </div>
+                      </div>
+                      {idx>0 && (
+                        <button type="button" className="btn-ghost danger self-end" onClick={()=>removeWholesale(t.id)}>Удалить</button>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="mt6">
+                    <button type="button" className="btn-link" onClick={addWholesale}>+ Добавить оптовую цену</button>
+                  </div>
+
+                  <label className="checkline mt8">
+                    <input type="checkbox" checked={priceFromFlag} onChange={e=>setPriceFromFlag(e.target.checked)} />
+                    Установить «цена от»
+                  </label>
+                </>
+              )}
+
+              {/* ——— ОПТОМ И В РОЗНИЦУ ——— */}
+              {(priceMode === "both") && (
+                <>
+                  <div className="price-grid">
+                    <div className="field-col">
+                      <label>Розничная цена</label>
+                      <PriceWithCurrency
+                        value={retailPrice}
+                        currency={retailCurrency}
+                        onChangeValue={setRetailPrice}
+                        onChangeCurrency={setRetailCurrency}
+                      />
+                    </div>
+                    <div className="field-col">
+                      <label>Единица</label>
+                      <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
+                        {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
+                      </select>
+                    </div>
+                    <div className="field-col">
+                      <label>Наличие</label>
+                      <select value={stockState} onChange={(e)=>setStockState(e.target.value)}>
+                        <option value="in_stock">В наличии</option>
+                        <option value="preorder">Под заказ</option>
+                        <option value="out">Нет в наличии</option>
+                      </select>
+                    </div>
+                    <div className="field-col">
+                      <label>Остатки</label>
+                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
+                    </div>
+                  </div>
+
+                  {wholesaleTiers.map((t, idx) => (
+                    <div className="wh-row" key={t.id}>
+                      <div className="field-col">
+                        <label>Оптовая цена</label>
+                        <PriceWithCurrency
+                          value={t.price}
+                          currency={t.currency}
+                          onChangeValue={(v)=>updateWholesale(t.id, { price: v })}
+                          onChangeCurrency={(v)=>updateWholesale(t.id, { currency: v })}
+                        />
+                      </div>
+                      <div className="field-col">
+                        <label>При заказе от</label>
+                        <div className="input-merge">
+                          <input type="number" value={t.minQty} onChange={e=>updateWholesale(t.id, { minQty: e.target.value })} placeholder="0" />
+                          <div className="addon">{unit}.</div>
+                        </div>
+                      </div>
+                      {idx>0 && (
+                        <button type="button" className="btn-ghost danger self-end" onClick={()=>removeWholesale(t.id)}>Удалить</button>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="mt6">
+                    <button type="button" className="btn-link" onClick={addWholesale}>+ Добавить оптовую цену</button>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="field-col">
+                      <label>Где находится товар</label>
+                      <RegionMultiSelect options={UA_REGIONS} value={regions} onChange={setRegions} placeholder="Выберите регионы" />
+                    </div>
+                  </div>
+
+                  <label className="checkline mt8">
+                    <input type="checkbox" checked={priceFromFlag} onChange={e=>setPriceFromFlag(e.target.checked)} />
+                    Установить «цена от»
+                  </label>
+                </>
+              )}
+
+              {/* ——— УСЛУГА ——— */}
+              {(priceMode === "service") && (
+                <>
+                  <div className="price-grid">
+                    <div className="field-col">
+                      <label>Цена</label>
+                      <PriceWithCurrency
+                        value={retailPrice}
+                        currency={retailCurrency}
+                        onChangeValue={setRetailPrice}
+                        onChangeCurrency={setRetailCurrency}
+                      />
+                    </div>
+                    <div className="field-col">
+                      <label>Единица</label>
+                      <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
+                        {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
+                      </select>
+                    </div>
+                    <div className="field-col col-span-2">
+                      <label>Где находится товар</label>
+                      <RegionMultiSelect options={UA_REGIONS} value={regions} onChange={setRegions} placeholder="Выберите регионы" />
+                    </div>
+                  </div>
+
+                  <label className="checkline mt8">
+                    <input type="checkbox" checked={priceFromFlag} onChange={e=>setPriceFromFlag(e.target.checked)} />
+                    Установить «цена от»
+                  </label>
+                </>
+              )}
+
+              <div className="seg mt14">
                 <label>Видимость</label>
                 <div className="seg-items">
                   <button type="button" className={visibility === "published" ? "active" : ""} onClick={() => setVisibility("published")}>Опубликовать</button>
