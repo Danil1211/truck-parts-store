@@ -8,10 +8,10 @@ import "../assets/AdminAddProductPage.css";
 import AsyncGoogleCategorySelect from "../components/AsyncGoogleCategorySelect";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-const MAX_IMAGES = 10; // до 10 фото
+const MAX_IMAGES = 10;
 const NAME_MAX = 120;
 const SKU_MAX = 64;
-const DESC_MAX = 5000; // по тексту (без html)
+const DESC_MAX = 5000;
 
 const UNITS = [
   "шт","комплект","упаковка","пара","коробка","рулон",
@@ -21,7 +21,6 @@ const UNITS = [
   "услуга"
 ];
 
-// регионы для мультиселекта
 const UA_REGIONS = [
   "Киев", "Киевская область", "Львовская область", "Харьковская область",
   "Днепропетровская область", "Одесская область", "Запорожская область",
@@ -37,7 +36,7 @@ const textLength = (html) => {
   return (el.textContent || el.innerText || "").trim().length;
 };
 
-/* ===== Простой мультиселект «Где находится товар» ===== */
+/* ===== Простой мультиселект регионов ===== */
 function RegionMultiSelect({ options, value = [], onChange, placeholder = "Выберите регионы" }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -89,15 +88,16 @@ function PlayBadge({ size = 18, open = false }) {
     <span
       className={`play-badge ${open ? "open" : ""}`}
       style={{ width: size, height: size }}
+      aria-hidden="true"
     >
-      <svg viewBox="0 0 24 24">
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
         <path d="M8 5v14l11-7z" />
       </svg>
     </span>
   );
 }
 
-/* ===== Эл-т «цена + валюта» в одном поле ===== */
+/* ===== Поле «цена + валюта» ===== */
 function PriceWithCurrency({ value, currency, onChangeValue, onChangeCurrency }) {
   return (
     <div className="input-merge">
@@ -127,11 +127,11 @@ export default function AdminAddProductPage() {
   const inputFileRef = useRef(null);
   const inputVideoRef = useRef(null);
 
-  // Цена и наличие — НОВЫЙ БЛОК
+  // Цена и наличие
   const [priceMode, setPriceMode] = useState("retail"); // retail | wholesale | both | service
   const [retailPrice, setRetailPrice] = useState("");
   const [retailCurrency, setRetailCurrency] = useState("UAH");
-  const [priceFromFlag, setPriceFromFlag] = useState(false); // «цена от»
+  const [priceFromFlag, setPriceFromFlag] = useState(false);
 
   const [wholesaleTiers, setWholesaleTiers] = useState([
     { id: genId(), price: "", currency: "UAH", minQty: "" },
@@ -143,7 +143,7 @@ export default function AdminAddProductPage() {
   const [regions, setRegions] = useState([]);
 
   // Публикация
-  const [visibility, setVisibility] = useState("published"); // published|hidden
+  const [visibility, setVisibility] = useState("published");
 
   // Размещение
   const [groupsTree, setGroupsTree] = useState([]);
@@ -264,7 +264,7 @@ export default function AdminAddProductPage() {
   };
   const removeImage = (id) => setImages(p => p.filter(i => i.id !== id));
 
-  /* ===== Видео (одно) ===== */
+  /* ===== Видео ===== */
   const onVideoFile = (e) => {
     const f = (e.target.files || [])[0];
     setVideoFile(f || null);
@@ -288,7 +288,7 @@ export default function AdminAddProductPage() {
   };
   const removeQuery = (val) => setQueries(queries.filter(q => q !== val));
 
-  /* ===== Дерево групп helpers (обновлено на chevron) ===== */
+  /* ===== Дерево групп helpers ===== */
   const toggleExpand = (id) => setGroupExpanded(s => ({ ...s, [id]: !s[id] }));
   const renderTree = (arr) => {
     return (arr || []).map((g) => {
@@ -298,11 +298,16 @@ export default function AdminAddProductPage() {
         <div className="tree-node" key={g._id}>
           <div className="tree-row">
             {hasChildren ? (
-              <div onClick={() => toggleExpand(g._id)} style={{ cursor: "pointer" }}>
-                <PlayBadge size={18} />
-              </div>
+              <button
+                type="button"
+                className="play-toggle"
+                onClick={() => toggleExpand(g._id)}
+                aria-label={expanded ? "Свернуть" : "Развернуть"}
+              >
+                <PlayBadge size={18} open={expanded} />
+              </button>
             ) : (
-              <div style={{ width: 18, height: 18 }} />
+              <span className="play-toggle spacer" />
             )}
             <label className="radio-row">
               <input
@@ -361,7 +366,7 @@ export default function AdminAddProductPage() {
     if (videoFile) fd.append("video", videoFile);
     if (videoUrl) fd.append("videoUrl", videoUrl);
 
-    // Цена и наличие (новая модель)
+    // Цена и наличие
     fd.append("priceMode", priceMode);
     fd.append("retailPrice", retailPrice);
     fd.append("retailCurrency", retailCurrency);
@@ -436,6 +441,7 @@ export default function AdminAddProductPage() {
                     value={name}
                     onChange={(e) => onChangeName(e.target.value)}
                     placeholder="Название товара"
+                    type="text"
                   />
                 </div>
                 <div className="field-col">
@@ -444,6 +450,7 @@ export default function AdminAddProductPage() {
                     value={sku}
                     onChange={(e) => onChangeSku(e.target.value)}
                     placeholder="Артикул"
+                    type="text"
                   />
                 </div>
               </div>
@@ -505,8 +512,16 @@ export default function AdminAddProductPage() {
                       type="file"
                       accept="video/*"
                       ref={inputVideoRef}
+                      className="file-input-hidden"
                       onChange={onVideoFile}
                     />
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={() => inputVideoRef.current?.click()}
+                    >
+                      Загрузить файл
+                    </button>
                   </div>
                   {(videoUrl || videoFile) && (
                     <div className="video-preview">
@@ -527,7 +542,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Цена и наличие — ПЕРЕДЕЛАНО */}
+            {/* Цена и наличие */}
             <div className="card">
               <div className="card-title">Цена и наличие</div>
 
@@ -538,7 +553,7 @@ export default function AdminAddProductPage() {
                 <label><input type="radio" name="pm" checked={priceMode==="service"} onChange={()=>setPriceMode("service")} /> Услуга</label>
               </div>
 
-              {/* ——— РОЗНИЦА ——— */}
+              {/* Розница */}
               {(priceMode === "retail") && (
                 <>
                   <div className="price-grid">
@@ -570,7 +585,7 @@ export default function AdminAddProductPage() {
 
                     <div className="field-col">
                       <label>Остатки</label>
-                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
+                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" type="text" />
                     </div>
 
                     <div className="field-col col-span-2">
@@ -591,7 +606,7 @@ export default function AdminAddProductPage() {
                 </>
               )}
 
-              {/* ——— ТОЛЬКО ОПТ ——— */}
+              {/* Только опт */}
               {(priceMode === "wholesale") && (
                 <>
                   <div className="price-grid">
@@ -605,7 +620,7 @@ export default function AdminAddProductPage() {
                     </div>
                     <div className="field-col">
                       <label>Остатки</label>
-                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
+                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" type="text" />
                     </div>
                     <div className="field-col">
                       <label>Единица</label>
@@ -654,7 +669,7 @@ export default function AdminAddProductPage() {
                 </>
               )}
 
-              {/* ——— ОПТОМ И В РОЗНИЦУ ——— */}
+              {/* Оптом и в розницу */}
               {(priceMode === "both") && (
                 <>
                   <div className="price-grid">
@@ -683,7 +698,7 @@ export default function AdminAddProductPage() {
                     </div>
                     <div className="field-col">
                       <label>Остатки</label>
-                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
+                      <input value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" type="text" />
                     </div>
                   </div>
 
@@ -729,7 +744,7 @@ export default function AdminAddProductPage() {
                 </>
               )}
 
-              {/* ——— УСЛУГА ——— */}
+              {/* Услуга */}
               {(priceMode === "service") && (
                 <>
                   <div className="price-grid">
@@ -783,6 +798,7 @@ export default function AdminAddProductPage() {
                       value={a.key}
                       onChange={(e) => updateAttr(a.id, "key", e.target.value)}
                       placeholder="Напр. Цвет"
+                      type="text"
                     />
                     <datalist id={`attr-keys-${a.id}`}>
                       {Object.keys(ATTR_SUGGEST).map(k => <option key={k} value={k} />)}
@@ -796,6 +812,7 @@ export default function AdminAddProductPage() {
                       value={a.value}
                       onChange={(e) => updateAttr(a.id, "value", e.target.value)}
                       placeholder="Напр. Зеленый"
+                      type="text"
                     />
                     <datalist id={`attr-values-${a.id}`}>
                       {(ATTR_SUGGEST[a.key] || []).map(v => <option key={v} value={v} />)}
@@ -817,19 +834,19 @@ export default function AdminAddProductPage() {
               <div className="form-row four">
                 <div className="field-col">
                   <label>Ширина</label>
-                  <input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" />
+                  <input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" type="text" />
                 </div>
                 <div className="field-col">
                   <label>Высота</label>
-                  <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" />
+                  <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" type="text" />
                 </div>
                 <div className="field-col">
                   <label>Длина</label>
-                  <input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" />
+                  <input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" type="text" />
                 </div>
                 <div className="field-col">
                   <label>Вес</label>
-                  <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" />
+                  <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" type="text" />
                 </div>
               </div>
             </div>
@@ -840,21 +857,23 @@ export default function AdminAddProductPage() {
               <div className="form-row two">
                 <div className="field-col">
                   <label>Title</label>
-                  <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Title страницы товара" />
+                  <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Title страницы товара" type="text" />
                 </div>
                 <div className="field-col">
                   <label>Slug (ЧПУ)</label>
-                  <input value={seoSlug} onChange={(e) => setSeoSlug(e.target.value)} placeholder="nasos-mantga-011-0200" />
+                  <input value={seoSlug} onChange={(e) => setSeoSlug(e.target.value)} placeholder="nasos-mantga-011-0200" type="text" />
                 </div>
               </div>
               <div className="form-row">
-                <label>Description</label>
-                <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="Краткое описание для meta-description" />
+                <label className="field-col">
+                  <span>Description</span>
+                  <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="Краткое описание для meta-description" />
+                </label>
               </div>
               <div className="form-row two">
                 <div className="field-col">
                   <label>Keywords</label>
-                  <input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} placeholder="ключевые слова через запятую" />
+                  <input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} placeholder="ключевые слова через запятую" type="text" />
                 </div>
                 <label className="checkline">
                   <input type="checkbox" checked={seoNoindex} onChange={(e) => setSeoNoindex(e.target.checked)} />
@@ -883,6 +902,7 @@ export default function AdminAddProductPage() {
                 onChange={(e) => setQueryInput(e.target.value)}
                 onKeyDown={onQueryKeyDown}
                 placeholder="Введите запрос и нажмите Enter"
+                type="text"
               />
               <div className="chips">
                 {queries.map((q, i) => (
