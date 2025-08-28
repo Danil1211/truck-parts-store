@@ -316,3 +316,30 @@
   .add-prod .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
   .add-prod .wh-row{ grid-template-columns: 1fr; }
 }
+
+/* --- HOTFIX: разделить цену и единицу измерения --- */
+.add-prod .price-grid{
+  column-gap: 16px !important;  /* явный зазор между колонками */
+  row-gap: 12px !important;
+}
+
+.add-prod .price-grid > .field-col{
+  margin: 0 !important;         /* на случай, если где-то задавали отрицательные маргины */
+  min-width: 0;
+}
+
+.add-prod .input-merge{
+  min-width: 220px;
+  max-width: 100%;
+}
+
+/* Чтоб второй контрол (Единица) не “прилипал” визуально */
+.add-prod .field-col > select{
+  background:#fff;               /* отличается от #f9fbfd блока слева => зазор заметнее */
+}
+
+/* Если у тебя есть глобалка, сбивающая gap у grid-ов: отключим её внутри карточек */
+.add-prod .card .field-col,
+.add-prod .card .price-grid{
+  gap: revert-layer;
+}
