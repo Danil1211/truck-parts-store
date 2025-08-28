@@ -180,24 +180,33 @@
   border:none; background:none; cursor:pointer; color:#e12a2a; font-size:14px;
 }
 
-/* === ПРАВЫЙ САЙДБАР: ширина и читабельность === */
-@media (min-width: 1101px){
-  /* было 2.25fr 0.75fr → делаем ~63/37 с безопасными минимумах */
+/* === Правый сайдбар: компактнее и адаптивно через clamp() === */
+/* 1101–1399px: узкий сайдбар */
+@media (min-width:1101px) and (max-width:1399px){
   .layout-grid{
-    grid-template-columns: minmax(640px, 1.9fr) minmax(420px, 1.1fr);
+    /* контент растягивается, сайдбар держим 320–360px, ~31vw по центру */
+    grid-template-columns: 1fr clamp(320px, 31vw, 360px);
   }
-  .side-col{ min-width: 420px; }
+  .side-col{ max-width: 360px; }
 }
 
-/* немного крупнее и «воздушнее» карточки в сайдбаре */
-.side-col .card{ padding:16px 18px; border-radius:12px; }
-.side-col .card-title{ font-size:15px; margin-bottom:10px; }
-.side-col .field-col label{ font-size:13.5px; }
-
-/* на средних экранах — не ужимать сайдбар ниже 380px */
-@media (max-width: 1400px) and (min-width: 1101px){
+/* 1400–1599px: чуть шире, но не огромный */
+@media (min-width:1400px) and (max-width:1599px){
   .layout-grid{
-    grid-template-columns: minmax(600px, 1.8fr) minmax(380px, 1fr);
+    grid-template-columns: 1fr clamp(320px, 28vw, 380px);
   }
-  .side-col{ min-width: 380px; }
+  .side-col{ max-width: 380px; }
 }
+
+/* 1600px+: максимум 420px, чтобы не раздувался */
+@media (min-width:1600px){
+  .layout-grid{
+    grid-template-columns: 1fr clamp(340px, 24vw, 420px);
+  }
+  .side-col{ max-width: 420px; }
+}
+
+/* Вернём более компактные отступы/кегль в сайдбаре */
+.side-col .card{ padding:14px 14px; }
+.side-col .card-title{ font-size:14px; margin-bottom:8px; }
+.side-col .field-col label{ font-size:13px; }
