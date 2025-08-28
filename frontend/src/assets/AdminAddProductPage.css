@@ -95,7 +95,7 @@
 .checkline{ display:flex; align-items:center; gap:10px; font-size:14px; color:#0f172a; }
 .checkline input{ width:16px; height:16px; accent-color: var(--primary); }
 
-/* Медиа */
+/* ==================== МЕДИА ==================== */
 .media-block{ display:flex; flex-direction:column; gap:16px; margin-top:8px; }
 .thumb{
   position:relative; border:1.5px solid #d0d7e2; border-radius:10px; overflow:hidden; background:#f9fbfd; cursor:pointer;
@@ -107,11 +107,28 @@
 }
 .thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px; }
 
+/* Базовая сетка (оставляем на случай переиспользования) */
 .media-grid{
   display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;
 }
 .media-grid .thumb:first-child{ grid-column: span 3; aspect-ratio: 1 / 1; }
 .media-grid .thumb:not(:first-child){ aspect-ratio: 1 / 1; }
+
+/* ===== Компактная фотосетка (без большого первого кадра) ===== */
+.media-grid.media-grid--compact{
+  grid-template-columns: repeat(5, 1fr);
+  gap:8px;
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 2px;
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 12px;
+  padding: 8px;
+}
+.media-grid.media-grid--compact .thumb{ aspect-ratio: 1 / 1; }
+.media-grid.media-grid--compact .thumb:first-child{ grid-column: auto; }
+.media-grid.media-grid--compact .thumb.add{ font-size: 16px; }
 
 .add-by-link{
   margin-top:8px; font-size:12.5px; color:var(--primary); cursor:pointer; user-select:none; width:fit-content;
@@ -150,9 +167,8 @@
 
 /* Атрибуты (характеристики) */
 .attr-row{ display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end; }
-.btn-ghost.danger{ color:#e12a2a; }
 
-/* Async Google Category Select (поддержка существующего компонента) */
+/* Async Google Category Select */
 .async-select { position:relative; }
 .async-select input{
   width:100%; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px; font-size:14px; background:#f9fbfd;
@@ -173,4 +189,8 @@
   .addprod-form{ padding:12px 14px; }
   .attr-row{ grid-template-columns: 1fr; }
   .video-row{ flex-direction:column; }
+  .media-grid.media-grid--compact{
+    grid-template-columns: repeat(4, 1fr);
+    max-height: none;
+  }
 }

@@ -21,7 +21,6 @@ const UNITS = [
   "услуга"
 ];
 
-// утилита для подсчёта длины текстового содержимого LocalEditor (html → text)
 const textLength = (html) => {
   if (!html) return 0;
   const el = document.createElement("div");
@@ -32,7 +31,6 @@ const textLength = (html) => {
 export default function AdminAddProductPage() {
   const navigate = useNavigate();
 
-  /* ======================= СТЕЙТ ======================= */
   // Основная информация
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
@@ -62,19 +60,14 @@ export default function AdminAddProductPage() {
 
   // Размещение
   const [groupsTree, setGroupsTree] = useState([]);
-  const [group, setGroup] = useState(""); // выбранная группа (id)
-  const [groupExpanded, setGroupExpanded] = useState({}); // раскрытие в дереве
-
+  const [group, setGroup] = useState("");
+  const [groupExpanded, setGroupExpanded] = useState({});
   const [queryInput, setQueryInput] = useState("");
   const [queries, setQueries] = useState([]);
+  const [googleCategory, setGoogleCategory] = useState("");
 
-  const [googleCategory, setGoogleCategory] = useState(""); // ID таксономии Google
-
-  // Характеристики (динамические)
-  const [attrs, setAttrs] = useState([
-    // { id, key: "Цвет", value: "Зеленый" }
-  ]);
-  // демо-набор подсказок (расширишь с сервера при желании)
+  // Характеристики
+  const [attrs, setAttrs] = useState([]);
   const ATTR_SUGGEST = {
     "Цвет": ["Черный","Белый","Красный","Синий","Зеленый","Желтый","Серый"],
     "Размер": ["XS","S","M","L","XL","XXL"],
@@ -95,35 +88,26 @@ export default function AdminAddProductPage() {
   const [seoSlug, setSeoSlug] = useState("");
   const [seoNoindex, setSeoNoindex] = useState(false);
 
-  // Прочее
   const [isSaving, setIsSaving] = useState(false);
 
-  /* =================== АВТОСОХРАНЕНИЕ =================== */
+  /* ===== Черновик ===== */
   useEffect(() => {
     const draft = localStorage.getItem("draftProductV2");
     if (!draft) return;
     try {
       const d = JSON.parse(draft);
-      // просто перебираем ключи, если есть — ставим
       const setters = {
-        // основное
         name: setName, sku: setSku, description: setDescription,
-        // медиа
         images: setImages, videoUrl: setVideoUrl,
-        // цена
         priceType: setPriceType, currency: setCurrency,
         priceOld: setPriceOld, priceNew: setPriceNew,
         priceTimerOn: setPriceTimerOn, priceFrom: setPriceFrom, priceTo: setPriceTo, isPromo: setIsPromo,
         unit: setUnit, serviceCity: setServiceCity,
         stock: setStock, visibility: setVisibility,
-        // размещение
         groupsTree: setGroupsTree, group: setGroup, queries: setQueries, googleCategory: setGoogleCategory,
         groupExpanded: setGroupExpanded,
-        // характеристики
         attrs: setAttrs,
-        // габариты
         width: setWidth, height: setHeight, length: setLength, weight: setWeight,
-        // SEO
         seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys, seoSlug: setSeoSlug, seoNoindex: setSeoNoindex
       };
       Object.keys(setters).forEach(k => d[k] !== undefined && setters[k](d[k]));
@@ -154,7 +138,7 @@ export default function AdminAddProductPage() {
     seoTitle, seoDesc, seoKeys, seoSlug, seoNoindex
   ]);
 
-  /* ==================== ДАННЫЕ ГРУПП ==================== */
+  /* ===== Дерево групп ===== */
   useEffect(() => {
     (async () => {
       try {
@@ -166,17 +150,15 @@ export default function AdminAddProductPage() {
     })();
   }, []);
 
-  /* ==================== ХЕЛПЕРЫ ==================== */
-  // Ограничение длины для Name / SKU
+  /* ===== Ограничители ===== */
   const onChangeName = (v) => setName(v.slice(0, NAME_MAX));
   const onChangeSku = (v) => setSku(v.slice(0, SKU_MAX));
-  // LocalEditor: ограничиваем по тексту
   const onChangeDescription = (val) => {
     const len = textLength(val);
     if (len <= DESC_MAX) { setDescription(val); setDescLen(len); }
   };
 
-  // Медиа: фото (до 10)
+  /* ===== Фото ===== */
   const onImagesChange = (e) => {
     const files = Array.from(e.target.files || []);
     setImages(prev => {
@@ -194,18 +176,18 @@ export default function AdminAddProductPage() {
   };
   const removeImage = (id) => setImages(p => p.filter(i => i.id !== id));
 
-  // Медиа: видео (только 1 — либо ссылка, либо файл)
+  /* ===== Видео (одно) ===== */
   const onVideoFile = (e) => {
     const f = (e.target.files || [])[0];
     setVideoFile(f || null);
-    setVideoUrl(""); // если файл выбран — ссылку чистим
+    setVideoUrl("");
   };
   const onVideoUrl = (v) => {
     setVideoUrl(v.trim());
-    if (v.trim()) setVideoFile(null); // если ссылка — файл чистим
+    if (v.trim()) setVideoFile(null);
   };
 
-  // Поисковые запросы (чипсы)
+  /* ===== Поисковые запросы ===== */
   const onQueryKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -218,7 +200,7 @@ export default function AdminAddProductPage() {
   };
   const removeQuery = (val) => setQueries(queries.filter(q => q !== val));
 
-  // Дерево групп
+  /* ===== Дерево групп helpers ===== */
   const toggleExpand = (id) => setGroupExpanded(s => ({ ...s, [id]: !s[id] }));
   const renderTree = (arr, level = 0) => {
     return (arr || []).map((g) => {
@@ -251,19 +233,18 @@ export default function AdminAddProductPage() {
     });
   };
 
-  // Характеристики
+  /* ===== Характеристики ===== */
   const addAttr = () => setAttrs(p => [...p, { id: genId(), key: "", value: "" }]);
   const removeAttr = (id) => setAttrs(p => p.filter(a => a.id !== id));
   const updateAttr = (id, field, val) => {
     setAttrs(p => p.map(a => a.id === id ? { ...a, [field]: val } : a));
   };
 
-  /* ==================== SUBMIT ==================== */
+  /* ===== Submit ===== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSaving) return;
 
-    // простые проверки
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
 
@@ -292,8 +273,7 @@ export default function AdminAddProductPage() {
     fd.append("unit", unit);
     fd.append("serviceCity", serviceCity);
     fd.append("stock", stock);
-
-    fd.append("availability", visibility); // published|hidden
+    fd.append("availability", visibility);
 
     // Размещение
     fd.append("group", group);
@@ -328,7 +308,6 @@ export default function AdminAddProductPage() {
     }
   };
 
-  /* ==================== UI ==================== */
   const isService = unit === "услуга";
 
   return (
@@ -345,7 +324,7 @@ export default function AdminAddProductPage() {
       <form id="add-prod-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="layout-grid">
 
-          {/* ====== ЛЕВАЯ КОЛОНКА (основные блоки) ====== */}
+          {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
           <div className="main-col">
 
             {/* Основная информация */}
@@ -387,8 +366,7 @@ export default function AdminAddProductPage() {
                     style={{ display: "none" }}
                     onChange={onImagesChange}
                   />
-                  <div className="media-grid">
-                    {/* пусто */}
+                  <div className="media-grid media-grid--compact">
                     {images.length === 0 && (
                       <>
                         <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
@@ -397,7 +375,6 @@ export default function AdminAddProductPage() {
                         ))}
                       </>
                     )}
-                    {/* с фото */}
                     {images.length > 0 && (
                       <>
                         {images.map(img => (
@@ -546,7 +523,6 @@ export default function AdminAddProductPage() {
                       onChange={(e) => updateAttr(a.id, "key", e.target.value)}
                       placeholder="Напр. Цвет"
                     />
-                    {/* подсказки по ключам */}
                     <datalist id={`attr-keys-${a.id}`}>
                       {Object.keys(ATTR_SUGGEST).map(k => <option key={k} value={k} />)}
                     </datalist>
@@ -560,7 +536,6 @@ export default function AdminAddProductPage() {
                       onChange={(e) => updateAttr(a.id, "value", e.target.value)}
                       placeholder="Напр. Зеленый"
                     />
-                    {/* подсказки по значениям */}
                     <datalist id={`attr-values-${a.id}`}>
                       {(ATTR_SUGGEST[a.key] || []).map(v => <option key={v} value={v} />)}
                     </datalist>
@@ -628,7 +603,7 @@ export default function AdminAddProductPage() {
             </div>
           </div>
 
-          {/* ====== ПРАВАЯ КОЛОНКА (размещение и прочее) ====== */}
+          {/* ===== ПРАВАЯ КОЛОНКА ===== */}
           <div className="side-col">
 
             {/* Размещение: группы (дерево) */}
