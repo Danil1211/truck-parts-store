@@ -337,32 +337,21 @@
   .add-prod .tier-row{ grid-template-columns: 1fr; }
 }
 
-/* === Compact price width (retail/service/both) === */
-.add-prod .pricing-card{
-  --price-w: 260px;   /* ширина колонки цены */
-  --unit-w: 140px;    /* ширина колонки единицы */
+/* === Compact price input === */
+.add-prod .pricing-card .input-merge--flat {
+  width: fit-content;        /* блок подстраивается под контент */
+  min-width: unset !important;
+  max-width: 160px;          /* ограничиваем максимум */
 }
 
-/* 2 колонки: цена + единица (фиксированные, не тянутся на всю ширину) */
-.add-prod .pricing-card .pricing-row{
-  grid-template-columns: minmax(140px, var(--price-w)) var(--unit-w) !important;
-  justify-content: start;
+.add-prod .pricing-card .input-merge--flat input {
+  flex: unset;               /* убираем растяжение */
+  width: 80px;               /* фикс ширина самого инпута */
+  min-width: 60px;           /* можно ещё меньше */
+  text-align: right;
 }
 
-/* позволяем блоку цены ужиматься меньше прежнего минимума */
-.add-prod .pricing-card .input-merge--flat{
-  min-width: 0 !important;     /* было 220px */
-  width: 100%;
-}
-
-/* единица измерения выглядит аккуратно в своей узкой колонке */
-.add-prod .pricing-card .pricing-row > .field-col:nth-child(2) > select{
-  width: 100%;
-}
-
-/* на мобиле обратно в одну колонку */
-@media (max-width: 720px){
-  .add-prod .pricing-card .pricing-row{
-    grid-template-columns: 1fr !important;
-  }
+.add-prod .pricing-card .input-merge--flat select,
+.add-prod .pricing-card .input-merge--flat .addon {
+  width: 60px;               /* компактная ширина для валюты */
 }
