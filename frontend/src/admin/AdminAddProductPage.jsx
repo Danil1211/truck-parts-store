@@ -238,37 +238,49 @@ export default function AdminAddProductPage() {
         <div className="layout-grid">
           {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
           <div className="main-col">
-            <div className="card">
-              <div className="card-title">Основная информация</div>
-
-              <div className="row-name-code">
-                <div className="field-col">
-                  <label>Название позиции *</label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="Например, насос водяной MAN TGA..."
-                  />
-                </div>
-                <div className="field-col">
-                  <label>Код / Артикул</label>
-                  <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул" />
-                </div>
+          <div className="card">
+            <div className="card-title">Цена и наличие</div>
+            <div className="form-row four">
+              <div className="field-col">
+                <label>Цена</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Цена"
+                />
               </div>
 
               <div className="field-col">
-                <label>Описание *</label>
-                <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
+                <label>Единица измерения</label>
+                <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+                  <option value="шт">шт</option>
+                  <option value="кг">кг</option>
+                  <option value="г">г</option>
+                  <option value="л">л</option>
+                  <option value="мл">мл</option>
+                  <option value="м">м</option>
+                  <option value="см">см</option>
+                  <option value="мм">мм</option>
+                  <option value="упаковка">упаковка</option>
+                  <option value="комплект">комплект</option>
+                  <option value="пара">пара</option>
+                  <option value="коробка">коробка</option>
+                  <option value="рулон">рулон</option>
+                </select>
               </div>
-            </div>
 
-            <div className="card">
-              <div className="card-title">Цена и наличие</div>
-              <div className="form-row four">
-                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Цена" />
-                <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Ед. изм." />
-                <input value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Остаток" />
+              <div className="field-col">
+                <label>Остаток</label>
+                <input
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  placeholder="Остаток"
+                />
+              </div>
+
+              <div className="field-col">
+                <label>Статус</label>
                 <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
                   <option value="published">Опубликован</option>
                   <option value="draft">Черновик</option>
@@ -276,6 +288,7 @@ export default function AdminAddProductPage() {
                 </select>
               </div>
             </div>
+          </div>
 
             {/* Характеристики */}
             <div className="card">
