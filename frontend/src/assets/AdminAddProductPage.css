@@ -194,3 +194,29 @@
     max-height: none;
   }
 }
+
+
+/* === Фото без внутреннего скролла — показываем все превью сразу === */
+.media-grid.media-grid--compact{
+  /* оставляем 5 в ряд, как тебе понравилось */
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+
+  /* выключаем ограничения по высоте и прокрутку */
+  max-height: none !important;
+  overflow: visible !important;
+
+  /* контейнер-рамка оставляем как было */
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 12px;
+  padding: 8px;
+  padding-right: 8px; /* можно вернуть обычный отступ */
+}
+
+/* мобилка остаётся 4 в ряд */
+@media (max-width: 720px){
+  .media-grid.media-grid--compact{
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
