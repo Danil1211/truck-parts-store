@@ -28,6 +28,8 @@ const userRoutes         = require('./routes/users');
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
+const feedRoutes         = require('./routes/feed');      // 👈 фид
+const taxonomyRoutes     = require('./routes/taxonomy');  // 👈 таксономия Google категорий
 
 /* ========================= Общие настройки ========================= */
 app.set('trust proxy', true);
@@ -93,6 +95,8 @@ app.get('/api/cors-check', (req, res) => {
 app.use('/api/public', publicRoutes);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/webhooks', paymentsRoutes);
+app.use('/api/feed', feedRoutes);         // глобальный фид
+app.use('/api/taxonomy', taxonomyRoutes); // глобальная таксономия категорий
 
 /* ==================== Ниже всё в контексте арендатора ==================== */
 app.use(withTenant);
