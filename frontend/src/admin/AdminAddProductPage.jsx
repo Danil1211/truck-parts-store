@@ -42,10 +42,10 @@ export default function AdminAddProductPage() {
   const [length, setLength] = useState("");
   const [weight, setWeight] = useState("");
 
-  // Google Ads / Merchant (добавлено)
+  // Google Ads / Merchant
   const [mpn, setMpn] = useState("");
   const [gtin, setGtin] = useState("");
-  const [googleCategory, setGoogleCategory] = useState(""); // сохраняем ID категории Google
+  const [googleCategory, setGoogleCategory] = useState(""); // ID google_product_category
   const [condition, setCondition] = useState("new");        // new|refurbished|used
   const [excludeFromFeed, setExcludeFromFeed] = useState(false);
 
@@ -198,10 +198,10 @@ export default function AdminAddProductPage() {
     fd.append("seoKeys", seoKeys);
     // queries
     fd.append("queries", JSON.stringify(queries));
-    // google feed (новое)
+    // google feed
     fd.append("mpn", mpn);
     fd.append("gtin", gtin);
-    fd.append("googleCategory", googleCategory); // тут теперь ID категории Google
+    fd.append("googleCategory", googleCategory); // ID категории
     fd.append("condition", condition);
     fd.append("excludeFromFeed", excludeFromFeed ? "1" : "0");
 
@@ -220,7 +220,7 @@ export default function AdminAddProductPage() {
   };
 
   // Плейсхолдеры для миниатюр
-  const emptiesWhenNoImages = MAX_IMAGES - 1; // если нет фото — 1 большой + 9 маленьких
+  const emptiesWhenNoImages = MAX_IMAGES - 1;
   const leftover = Math.max(0, MAX_IMAGES - images.length);
 
   return (
@@ -238,57 +238,82 @@ export default function AdminAddProductPage() {
         <div className="layout-grid">
           {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
           <div className="main-col">
-          <div className="card">
-            <div className="card-title">Цена и наличие</div>
-            <div className="form-row four">
-              <div className="field-col">
-                <label>Цена</label>
-                <input
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="Цена"
-                />
+            <div className="card">
+              <div className="card-title">Основная информация</div>
+
+              <div className="row-name-code">
+                <div className="field-col">
+                  <label>Название позиции *</label>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    placeholder="Например, насос водяной MAN TGA..."
+                  />
+                </div>
+                <div className="field-col">
+                  <label>Код / Артикул</label>
+                  <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул" />
+                </div>
               </div>
 
               <div className="field-col">
-                <label>Единица измерения</label>
-                <select value={unit} onChange={(e) => setUnit(e.target.value)}>
-                  <option value="шт">шт</option>
-                  <option value="кг">кг</option>
-                  <option value="г">г</option>
-                  <option value="л">л</option>
-                  <option value="мл">мл</option>
-                  <option value="м">м</option>
-                  <option value="см">см</option>
-                  <option value="мм">мм</option>
-                  <option value="упаковка">упаковка</option>
-                  <option value="комплект">комплект</option>
-                  <option value="пара">пара</option>
-                  <option value="коробка">коробка</option>
-                  <option value="рулон">рулон</option>
-                </select>
-              </div>
-
-              <div className="field-col">
-                <label>Остаток</label>
-                <input
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
-                  placeholder="Остаток"
-                />
-              </div>
-
-              <div className="field-col">
-                <label>Статус</label>
-                <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
-                  <option value="published">Опубликован</option>
-                  <option value="draft">Черновик</option>
-                  <option value="hidden">Скрыт</option>
-                </select>
+                <label>Описание *</label>
+                <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
               </div>
             </div>
-          </div>
+
+            <div className="card">
+              <div className="card-title">Цена и наличие</div>
+              <div className="form-row four">
+                <div className="field-col">
+                  <label>Цена</label>
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Цена"
+                  />
+                </div>
+
+                <div className="field-col">
+                  <label>Единица измерения</label>
+                  <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+                    <option value="шт">шт</option>
+                    <option value="кг">кг</option>
+                    <option value="г">г</option>
+                    <option value="л">л</option>
+                    <option value="мл">мл</option>
+                    <option value="м">м</option>
+                    <option value="см">см</option>
+                    <option value="мм">мм</option>
+                    <option value="упаковка">упаковка</option>
+                    <option value="комплект">комплект</option>
+                    <option value="пара">пара</option>
+                    <option value="коробка">коробка</option>
+                    <option value="рулон">рулон</option>
+                  </select>
+                </div>
+
+                <div className="field-col">
+                  <label>Остаток</label>
+                  <input
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    placeholder="Остаток"
+                  />
+                </div>
+
+                <div className="field-col">
+                  <label>Статус</label>
+                  <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
+                    <option value="published">Опубликован</option>
+                    <option value="draft">Черновик</option>
+                    <option value="hidden">Скрыт</option>
+                  </select>
+                </div>
+              </div>
+            </div>
 
             {/* Характеристики */}
             <div className="card">
@@ -305,7 +330,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Google Реклама / Фид (новое) */}
+            {/* Google Реклама / Фид */}
             <div className="card">
               <div className="card-title">Google Реклама / Фид</div>
               <div className="form-row two">
@@ -386,10 +411,22 @@ export default function AdminAddProductPage() {
             <div className="card">
               <div className="card-title">Габариты</div>
               <div className="form-row four">
-                <input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" />
-                <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" />
-                <input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" />
-                <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" />
+                <div className="field-col">
+                  <label>Ширина</label>
+                  <input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" />
+                </div>
+                <div className="field-col">
+                  <label>Высота</label>
+                  <input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" />
+                </div>
+                <div className="field-col">
+                  <label>Длина</label>
+                  <input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" />
+                </div>
+                <div className="field-col">
+                  <label>Вес</label>
+                  <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" />
+                </div>
               </div>
             </div>
           </div>
@@ -406,7 +443,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Группа — в сайдбаре */}
+            {/* Группа */}
             <div className="card">
               <div className="card-title">Группа</div>
               <div className="field-col">
@@ -437,7 +474,7 @@ export default function AdminAddProductPage() {
                 {images.length === 0 && (
                   <>
                     <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
-                    {Array.from({ length: MAX_IMAGES - 1 }).map((_, i) => (
+                    {Array.from({ length: emptiesWhenNoImages }).map((_, i) => (
                       <div
                         key={`empty0-${i}`}
                         className="thumb add"
@@ -456,7 +493,7 @@ export default function AdminAddProductPage() {
                         <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
                       </div>
                     ))}
-                    {Array.from({ length: Math.max(0, MAX_IMAGES - images.length) }).map((_, i) => (
+                    {Array.from({ length: leftover }).map((_, i) => (
                       <div
                         key={`empty-${i}`}
                         className="thumb add"
@@ -472,7 +509,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Видео (компактные квадраты) */}
+            {/* Видео */}
             <div className="card">
               <div className="card-title">Видео</div>
               <div className="video-grid">
