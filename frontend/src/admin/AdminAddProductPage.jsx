@@ -283,9 +283,12 @@ export default function AdminAddProductPage() {
       return (
         <div className="tree-node" key={g._id} style={{ marginLeft: level * 14 }}>
           <div className="tree-row">
-            {hasChildren ? (
-              <span className={`twisty ${expanded ? "open" : ""}`} onClick={() => toggleExpand(g._id)} />
-            ) : <span className="twisty placeholder" />}
+            {hasChildren && (
+              <span
+                className={`twisty ${expanded ? "open" : ""}`}
+                onClick={() => toggleExpand(g._id)}
+              />
+            )}
             <label className="radio-row">
               <input
                 type="radio"
