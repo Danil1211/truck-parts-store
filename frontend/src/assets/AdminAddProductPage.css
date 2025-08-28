@@ -212,29 +212,38 @@
 .attr-row{ display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end; }
 
 /* ===== Input + Select объединённые (для цены/валюты) ===== */
-.input-merge{
-  display:flex; align-items:center;
-  border:1px solid #d0d7e2; border-radius:10px;
-  background:#f9fbfd;
-  min-width: 120px; /* ← гарантируем минимальную ширину */
-  flex: 1;          /* ← занимает всё свободное */
+.input-merge {
+  display: flex;
+  align-items: center;
+  border: 1px solid #d0d7e2;
+  border-radius: 10px;
+  background: #f9fbfd;
+  overflow: hidden;
+  min-width: 180px; /* минимум для блока */
 }
-.input-merge input{
-  flex: 3;                 /* ← поле цены шире */
-  min-width: 80px;         /* ← минимальная ширина */
-  border:none; background:transparent;
-  padding:10px 12px; font-size:14px;
-  text-align: right;       /* ← аккуратнее для чисел */
+.input-merge input {
+  flex: 1; /* ← занимает всё свободное */
+  min-width: 100px;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  font-size: 14px;
+  text-align: right; /* числа справа красиво */
 }
 .input-merge select,
-.input-merge .addon{
-  flex: 1;                 /* ← селект уже */
-  border:none; border-left:1px solid #d0d7e2;
-  background:#f3f6fb; padding:10px 12px;
-  font-size:14px; white-space:nowrap;
-  color:#0f172a;
+.input-merge .addon {
+  width: 70px; /* ← фикс ширина для валюты */
+  border: none;
+  border-left: 1px solid #d0d7e2;
+  background: #f3f6fb;
+  padding: 10px 8px;
+  font-size: 14px;
+  color: #0f172a;
 }
-.input-merge select:focus{ outline:none; }
+.input-merge select:focus {
+  outline: none;
+  background: #fff;
+}
 
 /* Оптовые ряды */
 .wh-row{
