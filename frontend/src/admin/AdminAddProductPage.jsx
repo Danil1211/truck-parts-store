@@ -8,33 +8,79 @@ import "../assets/AdminAddProductPage.css";
 import AsyncGoogleCategorySelect from "../components/AsyncGoogleCategorySelect";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-const MAX_IMAGES = 10; // 1 главный + 9 превью
+const MAX_IMAGES = 10; // до 10 фото
+const NAME_MAX = 120;
+const SKU_MAX = 64;
+const DESC_MAX = 5000; // по тексту (без html)
+
+const UNITS = [
+  "шт","комплект","упаковка","пара","коробка","рулон",
+  "кг","г","т","л","мл",
+  "м","см","мм","м²","м³",
+  "час","день","месяц","год",
+  "услуга"
+];
+
+// утилита для подсчёта длины текстового содержимого LocalEditor (html → text)
+const textLength = (html) => {
+  if (!html) return 0;
+  const el = document.createElement("div");
+  el.innerHTML = html;
+  return (el.textContent || el.innerText || "").trim().length;
+};
 
 export default function AdminAddProductPage() {
   const navigate = useNavigate();
 
-  // Основное
+  /* ======================= СТЕЙТ ======================= */
+  // Основная информация
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
   const [description, setDescription] = useState("");
-  const [group, setGroup] = useState("");
-  const [price, setPrice] = useState("");
+  const [descLen, setDescLen] = useState(0);
+
+  // Медиа
+  const [images, setImages] = useState([]);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
+  const inputFileRef = useRef(null);
+  const inputVideoRef = useRef(null);
+
+  // Цена и наличие
+  const [priceType, setPriceType] = useState("retail"); // retail|wholesale
+  const [currency, setCurrency] = useState("UAH"); // UAH|USD|EUR
+  const [priceOld, setPriceOld] = useState("");
+  const [priceNew, setPriceNew] = useState("");
+  const [priceTimerOn, setPriceTimerOn] = useState(false);
+  const [priceFrom, setPriceFrom] = useState("");
+  const [priceTo, setPriceTo] = useState("");
+  const [isPromo, setIsPromo] = useState(false);
   const [unit, setUnit] = useState("шт");
+  const [serviceCity, setServiceCity] = useState("");
   const [stock, setStock] = useState("");
-  const [availability, setAvailability] = useState("published"); // published|draft|hidden
+  const [visibility, setVisibility] = useState("published"); // published|hidden
 
-  // Характеристики
-  const [charColor, setCharColor] = useState("");
-  const [charBrand, setCharBrand] = useState("");
+  // Размещение
+  const [groupsTree, setGroupsTree] = useState([]);
+  const [group, setGroup] = useState(""); // выбранная группа (id)
+  const [groupExpanded, setGroupExpanded] = useState({}); // раскрытие в дереве
 
-  // SEO
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDesc, setSeoDesc] = useState("");
-  const [seoKeys, setSeoKeys] = useState("");
-
-  // Поисковые запросы
   const [queryInput, setQueryInput] = useState("");
   const [queries, setQueries] = useState([]);
+
+  const [googleCategory, setGoogleCategory] = useState(""); // ID таксономии Google
+
+  // Характеристики (динамические)
+  const [attrs, setAttrs] = useState([
+    // { id, key: "Цвет", value: "Зеленый" }
+  ]);
+  // демо-набор подсказок (расширишь с сервера при желании)
+  const ATTR_SUGGEST = {
+    "Цвет": ["Черный","Белый","Красный","Синий","Зеленый","Желтый","Серый"],
+    "Размер": ["XS","S","M","L","XL","XXL"],
+    "Материал": ["Пластик","Металл","Резина","Текстиль","Кожа"],
+    "Бренд": []
+  };
 
   // Габариты
   const [width, setWidth] = useState("");
@@ -42,120 +88,125 @@ export default function AdminAddProductPage() {
   const [length, setLength] = useState("");
   const [weight, setWeight] = useState("");
 
-  // Google Ads / Merchant
-  const [mpn, setMpn] = useState("");
-  const [gtin, setGtin] = useState("");
-  const [googleCategory, setGoogleCategory] = useState(""); // ID google_product_category
-  const [condition, setCondition] = useState("new");        // new|refurbished|used
-  const [excludeFromFeed, setExcludeFromFeed] = useState(false);
+  // SEO
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDesc, setSeoDesc] = useState("");
+  const [seoKeys, setSeoKeys] = useState("");
+  const [seoSlug, setSeoSlug] = useState("");
+  const [seoNoindex, setSeoNoindex] = useState(false);
 
-  // Данные
-  const [groups, setGroups] = useState([]);
+  // Прочее
   const [isSaving, setIsSaving] = useState(false);
 
-  // Медиа
-  const [images, setImages] = useState([]);
-  const inputFileRef = useRef(null);
-
-  /* ===== Автосохранение черновика ===== */
+  /* =================== АВТОСОХРАНЕНИЕ =================== */
   useEffect(() => {
-    const draft = localStorage.getItem("draftProduct");
-    if (draft) {
-      try {
-        const obj = JSON.parse(draft);
-        const setters = {
-          // базовые
-          name: setName, sku: setSku, description: setDescription, group: setGroup,
-          price: setPrice, unit: setUnit, availability: setAvailability, stock: setStock,
-          // хар-ки
-          charColor: setCharColor, charBrand: setCharBrand,
-          // SEO
-          seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys,
-          // queries
-          queries: setQueries,
-          // габариты
-          width: setWidth, height: setHeight, length: setLength, weight: setWeight,
-          // google feed
-          mpn: setMpn, gtin: setGtin, googleCategory: setGoogleCategory,
-          condition: setCondition, excludeFromFeed: setExcludeFromFeed,
-          // медиа
-          images: setImages
-        };
-        Object.keys(setters).forEach((k) => obj[k] !== undefined && setters[k](obj[k]));
-      } catch {}
-    }
+    const draft = localStorage.getItem("draftProductV2");
+    if (!draft) return;
+    try {
+      const d = JSON.parse(draft);
+      // просто перебираем ключи, если есть — ставим
+      const setters = {
+        // основное
+        name: setName, sku: setSku, description: setDescription,
+        // медиа
+        images: setImages, videoUrl: setVideoUrl,
+        // цена
+        priceType: setPriceType, currency: setCurrency,
+        priceOld: setPriceOld, priceNew: setPriceNew,
+        priceTimerOn: setPriceTimerOn, priceFrom: setPriceFrom, priceTo: setPriceTo, isPromo: setIsPromo,
+        unit: setUnit, serviceCity: setServiceCity,
+        stock: setStock, visibility: setVisibility,
+        // размещение
+        groupsTree: setGroupsTree, group: setGroup, queries: setQueries, googleCategory: setGoogleCategory,
+        groupExpanded: setGroupExpanded,
+        // характеристики
+        attrs: setAttrs,
+        // габариты
+        width: setWidth, height: setHeight, length: setLength, weight: setWeight,
+        // SEO
+        seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys, seoSlug: setSeoSlug, seoNoindex: setSeoNoindex
+      };
+      Object.keys(setters).forEach(k => d[k] !== undefined && setters[k](d[k]));
+      setDescLen(textLength(d.description || ""));
+    } catch {}
   }, []);
 
   useEffect(() => {
     const draft = {
-      // базовые
-      name, sku, description, group, price, unit, availability, stock,
-      // хар-ки
-      charColor, charBrand,
-      // SEO
-      seoTitle, seoDesc, seoKeys,
-      // queries
-      queries,
-      // габариты
+      name, sku, description,
+      images, videoUrl,
+      priceType, currency, priceOld, priceNew, priceTimerOn, priceFrom, priceTo, isPromo,
+      unit, serviceCity, stock, visibility,
+      groupsTree, group, queries, googleCategory, groupExpanded,
+      attrs,
       width, height, length, weight,
-      // google feed
-      mpn, gtin, googleCategory, condition, excludeFromFeed,
-      // медиа
-      images
+      seoTitle, seoDesc, seoKeys, seoSlug, seoNoindex
     };
-    localStorage.setItem("draftProduct", JSON.stringify(draft));
+    localStorage.setItem("draftProductV2", JSON.stringify(draft));
   }, [
-    name, sku, description, group, price, unit, availability, stock,
-    charColor, charBrand, seoTitle, seoDesc, seoKeys, queries,
+    name, sku, description,
+    images, videoUrl,
+    priceType, currency, priceOld, priceNew, priceTimerOn, priceFrom, priceTo, isPromo,
+    unit, serviceCity, stock, visibility,
+    groupsTree, group, queries, googleCategory, groupExpanded,
+    attrs,
     width, height, length, weight,
-    mpn, gtin, googleCategory, condition, excludeFromFeed,
-    images
+    seoTitle, seoDesc, seoKeys, seoSlug, seoNoindex
   ]);
 
-  /* ===== Группы ===== */
+  /* ==================== ДАННЫЕ ГРУПП ==================== */
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get("/api/groups/tree");
-        const flat = [];
-        const walk = (arr) => arr.forEach((g) => {
-          if (g.name !== "Родительская группа") flat.push(g);
-          if (g.children?.length) walk(g.children);
-        });
-        walk(data);
-        setGroups(flat);
-      } catch (err) {
-        console.error("Ошибка загрузки групп:", err);
+        setGroupsTree(data || []);
+      } catch (e) {
+        console.error("groups tree error", e);
       }
     })();
   }, []);
 
-  /* ===== SEO title из имени ===== */
-  useEffect(() => { if (name) setSeoTitle(name); }, [name]);
+  /* ==================== ХЕЛПЕРЫ ==================== */
+  // Ограничение длины для Name / SKU
+  const onChangeName = (v) => setName(v.slice(0, NAME_MAX));
+  const onChangeSku = (v) => setSku(v.slice(0, SKU_MAX));
+  // LocalEditor: ограничиваем по тексту
+  const onChangeDescription = (val) => {
+    const len = textLength(val);
+    if (len <= DESC_MAX) { setDescription(val); setDescLen(len); }
+  };
 
-  /* ===== Картинки ===== */
-  const handleImageChange = (e) => {
+  // Медиа: фото (до 10)
+  const onImagesChange = (e) => {
     const files = Array.from(e.target.files || []);
-    setImages((prev) => {
-      const prevFiles = prev.map((i) => i.file).filter(Boolean);
+    setImages(prev => {
+      const prevFiles = prev.map(i => i.file).filter(Boolean);
       const all = [...prevFiles, ...files];
       const seen = new Set();
       const uniq = [];
       for (const f of all) {
         const key = f.name + "_" + f.size;
-        if (!seen.has(key)) {
-          seen.add(key);
-          uniq.push({ file: f, url: URL.createObjectURL(f), id: genId() });
-        }
+        if (!seen.has(key)) { seen.add(key); uniq.push({ id: genId(), file: f, url: URL.createObjectURL(f) }); }
       }
       return uniq.slice(0, MAX_IMAGES);
     });
     if (inputFileRef.current) inputFileRef.current.value = null;
   };
-  const handleRemoveImage = (id) => setImages((p) => p.filter((i) => i.id !== id));
+  const removeImage = (id) => setImages(p => p.filter(i => i.id !== id));
 
-  /* ===== Queries ===== */
-  const handleQueryInputKeyDown = (e) => {
+  // Медиа: видео (только 1 — либо ссылка, либо файл)
+  const onVideoFile = (e) => {
+    const f = (e.target.files || [])[0];
+    setVideoFile(f || null);
+    setVideoUrl(""); // если файл выбран — ссылку чистим
+  };
+  const onVideoUrl = (v) => {
+    setVideoUrl(v.trim());
+    if (v.trim()) setVideoFile(null); // если ссылка — файл чистим
+  };
+
+  // Поисковые запросы (чипсы)
+  const onQueryKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       const val = queryInput.trim();
@@ -165,63 +216,120 @@ export default function AdminAddProductPage() {
       }
     }
   };
-  const handleRemoveQuery = (val) => setQueries(queries.filter((q) => q !== val));
+  const removeQuery = (val) => setQueries(queries.filter(q => q !== val));
 
-  /* ===== Submit ===== */
+  // Дерево групп
+  const toggleExpand = (id) => setGroupExpanded(s => ({ ...s, [id]: !s[id] }));
+  const renderTree = (arr, level = 0) => {
+    return (arr || []).map((g) => {
+      const hasChildren = (g.children && g.children.length > 0);
+      const expanded = !!groupExpanded[g._id];
+      return (
+        <div className="tree-node" key={g._id} style={{ marginLeft: level * 14 }}>
+          <div className="tree-row">
+            {hasChildren ? (
+              <span className={`twisty ${expanded ? "open" : ""}`} onClick={() => toggleExpand(g._id)} />
+            ) : <span className="twisty placeholder" />}
+            <label className="radio-row">
+              <input
+                type="radio"
+                name="groupPick"
+                checked={group === g._id}
+                onChange={() => setGroup(g._id)}
+              />
+              <span className="gname">{g.name}</span>
+              {typeof g.count === "number" && <span className="gcount">({g.count})</span>}
+            </label>
+          </div>
+          {hasChildren && expanded && (
+            <div className="tree-children">
+              {renderTree(g.children, level + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+
+  // Характеристики
+  const addAttr = () => setAttrs(p => [...p, { id: genId(), key: "", value: "" }]);
+  const removeAttr = (id) => setAttrs(p => p.filter(a => a.id !== id));
+  const updateAttr = (id, field, val) => {
+    setAttrs(p => p.map(a => a.id === id ? { ...a, [field]: val } : a));
+  };
+
+  /* ==================== SUBMIT ==================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSaving) return;
 
+    // простые проверки
+    if (!name.trim()) { alert("Введите название"); return; }
+    if (!group) { alert("Выберите группу"); return; }
+
     const fd = new FormData();
-    // базовые
-    fd.append("name", name);
-    fd.append("sku", sku);
+
+    // Основное
+    fd.append("name", name.trim());
+    fd.append("sku", sku.trim());
     fd.append("description", description);
-    fd.append("group", group);
-    fd.append("price", price);
+
+    // Медиа
+    images.forEach(img => img.file && fd.append("images", img.file));
+    if (videoFile) fd.append("video", videoFile);
+    if (videoUrl) fd.append("videoUrl", videoUrl);
+
+    // Цена и наличие
+    fd.append("priceType", priceType);
+    fd.append("currency", currency);
+    fd.append("priceOld", priceOld);
+    fd.append("priceNew", priceNew);
+    fd.append("priceTimerOn", priceTimerOn ? "1" : "0");
+    fd.append("priceFrom", priceFrom || "");
+    fd.append("priceTo", priceTo || "");
+    fd.append("isPromo", isPromo ? "1" : "0");
+
     fd.append("unit", unit);
-    fd.append("availability", availability);
+    fd.append("serviceCity", serviceCity);
     fd.append("stock", stock);
-    // хар-ки
-    fd.append("charColor", charColor);
-    fd.append("charBrand", charBrand);
-    // на всякий случай отдадим brand отдельным полем для фид-слоя
-    fd.append("brand", charBrand || "");
-    // габариты
+
+    fd.append("availability", visibility); // published|hidden
+
+    // Размещение
+    fd.append("group", group);
+    fd.append("queries", JSON.stringify(queries));
+    fd.append("googleCategory", googleCategory);
+
+    // Характеристики
+    fd.append("attrs", JSON.stringify(attrs.filter(a => a.key && a.value)));
+
+    // Габариты
     fd.append("width", width);
     fd.append("height", height);
     fd.append("length", length);
     fd.append("weight", weight);
+
     // SEO
-    fd.append("seoTitle", seoTitle);
+    fd.append("seoTitle", seoTitle || name.trim());
     fd.append("seoDesc", seoDesc);
     fd.append("seoKeys", seoKeys);
-    // queries
-    fd.append("queries", JSON.stringify(queries));
-    // google feed
-    fd.append("mpn", mpn);
-    fd.append("gtin", gtin);
-    fd.append("googleCategory", googleCategory); // ID категории
-    fd.append("condition", condition);
-    fd.append("excludeFromFeed", excludeFromFeed ? "1" : "0");
-
-    images.forEach((img) => img.file && fd.append("images", img.file));
+    fd.append("seoSlug", seoSlug);
+    fd.append("seoNoindex", seoNoindex ? "1" : "0");
 
     try {
       setIsSaving(true);
       await api.post("/api/products", fd);
-      localStorage.removeItem("draftProduct");
+      localStorage.removeItem("draftProductV2");
       navigate("/admin/products");
     } catch (err) {
-      alert("Ошибка при сохранении: " + (err?.response?.data?.error || err.message));
+      alert("Ошибка сохранения: " + (err?.response?.data?.error || err.message));
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Плейсхолдеры для миниатюр
-  const emptiesWhenNoImages = MAX_IMAGES - 1;
-  const leftover = Math.max(0, MAX_IMAGES - images.length);
+  /* ==================== UI ==================== */
+  const isService = unit === "услуга";
 
   return (
     <div className="add-prod products-page">
@@ -236,81 +344,190 @@ export default function AdminAddProductPage() {
 
       <form id="add-prod-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="layout-grid">
-          {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
+
+          {/* ====== ЛЕВАЯ КОЛОНКА (основные блоки) ====== */}
           <div className="main-col">
+
+            {/* Основная информация */}
             <div className="card">
               <div className="card-title">Основная информация</div>
 
-              <div className="row-name-code">
+              <div className="form-row two">
                 <div className="field-col">
-                  <label>Название позиции *</label>
+                  <label>Название <span className="muted">({name.length}/{NAME_MAX})</span></label>
                   <input
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="Например, насос водяной MAN TGA..."
+                    onChange={(e) => onChangeName(e.target.value)}
+                    placeholder="Название товара"
                   />
                 </div>
                 <div className="field-col">
-                  <label>Код / Артикул</label>
-                  <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Артикул" />
+                  <label>Код / Артикул <span className="muted">({sku.length}/{SKU_MAX})</span></label>
+                  <input
+                    value={sku}
+                    onChange={(e) => onChangeSku(e.target.value)}
+                    placeholder="Артикул"
+                  />
                 </div>
               </div>
 
               <div className="field-col">
-                <label>Описание *</label>
-                <LocalEditor value={description} onChange={setDescription} placeholder="Описание товара..." />
+                <label>Описание <span className="muted">({descLen}/{DESC_MAX})</span></label>
+                <LocalEditor value={description} onChange={onChangeDescription} placeholder="Описание товара..." />
+              </div>
+
+              <div className="media-block">
+                <div className="field-col">
+                  <label>Фото <span className="muted">(до {MAX_IMAGES})</span></label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    ref={inputFileRef}
+                    style={{ display: "none" }}
+                    onChange={onImagesChange}
+                  />
+                  <div className="media-grid">
+                    {/* пусто */}
+                    {images.length === 0 && (
+                      <>
+                        <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                        {Array.from({ length: MAX_IMAGES - 1 }).map((_, i) => (
+                          <div key={`empty-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                        ))}
+                      </>
+                    )}
+                    {/* с фото */}
+                    {images.length > 0 && (
+                      <>
+                        {images.map(img => (
+                          <div className="thumb" key={img.id}>
+                            <img src={img.url} alt="" />
+                            <button type="button" onClick={() => removeImage(img.id)}>×</button>
+                          </div>
+                        ))}
+                        {Array.from({ length: Math.max(0, MAX_IMAGES - images.length) }).map((_, i) => (
+                          <div key={`more-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  <div className="add-by-link" onClick={() => inputFileRef.current?.click()}>Добавить фото</div>
+                </div>
+
+                <div className="field-col">
+                  <label>Видео <span className="muted">(одно)</span></label>
+                  <div className="video-row">
+                    <input
+                      type="url"
+                      value={videoUrl}
+                      onChange={(e) => onVideoUrl(e.target.value)}
+                      placeholder="Ссылка на YouTube/Vimeo (если есть)"
+                    />
+                    <input
+                      type="file"
+                      accept="video/*"
+                      ref={inputVideoRef}
+                      onChange={onVideoFile}
+                    />
+                  </div>
+                  {(videoUrl || videoFile) && (
+                    <div className="video-preview">
+                      {videoUrl ? (
+                        <span className="muted">Ссылка указана</span>
+                      ) : (
+                        <span className="muted">{videoFile?.name}</span>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-mini"
+                        onClick={() => { setVideoUrl(""); setVideoFile(null); if (inputVideoRef.current) inputVideoRef.current.value = ""; }}
+                      >Очистить</button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Цена и наличие */}
             <div className="card">
               <div className="card-title">Цена и наличие</div>
-              <div className="form-row four">
-                <div className="field-col">
-                  <label>Цена</label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Цена"
-                  />
-                </div>
 
+              <div className="seg">
+                <label>Тип цены</label>
+                <div className="seg-items">
+                  <button type="button" className={priceType === "retail" ? "active" : ""} onClick={() => setPriceType("retail")}>Розница</button>
+                  <button type="button" className={priceType === "wholesale" ? "active" : ""} onClick={() => setPriceType("wholesale")}>Опт</button>
+                </div>
+              </div>
+
+              <div className="form-row three">
+                <div className="field-col">
+                  <label>Старая цена</label>
+                  <input type="number" value={priceOld} onChange={(e) => setPriceOld(e.target.value)} placeholder="0" />
+                </div>
+                <div className="field-col">
+                  <label>Новая цена</label>
+                  <input type="number" value={priceNew} onChange={(e) => setPriceNew(e.target.value)} placeholder="0" />
+                </div>
+                <div className="field-col">
+                  <label>Валюта</label>
+                  <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                    <option value="UAH">Грн</option>
+                    <option value="USD">Доллар</option>
+                    <option value="EUR">Евро</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row two">
+                <label className="checkline">
+                  <input type="checkbox" checked={isPromo} onChange={(e) => setIsPromo(e.target.checked)} />
+                  Пометить как акцию
+                </label>
+                <label className="checkline">
+                  <input type="checkbox" checked={priceTimerOn} onChange={(e) => setPriceTimerOn(e.target.checked)} />
+                  Включить таймер цены
+                </label>
+              </div>
+
+              {priceTimerOn && (
+                <div className="form-row two">
+                  <div className="field-col">
+                    <label>Цена действует с</label>
+                    <input type="datetime-local" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} />
+                  </div>
+                  <div className="field-col">
+                    <label>до</label>
+                    <input type="datetime-local" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} />
+                  </div>
+                </div>
+              )}
+
+              <div className="form-row three">
                 <div className="field-col">
                   <label>Единица измерения</label>
                   <select value={unit} onChange={(e) => setUnit(e.target.value)}>
-                    <option value="шт">шт</option>
-                    <option value="кг">кг</option>
-                    <option value="г">г</option>
-                    <option value="л">л</option>
-                    <option value="мл">мл</option>
-                    <option value="м">м</option>
-                    <option value="см">см</option>
-                    <option value="мм">мм</option>
-                    <option value="упаковка">упаковка</option>
-                    <option value="комплект">комплект</option>
-                    <option value="пара">пара</option>
-                    <option value="коробка">коробка</option>
-                    <option value="рулон">рулон</option>
+                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
-
+                {isService && (
+                  <div className="field-col">
+                    <label>Город (для услуги)</label>
+                    <input value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} placeholder="Киев / Львов / Одесса…" />
+                  </div>
+                )}
                 <div className="field-col">
                   <label>Остаток</label>
-                  <input
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    placeholder="Остаток"
-                  />
+                  <input value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Количество на складе" />
                 </div>
+              </div>
 
-                <div className="field-col">
-                  <label>Статус</label>
-                  <select value={availability} onChange={(e) => setAvailability(e.target.value)}>
-                    <option value="published">Опубликован</option>
-                    <option value="draft">Черновик</option>
-                    <option value="hidden">Скрыт</option>
-                  </select>
+              <div className="seg">
+                <label>Видимость</label>
+                <div className="seg-items">
+                  <button type="button" className={visibility === "published" ? "active" : ""} onClick={() => setVisibility("published")}>Опубликовать</button>
+                  <button type="button" className={visibility === "hidden" ? "active" : ""} onClick={() => setVisibility("hidden")}>Скрыть</button>
                 </div>
               </div>
             </div>
@@ -318,92 +535,43 @@ export default function AdminAddProductPage() {
             {/* Характеристики */}
             <div className="card">
               <div className="card-title">Характеристики</div>
-              <div className="form-row two">
-                <div className="field-col">
-                  <label>Цвет</label>
-                  <input value={charColor} onChange={(e) => setCharColor(e.target.value)} />
-                </div>
-                <div className="field-col">
-                  <label>Производитель (Brand)</label>
-                  <input value={charBrand} onChange={(e) => setCharBrand(e.target.value)} placeholder="MAN / Scania / Bosch..." />
-                </div>
-              </div>
-            </div>
 
-            {/* Google Реклама / Фид */}
-            <div className="card">
-              <div className="card-title">Google Реклама / Фид</div>
-              <div className="form-row two">
-                <div className="field-col">
-                  <label>MPN (артикул производителя)</label>
-                  <input value={mpn} onChange={(e) => setMpn(e.target.value)} placeholder="Оригинальный номер / MPN" />
-                </div>
-                <div className="field-col">
-                  <label>GTIN (штрихкод)</label>
-                  <input value={gtin} onChange={(e) => setGtin(e.target.value)} placeholder="EAN-13 / UPC (если есть)" />
-                </div>
-              </div>
+              {attrs.map((a) => (
+                <div className="attr-row" key={a.id}>
+                  <div className="field-col">
+                    <label>Характеристика</label>
+                    <input
+                      list={`attr-keys-${a.id}`}
+                      value={a.key}
+                      onChange={(e) => updateAttr(a.id, "key", e.target.value)}
+                      placeholder="Напр. Цвет"
+                    />
+                    {/* подсказки по ключам */}
+                    <datalist id={`attr-keys-${a.id}`}>
+                      {Object.keys(ATTR_SUGGEST).map(k => <option key={k} value={k} />)}
+                    </datalist>
+                  </div>
 
-              <div className="form-row two">
-                <div className="field-col">
-                  <label>Google Product Category</label>
-                  <AsyncGoogleCategorySelect
-                    value={googleCategory}
-                    onChange={setGoogleCategory}
-                    lang="ru-RU"
-                  />
-                  <div className="help">Храним ID категории Google. Если не выбрано — можно маппить по нашей группе на стороне фида.</div>
+                  <div className="field-col">
+                    <label>Значение</label>
+                    <input
+                      list={`attr-values-${a.id}`}
+                      value={a.value}
+                      onChange={(e) => updateAttr(a.id, "value", e.target.value)}
+                      placeholder="Напр. Зеленый"
+                    />
+                    {/* подсказки по значениям */}
+                    <datalist id={`attr-values-${a.id}`}>
+                      {(ATTR_SUGGEST[a.key] || []).map(v => <option key={v} value={v} />)}
+                    </datalist>
+                  </div>
+
+                  <button type="button" className="btn-ghost danger" onClick={() => removeAttr(a.id)}>Удалить</button>
                 </div>
-                <div className="field-col">
-                  <label>Condition</label>
-                  <select value={condition} onChange={(e) => setCondition(e.target.value)}>
-                    <option value="new">new</option>
-                    <option value="refurbished">refurbished</option>
-                    <option value="used">used</option>
-                  </select>
-                </div>
-              </div>
+              ))}
 
-              <label className="checkline">
-                <input
-                  type="checkbox"
-                  checked={excludeFromFeed}
-                  onChange={(e) => setExcludeFromFeed(e.target.checked)}
-                />
-                Исключить этот товар из товарного фида
-              </label>
-            </div>
-
-            {/* SEO */}
-            <div className="card">
-              <div className="card-title">SEO</div>
-              <div className="form-row">
-                <label>Title</label>
-                <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
-              </div>
-              <div className="form-row">
-                <label>Description</label>
-                <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} />
-              </div>
-              <div className="form-row">
-                <label>Keywords</label>
-                <input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} />
-              </div>
-            </div>
-
-            {/* Поисковые запросы */}
-            <div className="card">
-              <div className="card-title">Поисковые запросы</div>
-              <input
-                value={queryInput}
-                onChange={(e) => setQueryInput(e.target.value)}
-                onKeyDown={handleQueryInputKeyDown}
-                placeholder="Введите запрос и нажмите Enter"
-              />
-              <div className="chips">
-                {queries.map((q, i) => (
-                  <span key={i} className="chip">{q}<b onClick={() => handleRemoveQuery(q)}>×</b></span>
-                ))}
+              <div>
+                <button type="button" className="btn-outline" onClick={addAttr}>+ Добавить характеристику</button>
               </div>
             </div>
 
@@ -429,96 +597,73 @@ export default function AdminAddProductPage() {
                 </div>
               </div>
             </div>
+
+            {/* SEO */}
+            <div className="card">
+              <div className="card-title">SEO</div>
+              <div className="form-row two">
+                <div className="field-col">
+                  <label>Title</label>
+                  <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Title страницы товара" />
+                </div>
+                <div className="field-col">
+                  <label>Slug (ЧПУ)</label>
+                  <input value={seoSlug} onChange={(e) => setSeoSlug(e.target.value)} placeholder="nasos-mantga-011-0200" />
+                </div>
+              </div>
+              <div className="form-row">
+                <label>Description</label>
+                <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="Краткое описание для meta-description" />
+              </div>
+              <div className="form-row two">
+                <div className="field-col">
+                  <label>Keywords</label>
+                  <input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} placeholder="ключевые слова через запятую" />
+                </div>
+                <label className="checkline">
+                  <input type="checkbox" checked={seoNoindex} onChange={(e) => setSeoNoindex(e.target.checked)} />
+                  Не индексировать (noindex, nofollow)
+                </label>
+              </div>
+            </div>
           </div>
 
-          {/* ===== ПРАВАЯ КОЛОНКА ===== */}
+          {/* ====== ПРАВАЯ КОЛОНКА (размещение и прочее) ====== */}
           <div className="side-col">
-            {/* Видимость */}
+
+            {/* Размещение: группы (дерево) */}
             <div className="card">
-              <div className="card-title">Видимость</div>
-              <div className="form-row radios">
-                <label><input type="radio" name="vis" checked={availability === "published"} onChange={() => setAvailability("published")} /> опубликовано</label>
-                <label><input type="radio" name="vis" checked={availability === "draft"} onChange={() => setAvailability("draft")} /> черновик</label>
-                <label><input type="radio" name="vis" checked={availability === "hidden"} onChange={() => setAvailability("hidden")} /> скрытый</label>
+              <div className="card-title">Размещение — Группы</div>
+              <div className="tree-wrap">
+                {groupsTree.length ? renderTree(groupsTree) : <div className="muted">Загрузка дерева…</div>}
               </div>
             </div>
 
-            {/* Группа */}
+            {/* Поисковые запросы */}
             <div className="card">
-              <div className="card-title">Группа</div>
-              <div className="field-col">
-                <select value={group} onChange={(e) => setGroup(e.target.value)} required>
-                  <option value="">Выберите</option>
-                  {groups.map((g) => (
-                    <option key={g._id} value={g._id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Изображения */}
-            <div className="card">
-              <div className="card-title">Изображения ({images.length} из {MAX_IMAGES})</div>
-
+              <div className="card-title">Поисковые запросы для сайта</div>
               <input
-                type="file"
-                multiple
-                accept="image/*"
-                ref={inputFileRef}
-                style={{ display: "none" }}
-                onChange={handleImageChange}
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+                onKeyDown={onQueryKeyDown}
+                placeholder="Введите запрос и нажмите Enter"
               />
-
-              <div className="media-grid">
-                {/* Если нет фото — 1 большой + 9 маленьких «+» */}
-                {images.length === 0 && (
-                  <>
-                    <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
-                    {Array.from({ length: emptiesWhenNoImages }).map((_, i) => (
-                      <div
-                        key={`empty0-${i}`}
-                        className="thumb add"
-                        onClick={() => inputFileRef.current?.click()}
-                      >+</div>
-                    ))}
-                  </>
-                )}
-
-                {/* Если фото есть — выводим их, затем пустые до 10 */}
-                {images.length > 0 && (
-                  <>
-                    {images.map((img) => (
-                      <div key={img.id} className="thumb">
-                        <img src={img.url} alt="" />
-                        <button type="button" onClick={() => handleRemoveImage(img.id)}>×</button>
-                      </div>
-                    ))}
-                    {Array.from({ length: leftover }).map((_, i) => (
-                      <div
-                        key={`empty-${i}`}
-                        className="thumb add"
-                        onClick={() => inputFileRef.current?.click()}
-                      >+</div>
-                    ))}
-                  </>
-                )}
-              </div>
-
-              <div className="add-by-link" onClick={() => inputFileRef.current?.click()}>
-                Добавить фото
+              <div className="chips">
+                {queries.map((q, i) => (
+                  <span key={i} className="chip">{q}<b onClick={() => removeQuery(q)}>×</b></span>
+                ))}
               </div>
             </div>
 
-            {/* Видео */}
+            {/* Категория для Google */}
             <div className="card">
-              <div className="card-title">Видео</div>
-              <div className="video-grid">
-                <div className="thumb add">+</div>
-                <div className="thumb add">+</div>
-                <div className="thumb add">+</div>
-                <div className="thumb add">+</div>
-              </div>
-              <div className="add-by-link">Добавить видео по ссылке</div>
+              <div className="card-title">Категория товара для Google</div>
+              <AsyncGoogleCategorySelect
+                value={googleCategory}
+                onChange={setGoogleCategory}
+                lang="ru-RU"
+              />
+              <div className="help">Поиск по полной таксономии Google. Сохраняем ID категории.</div>
             </div>
           </div>
         </div>
