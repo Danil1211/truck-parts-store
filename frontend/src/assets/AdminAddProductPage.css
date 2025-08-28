@@ -179,3 +179,25 @@
 .async-select .selected button{
   border:none; background:none; cursor:pointer; color:#e12a2a; font-size:14px;
 }
+
+/* === ПРАВЫЙ САЙДБАР: ширина и читабельность === */
+@media (min-width: 1101px){
+  /* было 2.25fr 0.75fr → делаем ~63/37 с безопасными минимумах */
+  .layout-grid{
+    grid-template-columns: minmax(640px, 1.9fr) minmax(420px, 1.1fr);
+  }
+  .side-col{ min-width: 420px; }
+}
+
+/* немного крупнее и «воздушнее» карточки в сайдбаре */
+.side-col .card{ padding:16px 18px; border-radius:12px; }
+.side-col .card-title{ font-size:15px; margin-bottom:10px; }
+.side-col .field-col label{ font-size:13.5px; }
+
+/* на средних экранах — не ужимать сайдбар ниже 380px */
+@media (max-width: 1400px) and (min-width: 1101px){
+  .layout-grid{
+    grid-template-columns: minmax(600px, 1.8fr) minmax(380px, 1fr);
+  }
+  .side-col{ min-width: 380px; }
+}
