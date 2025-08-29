@@ -420,7 +420,7 @@ export default function AdminAddProductPage() {
             <div className="card">
               <div className="card-title">Основная информация</div>
 
-              <div className="form-row two">
+              <div className="form-row two name-sku">
                 <div className="field-col">
                   <label>Название <span className="muted">({name.length}/{NAME_MAX})</span></label>
                   <input

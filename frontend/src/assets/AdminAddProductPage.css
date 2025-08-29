@@ -332,6 +332,18 @@
 .add-prod .async-select .selected{ margin-top:6px; font-size:13px; display:flex; gap:8px; align-items:center; }
 .add-prod .async-select .selected button{ border:none; background:none; cursor:pointer; color:#e12a2a; font-size:16px; line-height:1; }
 
+
+/* Ряд "Название + Код" */
+.add-prod .form-row.two.name-sku {
+  display: grid;
+  grid-template-columns: 70% 30%;
+  gap: 12px;
+}
+
+.add-prod .form-row.two.name-sku > .field-col {
+  min-width: 0; /* чтобы не ломалось на узких экранах */
+}
+
 /* ==================== Адаптив ==================== */
 @media (max-width: 920px){
   .add-prod .form-row.two{ flex-direction:column; }
