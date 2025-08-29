@@ -42,7 +42,7 @@ function parseJSONMaybeArray(v) {
       const j = JSON.parse(v);
       if (Array.isArray(j)) return j.filter(Boolean);
     } catch {}
-    return v.split(",").map(s => s.trim()).filter(Boolean);
+    return v.split(",").map((s) => s.trim()).filter(Boolean);
   }
   return [];
 }
@@ -81,6 +81,15 @@ function buildFilterFromQuery(qs) {
   return filter;
 }
 
+function ensureObjectIdParam(req, res, next) {
+  const { id } = req.params || {};
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    // чтобы /api/products/groups и т.п. не падали
+    return res.status(404).json({ error: "Товар не найден" });
+  }
+  next();
+}
+
 /* ================================ PUBLIC ================================ */
 
 // витрина
@@ -93,7 +102,7 @@ router.get("/public/showcase", async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(20);
-    res.json(products);
+  res.json(products);
   } catch (err) {
     console.error("showcase error:", err);
     res.status(500).json({ error: "Ошибка загрузки витрины" });
@@ -137,8 +146,8 @@ router.get("/admin", authMiddleware, async (req, res) => {
   }
 });
 
-// карточка (строгий маршрут по ObjectId, НЕ перехватывает /groups и т.п.)
-router.get("/:id([0-9a-fA-F]{24})", async (req, res) => {
+// карточка (БЕЗ regex в пути, валидируем параметр)
+router.get("/:id", ensureObjectIdParam, async (req, res) => {
   try {
     const product = await Product.findOne({
       _id: req.params.id,
@@ -160,12 +169,11 @@ router.post("/", authMiddleware, upload.array("images", 10), async (req, res) =>
   try {
     const body = req.body || {};
 
-    // ВАЖНО: требуем корректную группу
     if (!body.group || !mongoose.Types.ObjectId.isValid(body.group)) {
       return res.status(400).json({ error: "Выберите корректную группу (group)" });
     }
 
-    const uploadedImages = (req.files || []).map((f) => f.path); // Cloudinary URL
+    const uploadedImages = (req.files || []).map((f) => f.path);
 
     let serverImages = [];
     if (body.serverImages) {
@@ -186,24 +194,18 @@ router.post("/", authMiddleware, upload.array("images", 10), async (req, res) =>
       description: body.description || "",
       group: new mongoose.Types.ObjectId(body.group),
 
-      // поддержка базовых числовых полей (не обязательно приходят)
       price: toNumber(body.price) ?? toNumber(body.retailPrice),
       unit: body.unit || "шт",
       availability: body.availability || "published",
       stock: toNumber(body.stock) ?? 0,
 
-      // габариты
       width: toNumber(body.width) ?? 0,
       height: toNumber(body.height) ?? 0,
       length: toNumber(body.length) ?? 0,
       weight: toNumber(body.weight) ?? 0,
 
-      // поисковые запросы
       queries: parseJSONMaybeArray(body.queries),
-
-      // картинки
       images: [...serverImages, ...uploadedImages],
-
       deleted: false,
     };
 
@@ -212,13 +214,11 @@ router.post("/", authMiddleware, upload.array("images", 10), async (req, res) =>
     res.json(product);
   } catch (err) {
     console.error("create product error:", err);
-    res
-      .status(400)
-      .json({ error: "Ошибка при создании товара", details: err.message });
+    res.status(400).json({ error: "Ошибка при создании товара", details: err.message });
   }
 });
 
-router.patch("/:id([0-9a-fA-F]{24})", authMiddleware, upload.array("images", 10), async (req, res) => {
+router.patch("/:id", authMiddleware, ensureObjectIdParam, upload.array("images", 10), async (req, res) => {
   try {
     const body = req.body || {};
     const uploadedImages = (req.files || []).map((f) => f.path);
@@ -275,13 +275,11 @@ router.patch("/:id([0-9a-fA-F]{24})", authMiddleware, upload.array("images", 10)
     res.json(product);
   } catch (err) {
     console.error("update product error:", err);
-    res
-      .status(400)
-      .json({ error: "Ошибка при обновлении товара", details: err.message });
+    res.status(400).json({ error: "Ошибка при обновлении товара", details: err.message });
   }
 });
 
-router.delete("/:id([0-9a-fA-F]{24})", authMiddleware, async (req, res) => {
+router.delete("/:id", authMiddleware, ensureObjectIdParam, async (req, res) => {
   try {
     const p = await Product.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.tenantId },
