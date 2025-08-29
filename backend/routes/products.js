@@ -1,8 +1,8 @@
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
 const multer = require("multer");
 const mongoose = require("mongoose");
+const { v2: cloudinary } = require("cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const router = express.Router();
 
@@ -12,28 +12,19 @@ const withTenant = require("../middleware/withTenant");
 
 router.use(withTenant);
 
-/* ----------------------------- helpers ----------------------------- */
-function ensureDir(p) {
-  try {
-    fs.mkdirSync(p, { recursive: true });
-  } catch {}
-}
+/* ----------------------------- Cloudinary ----------------------------- */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-const uploadsDir = path.join(__dirname, "..", "uploads", "products");
-ensureDir(uploadsDir);
-
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadsDir),
-  filename: (_, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase();
-    const base = path
-      .basename(file.originalname || "img", ext)
-      .replace(/[^a-z0-9_-]+/gi, "-")
-      .slice(0, 50);
-    const name = `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}-${base}${ext}`;
-    cb(null, name);
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "products",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ quality: "auto", fetch_format: "auto" }],
   },
 });
 
@@ -42,6 +33,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
 });
 
+/* ----------------------------- helpers ----------------------------- */
 function parseQueries(v) {
   if (Array.isArray(v)) return v.filter(Boolean);
   if (typeof v === "string") {
@@ -87,10 +79,6 @@ function buildFilterFromQuery(qs) {
   }
 
   return filter;
-}
-
-function mapFilesToPublicPaths(files) {
-  return (files || []).map((f) => `/uploads/products/${f.filename}`);
 }
 
 /* ================================ PUBLIC ================================ */
@@ -142,7 +130,6 @@ router.get("/admin", authMiddleware, async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit, 10));
 
-    // 👇 теперь отдаём просто массив
     res.json(items);
   } catch (err) {
     console.error("admin list error:", err);
@@ -172,22 +159,21 @@ router.get("/:id", async (req, res) => {
 router.post(
   "/",
   authMiddleware,
-  upload.fields([{ name: "images", maxCount: 10 }]),
+  upload.array("images", 10),
   async (req, res) => {
     try {
       const body = req.body || {};
-      const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
+
+      const uploadedImages = (req.files || []).map((f) => f.path); // Cloudinary URL
 
       let serverImages = [];
       if (body.serverImages) {
-        if (Array.isArray(body.serverImages)) {
-          serverImages = body.serverImages;
-        } else if (typeof body.serverImages === "string") {
-          try {
-            serverImages = JSON.parse(body.serverImages);
-          } catch {
-            serverImages = [body.serverImages];
-          }
+        try {
+          serverImages = JSON.parse(body.serverImages);
+        } catch {
+          serverImages = Array.isArray(body.serverImages)
+            ? body.serverImages
+            : [body.serverImages];
         }
       }
 
@@ -209,8 +195,7 @@ router.post(
         weight: toNumber(body.weight) ?? 0,
         queries: parseQueries(body.queries),
         images: [...serverImages, ...uploadedImages],
-
-        deleted: false, // новый товар всегда активный
+        deleted: false,
       };
 
       const product = new Product(productData);
@@ -228,22 +213,20 @@ router.post(
 router.patch(
   "/:id",
   authMiddleware,
-  upload.fields([{ name: "images", maxCount: 10 }]),
+  upload.array("images", 10),
   async (req, res) => {
     try {
       const body = req.body || {};
-      const uploadedImages = mapFilesToPublicPaths(req.files?.images || []);
+      const uploadedImages = (req.files || []).map((f) => f.path);
 
       let serverImages = [];
       if (body.serverImages) {
-        if (Array.isArray(body.serverImages)) {
-          serverImages = body.serverImages;
-        } else if (typeof body.serverImages === "string") {
-          try {
-            serverImages = JSON.parse(body.serverImages);
-          } catch {
-            serverImages = [body.serverImages];
-          }
+        try {
+          serverImages = JSON.parse(body.serverImages);
+        } catch {
+          serverImages = Array.isArray(body.serverImages)
+            ? body.serverImages
+            : [body.serverImages];
         }
       }
 
