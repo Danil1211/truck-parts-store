@@ -31,6 +31,9 @@ const siteSettingsRoutes = require('./routes/siteSettings');
 const feedRoutes         = require('./routes/feed');      // 👈 фид
 const taxonomyRoutes     = require('./routes/taxonomy');  // 👈 таксономия Google категорий
 
+/* ===================== Email Service ===================== */
+const { sendMail } = require('./utils/emailService');
+
 /* ========================= Общие настройки ========================= */
 app.set('trust proxy', true);
 app.use(express.json({ limit: '10mb' }));
@@ -113,6 +116,21 @@ app.use('/api/users', userRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/promos', promosRoutes);
 app.use('/api/site-settings', siteSettingsRoutes);
+
+/* ==================== Тестовый email эндпоинт ==================== */
+app.get('/api/test-email', async (req, res) => {
+  try {
+    await sendMail(
+      "gluskodanil44@gmail.com",   // сюда придёт письмо
+      "Проверка SMTP 🚀",
+      "<h1>Почта работает!</h1><p>Это тестовое письмо от Storo.</p>"
+    );
+    res.json({ success: true, message: "Письмо отправлено" });
+  } catch (err) {
+    console.error("❌ Ошибка отправки письма:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /* ============================== 404 / 500 ============================== */
 app.use((req, res) => res.status(404).json({ error: 'Ресурс не найден' }));

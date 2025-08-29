@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
 const { Tenant, User, SiteSettings } = require('../models/models');
+const { sendMail } = require('../utils/emailService'); // 👈 добавили сервис
 
 const FRONT_URL   = (process.env.FRONT_URL   || 'http://localhost:5173').replace(/\/+$/, '');
 const BASE_DOMAIN = (process.env.BASE_DOMAIN || 'storo-shop.com').replace(/\/+$/, '');
@@ -178,6 +179,42 @@ router.post('/trial', async (req, res, next) => {
 
     // готовая ссылка на /admin?token=...&tid=...
     const loginUrl = buildAutoLoginUrl(tenant, token);
+
+    // 📧 Отправляем письмо админу
+    try {
+      await sendMail({
+        to: email,
+        subject: `Добро пожаловать в Storo! 🚀`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+            <div style="background:#4f46e5;color:white;padding:20px;text-align:center">
+              <h1 style="margin:0;font-size:24px">Storo</h1>
+            </div>
+            <div style="padding:20px;color:#374151">
+              <h2 style="margin-top:0">Ваш магазин создан 🎉</h2>
+              <p><b>Компания:</b> ${company}</p>
+              <p>Мы создали для вас магазин и админ-кабинет.</p>
+              <p><b>Ссылка для входа:</b></p>
+              <p style="text-align:center;margin:24px 0">
+                <a href="${loginUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">
+                  Войти в админку
+                </a>
+              </p>
+              <p><b>Логин:</b> ${email}<br/>
+                 <b>Пароль:</b> ${password}</p>
+              <p style="margin-top:20px;font-size:14px;color:#6b7280">
+                ⚠️ Не забудьте сменить пароль после первого входа.
+              </p>
+            </div>
+            <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:12px;color:#6b7280">
+              © ${new Date().getFullYear()} Storo. Все права защищены.
+            </div>
+          </div>
+        `
+      });
+    } catch (mailErr) {
+      console.error("❌ Ошибка отправки письма:", mailErr);
+    }
 
     res.json({
       ok: true,
