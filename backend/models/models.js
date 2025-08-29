@@ -140,7 +140,7 @@ if (tenantScope) MessageSchema.plugin(tenantScope);
 /* ====================== SiteSettings ====================== */
 const SiteSettingsSchema = new Schema({
   tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true, unique: true },
-  siteName:   { type: String, default: "SteelTruck" },
+  siteName:   { type: String, default: "MySite" },
   siteLogo:   { type: String, default: null },
   favicon:    { type: String, default: null },
   contacts: {
@@ -202,7 +202,8 @@ function generateToken(user) {
       role: user.role,
     },
     SECRET,
-    { expiresIn: '7d' }
+-   { expiresIn: '7d' }
++   { expiresIn: '365d' }   // 🔥 живёт целый год
   );
 }
 
