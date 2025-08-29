@@ -182,10 +182,10 @@ router.post('/trial', async (req, res, next) => {
 
     // 📧 Отправляем письмо админу
     try {
-      await sendMail({
-        to: email,
-        subject: `Добро пожаловать в Storo! 🚀`,
-        html: `
+      await sendMail(
+        email, // кому
+        `Добро пожаловать в Storo! 🚀`, // тема
+        `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
             <div style="background:#4f46e5;color:white;padding:20px;text-align:center">
               <h1 style="margin:0;font-size:24px">Storo</h1>
@@ -211,7 +211,7 @@ router.post('/trial', async (req, res, next) => {
             </div>
           </div>
         `
-      });
+      );
     } catch (mailErr) {
       console.error("❌ Ошибка отправки письма:", mailErr);
     }
