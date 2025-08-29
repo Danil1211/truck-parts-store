@@ -68,7 +68,7 @@
 .add-prod .field-col label{ font-size:13px; font-weight:500; color:#334155; display:flex; gap:8px; align-items:center; }
 .add-prod .muted{ color:#94a3b8; font-weight:400; font-size:12px; }
 
-/* База для inputs (только прямые дети .field-col) */
+/* Текстовые элементы */
 .add-prod .field-col > input:not([type="file"]):not(.file-input-hidden),
 .add-prod .field-col > select,
 .add-prod .field-col > textarea{
@@ -89,7 +89,9 @@
 .add-prod .form-row.two{ flex-direction:row; gap:12px; }
 .add-prod .form-row.two > *{ flex:1; min-width:0; }
 .add-prod .form-row.three{ flex-direction:row; gap:12px; }
+.add-prod .form-row.three > *{ flex:1; min-width:0; }
 .add-prod .form-row.four{ flex-direction:row; gap:12px; }
+.add-prod .form-row.four > *{ flex:1; min-width:0; }
 
 .add-prod .mt6{ margin-top:6px; }
 .add-prod .mt8{ margin-top:8px; }
@@ -117,21 +119,37 @@
 .add-prod .thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px; }
 
 /* Фотосетка */
-.add-prod .media-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; }
+.add-prod .media-grid{
+  display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;
+}
+.add-prod .media-grid:not(.media-grid--compact) .thumb:first-child{
+  grid-column: span 3; aspect-ratio: 1 / 1;
+}
 .add-prod .media-grid .thumb:not(:first-child){ aspect-ratio: 1 / 1; }
+
+/* Компактная фотосетка */
 .add-prod .media-grid.media-grid--compact{
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px; background: #fff; border: 1px solid #e6ebf2; border-radius: 12px; padding: 8px;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 12px;
+  padding: 8px;
 }
 .add-prod .media-grid.media-grid--compact .thumb{ aspect-ratio: 1 / 1; }
+.add-prod .media-grid.media-grid--compact .thumb:first-child{ grid-column: auto; }
 .add-prod .media-grid.media-grid--compact .thumb.add{ font-size: 16px; }
 
-.add-prod .add-by-link{ margin-top:8px; font-size:12.5px; color:#0a84ff; cursor:pointer; user-select:none; width:fit-content; }
+.add-prod .add-by-link{
+  margin-top:8px; font-size:12.5px; color:#0a84ff; cursor:pointer; user-select:none; width:fit-content;
+}
 
 /* Видео */
 .add-prod .video-row{ display:flex; flex-direction:row; gap:10px; align-items:center; }
 .add-prod .video-row input[type="url"]{
-  flex:1; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px; font-size:14px; color:#0f172a; background:#f9fbfd; box-sizing:border-box;
+  flex:1;
+  border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
+  font-size:14px; color:#0f172a; background:#f9fbfd; box-sizing:border-box;
   transition:border-color .18s, box-shadow .18s;
 }
 .add-prod .video-row input[type="url"]:focus{ outline:none; border-color:var(--primary); background:#fff; box-shadow:var(--ring); }
@@ -168,9 +186,15 @@
   max-height:460px; overflow:auto;
   border:1px solid #e6ebf2; border-radius:12px; padding:8px; background:#fff;
 }
-.add-prod .tree-row{ display:flex; align-items:center; gap:6px; padding:3px 6px; border-radius:6px; }
+.add-prod .tree-node{ padding:2px 0; }
+.add-prod .tree-row{
+  display:flex; align-items:center; gap:6px;
+  padding:3px 6px; border-radius:6px;
+}
 .add-prod .tree-row:hover{ background:#f9fbfd; }
-.add-prod .tree-children{ margin-left:16px; border-left:1px dashed #e5e7eb; padding-left:10px; }
+.add-prod .tree-children{
+  margin-left:16px; border-left:1px dashed #e5e7eb; padding-left:10px;
+}
 .add-prod .radio-row{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
 .add-prod .radio-row input{ accent-color:var(--primary); }
 .add-prod .gname{ color:#0f172a; font-size:14px; }
@@ -181,116 +205,72 @@
   display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end;
 }
 
-/* ==================== Pricing (Цена) ==================== */
-.add-prod .pricing-card .pill-segment{
-  display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef;
-  border-radius:12px; padding:4px; margin-bottom:12px;
+/* ==================== PRICE as CARDS (правая колонка) ==================== */
+/* переключатели */
+.add-prod .pricing-as-cards .pill-segment.wide{
+  width:100%; display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:10px;
 }
-.add-prod .pricing-card .pill-segment > button{
-  border:none; background:transparent; padding:8px 12px; border-radius:8px; cursor:pointer;
-  font-size:13.5px; color:#334155;
+@media (min-width: 380px){
+  .add-prod .pricing-as-cards .pill-segment.wide{
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
 }
-.add-prod .pricing-card .pill-segment > button.active{
-  background:#fff; border:1px solid #dfe5ee; color:#0f172a;
-}
-
-.add-prod .pricing-card{
-  --price-input-w: 96px;   /* ширина поля числа */
-  --currency-w: 64px;      /* ширина валюты */
-  --unit-col-w: 140px;     /* ширина колонки "Единица" */
+.add-prod .pricing-as-cards .pill-segment.wide > button{
+  white-space:nowrap;
 }
 
-/* Ряды цены */
-.add-prod .pricing-row{
-  display:grid; gap:16px; align-items:start; margin-bottom:8px;
+/* карточка цены */
+.add-prod .price-card{
+  border:1px solid #e6ebf2; background:#fbfdff; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px;
 }
-.add-prod .pricing-row--2{ grid-template-columns: 1fr 1fr; }
-.add-prod .pricing-row--3{ grid-template-columns: max-content var(--unit-col-w) 1fr; }
-@media (max-width: 720px){
-  .add-prod .pricing-row--2,
-  .add-prod .pricing-row--3{ grid-template-columns: 1fr; }
+.add-prod .price-card + .price-card{ margin-top:10px; }
+
+.add-prod .price-card label{ font-size:13px; color:#334155; }
+.add-prod .price-card input,
+.add-prod .price-card select{
+  width:100%; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px; background:#f9fbfd;
+  font-size:14px; color:#0f172a;
+}
+.add-prod .price-card input:focus,
+.add-prod .price-card select:focus{
+  outline:none; border-color:var(--primary); background:#fff; box-shadow:var(--ring);
 }
 
-/* Грид дополнительных полей */
-.add-prod .pricing-grid{
-  display:grid; gap:12px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin-top:8px;
+/* ряды внутри карточки */
+.add-prod .price-card .row-two{
+  display:grid; grid-template-columns: 1fr; gap:10px;
 }
-.add-prod .pricing-grid .col-span-5{ grid-column: span 5; }
+.add-prod .price-card .row-two .col{ display:flex; flex-direction:column; gap:6px; }
+@media (min-width: 360px){
+  .add-prod .price-card .row-two{ grid-template-columns: 1fr 1fr; }
+}
 
-/* Тоггл "цена от" */
-.add-prod .inline-flag{
-  display:inline-flex; align-items:center; gap:10px; font-size:14px; color:#0f172a; margin-top:4px;
-}
-.add-prod .inline-flag input{ width:16px; height:16px; accent-color: var(--primary); }
-
-/* Оптовые цены */
-.add-prod .tiers{ margin-top:8px; }
-.add-prod .tier-row{
-  display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; margin-top:10px;
-}
-@media (max-width: 720px){
-  .add-prod .tier-row{ grid-template-columns: 1fr; }
-}
-.add-prod .tier-actions{ margin-top:6px; }
-
-/* Плоский объединённый инпут (компактная ширина) */
-.add-prod .input-merge--flat{
+/* объединённый инпут — на всю ширину */
+.add-prod .input-merge--fluid{
   border-radius:10px; border:1px solid #d0d7e2; background:#f9fbfd; overflow:hidden;
-  display:flex; align-items:center;
-  width: calc(var(--price-input-w) + var(--currency-w));
-  min-width: 0;
+  display:flex; align-items:center; width:100%; min-width:0;
   transition: border-color .18s, outline .18s, background .18s;
 }
-.add-prod .input-merge--flat:focus-within{
+.add-prod .input-merge--fluid:focus-within{
   border-color: var(--primary);
   outline: 2px solid rgba(0,122,255,.35);
   outline-offset: 3px;
   background:#fff;
 }
-.add-prod .input-merge--flat input{
-  flex: unset;
-  width: var(--price-input-w);
-  min-width: 0;
+.add-prod .input-merge--fluid input{
+  flex:1 1 auto; min-width:0;
   border:none; background:transparent; padding:10px 12px; font-size:14px; text-align:right;
   color:#0f172a; outline:none; box-sizing:border-box;
 }
-.add-prod .input-merge--flat select,
-.add-prod .input-merge--flat .addon{
-  width: var(--currency-w);
+.add-prod .input-merge--fluid select,
+.add-prod .input-merge--fluid .addon{
+  width:72px;
   border:none; border-left:1px solid #d0d7e2; background:#f3f6fb; padding:10px 8px; font-size:14px; color:#0f172a; outline:none;
+  text-align:center;
 }
 
-/* Чуть воздуха между ценой и единицей */
-.add-prod .pricing-row .field-col:first-child .input-merge--flat{ margin-right:2px; }
-
-/* Ряд "Название + Код" */
-.add-prod .form-row.two.name-sku {
-  display: grid;
-  grid-template-columns: 2fr 1fr; /* 2 части для Названия, 1 часть для Артикула */
-  gap: 12px;
-}
-.add-prod .form-row.two.name-sku > .field-col { min-width: 0; }
-
-/* ==================== Мультиселект регионов ==================== */
-.add-prod .multi-select{ position:relative; }
-.add-prod .ms-trigger{
-  width:100%; text-align:left; background:#f9fbfd; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
-  font-size:14px; color:#0f172a; display:flex; align-items:center; justify-content:space-between;
-  transition:border-color .18s, box-shadow .18s, background .18s;
-}
-.add-prod .ms-trigger.filled{ background:#fff; }
-.add-prod .ms-trigger:focus{ outline:none; border-color:var(--primary); box-shadow:var(--ring); }
-.add-prod .ms-dropdown{
-  position:absolute; z-index:20; top:100%; left:0; right:0; margin-top:6px; background:#fff; border:1px solid #e0e5eb; border-radius:10px;
-  box-shadow:0 6px 16px rgba(0,0,0,.08); max-height:260px; overflow:auto; padding:6px;
-}
-.add-prod .ms-option{ display:flex; align-items:center; gap:8px; padding:6px 8px; cursor:pointer; }
-.add-prod .ms-option:hover{ background:#f6f8fb; }
-.add-prod .ms-option input{ accent-color: var(--primary); }
-.add-prod .chev{ width:10px; height:10px; border-right:2px solid #94a3b8; border-bottom:2px solid #94a3b8; transform:rotate(45deg); margin-left:8px; }
-.add-prod .chev.up{ transform:rotate(-135deg); }
+/* действия под списком оптовых цен */
+.add-prod .tier-actions{ margin-top:6px; }
 
 /* ===== Async Google Category Select ===== */
 .add-prod .async-select { position:relative; }
@@ -309,10 +289,17 @@
 .add-prod .async-select .selected{ margin-top:6px; font-size:13px; display:flex; gap:8px; align-items:center; }
 .add-prod .async-select .selected button{ border:none; background:none; cursor:pointer; color:#e12a2a; font-size:16px; line-height:1; }
 
+/* Ряд "Название + Код": 2/1 */
+.add-prod .form-row.two.name-sku {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+.add-prod .form-row.two.name-sku > .field-col { min-width: 0; }
+
 /* ==================== Адаптив ==================== */
 @media (max-width: 920px){
   .add-prod .form-row.two{ flex-direction:column; }
-  .add-prod .pricing-grid{ grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 720px){
   .add-prod .addprod-topbar{ height:52px; padding:0 14px; }
@@ -320,5 +307,4 @@
   .add-prod .attr-row{ grid-template-columns: 1fr; }
   .add-prod .video-row{ flex-direction:column; align-items:stretch; }
   .add-prod .media-grid.media-grid--compact{ grid-template-columns: repeat(4, 1fr); }
-  .add-prod .tier-row{ grid-template-columns: 1fr; }
 }
