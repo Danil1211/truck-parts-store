@@ -68,7 +68,7 @@
 .add-prod .field-col label{ font-size:13px; font-weight:500; color:#334155; display:flex; gap:8px; align-items:center; }
 .add-prod .muted{ color:#94a3b8; font-weight:400; font-size:12px; }
 
-/* База для inputs: только прямые дети .field-col */
+/* База для inputs (только прямые дети .field-col) */
 .add-prod .field-col > input:not([type="file"]):not(.file-input-hidden),
 .add-prod .field-col > select,
 .add-prod .field-col > textarea{
@@ -89,9 +89,7 @@
 .add-prod .form-row.two{ flex-direction:row; gap:12px; }
 .add-prod .form-row.two > *{ flex:1; min-width:0; }
 .add-prod .form-row.three{ flex-direction:row; gap:12px; }
-.add-prod .form-row.three > *{ flex:1; min-width:0; }
 .add-prod .form-row.four{ flex-direction:row; gap:12px; }
-.add-prod .form-row.four > *{ flex:1; min-width:0; }
 
 .add-prod .mt6{ margin-top:6px; }
 .add-prod .mt8{ margin-top:8px; }
@@ -118,38 +116,22 @@
 }
 .add-prod .thumb.add{ display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:18px; }
 
-/* Фотосетка по-умолчанию */
-.add-prod .media-grid{
-  display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;
-}
-.add-prod .media-grid:not(.media-grid--compact) .thumb:first-child{
-  grid-column: span 3; aspect-ratio: 1 / 1;
-}
+/* Фотосетка */
+.add-prod .media-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; }
 .add-prod .media-grid .thumb:not(:first-child){ aspect-ratio: 1 / 1; }
-
-/* Компактная фотосетка */
 .add-prod .media-grid.media-grid--compact{
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #e6ebf2;
-  border-radius: 12px;
-  padding: 8px;
+  gap: 8px; background: #fff; border: 1px solid #e6ebf2; border-radius: 12px; padding: 8px;
 }
 .add-prod .media-grid.media-grid--compact .thumb{ aspect-ratio: 1 / 1; }
-.add-prod .media-grid.media-grid--compact .thumb:first-child{ grid-column: auto; }
 .add-prod .media-grid.media-grid--compact .thumb.add{ font-size: 16px; }
 
-.add-prod .add-by-link{
-  margin-top:8px; font-size:12.5px; color:#0a84ff; cursor:pointer; user-select:none; width:fit-content;
-}
+.add-prod .add-by-link{ margin-top:8px; font-size:12.5px; color:#0a84ff; cursor:pointer; user-select:none; width:fit-content; }
 
 /* Видео */
 .add-prod .video-row{ display:flex; flex-direction:row; gap:10px; align-items:center; }
 .add-prod .video-row input[type="url"]{
-  flex:1;
-  border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
-  font-size:14px; color:#0f172a; background:#f9fbfd; box-sizing:border-box;
+  flex:1; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px; font-size:14px; color:#0f172a; background:#f9fbfd; box-sizing:border-box;
   transition:border-color .18s, box-shadow .18s;
 }
 .add-prod .video-row input[type="url"]:focus{ outline:none; border-color:var(--primary); background:#fff; box-shadow:var(--ring); }
@@ -186,15 +168,9 @@
   max-height:460px; overflow:auto;
   border:1px solid #e6ebf2; border-radius:12px; padding:8px; background:#fff;
 }
-.add-prod .tree-node{ padding:2px 0; }
-.add-prod .tree-row{
-  display:flex; align-items:center; gap:6px;
-  padding:3px 6px; border-radius:6px;
-}
+.add-prod .tree-row{ display:flex; align-items:center; gap:6px; padding:3px 6px; border-radius:6px; }
 .add-prod .tree-row:hover{ background:#f9fbfd; }
-.add-prod .tree-children{
-  margin-left:16px; border-left:1px dashed #e5e7eb; padding-left:10px;
-}
+.add-prod .tree-children{ margin-left:16px; border-left:1px dashed #e5e7eb; padding-left:10px; }
 .add-prod .radio-row{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
 .add-prod .radio-row input{ accent-color:var(--primary); }
 .add-prod .gname{ color:#0f172a; font-size:14px; }
@@ -205,7 +181,7 @@
   display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end;
 }
 
-/* ==================== Pricing (Цена и наличие) ==================== */
+/* ==================== Pricing (Цена) ==================== */
 .add-prod .pricing-card .pill-segment{
   display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef;
   border-radius:12px; padding:4px; margin-bottom:12px;
@@ -218,29 +194,29 @@
   background:#fff; border:1px solid #dfe5ee; color:#0f172a;
 }
 
-/* Компакт: фиксим ширины */
 .add-prod .pricing-card{
   --price-input-w: 96px;   /* ширина поля числа */
   --currency-w: 64px;      /* ширина валюты */
   --unit-col-w: 140px;     /* ширина колонки "Единица" */
 }
 
-/* Ряд цена + единица: первая колонка занимает ровно цену */
+/* Ряды цены */
 .add-prod .pricing-row{
-  display:grid; grid-template-columns: max-content var(--unit-col-w); gap:16px; align-items:start; margin-bottom:8px;
+  display:grid; gap:16px; align-items:start; margin-bottom:8px;
 }
+.add-prod .pricing-row--2{ grid-template-columns: 1fr 1fr; }
+.add-prod .pricing-row--3{ grid-template-columns: max-content var(--unit-col-w) 1fr; }
 @media (max-width: 720px){
-  .add-prod .pricing-row{ grid-template-columns: 1fr; }
+  .add-prod .pricing-row--2,
+  .add-prod .pricing-row--3{ grid-template-columns: 1fr; }
 }
 
-/* Грид наличия */
+/* Грид дополнительных полей */
 .add-prod .pricing-grid{
   display:grid; gap:12px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-top:8px;
 }
-.add-prod .pricing-grid .col-span-2{ grid-column: span 2; }
-.add-prod .pricing-grid .col-span-3{ grid-column: span 3; }
 .add-prod .pricing-grid .col-span-5{ grid-column: span 5; }
 
 /* Тоггл "цена от" */
@@ -289,12 +265,13 @@
 /* Чуть воздуха между ценой и единицей */
 .add-prod .pricing-row .field-col:first-child .input-merge--flat{ margin-right:2px; }
 
-/* Принудительно держим промежутки в карточке цен */
-.add-prod .pricing-card .pricing-row,
-.add-prod .pricing-card .pricing-grid{
-  column-gap: 16px !important;
-  row-gap: 12px !important;
+/* Ряд "Название + Код" */
+.add-prod .form-row.two.name-sku {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* 2 части для Названия, 1 часть для Артикула */
+  gap: 12px;
 }
+.add-prod .form-row.two.name-sku > .field-col { min-width: 0; }
 
 /* ==================== Мультиселект регионов ==================== */
 .add-prod .multi-select{ position:relative; }
@@ -331,18 +308,6 @@
 .add-prod .async-select .id{ color:#64748b; font-size:12px; margin-left:6px; }
 .add-prod .async-select .selected{ margin-top:6px; font-size:13px; display:flex; gap:8px; align-items:center; }
 .add-prod .async-select .selected button{ border:none; background:none; cursor:pointer; color:#e12a2a; font-size:16px; line-height:1; }
-
-
-/* Ряд "Название + Код" */
-.add-prod .form-row.two.name-sku {
-  display: grid;
-  grid-template-columns: 2fr 1fr; /* 2 части для Названия, 1 часть для Артикула */
-  gap: 12px;
-}
-
-.add-prod .form-row.two.name-sku > .field-col {
-  min-width: 0; /* чтобы текст не ломал сетку */
-}
 
 /* ==================== Адаптив ==================== */
 @media (max-width: 920px){
