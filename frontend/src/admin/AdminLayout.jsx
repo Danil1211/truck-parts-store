@@ -1,8 +1,18 @@
 // src/admin/AdminLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import api from "../utils/api";
 import "../assets/AdminPanel.css";
+
+/* Лоадер */
+function LoaderScreen() {
+  return (
+    <div className="admin-loader-full">
+      <div className="loader"></div>
+    </div>
+  );
+}
 
 /* Иконки */
 function Icon({ name }) {
@@ -79,6 +89,7 @@ export default function AdminLayout() {
   const { user } = useAuth();
   const location = useLocation();
   const [dark, setDark] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const HAS_SUBMENU = /^\/admin\/(orders|products)/.test(location.pathname);
 
@@ -98,6 +109,21 @@ export default function AdminLayout() {
   ];
 
   const isActive = (href) => location.pathname.startsWith(href);
+
+  // имитация инициализации (напр. /api/settings)
+  useEffect(() => {
+    (async () => {
+      try {
+        await api.get("/api/settings");
+      } catch (e) {
+        console.error("init error", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) return <LoaderScreen />;
 
   return (
     <div className="admin-root admin-layout">
