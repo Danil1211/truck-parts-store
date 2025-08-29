@@ -336,12 +336,12 @@
 /* Ряд "Название + Код" */
 .add-prod .form-row.two.name-sku {
   display: grid;
-  grid-template-columns: 70% 30%;
+  grid-template-columns: 2fr 1fr; /* 2 части для Названия, 1 часть для Артикула */
   gap: 12px;
 }
 
 .add-prod .form-row.two.name-sku > .field-col {
-  min-width: 0; /* чтобы не ломалось на узких экранах */
+  min-width: 0; /* чтобы текст не ломал сетку */
 }
 
 /* ==================== Адаптив ==================== */
