@@ -1,3 +1,4 @@
+// backend/routes/products.js
 const express = require("express");
 const multer = require("multer");
 const mongoose = require("mongoose");
@@ -47,10 +48,19 @@ function parseJSONMaybeArray(v) {
   return [];
 }
 
-function toNumber(v) {
-  if (v === undefined || v === null || v === "") return undefined;
+function parseJSON(v, fallback) {
+  if (!v) return fallback;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return fallback;
+  }
+}
+
+function toNumber(v, def = 0) {
+  if (v === undefined || v === null || v === "") return def;
   const n = Number(v);
-  return Number.isFinite(n) ? n : undefined;
+  return Number.isFinite(n) ? n : def;
 }
 
 function buildFilterFromQuery(qs) {
@@ -84,7 +94,6 @@ function buildFilterFromQuery(qs) {
 function ensureObjectIdParam(req, res, next) {
   const { id } = req.params || {};
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    // чтобы /api/products/groups и т.п. не падали
     return res.status(404).json({ error: "Товар не найден" });
   }
   next();
@@ -102,7 +111,7 @@ router.get("/public/showcase", async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(20);
-  res.json(products);
+    res.json(products);
   } catch (err) {
     console.error("showcase error:", err);
     res.status(500).json({ error: "Ошибка загрузки витрины" });
@@ -146,7 +155,7 @@ router.get("/admin", authMiddleware, async (req, res) => {
   }
 });
 
-// карточка (БЕЗ regex в пути, валидируем параметр)
+// карточка
 router.get("/:id", ensureObjectIdParam, async (req, res) => {
   try {
     const product = await Product.findOne({
@@ -177,35 +186,51 @@ router.post("/", authMiddleware, upload.array("images", 10), async (req, res) =>
 
     let serverImages = [];
     if (body.serverImages) {
-      try {
-        serverImages = JSON.parse(body.serverImages);
-      } catch {
-        serverImages = Array.isArray(body.serverImages)
-          ? body.serverImages
-          : [body.serverImages];
-      }
-      serverImages = serverImages.filter(Boolean);
+      serverImages = parseJSON(body.serverImages, []);
     }
 
     const productData = {
       tenantId: req.tenantId,
-      name: body.name || undefined,
+      name: body.name || "",
       sku: body.sku || "",
       description: body.description || "",
       group: new mongoose.Types.ObjectId(body.group),
 
-      price: toNumber(body.price) ?? toNumber(body.retailPrice),
-      unit: body.unit || "шт",
-      availability: body.availability || "published",
-      stock: toNumber(body.stock) ?? 0,
+      // --- новые поля ---
+      images: [...serverImages, ...uploadedImages],
+      videoUrl: body.videoUrl || "",
 
-      width: toNumber(body.width) ?? 0,
-      height: toNumber(body.height) ?? 0,
-      length: toNumber(body.length) ?? 0,
-      weight: toNumber(body.weight) ?? 0,
+      priceMode: body.priceMode || "retail",
+      retailPrice: toNumber(body.retailPrice),
+      retailCurrency: body.retailCurrency || "UAH",
+      priceFromFlag: body.priceFromFlag === "1" || body.priceFromFlag === true,
+
+      wholesaleTiers: parseJSON(body.wholesaleTiers, []),
+
+      unit: body.unit || "шт",
+      stockState: body.stockState || "in_stock",
+      stock: toNumber(body.stock),
+
+      regions: parseJSONMaybeArray(body.regions),
+
+      availability: body.availability || "published",
+
+      attrs: parseJSON(body.attrs, []),
 
       queries: parseJSONMaybeArray(body.queries),
-      images: [...serverImages, ...uploadedImages],
+      googleCategory: body.googleCategory || "",
+
+      width: toNumber(body.width),
+      height: toNumber(body.height),
+      length: toNumber(body.length),
+      weight: toNumber(body.weight),
+
+      seoTitle: body.seoTitle || "",
+      seoDesc: body.seoDesc || "",
+      seoKeys: body.seoKeys || "",
+      seoSlug: body.seoSlug || "",
+      seoNoindex: body.seoNoindex === "1" || body.seoNoindex === true,
+
       deleted: false,
     };
 
@@ -225,14 +250,7 @@ router.patch("/:id", authMiddleware, ensureObjectIdParam, upload.array("images",
 
     let serverImages = [];
     if (body.serverImages) {
-      try {
-        serverImages = JSON.parse(body.serverImages);
-      } catch {
-        serverImages = Array.isArray(body.serverImages)
-          ? body.serverImages
-          : [body.serverImages];
-      }
-      serverImages = serverImages.filter(Boolean);
+      serverImages = parseJSON(body.serverImages, []);
     }
 
     const update = { updatedAt: new Date() };
@@ -246,20 +264,39 @@ router.patch("/:id", authMiddleware, ensureObjectIdParam, upload.array("images",
       }
       update.group = new mongoose.Types.ObjectId(body.group);
     }
-    if ("price" in body || "retailPrice" in body) {
-      const p = toNumber(body.price) ?? toNumber(body.retailPrice);
-      if (p !== undefined) update.price = p;
-    }
+
+    if ("videoUrl" in body) update.videoUrl = body.videoUrl;
+
+    if ("priceMode" in body) update.priceMode = body.priceMode;
+    if ("retailPrice" in body) update.retailPrice = toNumber(body.retailPrice);
+    if ("retailCurrency" in body) update.retailCurrency = body.retailCurrency;
+    if ("priceFromFlag" in body) update.priceFromFlag = body.priceFromFlag === "1" || body.priceFromFlag === true;
+
+    if ("wholesaleTiers" in body) update.wholesaleTiers = parseJSON(body.wholesaleTiers, []);
+
     if ("unit" in body) update.unit = body.unit;
-    if ("availability" in body) update.availability = body.availability;
+    if ("stockState" in body) update.stockState = body.stockState;
     if ("stock" in body) update.stock = toNumber(body.stock);
+
+    if ("regions" in body) update.regions = parseJSONMaybeArray(body.regions);
+
+    if ("availability" in body) update.availability = body.availability;
+
+    if ("attrs" in body) update.attrs = parseJSON(body.attrs, []);
+
+    if ("queries" in body) update.queries = parseJSONMaybeArray(body.queries);
+    if ("googleCategory" in body) update.googleCategory = body.googleCategory;
 
     if ("width" in body) update.width = toNumber(body.width);
     if ("height" in body) update.height = toNumber(body.height);
     if ("length" in body) update.length = toNumber(body.length);
     if ("weight" in body) update.weight = toNumber(body.weight);
 
-    if ("queries" in body) update.queries = parseJSONMaybeArray(body.queries);
+    if ("seoTitle" in body) update.seoTitle = body.seoTitle;
+    if ("seoDesc" in body) update.seoDesc = body.seoDesc;
+    if ("seoKeys" in body) update.seoKeys = body.seoKeys;
+    if ("seoSlug" in body) update.seoSlug = body.seoSlug;
+    if ("seoNoindex" in body) update.seoNoindex = body.seoNoindex === "1" || body.seoNoindex === true;
 
     if (serverImages.length || uploadedImages.length) {
       update.images = [...serverImages, ...uploadedImages];

@@ -79,27 +79,65 @@ touchUpdatedAt(GroupSchema);
 if (tenantScope) GroupSchema.plugin(tenantScope);
 
 /* ====================== Product ====================== */
+/* ====================== Product ====================== */
 const ProductSchema = new Schema({
   tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   name:        { type: String, required: true },
   sku:         { type: String },
   description: { type: String },
-  group:       { type: Schema.Types.ObjectId, ref: 'Group', required: true }, // ✅ ObjectId
-  hasProps:    { type: Boolean, default: false },
-  propsColor:  { type: String, default: '' },
-  queries:     [String], // ✅ массив
+
+  group:       { type: Schema.Types.ObjectId, ref: 'Group', required: true },
+
+  // Медиа
+  images:      [String],
+  videoUrl:    { type: String, default: "" },
+
+  // Цены
+  priceMode:   { type: String, enum: ["retail","wholesale","both","service"], default: "retail" },
+  retailPrice: { type: Number, default: 0 },
+  retailCurrency: { type: String, default: "UAH" },
+  priceFromFlag: { type: Boolean, default: false },
+
+  wholesaleTiers: [{
+    price: { type: Number, default: 0 },
+    currency: { type: String, default: "UAH" },
+    minQty: { type: Number, default: 0 }
+  }],
+
+  unit:        { type: String, default: "шт" },
+  stockState:  { type: String, enum: ["in_stock","preorder","out"], default: "in_stock" },
+  stock:       { type: Number, default: 0 },
+  regions:     [String],   // массив выбранных регионов
+
+  // Видимость
+  availability:{ type: String, enum: ['published','hidden','draft'], default: 'published' },
+
+  // Характеристики
+  attrs: [{
+    key:   { type: String },
+    value: { type: String }
+  }],
+
+  // Поисковые запросы
+  queries:     [String],
+  googleCategory: { type: String, default: "" },
+
+  // Габариты
   width:       { type: Number, default: 0 },
   height:      { type: Number, default: 0 },
   length:      { type: Number, default: 0 },
   weight:      { type: Number, default: 0 },
-  price:       { type: Number, required: true },
-  unit:        { type: String, default: 'шт' },
-  availability:{ type: String, enum: ['published','draft','hidden'], default: 'published' }, // ✅
-  stock:       { type: Number, default: 0 },
-  images:      [String],
+
+  // SEO
+  seoTitle:   { type: String, default: "" },
+  seoDesc:    { type: String, default: "" },
+  seoKeys:    { type: String, default: "" },
+  seoSlug:    { type: String, default: "" },
+  seoNoindex: { type: Boolean, default: false },
 
   deleted:     { type: Boolean, default: false },
 }, { timestamps: true });
+
 touchUpdatedAt(ProductSchema);
 if (tenantScope) ProductSchema.plugin(tenantScope);
 
