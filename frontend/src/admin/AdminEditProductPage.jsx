@@ -1,849 +1,650 @@
 // frontend/src/admin/AdminEditProductPage.jsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
+import AdminSubMenu from "./AdminSubMenu";
+import AsyncGoogleCategorySelect from "../components/AsyncGoogleCategorySelect";
 import api from "../utils/api.js";
+import "../assets/AdminPanel.css";
+import "../assets/AdminAddProductPage.css";
 
 const genId = () => Math.random().toString(36).slice(2) + Date.now();
-const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
+const MAX_IMAGES = 10;
+const NAME_MAX = 120;
+const SKU_MAX = 64;
+const DESC_MAX = 5000;
+
+const UNITS = [
+  "шт","комплект","упаковка","пара","коробка","рулон",
+  "кг","г","т","л","мл",
+  "м","см","мм","м²","м³",
+  "час","день","месяц","год",
+  "услуга"
+];
+
+const STOCK_STATES = [
+  { value: "in_stock", label: "В наличии" },
+  { value: "preorder", label: "Под заказ" },
+  { value: "out", label: "Нет в наличии" },
+];
+
+const textLength = (html) => {
+  if (!html) return 0;
+  const el = document.createElement("div");
+  el.innerHTML = html;
+  return (el.textContent || el.innerText || "").trim().length;
+};
+
+/* ---- мини-иконка для дерева ---- */
+function PlayBadge({ size = 18, open = false }) {
+  return (
+    <span className={`play-badge ${open ? "open" : ""}`} style={{ width: size, height: size }} aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    </span>
+  );
+}
+
+/* ===================== БЛОК ЦЕНЫ ===================== */
+function PriceBox({
+  price, currency, unit, stock, stockState,
+  onPriceChange, onCurrencyChange, onUnitChange, onStockChange, onStockStateChange,
+  blockBadKeys
+}) {
+  return (
+    <div className="card price-box">
+      <div className="card-title">Цена</div>
+
+      <div className="price-inline">
+        {/* Цена + валюта */}
+        <div className="input-merge--fluid">
+          <input
+            className="price-input"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={price}
+            onChange={onPriceChange}
+            onKeyDown={blockBadKeys}
+            placeholder="0"
+            aria-label="Цена"
+          />
+          <div className="select-wrap currency-wrap">
+            <select value={currency} onChange={(e) => onCurrencyChange(e.target.value)} aria-label="Валюта">
+              <option value="UAH">₴</option>
+              <option value="USD">$</option>
+              <option value="EUR">€</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Единица */}
+        <div className="select-wrap unit-wrap">
+          <select value={unit} onChange={(e)=>onUnitChange(e.target.value)} aria-label="Единица измерения">
+            {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
+          </select>
+        </div>
+
+        {/* Остаток */}
+        <input
+          className="stock-input"
+          type="text"
+          value={stock}
+          onChange={(e)=>onStockChange(e.target.value)}
+          placeholder="-"
+          autoComplete="off"
+          aria-label="Остаток"
+        />
+
+        {/* Наличие */}
+        <div className="select-wrap status-wrap">
+          <select
+            value={stockState}
+            onChange={(e)=>onStockStateChange(e.target.value)}
+            aria-label="Наличие"
+          >
+            {STOCK_STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminEditProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Основная информация
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
   const [description, setDescription] = useState("");
+  const [descLen, setDescLen] = useState(0);
+
+  // Медиа
+  const [images, setImages] = useState([]); // [{id, url, file?, serverUrl?}]
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
+  const inputFileRef = useRef(null);
+  const inputVideoRef = useRef(null);
+
+  // Цена
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("UAH");
+  const [unit, setUnit] = useState("шт");
+  const [stock, setStock] = useState("");
+  const [stockState, setStockState] = useState("in_stock");
+
+  // Публикация
+  const [visibility, setVisibility] = useState("published");
+
+  // Размещение
+  const [groupsTree, setGroupsTree] = useState([]);
   const [group, setGroup] = useState("");
-  const [hasProps, setHasProps] = useState(false);
-  const [propsColor, setPropsColor] = useState("");
-  const [queries, setQueries] = useState("");
+  const [groupExpanded, setGroupExpanded] = useState({});
+  const [queryInput, setQueryInput] = useState("");
+  const [queries, setQueries] = useState([]);
+  const [googleCategory, setGoogleCategory] = useState("");
+
+  // Характеристики
+  const [attrs, setAttrs] = useState([]);
+  const ATTR_SUGGEST = {
+    "Цвет": ["Черный","Белый","Красный","Синий","Зеленый","Желтый","Серый"],
+    "Размер": ["XS","S","M","L","XL","XXL"],
+    "Материал": ["Пластик","Металл","Резина","Текстиль","Кожа"],
+    "Бренд": []
+  };
+
+  // Габариты
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
   const [length, setLength] = useState("");
   const [weight, setWeight] = useState("");
-  const [price, setPrice] = useState("");
-  const [unit, setUnit] = useState("шт");
-  const [availability, setAvailability] = useState("published");
-  const [stock, setStock] = useState("");
-  const [groups, setGroups] = useState([]);
-  const [images, setImages] = useState([]);
-  const inputFileRef = useRef(null);
-  const dragIndex = useRef(null);
 
-  // Загрузка групп
+  // SEO
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDesc, setSeoDesc] = useState("");
+  const [seoKeys, setSeoKeys] = useState("");
+  const [seoSlug, setSeoSlug] = useState("");
+  const [seoNoindex, setSeoNoindex] = useState(false);
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  /* ----- грузим дерево групп ----- */
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get(`/api/groups`);
-        const flatGroups = [];
-        const flatten = (arr) => {
-          arr.forEach((g) => {
-            if (g.name !== "Родительская группа") flatGroups.push(g);
-            if (g.children && g.children.length) flatten(g.children);
-          });
-        };
-        flatten(Array.isArray(data) ? data : []);
-        setGroups(flatGroups);
-      } catch {
-        setGroups([]);
+        const { data } = await api.get("/api/groups/tree");
+        setGroupsTree(data || []);
+      } catch (e) {
+        console.error("groups tree error", e);
       }
     })();
   }, []);
 
-  // Загрузка данных товара
+  /* ----- грузим товар ----- */
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
         const { data: prod } = await api.get(`/api/products/${id}`);
-        setName(prod.name || "");
-        setSku(prod.sku || "");
-        setDescription(prod.description || "");
-        setGroup(typeof prod.group === "object" ? prod.group._id : prod.group || "");
-        setHasProps(Boolean(prod.hasProps));
-        setPropsColor(prod.propsColor || "");
-        setQueries(prod.queries || "");
-        setWidth(prod.width || "");
-        setHeight(prod.height || "");
-        setLength(prod.length || "");
-        setWeight(prod.weight || "");
-        setPrice(Number(prod.price) || "");
-        setUnit(prod.unit || "шт");
-        setAvailability(prod.availability || "published");
-        setStock(prod.stock || "");
-        setImages(
-          (prod.images || []).map((url, i) => ({
-            id: "srv" + i,
-            file: null,
-            url: url?.startsWith("http") ? url : `${BASE_URL}${url}`,
-            serverUrl: url, // отправляем обратно как есть
-          }))
+        setName(prod?.name || "");
+        setSku(prod?.sku || "");
+        setDescription(prod?.description || "");
+        setDescLen(textLength(prod?.description || ""));
+
+        // Группа
+        setGroup(typeof prod?.group === "object" ? prod.group?._id || "" : prod?.group || "");
+
+        // Цена/склад
+        setPrice(String(prod?.price ?? ""));
+        setCurrency(prod?.currency || "UAH");
+        setUnit(prod?.unit || "шт");
+        setStock(String(prod?.stock ?? ""));
+        setStockState(
+          prod?.stockState ||
+          (prod?.availability === "order" ? "preorder" : prod?.availability === "out" ? "out" : "in_stock")
         );
-      } catch {
+
+        // Видимость
+        setVisibility(prod?.availability === "hidden" ? "hidden" : "published");
+
+        // Поисковые запросы
+        if (Array.isArray(prod?.queries)) setQueries(prod.queries);
+        else if (typeof prod?.queries === "string") {
+          const arr = prod.queries.split(",").map(s => s.trim()).filter(Boolean);
+          setQueries(arr);
+        } else setQueries([]);
+
+        // Google category
+        setGoogleCategory(prod?.googleCategory || "");
+
+        // Атрибуты
+        if (Array.isArray(prod?.attrs)) {
+          setAttrs(prod.attrs.map(a => ({ id: genId(), key: a.key || "", value: a.value || "" })));
+        }
+
+        // Габариты
+        setWidth(String(prod?.width ?? ""));
+        setHeight(String(prod?.height ?? ""));
+        setLength(String(prod?.length ?? ""));
+        setWeight(String(prod?.weight ?? ""));
+
+        // SEO
+        setSeoTitle(prod?.seoTitle || "");
+        setSeoDesc(prod?.seoDesc || "");
+        setSeoKeys(prod?.seoKeys || "");
+        setSeoSlug(prod?.seoSlug || "");
+        setSeoNoindex(!!prod?.seoNoindex);
+
+        // Видео
+        setVideoUrl(prod?.videoUrl || "");
+
+        // Картинки (оставляем serverUrl чтобы отправить обратно, если не удалили)
+        const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
+        const serverImages = (prod?.images || []).map((url, i) => {
+          const abs = url?.startsWith("http") ? url : `${base}${url}`;
+          return { id: "srv" + i, file: null, url: abs, serverUrl: url };
+        });
+        setImages(serverImages.slice(0, MAX_IMAGES));
+      } catch (e) {
+        console.error(e);
         navigate("/admin/products");
       }
     })();
   }, [id, navigate]);
 
-  // Добавление фото
-  const handleImageChange = (e) => {
+  /* ----- Ограничители ----- */
+  const onChangeDescription = (val) => {
+    const len = textLength(val);
+    if (len <= DESC_MAX) { setDescription(val); setDescLen(len); }
+  };
+
+  /* ----- Фото ----- */
+  const onImagesChange = (e) => {
     const files = Array.from(e.target.files || []);
-    setImages((prev) => {
-      const prevFiles = prev.map((i) => i.file).filter(Boolean);
-      const allFiles = [...prevFiles, ...files];
-      const seen = new Set();
-      const newImgs = allFiles
-        .filter((f) => {
-          const key = `${f.name}_${f.size}`;
-          if (seen.has(key)) return false;
+    setImages(prev => {
+      const existing = prev.filter(x => x.serverUrl); // что уже на сервере и оставляем
+      const seen = new Set(prev.filter(x => x.file).map(f => `${f.file?.name}_${f.file?.size}`));
+      const nextFiles = [];
+      for (const f of files) {
+        const key = `${f.name}_${f.size}`;
+        if (!seen.has(key)) {
           seen.add(key);
-          return true;
-        })
-        .slice(0, 10)
-        .map((f) => {
-          const exist = prev.find(
-            (img) => img.file && img.file.name === f.name && img.file.size === f.size
-          );
-          return exist || { file: f, url: URL.createObjectURL(f), id: genId() };
-        });
-      return [...prev.filter((img) => img.serverUrl && !img.file), ...newImgs];
+          nextFiles.push({ id: genId(), file: f, url: URL.createObjectURL(f) });
+        }
+      }
+      return [...existing, ...nextFiles].slice(0, MAX_IMAGES);
     });
     if (inputFileRef.current) inputFileRef.current.value = null;
   };
+  const removeImage = (id) => setImages(p => {
+    const img = p.find(i => i.id === id);
+    if (img?.file && img.url?.startsWith("blob:")) URL.revokeObjectURL(img.url);
+    return p.filter(i => i.id !== id);
+  });
 
-  // Удаление фото
-  const handleRemoveImage = (id) => {
-    setImages((prev) => {
-      const img = prev.find((i) => i.id === id);
-      if (img && img.file) URL.revokeObjectURL(img.url);
-      return prev.filter((i) => i.id !== id);
-    });
+  /* ----- Видео ----- */
+  const onVideoFile = (e) => {
+    const f = (e.target.files || [])[0];
+    setVideoFile(f || null);
+    setVideoUrl("");
+  };
+  const onVideoUrl = (v) => {
+    setVideoUrl(v.trim());
+    if (v.trim()) setVideoFile(null);
   };
 
-  // DnD
-  const handleDragStart = (idx) => (dragIndex.current = idx);
-  const handleDragOver = (idx) => (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+  /* ----- Поисковые запросы (chips) ----- */
+  const onQueryKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = queryInput.trim();
+      if (val && !queries.includes(val)) {
+        setQueries([...queries, val]);
+        setQueryInput("");
+      }
+    }
   };
-  const handleDrop = (idx) => {
-    if (dragIndex.current === null || dragIndex.current === idx) return;
-    setImages((prev) => {
-      const arr = [...prev];
-      const [moved] = arr.splice(dragIndex.current, 1);
-      arr.splice(idx, 0, moved);
-      return arr;
-    });
-    dragIndex.current = null;
+  const removeQuery = (val) => setQueries(queries.filter(q => q !== val));
+
+  /* ----- Дерево helpers ----- */
+  const toggleExpand = (id) => setGroupExpanded(s => ({ ...s, [id]: !s[id] }));
+  const renderTree = (arr) => (arr || []).map((g) => {
+    const hasChildren = g.children && g.children.length > 0;
+    const expanded = !!groupExpanded[g._id];
+    return (
+      <div className="tree-node" key={g._id}>
+        <div className="tree-row">
+          {hasChildren ? (
+            <button type="button" className="play-toggle" onClick={() => toggleExpand(g._id)} aria-label={expanded ? "Свернуть" : "Развернуть"}>
+              <PlayBadge size={18} open={expanded} />
+            </button>
+          ) : (<span className="play-toggle spacer" />)}
+          <label className="radio-row">
+            <input type="radio" name="groupPick" checked={group === g._id} onChange={() => setGroup(g._id)} />
+            <span className="gname">{g.name}</span>
+            {typeof g.count === "number" && <span className="gcount">({g.count})</span>}
+          </label>
+        </div>
+        {hasChildren && expanded && <div className="tree-children">{renderTree(g.children)}</div>}
+      </div>
+    );
+  });
+
+  /* ----- Цена: маска/блок клавиш ----- */
+  const normalizePrice = (val) => {
+    let s = String(val || "").replace(",", ".").replace(/[^\d.]/g, "");
+    s = s.replace(/(\..*)\./g, "$1"); // только одна точка
+    return s;
+  };
+  const onPriceChange = (e) => { e.stopPropagation(); setPrice(normalizePrice(e.target.value)); };
+  const blockBadKeys = (e) => {
+    const bad = ["e","E","+","-","ArrowUp","ArrowDown"];
+    if (bad.includes(e.key)) e.preventDefault();
+    if (e.key === "Enter") e.preventDefault();
+    e.stopPropagation();
   };
 
-  // Очистка blob URL-ов при размонтировании/смене
-  useEffect(() => {
-    return () => {
-      images.forEach((img) => img.file && URL.revokeObjectURL(img.url));
-    };
-  }, [images]);
-
-  // Сохранение
+  /* ----- Submit (PATCH) ----- */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("sku", sku);
-    formData.append("description", description);
-    formData.append("group", group);
-    formData.append("hasProps", hasProps ? "true" : "");
-    formData.append("propsColor", propsColor);
-    formData.append("queries", queries);
-    formData.append("width", width);
-    formData.append("height", height);
-    formData.append("length", length);
-    formData.append("weight", weight);
-    formData.append("price", price);
-    formData.append("unit", unit);
-    formData.append("availability", availability);
-    formData.append("stock", stock);
+    if (isSaving) return;
 
-    images.forEach((img) => {
-      if (img.file) formData.append("images", img.file);
-      if (img.serverUrl) formData.append("serverImages[]", img.serverUrl);
-    });
+    if (!name.trim()) { alert("Введите название"); return; }
+    if (!group) { alert("Выберите группу"); return; }
+
+    const priceNum = parseFloat((price || "").replace(",", "."));
+    if (!isFinite(priceNum) || priceNum <= 0) { alert("Укажите корректную цену"); return; }
+
+    const fd = new FormData();
+
+    // Основное
+    fd.append("name", name.trim());
+    fd.append("sku", sku.trim());
+    fd.append("description", description);
+
+    // Медиа
+    images.forEach(img => img.file && fd.append("images", img.file));
+    images.forEach(img => img.serverUrl && fd.append("serverImages[]", img.serverUrl));
+    if (videoFile) fd.append("video", videoFile);
+    if (videoUrl) fd.append("videoUrl", videoUrl);
+
+    // Цена
+    fd.append("price", String(priceNum));
+    fd.append("currency", currency);
+    fd.append("unit", unit);
+    fd.append("stock", stock);
+    fd.append("stockState", stockState);
+
+    // Публикация
+    fd.append("availability", visibility);
+
+    // Размещение
+    fd.append("group", group);
+    fd.append("queries", JSON.stringify(queries));
+    fd.append("googleCategory", googleCategory);
+
+    // Характеристики
+    fd.append("attrs", JSON.stringify(attrs.filter(a => a.key && a.value)));
+
+    // Габариты
+    fd.append("width", width); fd.append("height", height);
+    fd.append("length", length); fd.append("weight", weight);
+
+    // SEO
+    fd.append("seoTitle", seoTitle || name.trim());
+    fd.append("seoDesc", seoDesc);
+    fd.append("seoKeys", seoKeys);
+    fd.append("seoSlug", seoSlug);
+    fd.append("seoNoindex", seoNoindex ? "1" : "0");
 
     try {
-      await api.patch(`/api/products/${id}`, formData);
+      setIsSaving(true);
+      await api.patch(`/api/products/${id}`, fd);
       navigate("/admin/products");
     } catch (err) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        "Ошибка при сохранении позиции";
-      alert("Ошибка при сохранении позиции: " + msg);
+      alert("Ошибка сохранения: " + (err?.response?.data?.error || err.message));
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f6fafd",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "stretch",
-        padding: 0,
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1400,
-          margin: "0 auto",
-          padding: "0 32px",
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "stretch",
-        }}
-      >
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 18,
-            boxShadow: "0 4px 18px #1a90ff0b, 0 1.5px 5px #2291ff14",
-            padding: "20px 38px",
-            marginTop: 38,
-            marginBottom: 0,
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 16,
-            minHeight: 64,
-          }}
-        >
-          <button
-            onClick={() => navigate("/admin/products")}
-            style={{
-              background: "#eaf4ff",
-              color: "#2291ff",
-              border: "none",
-              borderRadius: 12,
-              fontWeight: 700,
-              fontSize: 16,
-              padding: "10px 22px 10px 15px",
-              boxShadow: "0 1px 7px #2291ff11",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              marginLeft: 0,
-              transition: "background 0.18s, color 0.18s",
-            }}
-          >
-            <span style={{ fontSize: 20, marginRight: 6 }}>←</span> Назад
-          </button>
-          <button
-            type="submit"
-            form="edit-prod-form"
-            style={{
-              background: "#2291ff",
-              color: "#fff",
-              borderRadius: 10,
-              border: "none",
-              fontSize: 16,
-              padding: "10px 28px",
-              fontWeight: 800,
-              boxShadow: "0 2px 9px #2291ff13",
-              cursor: "pointer",
-              transition: "background 0.18s, color 0.18s",
-            }}
-          >
-            Сохранить изменения
-          </button>
-        </div>
+    <div className="add-prod products-page">
+      <AdminSubMenu type="products" activeKey="edit" />
 
-        <form
-          id="edit-prod-form"
-          onSubmit={handleSubmit}
-          style={{
-            width: "100%",
-            display: "flex",
-            background: "#fff",
-            borderRadius: 14,
-            margin: 0,
-            marginTop: "32px",
-            boxShadow: "0 6px 22px #2291ff0b",
-            padding: "22px 0 0 32px",
-            alignItems: "flex-start",
-            gap: 0,
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Левая колонка */}
-          <div
-            style={{
-              flex: 2.2,
-              padding: "0px 18px 28px 0px",
-              borderRight: "1.5px solid #eaf1fa",
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-              minWidth: 0,
-              boxSizing: "border-box",
-            }}
-          >
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
-              <div style={{ flex: 1.9 }}>
-                <label
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: "#223",
-                    marginBottom: 3,
-                    display: "block",
-                  }}
-                >
-                  Название позиции
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="Название товара"
-                  style={{
-                    width: "100%",
-                    marginTop: 4,
-                    padding: "9px 11px",
-                    borderRadius: 9,
-                    border: "1.3px solid #c9e4ff",
-                    fontSize: 15,
-                    background: "#f6fafd",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: "#223",
-                    marginBottom: 3,
-                    display: "block",
-                  }}
-                >
-                  Код / Артикул
-                </label>
-                <input
-                  type="text"
-                  value={sku}
-                  onChange={(e) => setSku(e.target.value)}
-                  placeholder="Артикул, код"
-                  style={{
-                    width: "100%",
-                    marginTop: 4,
-                    padding: "9px 11px",
-                    borderRadius: 9,
-                    border: "1.3px solid #c9e4ff",
-                    fontSize: 15,
-                    background: "#f6fafd",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
-            <div>
-              <label
-                style={{
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "#223",
-                  marginBottom: 4,
-                  display: "block",
-                }}
-              >
-                Описание
-              </label>
-              <LocalEditor
-                value={description}
-                onChange={setDescription}
-                placeholder="Описание товара..."
-              />
-            </div>
-            <div>
-              <label
-                style={{
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "#223",
-                  marginBottom: 4,
-                  display: "block",
-                }}
-              >
-                Группа
-              </label>
-              <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                required
-                style={{
-                  width: "100%",
-                  marginTop: 4,
-                  padding: "9px 11px",
-                  borderRadius: 9,
-                  border: "1.3px solid #c9e4ff",
-                  fontSize: 15,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="">Выберите группу</option>
-                {groups.map((g) => (
-                  <option key={g._id} value={g._id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontWeight: 600,
-                  marginBottom: 2,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={hasProps}
-                  onChange={(e) => setHasProps(e.target.checked)}
-                  style={{ accentColor: "#2291ff" }}
-                />
-                Характеристики
-              </label>
-              {hasProps && (
-                <div
-                  style={{
-                    marginTop: 7,
-                    marginLeft: 7,
-                    display: "flex",
-                    gap: 10,
-                  }}
-                >
+      <div className="addprod-topbar">
+        <button className="btn-ghost" onClick={() => navigate("/admin/products")}>← Назад</button>
+        <button type="submit" form="edit-prod-form" disabled={isSaving} className="btn-primary">
+          {isSaving ? "Сохраняем..." : "Сохранить изменения"}
+        </button>
+      </div>
+
+      <form id="edit-prod-form" className="addprod-form" onSubmit={handleSubmit}>
+        <div className="layout-grid">
+
+          {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
+          <div className="main-col">
+
+            {/* Основная информация */}
+            <div className="card">
+              <div className="card-title">Основная информация</div>
+
+              <div className="form-row two name-sku">
+                <div className="field-col">
+                  <label>Название <span className="muted">({name.length}/{NAME_MAX})</span></label>
                   <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
+                    placeholder="Название товара"
                     type="text"
-                    value={propsColor}
-                    onChange={(e) => setPropsColor(e.target.value)}
-                    placeholder="Цвет"
-                    style={{
-                      width: "30%",
-                      padding: "8px 11px",
-                      borderRadius: 7,
-                      border: "1.3px solid #c9e4ff",
-                      fontSize: 14,
-                      background: "#f6fafd",
-                      boxSizing: "border-box",
-                    }}
                   />
                 </div>
-              )}
+                <div className="field-col">
+                  <label>Код / Артикул <span className="muted">({sku.length}/{SKU_MAX})</span></label>
+                  <input
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value.slice(0, SKU_MAX))}
+                    placeholder="Артикул"
+                    type="text"
+                  />
+                </div>
+              </div>
+
+              <div className="field-col">
+                <label>Описание <span className="muted">({descLen}/{DESC_MAX})</span></label>
+                <LocalEditor
+                  value={description}
+                  onChange={onChangeDescription}
+                  placeholder="Описание товара..."
+                  minHeight={220}
+                />
+              </div>
+
+              <div className="media-block">
+                <div className="field-col">
+                  <label>Фото <span className="muted">(до {MAX_IMAGES})</span></label>
+                  <input type="file" multiple accept="image/*" ref={inputFileRef} style={{ display: "none" }} onChange={onImagesChange} />
+                  <div className="media-grid media-grid--compact">
+                    {images.length === 0 && (
+                      <>
+                        <div className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                        {Array.from({ length: MAX_IMAGES - 1 }).map((_, i) => (
+                          <div key={`empty-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                        ))}
+                      </>
+                    )}
+                    {images.length > 0 && (
+                      <>
+                        {images.map(img => (
+                          <div className="thumb" key={img.id}>
+                            <img src={img.url} alt="" />
+                            <button type="button" onClick={() => removeImage(img.id)}>×</button>
+                          </div>
+                        ))}
+                        {Array.from({ length: Math.max(0, MAX_IMAGES - images.length) }).map((_, i) => (
+                          <div key={`more-${i}`} className="thumb add" onClick={() => inputFileRef.current?.click()}>+</div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  <div className="add-by-link" onClick={() => inputFileRef.current?.click()}>Добавить фото</div>
+                </div>
+
+                <div className="field-col">
+                  <label style={{ gap: 8, display: "flex", alignItems: "center" }}>
+                    Видео <PlayBadge /> <span className="muted">(одно)</span>
+                  </label>
+                  <div className="video-row">
+                    <input type="url" value={videoUrl} onChange={(e) => onVideoUrl(e.target.value)} placeholder="Ссылка на YouTube/Vimeo (если есть)" />
+                    <input type="file" accept="video/*" ref={inputVideoRef} className="file-input-hidden" onChange={onVideoFile} />
+                    <button type="button" className="btn-outline" onClick={() => inputVideoRef.current?.click()}>Загрузить файл</button>
+                  </div>
+                  {(videoUrl || videoFile) && (
+                    <div className="video-preview">
+                      <PlayBadge size={18} />
+                      {videoUrl ? <span className="muted">Ссылка указана</span> : <span className="muted">{videoFile?.name}</span>}
+                      <button type="button" className="btn-mini" onClick={() => { setVideoUrl(""); setVideoFile(null); if (inputVideoRef.current) inputVideoRef.current.value = ""; }}>Очистить</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <label
-                style={{
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "#223",
-                  marginBottom: 4,
-                  display: "block",
-                }}
-              >
-                Поисковые запросы
-              </label>
-              <input
-                value={queries}
-                onChange={(e) => setQueries(e.target.value)}
-                placeholder="тормозная накладка, колодки..."
-                style={{
-                  width: "100%",
-                  marginTop: 4,
-                  padding: "8px 10px",
-                  borderRadius: 9,
-                  border: "1.3px solid #c9e4ff",
-                  fontSize: 15,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
+
+            {/* ЦЕНА */}
+            <PriceBox
+              price={price}
+              currency={currency}
+              unit={unit}
+              stock={stock}
+              stockState={stockState}
+              onPriceChange={onPriceChange}
+              onCurrencyChange={setCurrency}
+              onUnitChange={setUnit}
+              onStockChange={setStock}
+              onStockStateChange={setStockState}
+              blockBadKeys={blockBadKeys}
+            />
+
+            {/* Характеристики */}
+            <div className="card">
+              <div className="card-title">Характеристики</div>
+
+              {attrs.map((a) => (
+                <div className="attr-row" key={a.id}>
+                  <div className="field-col">
+                    <label>Характеристика</label>
+                    <input
+                      list={`attr-keys-${a.id}`}
+                      value={a.key}
+                      onChange={(e) => setAttrs(p => p.map(x => x.id === a.id ? { ...x, key: e.target.value } : x))}
+                      placeholder="Напр. Цвет"
+                      type="text"
+                    />
+                    <datalist id={`attr-keys-${a.id}`}>
+                      {Object.keys(ATTR_SUGGEST).map(k => <option key={k} value={k} />)}
+                    </datalist>
+                  </div>
+
+                  <div className="field-col">
+                    <label>Значение</label>
+                    <input
+                      list={`attr-values-${a.id}`}
+                      value={a.value}
+                      onChange={(e) => setAttrs(p => p.map(x => x.id === a.id ? { ...x, value: e.target.value } : x))}
+                      placeholder="Напр. Зеленый"
+                      type="text"
+                    />
+                    <datalist id={`attr-values-${a.id}`}>
+                      {(ATTR_SUGGEST[a.key] || []).map(v => <option key={v} value={v} />)}
+                    </datalist>
+                  </div>
+
+                  <button type="button" className="btn-ghost danger" onClick={() => setAttrs(p => p.filter(x => x.id !== a.id))}>Удалить</button>
+                </div>
+              ))}
+
+              <div>
+                <button type="button" className="btn-outline" onClick={() => setAttrs(p => [...p, { id: genId(), key: "", value: "" }])}>+ Добавить характеристику</button>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+
+            {/* Поисковые запросы */}
+            <div className="card">
+              <div className="card-title">Поисковые запросы для сайта</div>
               <input
-                value={width}
-                onChange={(e) => setWidth(e.target.value)}
-                placeholder="Ширина (мм)"
-                type="number"
-                style={{
-                  flex: 1,
-                  padding: "8px 7px",
-                  borderRadius: 8,
-                  border: "1.3px solid #c9e4ff",
-                  fontSize: 14,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
-              <input
-                value={height}
-                onChange={(e) => setHeight(e.target.value)}
-                placeholder="Высота (мм)"
-                type="number"
-                style={{
-                  flex: 1,
-                  padding: "8px 7px",
-                  borderRadius: 8,
-                  border: "1.3px solid #c9e4ff",
-                  fontSize: 14,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
-              <input
-                value={length}
-                onChange={(e) => setLength(e.target.value)}
-                placeholder="Длина (мм)"
-                type="number"
-                style={{
-                  flex: 1,
-                  padding: "8px 7px",
-                  borderRadius: 8,
-                  border: "1.3px solid #c9e4ff",
-                  fontSize: 14,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
-              <input
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                placeholder="Вес (грамм)"
-                type="number"
-                style={{
-                  flex: 1,
-                  padding: "8px 7px",
-                  borderRadius: 8,
-                  border: "1.3px solid #c9e4ff",
-                  fontSize: 14,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                placeholder="Цена"
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1.2px solid #c9e4ff",
-                  fontSize: 15,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
-              <input
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+                onKeyDown={onQueryKeyDown}
+                placeholder="Введите запрос и нажмите Enter"
                 type="text"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="Ед. изм."
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1.2px solid #c9e4ff",
-                  fontSize: 15,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
               />
-              <select
-                value={availability}
-                onChange={(e) => setAvailability(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1.2px solid #c9e4ff",
-                  fontSize: 15,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="published">В наличии</option>
-                <option value="order">Под заказ</option>
-                <option value="out">Нет в наличии</option>
-              </select>
-              <input
-                type="number"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                placeholder="Остаток"
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1.2px solid #c9e4ff",
-                  fontSize: 15,
-                  background: "#f6fafd",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Правая колонка - фото */}
-          <div
-            style={{
-              flex: 1,
-              minWidth: 340,
-              maxWidth: 410,
-              padding: "0px 24px 28px 28px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 15,
-              alignItems: "stretch",
-              marginRight: 0,
-              boxSizing: "border-box",
-            }}
-          >
-            <label
-              style={{
-                fontWeight: 700,
-                color: "#1b2437",
-                fontSize: 15,
-                marginBottom: 3,
-                display: "block",
-              }}
-            >
-              Фото товара
-            </label>
-            <div
-              style={{
-                background: "#f8fbff",
-                border: "1.2px dashed #b6d4fc",
-                borderRadius: 11,
-                padding: "13px 8px 16px 8px",
-                minHeight: 255,
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                handleImageChange({ target: { files: e.dataTransfer.files } });
-              }}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                ref={inputFileRef}
-                onChange={handleImageChange}
-                style={{ display: "none" }}
-                id="product-images-input"
-              />
-              {/* Главное фото */}
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "1.6/1",
-                  background: "#f4f9ff",
-                  border: images[0]?.url ? "2px solid #2291ff" : "2px dashed #b6d4fc",
-                  borderRadius: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: images.length ? "grab" : "pointer",
-                  position: "relative",
-                  overflow: "hidden",
-                  minHeight: 120,
-                  marginBottom: 12,
-                }}
-                draggable={!!images[0]}
-                onDragStart={() => handleDragStart(0)}
-                onDragOver={handleDragOver(0)}
-                onDrop={() => handleDrop(0)}
-                onClick={() => !images.length && inputFileRef.current.click()}
-              >
-                {images[0]?.url ? (
-                  <>
-                    <img
-                      src={images[0].url}
-                      alt="main"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        borderRadius: 10,
-                        background: "#fff",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveImage(images[0].id);
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: 7,
-                        right: 7,
-                        background: "#fff",
-                        color: "#f25b5b",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: 24,
-                        height: 24,
-                        fontWeight: 700,
-                        fontSize: 15,
-                        boxShadow: "0 2px 8px #2291ff11",
-                        cursor: "pointer",
-                      }}
-                    >
-                      ×
-                    </button>
-                  </>
-                ) : (
-                  <div style={{ textAlign: "center", color: "#3b7dc6", width: "100%" }}>
-                    <img
-                      src="https://cdn-icons-png.flaticon.com/128/9068/9068827.png"
-                      alt=""
-                      style={{ width: 55, margin: "0 auto 8px auto", opacity: 0.15 }}
-                    />
-                    <div
-                      style={{
-                        color: "#1977cc",
-                        fontWeight: 500,
-                        marginBottom: 7,
-                        fontSize: 15,
-                      }}
-                    >
-                      Завантажте файл или добавьте скопійоване зображення
-                    </div>
-                    <div style={{ color: "#aac0dd", fontSize: 13, marginBottom: 3 }}>
-                      Форматы: JPG, GIF, PNG, WEBP.<br />
-                      Максимальный размер: 10 MB.
-                    </div>
-                    <div style={{ color: "#f87a46", fontSize: 13, marginTop: 3 }}>
-                      Без водяных знаков
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Сетка превью */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 8,
-                  margin: "0 auto",
-                  minHeight: 160,
-                }}
-              >
-                {images.slice(1).map((img, i) => (
-                  <div
-                    key={img.id}
-                    draggable
-                    onDragStart={() => handleDragStart(i + 1)}
-                    onDragOver={handleDragOver(i + 1)}
-                    onDrop={() => handleDrop(i + 1)}
-                    style={{
-                      width: "100%",
-                      aspectRatio: "1/1",
-                      background: "#f4f9ff",
-                      border: "2px solid #2291ff",
-                      borderRadius: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "grab",
-                      position: "relative",
-                      overflow: "hidden",
-                      minHeight: 54,
-                    }}
-                  >
-                    <img
-                      src={img.url}
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        borderRadius: 10,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveImage(img.id);
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: 5,
-                        right: 5,
-                        background: "#fff",
-                        color: "#f25b5b",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: 18,
-                        height: 18,
-                        fontWeight: 700,
-                        fontSize: 12,
-                        boxShadow: "0 2px 8px #2291ff11",
-                        cursor: "pointer",
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                {[...Array(Math.max(0, 9 - (images.length - 1))).keys()].map((i) => (
-                  <div
-                    key={i + "plus"}
-                    style={{
-                      width: "100%",
-                      aspectRatio: "1/1",
-                      background: "#f4f9ff",
-                      border: "2px dashed #dde6f4",
-                      borderRadius: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      position: "relative",
-                      overflow: "hidden",
-                      minHeight: 54,
-                    }}
-                    onClick={() => inputFileRef.current?.click()}
-                  >
-                    <span style={{ color: "#aac0dd", fontSize: 28, fontWeight: 500 }}>
-                      +
-                    </span>
-                  </div>
+              <div className="chips">
+                {queries.map((q, i) => (
+                  <span key={i} className="chip">{q}<b onClick={() => removeQuery(q)}>×</b></span>
                 ))}
               </div>
             </div>
+
+            {/* Категория Google */}
+            <div className="card">
+              <div className="card-title">Категория товара для Google</div>
+              <AsyncGoogleCategorySelect value={googleCategory} onChange={setGoogleCategory} lang="ru-RU" />
+            </div>
+
+            {/* Габариты */}
+            <div className="card">
+              <div className="card-title">Габариты</div>
+              <div className="form-row four">
+                <div className="field-col"><label>Ширина, см</label><input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" type="text" /></div>
+                <div className="field-col"><label>Высота, см</label><input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" type="text" /></div>
+                <div className="field-col"><label>Длина, см</label><input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" type="text" /></div>
+                <div className="field-col"><label>Вес, кг</label><input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" type="text" /></div>
+              </div>
+            </div>
+
+            {/* SEO */}
+            <div className="card">
+              <div className="card-title">SEO</div>
+              <div className="form-row two">
+                <div className="field-col"><label>Title</label><input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Title страницы товара" type="text" /></div>
+                <div className="field-col"><label>Slug (ЧПУ)</label><input value={seoSlug} onChange={(e) => setSeoSlug(e.target.value)} placeholder="nasos-mantga-011-0200" type="text" /></div>
+              </div>
+              <div className="form-row"><label className="field-col"><span>Description</span><textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} placeholder="Краткое описание для meta-description" /></label></div>
+              <div className="form-row two">
+                <div className="field-col"><label>Keywords</label><input value={seoKeys} onChange={(e) => setSeoKeys(e.target.value)} placeholder="ключевые слова через запятую" type="text" /></div>
+                <label className="checkline"><input type="checkbox" checked={seoNoindex} onChange={(e) => setSeoNoindex(e.target.checked)} />Не индексировать (noindex, nofollow)</label>
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+
+          {/* ===== ПРАВАЯ КОЛОНКА ===== */}
+          <div className="side-col">
+            {/* Размещение — Группы */}
+            <div className="card">
+              <div className="card-title">Размещение — Группы</div>
+              <div className="tree-wrap">
+                {groupsTree.length ? renderTree(groupsTree) : <div className="muted">Загрузка дерева…</div>}
+              </div>
+            </div>
+
+            {/* Видимость */}
+            <div className="card">
+              <div className="card-title">Видимость</div>
+              <div className="seg">
+                <label className="muted">Статус</label>
+                <div className="seg-items">
+                  <button type="button" className={visibility === "published" ? "active" : ""} onClick={() => setVisibility("published")}>Опубликовать</button>
+                  <button type="button" className={visibility === "hidden" ? "active" : ""} onClick={() => setVisibility("hidden")}>Скрыть</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
