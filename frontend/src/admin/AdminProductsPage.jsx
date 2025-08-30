@@ -477,7 +477,7 @@ function ProductList({ products, onEdit, onDelete, onEditField, onQuickFilterGro
               <button className="bulk-dd-toggle" onClick={() => setBulkOpen((v) => !v)}>
                 Действия для {selectedIds.length} позиций ▾
               </button>
-              <div className="bulk-dd-menu" role="menu" aria-hidden={!bulkOpen)}>
+              <div className="bulk-dd-menu" role="menu" aria-hidden={!bulkOpen}>
                 <button className="bulk-dd-item" onClick={bulkDelete}>Удалить</button>
               </div>
             </div>
