@@ -428,7 +428,12 @@ export default function AdminAddProductPage() {
 
               <div className="field-col">
                 <label>Описание <span className="muted">({descLen}/{DESC_MAX})</span></label>
-                <LocalEditor value={description} onChange={onChangeDescription} placeholder="Описание товара..." />
+                <LocalEditor
+                  value={description}
+                  onChange={onChangeDescription}
+                  placeholder="Описание товара..."
+                  minHeight={220}
+                />
               </div>
 
               <div className="media-block">

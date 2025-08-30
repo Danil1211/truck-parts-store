@@ -1,0 +1,90 @@
+/* ======= Минимализм епел ======= */
+.le-root{
+  --le-surface: var(--surface, #fff);
+  --le-border: #e6ebf2;
+  --le-text: #0f172a;
+  --le-muted: #64748b;
+  --le-primary: var(--primary, #117fff);
+
+  background: var(--le-surface);
+  border: 1px solid var(--le-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Toolbar */
+.le-toolbar{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:8px 10px; border-bottom:1px solid var(--le-border);
+  background: var(--le-surface);
+}
+.le-group{ display:flex; gap:6px; align-items:center; }
+.le-group.-right{ margin-left:auto; }
+
+.le-btn{
+  appearance:none; border:1px solid transparent;
+  background: transparent; color:#475569; cursor:pointer;
+  height:30px; min-width:30px; padding:0 8px; border-radius:8px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:600; user-select:none;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.le-btn:hover{ background:#f3f7fc; border-color:#d0d7e2; }
+.le-btn.is-active{ background:rgba(17,127,255,.10); border-color:#bcdcff; color:var(--le-primary); }
+.le-ico{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; }
+
+.le-select{
+  height:30px; font-size:13px; color:var(--le-text);
+  background:#f9fbfd; border:1px solid #d0d7e2; border-radius:8px;
+  padding:0 10px; outline:none;
+}
+
+/* Editor area */
+.le-editor{
+  padding:14px 14px 18px;
+  background:#fff; color:var(--le-text);
+  font-size:14px; line-height:1.6; outline:none;
+}
+
+/* ProseMirror content styling */
+.le-editor p{ margin:0 0 8px; }
+.le-editor h1{ font-size:24px; margin:12px 0 8px; }
+.le-editor h2{ font-size:20px; margin:12px 0 8px; }
+.le-editor h3{ font-size:18px; margin:10px 0 6px; }
+.le-editor ul, .le-editor ol{ padding-left:20px; margin:8px 0; }
+.le-editor blockquote{
+  margin:10px 0; padding:8px 12px; border-left:3px solid #dbe7ff;
+  background:#f7fbff; color:#1e293b; border-radius:8px;
+}
+.le-editor a{
+  color:var(--le-primary); text-decoration:underline; text-underline-offset:2px;
+}
+.le-editor img{ max-width:100%; height:auto; border-radius:8px; display:block; margin:8px 0; }
+
+/* Table */
+.le-editor table{
+  width:100%; border-collapse:collapse; margin:10px 0;
+  border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;
+}
+.le-editor th, .le-editor td{
+  border:1px solid #e5e7eb; padding:8px; text-align:left; font-weight:500;
+}
+.le-editor th{ background:#f8fafc; }
+
+/* Placeholder handled by extension */
+
+/* Source mode */
+.le-source{
+  width:100%; min-height:180px; border:0; outline:none;
+  padding:14px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size:13px; line-height:1.5; color:#0f172a; background:#fff;
+}
+
+/* Focus ring */
+.le-root:has(.ProseMirror:focus),
+.le-source:focus{
+  box-shadow: 0 0 0 2px rgba(17,127,255,.18) inset;
+}
+
+/* Fix for drag handle / selection */
+.ProseMirror:focus{ outline: none; }
