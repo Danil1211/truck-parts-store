@@ -6,16 +6,15 @@ import "../assets/AdminPanel.css";
 import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
-const SIDEBAR_WIDTH = 260; // ширина фиксированного AdminSubMenu, чтобы контент не заходил под меню
+const SUBMENU_WIDTH = 300; // ширина фиксированного AdminSubMenu (смещение контента)
 
-// --- helpers ---
 function buildTree(groups, parentId = null) {
   return groups
     .filter((g) => String(g.parentId || "") === String(parentId || ""))
     .map((g) => ({ ...g, children: buildTree(groups, g._id) }));
 }
 
-/* === Иконки (SVG) === */
+/* SVG иконки */
 const IconChevron = ({ open }) => (
   <svg
     width="12"
@@ -63,7 +62,6 @@ const IconEditSmall = ({ color = "#2291ff" }) => (
   </svg>
 );
 
-/* === Рендер строки группы === */
 function renderGroupRows(
   items,
   expanded,
@@ -243,8 +241,8 @@ export default function AdminGroupsPage() {
     <div style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
       <AdminSubMenu />
 
-      {/* Сдвигаем рабочую область вправо на ширину сайдбара */}
-      <div style={{ display: "flex", flex: 1, minWidth: 0, padding: "28px 16px 28px", paddingLeft: SIDEBAR_WIDTH }}>
+      {/* смещение контента вправо — фикс меню не перекрывает */}
+      <div style={{ display: "flex", flex: 1, minWidth: 0, marginLeft: SUBMENU_WIDTH, padding: "28px 16px" }}>
         {/* Левая панель — группы */}
         <div
           style={{
@@ -314,7 +312,7 @@ export default function AdminGroupsPage() {
           </div>
         </div>
 
-        {/* Правая панель — список товаров в выбранной группе */}
+        {/* Правая панель — товары выбранной группы */}
         <div
           ref={rightPanelRef}
           style={{
