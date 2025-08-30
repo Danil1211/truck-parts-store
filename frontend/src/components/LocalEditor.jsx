@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 
-/* компактные пресеты */
+/* пресеты */
 const FONT_SIZES = [
   { label: "12", value: "12px" },
   { label: "14", value: "14px" },
@@ -16,7 +16,18 @@ const BLOCKS = [
   { label: "H3", value: "H3" },
 ];
 
-export default function LocalEditor({ value, onChange, placeholder }) {
+/* доступные теги (простая санитация) */
+const ALLOWED = new Set([
+  "P","BR","STRONG","B","EM","I","U","S","A",
+  "UL","OL","LI","IMG","SPAN"
+]);
+
+export default function LocalEditor({
+  value,
+  onChange,
+  placeholder = "Описание...",
+  minHeight = 180,
+}) {
   const ref = useRef(null);
   const [blockType, setBlockType] = useState("P");
   const [fontSize, setFontSize] = useState("16px");
@@ -26,36 +37,148 @@ export default function LocalEditor({ value, onChange, placeholder }) {
     italic: false,
     underline: false,
     strikeThrough: false,
+    ul: false,
+    ol: false,
   });
 
-  /* синк значения из вне */
+  /* ----- утилиты ----- */
+  const inEditorSelection = () => {
+    const sel = document.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    const anchor = sel.anchorNode;
+    const focus = sel.focusNode;
+    const el = ref.current;
+    return !!(el && anchor && el.contains(anchor) && el.contains(focus));
+  };
+
+  const preventBlurMouseDown = (e) => {
+    // чтобы клики по тулбару не снимали фокус с редактора
+    e.preventDefault();
+  };
+
+  const emitChange = () => {
+    if (!ref.current) return;
+    onChange?.(ref.current.innerHTML);
+  };
+
+  /* ----- инициализация ----- */
   useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== (value || "")) {
-      ref.current.innerHTML = value || "";
+    // стараемся заставить Enter делать <p>, не <div>
+    try {
+      document.execCommand("defaultParagraphSeparator", false, "p");
+    } catch {}
+  }, []);
+
+  /* внешняя синхронизация value -> DOM */
+  useEffect(() => {
+    if (!ref.current) return;
+    const html = value || "";
+    if (ref.current.innerHTML !== html) {
+      ref.current.innerHTML = html;
     }
   }, [value]);
 
-  /* отслеживаем состояние форматирования для подсветки кнопок */
+  /* состояние кнопок в тулбаре */
   useEffect(() => {
     const handleSel = () => {
+      if (!inEditorSelection()) return;
       try {
         setCmdState({
           bold: document.queryCommandState("bold"),
           italic: document.queryCommandState("italic"),
           underline: document.queryCommandState("underline"),
           strikeThrough: document.queryCommandState("strikeThrough"),
+          ul: document.queryCommandState("insertUnorderedList"),
+          ol: document.queryCommandState("insertOrderedList"),
         });
       } catch {}
     };
     document.addEventListener("selectionchange", handleSel);
     return () => document.removeEventListener("selectionchange", handleSel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* execCommand + нотация span для размера шрифта */
-  const handleFontSizeChange = (e) => {
-    const px = e.target.value;
+  /* ----- санитация вставки ----- */
+  const sanitizeHtml = (dirty) => {
+    if (!dirty) return "";
+    const doc = new DOMParser().parseFromString(dirty, "text/html");
+    const walk = (node) => {
+      // текст — ок
+      if (node.nodeType === Node.TEXT_NODE) return;
+
+      // неразрешённый тег — разворачиваем детей наверх
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName;
+        if (!ALLOWED.has(tag)) {
+          const parent = node.parentNode;
+          while (node.firstChild) parent.insertBefore(node.firstChild, node);
+          parent.removeChild(node);
+          return;
+        }
+        // унифицируем b/i в strong/em
+        if (tag === "B") node.outerHTML = `<strong>${node.innerHTML}</strong>`;
+        if (tag === "I") node.outerHTML = `<em>${node.innerHTML}</em>`;
+
+        // чистим атрибуты
+        [...node.attributes].forEach((attr) => {
+          const n = attr.name.toLowerCase();
+          if (tag === "A" && (n === "href" || n === "target" || n === "rel")) return;
+          if (tag === "IMG" && (n === "src" || n === "alt")) return;
+          if (tag === "SPAN" && n === "style") {
+            // оставим только font-size
+            const size = (attr.value || "")
+              .split(";")
+              .map((s) => s.trim())
+              .filter((s) => /^font-size:/i.test(s))
+              .join(";");
+            if (size) node.setAttribute("style", size);
+            else node.removeAttribute("style");
+            return;
+          }
+          node.removeAttribute(attr.name);
+        });
+
+        // ссылки — безопасно
+        if (tag === "A") {
+          const href = node.getAttribute("href") || "";
+          if (!/^https?:\/\//i.test(href)) node.setAttribute("href", `https://${href}`);
+          node.setAttribute("rel", "noopener nofollow");
+          node.setAttribute("target", "_blank");
+        }
+      }
+      // рекурсия
+      let child = node.firstChild;
+      while (child) {
+        const next = child.nextSibling;
+        walk(child);
+        child = next;
+      }
+    };
+    walk(doc.body);
+    return doc.body.innerHTML;
+  };
+
+  /* ----- exec комманды ----- */
+  const exec = (cmd, param) => {
+    if (!ref.current) return;
+    ref.current.focus();
+    try {
+      document.execCommand(cmd, false, param);
+    } catch {}
+    emitChange();
+  };
+
+  const setBlock = (tag) => {
+    setBlockType(tag);
+    exec("formatBlock", tag);
+  };
+
+  const applyFontSize = (px) => {
     setFontSize(px);
-    document.execCommand("fontSize", false, 7);
+    // Включаем CSS-режим, чтобы браузер не лепил <font size="..">
+    try { document.execCommand("styleWithCSS", false, true); } catch {}
+    document.execCommand("fontSize", false, "7");
+    // заменяем <font size="7"> на <span style="font-size:px">
     setTimeout(() => {
       if (!ref.current) return;
       ref.current.querySelectorAll("font[size='7']").forEach((font) => {
@@ -64,63 +187,113 @@ export default function LocalEditor({ value, onChange, placeholder }) {
         span.innerHTML = font.innerHTML;
         font.parentNode.replaceChild(span, font);
       });
-      if (onChange) onChange(ref.current.innerHTML);
-      ref.current.focus();
-    }, 1);
+      try { document.execCommand("styleWithCSS", false, false); } catch {}
+      emitChange();
+    }, 0);
   };
 
-  const exec = (cmd, param) => {
-    document.execCommand(cmd, false, param);
-    ref.current?.focus();
-    onChange?.(ref.current?.innerHTML || "");
-  };
-
-  const handleBlockChange = (e) => {
-    const val = e.target.value;
-    setBlockType(val);
-    exec("formatBlock", val);
-  };
-
-  const insertImage = () => {
-    const url = prompt("Вставьте ссылку на изображение:");
-    if (url) exec("insertImage", url);
-  };
-
-  const insertLink = () => {
-    let url = prompt("Введите ссылку:");
-    if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
-    if (url) exec("createLink", url);
-  };
-
-  /* drag&drop изображений */
+  /* ----- paste: чистим HTML ----- */
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const onDrop = (e) => {
+
+    const onPaste = (e) => {
+      if (!inEditorSelection()) return;
       e.preventDefault();
-      const files = Array.from(e.dataTransfer.files).filter((f) =>
-        f.type.startsWith("image/")
-      );
+      const html = e.clipboardData.getData("text/html");
+      const text = e.clipboardData.getData("text/plain");
+      let toInsert = html ? sanitizeHtml(html) : (text || "")
+        .split("\n").map((l) => l.replace(/</g,"&lt;").replace(/>/g,"&gt;"))
+        .join("<br>");
+
+      // вставляем как html
+      try {
+        document.execCommand("insertHTML", false, toInsert);
+      } catch {
+        // fallback
+        const range = document.getSelection().getRangeAt(0);
+        const frag = range.createContextualFragment(toInsert);
+        range.deleteContents();
+        range.insertNode(frag);
+      }
+      emitChange();
+    };
+
+    const onDrop = (e) => {
+      // drag&drop картинок
+      const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith("image/"));
+      if (!files.length) return;
+      e.preventDefault();
       files.forEach((file) => {
         const reader = new FileReader();
         reader.onload = (ev) => exec("insertImage", ev.target.result);
         reader.readAsDataURL(file);
       });
     };
+
     const block = (e) => e.preventDefault();
+
+    el.addEventListener("paste", onPaste);
     el.addEventListener("drop", onDrop);
     el.addEventListener("dragover", block);
     return () => {
+      el.removeEventListener("paste", onPaste);
       el.removeEventListener("drop", onDrop);
       el.removeEventListener("dragover", block);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* ----- placeholder ----- */
   const isEmpty =
-    (!ref.current?.innerText || ref.current?.innerText.trim() === "") &&
-    !isFocused;
+    (!ref.current?.innerText || ref.current?.innerText.trim() === "") && !isFocused;
 
-  /* стили — строгий минимализм, цвета берём из темы */
+  /* ----- хоткеи + Enter ----- */
+  const onKeyDown = (e) => {
+    // не даём событиям вылезать наружу (чтобы цена/другие поля не ловили Ctrl+B и т.п.)
+    e.stopPropagation();
+
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod) {
+      if (e.key.toLowerCase() === "b") { e.preventDefault(); exec("bold"); return; }
+      if (e.key.toLowerCase() === "i") { e.preventDefault(); exec("italic"); return; }
+      if (e.key.toLowerCase() === "u") { e.preventDefault(); exec("underline"); return; }
+      if (e.key.toLowerCase() === "s") { e.preventDefault(); exec("strikeThrough"); return; }
+      if (e.key.toLowerCase() === "k") { e.preventDefault(); onInsertLink(); return; }
+      if (e.key.toLowerCase() === "z") { e.preventDefault(); exec("undo"); return; }
+      if (e.key.toLowerCase() === "y") { e.preventDefault(); exec("redo"); return; }
+    }
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      exec("insertLineBreak");
+    }
+  };
+
+  /* ----- действия тулбара ----- */
+  const onInsertImage = () => {
+    const url = window.prompt("Вставьте ссылку на изображение:");
+    if (url) exec("insertImage", url.trim());
+  };
+
+  const onInsertLink = (href) => {
+    exec("createLink", href);
+    const sel = document.getSelection();
+    if (sel && sel.anchorNode) {
+      const a = (ref.current || document).querySelector("a[href='" + href + "']");
+      if (a) { a.setAttribute("target","_blank"); a.setAttribute("rel","noopener nofollow"); }
+    }
+  };
+
+  const onInsertLinkPrompt = () => {
+    let url = window.prompt("Введите ссылку:");
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    onInsertLink(url.trim());
+  };
+
+  const onRemoveLink = () => exec("unlink");
+
+  /* ----- рендер ----- */
   const styles = {
     root: {
       marginTop: 10,
@@ -137,6 +310,7 @@ export default function LocalEditor({ value, onChange, placeholder }) {
       padding: "8px 10px",
       background: "var(--surface)",
       borderBottom: "1px solid #e6ebf2",
+      flexWrap: "wrap",
     },
     select: {
       height: 30,
@@ -162,9 +336,10 @@ export default function LocalEditor({ value, onChange, placeholder }) {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
+      userSelect: "none",
     }),
     editor: {
-      minHeight: 180,
+      minHeight,
       width: "100%",
       outline: "none",
       fontSize: 14,
@@ -181,65 +356,54 @@ export default function LocalEditor({ value, onChange, placeholder }) {
       pointerEvents: "none",
       fontSize: 14,
     },
+    sep: { width: 8 },
   };
 
   return (
-    <div style={styles.root}>
-      <div style={styles.toolbar}>
-        <select style={styles.select} value={blockType} onChange={handleBlockChange}>
-          {BLOCKS.map((b) => (
-            <option key={b.value} value={b.value}>
-              {b.label}
-            </option>
-          ))}
-        </select>
-
-        <select style={styles.select} value={fontSize} onChange={handleFontSizeChange}>
-          {FONT_SIZES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-
-        <button type="button" title="Жирный" style={styles.btn(cmdState.bold)} onClick={() => exec("bold")}>
-          B
-        </button>
-        <button type="button" title="Курсив" style={styles.btn(cmdState.italic)} onClick={() => exec("italic")}>
-          I
-        </button>
-        <button type="button" title="Подчёркнутый" style={styles.btn(cmdState.underline)} onClick={() => exec("underline")}>
-          U
-        </button>
-        <button
-          type="button"
-          title="Зачёркнутый"
-          style={styles.btn(cmdState.strikeThrough)}
-          onClick={() => exec("strikeThrough")}
+    <div style={styles.root} onKeyDownCapture={(e) => e.stopPropagation()}>
+      <div style={styles.toolbar} onMouseDown={preventBlurMouseDown}>
+        <select
+          style={styles.select}
+          value={blockType}
+          onChange={(e) => setBlock(e.target.value)}
         >
-          S
-        </button>
+          {BLOCKS.map((b) => (
+            <option key={b.value} value={b.value}>{b.label}</option>
+          ))}
+        </select>
 
-        <div style={{ width: 8 }} />
+        <select
+          style={styles.select}
+          value={fontSize}
+          onChange={(e) => applyFontSize(e.target.value)}
+        >
+          {FONT_SIZES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
 
-        <button type="button" title="Undo" style={styles.btn()} onClick={() => exec("undo")}>
-          ↺
-        </button>
-        <button type="button" title="Redo" style={styles.btn()} onClick={() => exec("redo")}>
-          ↻
-        </button>
+        <button type="button" title="Жирный (Ctrl/Cmd+B)" style={styles.btn(cmdState.bold)} onClick={() => exec("bold")}>B</button>
+        <button type="button" title="Курсив (Ctrl/Cmd+I)" style={styles.btn(cmdState.italic)} onClick={() => exec("italic")}>I</button>
+        <button type="button" title="Подчёркнутый (Ctrl/Cmd+U)" style={styles.btn(cmdState.underline)} onClick={() => exec("underline")}>U</button>
+        <button type="button" title="Зачёркнутый (Ctrl/Cmd+S)" style={styles.btn(cmdState.strikeThrough)} onClick={() => exec("strikeThrough")}>S</button>
 
-        <div style={{ width: 8 }} />
+        <div style={styles.sep} />
 
-        <button type="button" title="Вставить ссылку" style={styles.btn()} onClick={insertLink}>
-          link
-        </button>
-        <button type="button" title="Удалить ссылку" style={styles.btn()} onClick={() => exec("unlink")}>
-          unlink
-        </button>
-        <button type="button" title="Вставить изображение" style={styles.btn()} onClick={insertImage}>
-          img
-        </button>
+        <button type="button" title="Список" style={styles.btn(cmdState.ul)} onClick={() => exec("insertUnorderedList")}>• *</button>
+        <button type="button" title="Нумерованный список" style={styles.btn(cmdState.ol)} onClick={() => exec("insertOrderedList")}>1.</button>
+        <button type="button" title="Цитата" style={styles.btn()} onClick={() => exec("formatBlock","BLOCKQUOTE")}>❝</button>
+        <button type="button" title="Очистить форматирование" style={styles.btn()} onClick={() => exec("removeFormat")}>⨯</button>
+
+        <div style={styles.sep} />
+
+        <button type="button" title="Вставить ссылку (Ctrl/Cmd+K)" style={styles.btn()} onClick={onInsertLinkPrompt}>link</button>
+        <button type="button" title="Удалить ссылку" style={styles.btn()} onClick={onRemoveLink}>unlink</button>
+        <button type="button" title="Вставить изображение" style={styles.btn()} onClick={onInsertImage}>img</button>
+
+        <div style={styles.sep} />
+
+        <button type="button" title="Отменить (Ctrl/Cmd+Z)" style={styles.btn()} onClick={() => exec("undo")}>↺</button>
+        <button type="button" title="Повторить (Ctrl/Cmd+Y)" style={styles.btn()} onClick={() => exec("redo")}>↻</button>
       </div>
 
       {isEmpty && <span style={styles.placeholder}>{placeholder}</span>}
@@ -250,9 +414,13 @@ export default function LocalEditor({ value, onChange, placeholder }) {
         suppressContentEditableWarning
         spellCheck={false}
         style={styles.editor}
-        onInput={(e) => onChange?.(e.currentTarget.innerHTML)}
-        onFocus={() => setIsFocused(true)}
+        onInput={() => {
+          // отложим, чтобы брать уже применённые изменения
+          requestAnimationFrame(emitChange);
+        }}
+        onFocus={(e) => { setIsFocused(true); e.stopPropagation(); }}
         onBlur={() => setIsFocused(false)}
+        onKeyDown={onKeyDown}
         aria-label={placeholder}
         tabIndex={0}
         autoCorrect="off"
