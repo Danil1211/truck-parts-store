@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+// frontend/src/components/LocalEditor.jsx
+import React, { useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -6,7 +7,7 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
+import { TextStyle } from "@tiptap/extension-text-style"; // <-- именованный импорт
 import { Extension } from "@tiptap/core";
 import {
   Table,
@@ -14,9 +15,9 @@ import {
   TableHeader,
   TableCell,
 } from "@tiptap/extension-table";
-import "../assets/LocalEditor.css";
+import "../assets/LocalEditor.css"; // css лежит в assets
 
-/* ================== Icons (inline SVG) ================== */
+/* ---------------- Icons ---------------- */
 const Icon = {
   bold:  (a) => (<svg {...a} viewBox="0 0 24 24"><path d="M7 5h7a4 4 0 0 1 0 8H7zM7 13h8a4 4 0 0 1 0 8H7z"/></svg>),
   italic:(a) => (<svg {...a} viewBox="0 0 24 24"><path d="M10 4h10M4 20h10M14 4L10 20"/></svg>),
@@ -42,7 +43,7 @@ const Icon = {
   tpl:   (a)=>(<svg {...a} viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 14h7v6H4zM13 14h7v6h-7z"/></svg>),
 };
 
-/* ================== FontSize extension ================== */
+/* ---------------- FontSize extension ---------------- */
 const FontSize = Extension.create({
   name: "fontSize",
   addGlobalAttributes() {
@@ -73,7 +74,7 @@ const FontSize = Extension.create({
   },
 });
 
-/* ================== Presets ================== */
+/* ---------------- Presets ---------------- */
 const FONT_SIZES = [
   { label: "12", value: "12px" },
   { label: "14", value: "14px" },
@@ -103,10 +104,7 @@ export default function LocalEditor({
         autolink: true,
         openOnClick: false,
         linkOnPaste: true,
-        HTMLAttributes: {
-          rel: "noopener nofollow",
-          target: "_blank",
-        },
+        HTMLAttributes: { rel: "noopener nofollow", target: "_blank" },
         protocols: ["http", "https", "mailto", "tel"],
       }),
       Image.configure({ allowBase64: true }),
@@ -127,10 +125,7 @@ export default function LocalEditor({
         style: `min-height:${minHeight}px`,
       },
       handlePaste(view, event) {
-        // файл из буфера — вставляем как img
-        const files = Array.from(event.clipboardData?.files || []).filter(f =>
-          f.type.startsWith("image/")
-        );
+        const files = Array.from(event.clipboardData?.files || []).filter(f => f.type.startsWith("image/"));
         if (files.length) {
           event.preventDefault();
           files.forEach((f) => {
@@ -140,12 +135,10 @@ export default function LocalEditor({
           });
           return true;
         }
-        return false; // остальное — по схеме редактора (без мусора)
+        return false;
       },
       handleDrop(view, event) {
-        const files = Array.from(event.dataTransfer?.files || []).filter(f =>
-          f.type.startsWith("image/")
-        );
+        const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type.startsWith("image/"));
         if (files.length) {
           event.preventDefault();
           files.forEach((f) => {
@@ -166,7 +159,7 @@ export default function LocalEditor({
     },
   });
 
-  // внешняя синхронизация value -> editor (без циклов)
+  // value -> editor (без зацикливания)
   useEffect(() => {
     if (!editor) return;
     const current = editor.getHTML();
@@ -175,7 +168,7 @@ export default function LocalEditor({
 
   if (!editor) return null;
 
-  /* ================== Toolbar helpers ================== */
+  /* ---------------- Toolbar helpers ---------------- */
   const setHeading = (level) =>
     level ? editor.chain().focus().setHeading({ level }).run()
           : editor.chain().focus().setParagraph().run();
@@ -189,12 +182,7 @@ export default function LocalEditor({
       return;
     }
     const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .setLink({ href })
-      .run();
+    editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
   };
 
   const insertTemplate = () => {
@@ -215,40 +203,37 @@ export default function LocalEditor({
   };
 
   return (
-    <div className="le-root" onKeyDownCapture={(e) => e.stopPropagation()}>
+    <div
+      className="le-root"
+      // режем все keydown из редактора, чтобы форма не отправлялась
+      onKeyDownCapture={(e) => e.stopPropagation()}
+    >
       {/* Toolbar */}
-      <div className="le-toolbar" onMouseDown={(e) => e.preventDefault()}>
+      <div
+        className="le-toolbar"
+        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      >
         <div className="le-group">
-          <button
+          <button type="button"
             className={`le-btn ${editor.isActive("paragraph") ? "is-active" : ""}`}
-            title="Абзац"
-            onClick={() => setHeading(0)}
-            aria-label="Абзац"
-          >
+            title="Абзац" onClick={() => setHeading(0)} aria-label="Абзац">
             <Icon.p className="le-ico" />
           </button>
-          <button
+          <button type="button"
             className={`le-btn ${editor.isActive("heading", { level: 1 }) ? "is-active" : ""}`}
-            title="H1"
-            onClick={() => setHeading(1)}
-            aria-label="H1"
-          >
+            title="H1" onClick={() => setHeading(1)} aria-label="H1">
             <Icon.h1 className="le-ico" />
           </button>
-          <button
+          <button type="button"
             className={`le-btn ${editor.isActive("heading", { level: 2 }) ? "is-active" : ""}`}
-            title="H2"
-            onClick={() => setHeading(2)}
-            aria-label="H2"
-          >
+            title="H2" onClick={() => setHeading(2)} aria-label="H2">
             <Icon.h2 className="le-ico" />
           </button>
           <select
             className="le-select"
             value={fontSize}
             onChange={(e) => editor.chain().focus().setFontSize(e.target.value).run()}
-            title="Размер шрифта"
-            aria-label="Размер шрифта"
+            title="Размер шрифта" aria-label="Размер шрифта"
           >
             {FONT_SIZES.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -257,94 +242,133 @@ export default function LocalEditor({
         </div>
 
         <div className="le-group">
-          <button className={`le-btn ${editor.isActive("bold") ? "is-active" : ""}`} title="Жирный (Ctrl/Cmd+B)"
-                  onClick={() => editor.chain().focus().toggleBold().run()} aria-label="Bold">
+          <button type="button"
+            className={`le-btn ${editor.isActive("bold") ? "is-active" : ""}`}
+            title="Жирный (Ctrl/Cmd+B)"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            aria-label="Bold">
             <Icon.bold className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive("italic") ? "is-active" : ""}`} title="Курсив (Ctrl/Cmd+I)"
-                  onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="Italic">
+          <button type="button"
+            className={`le-btn ${editor.isActive("italic") ? "is-active" : ""}`}
+            title="Курсив (Ctrl/Cmd+I)"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            aria-label="Italic">
             <Icon.italic className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive("underline") ? "is-active" : ""}`} title="Подчеркнутый"
-                  onClick={() => editor.chain().focus().toggleUnderline().run()} aria-label="Underline">
+          <button type="button"
+            className={`le-btn ${editor.isActive("underline") ? "is-active" : ""}`}
+            title="Подчеркнутый"
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            aria-label="Underline">
             <Icon.underline className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive("strike") ? "is-active" : ""}`} title="Зачеркнутый"
-                  onClick={() => editor.chain().focus().toggleStrike().run()} aria-label="Strike">
+          <button type="button"
+            className={`le-btn ${editor.isActive("strike") ? "is-active" : ""}`}
+            title="Зачеркнутый"
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            aria-label="Strike">
             <Icon.strike className="le-ico" />
           </button>
         </div>
 
         <div className="le-group">
-          <button className={`le-btn ${editor.isActive("bulletList") ? "is-active" : ""}`} title="Список"
-                  onClick={() => editor.chain().focus().toggleBulletList().run()} aria-label="UL">
+          <button type="button"
+            className={`le-btn ${editor.isActive("bulletList") ? "is-active" : ""}`}
+            title="Список"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            aria-label="UL">
             <Icon.ul className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive("orderedList") ? "is-active" : ""}`} title="Нумерованный список"
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()} aria-label="OL">
+          <button type="button"
+            className={`le-btn ${editor.isActive("orderedList") ? "is-active" : ""}`}
+            title="Нумерованный список"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            aria-label="OL">
             <Icon.ol className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive("blockquote") ? "is-active" : ""}`} title="Цитата"
-                  onClick={() => editor.chain().focus().toggleBlockquote().run()} aria-label="Quote">
+          <button type="button"
+            className={`le-btn ${editor.isActive("blockquote") ? "is-active" : ""}`}
+            title="Цитата"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            aria-label="Quote">
             <Icon.quote className="le-ico" />
           </button>
-          <button className="le-btn" title="Очистить форматирование"
-                  onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} aria-label="Clear">
+          <button type="button"
+            className="le-btn" title="Очистить форматирование"
+            onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+            aria-label="Clear">
             <Icon.clear className="le-ico" />
           </button>
         </div>
 
         <div className="le-group">
-          <button className={`le-btn ${editor.isActive({ textAlign: "left" }) ? "is-active" : ""}`} title="По левому краю"
-                  onClick={() => editor.chain().focus().setTextAlign("left").run()} aria-label="Align left">
+          <button type="button"
+            className={`le-btn ${editor.isActive({ textAlign: "left" }) ? "is-active" : ""}`}
+            title="По левому краю"
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            aria-label="Align left">
             <Icon.left className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive({ textAlign: "center" }) ? "is-active" : ""}`} title="По центру"
-                  onClick={() => editor.chain().focus().setTextAlign("center").run()} aria-label="Align center">
+          <button type="button"
+            className={`le-btn ${editor.isActive({ textAlign: "center" }) ? "is-active" : ""}`}
+            title="По центру"
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
+            aria-label="Align center">
             <Icon.center className="le-ico" />
           </button>
-          <button className={`le-btn ${editor.isActive({ textAlign: "right" }) ? "is-active" : ""}`} title="По правому краю"
-                  onClick={() => editor.chain().focus().setTextAlign("right").run()} aria-label="Align right">
+          <button type="button"
+            className={`le-btn ${editor.isActive({ textAlign: "right" }) ? "is-active" : ""}`}
+            title="По правому краю"
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            aria-label="Align right">
             <Icon.right className="le-ico" />
           </button>
         </div>
 
         <div className="le-group">
-          <button className={`le-btn ${editor.isActive("link") ? "is-active" : ""}`} title="Ссылка (Ctrl/Cmd+K)"
-                  onClick={toggleLink} aria-label="Link">
+          <button type="button"
+            className={`le-btn ${editor.isActive("link") ? "is-active" : ""}`}
+            title="Ссылка (Ctrl/Cmd+K)"
+            onClick={toggleLink}
+            aria-label="Link">
             <Icon.link className="le-ico" />
           </button>
-          <button className="le-btn" title="Удалить ссылку"
-                  onClick={() => editor.chain().focus().unsetLink().run()} aria-label="Unlink">
+          <button type="button"
+            className="le-btn" title="Удалить ссылку"
+            onClick={() => editor.chain().focus().unsetLink().run()}
+            aria-label="Unlink">
             <Icon.unlink className="le-ico" />
           </button>
-          <button className="le-btn" title="Изображение (URL или перетащи файл)"
-                  onClick={() => {
-                    const url = window.prompt("URL изображения:");
-                    if (!url) return;
-                    editor.chain().focus().setImage({ src: url.trim() }).run();
-                  }} aria-label="Image">
+          <button type="button"
+            className="le-btn" title="Изображение (URL или перетащи файл)"
+            onClick={() => {
+              const url = window.prompt("URL изображения:");
+              if (!url) return;
+              editor.chain().focus().setImage({ src: url.trim() }).run();
+            }}
+            aria-label="Image">
             <Icon.img className="le-ico" />
           </button>
         </div>
 
         <div className="le-group">
-          <button className="le-btn" title="Вставить шаблон" onClick={insertTemplate} aria-label="Template">
+          <button type="button" className="le-btn" title="Вставить шаблон" onClick={insertTemplate} aria-label="Template">
             <Icon.tpl className="le-ico" />
           </button>
-          <button className="le-btn" title="Создать таблицу 3×3" onClick={insertTable} aria-label="Table">
+          <button type="button" className="le-btn" title="Создать таблицу 3×3" onClick={insertTable} aria-label="Table">
             <Icon.table className="le-ico" />
           </button>
         </div>
 
         <div className="le-group -right">
-          <button className="le-btn" title="Отменить (Ctrl/Cmd+Z)" onClick={() => editor.chain().focus().undo().run()} aria-label="Undo">
+          <button type="button" className="le-btn" title="Отменить (Ctrl/Cmd+Z)" onClick={() => editor.chain().focus().undo().run()} aria-label="Undo">
             <Icon.undo className="le-ico" />
           </button>
-          <button className="le-btn" title="Повторить (Ctrl/Cmd+Y)" onClick={() => editor.chain().focus().redo().run()} aria-label="Redo">
+          <button type="button" className="le-btn" title="Повторить (Ctrl/Cmd+Y)" onClick={() => editor.chain().focus().redo().run()} aria-label="Redo">
             <Icon.redo className="le-ico" />
           </button>
-          <button className={`le-btn ${sourceMode ? "is-active" : ""}`} title="Источник" onClick={() => setSourceMode(v => !v)} aria-label="Source">
+          <button type="button" className={`le-btn ${sourceMode ? "is-active" : ""}`} title="Источник" onClick={() => setSourceMode(v => !v)} aria-label="Source">
             <Icon.source className="le-ico" />
           </button>
         </div>
