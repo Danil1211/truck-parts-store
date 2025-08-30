@@ -173,8 +173,12 @@
 }
 .add-prod .input-merge--fluid:focus-within{ border-color:var(--primary); background:#fff; box-shadow:var(--ring); }
 .add-prod .input-merge--fluid > input.price-input{
-  flex:1 1 auto; min-width:0; border:none; background:transparent; padding:10px 12px;
-  font-size:14px; color:#0f172a; text-align:right !important; outline:none;
+  flex:1 1 auto; min-width:0;
+  border:none; background:transparent;
+  padding:10px 12px;
+  font-size:14px; color:#0f172a;
+  text-align:left;   /* теперь ввод слева */
+  outline:none;
 }
 
 /* Кастомные селекты */
