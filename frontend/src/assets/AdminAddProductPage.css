@@ -91,15 +91,6 @@
 .add-prod .mt6{ margin-top:6px; }
 .add-prod .mt8{ margin-top:8px; }
 
-/* Сегменты */
-.add-prod .seg{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 6px; }
-.add-prod .seg > label{ font-size:13px; color:#334155; }
-.add-prod .seg-items{ display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef; border-radius:12px; padding:3px; }
-.add-prod .seg-items button{
-  border:none; background:transparent; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:#334155;
-}
-.add-prod .seg-items button.active{ background:#fff; border:1px solid #dfe5ee; color:#0f172a; }
-
 /* ==================== МЕДИА ==================== */
 .add-prod .media-block{ display:flex; flex-direction:column; gap:16px; margin-top:8px; }
 .add-prod .thumb{
@@ -140,30 +131,19 @@
 .add-prod .video-preview{ display:flex; align-items:center; gap:10px; margin-top:6px; }
 
 /* SVG Play badge + кнопка для дерева */
-.add-prod .play-badge{
-  display:inline-flex; align-items:center; justify-content:center;
-  background:#0f172a; border-radius:6px; width:20px; height:20px;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-  transition: transform .18s ease;
-}
+.add-prod .play-badge{ display:inline-flex; align-items:center; justify-content:center; background:#0f172a; border-radius:6px; width:20px; height:20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); transition: transform .18s ease; }
 .add-prod .play-badge svg{ width:60%; height:60%; fill:#fff; }
 .add-prod .play-badge.open{ transform: rotate(90deg); }
-
 .add-prod .play-toggle{ appearance:none; background:transparent; border:none; padding:0; margin:0; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .add-prod .play-toggle.spacer{ visibility:hidden; }
 
 /* Чипсы */
 .add-prod .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.add-prod .chip{
-  display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px;
-  font-size:13px; background:#f4f7fa; border:1px solid #d0d7e2; color:#0a84ff;
-}
+.add-prod .chip{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; background:#f4f7fa; border:1px solid #d0d7e2; color:#0a84ff; }
 .add-prod .chip b{ cursor:pointer; color:#e12a2a; }
 
 /* ===== Дерево групп ===== */
-.add-prod .tree-wrap{
-  max-height:460px; overflow:auto; border:1px solid #e6ebf2; border-radius:12px; padding:8px; background:#fff;
-}
+.add-prod .tree-wrap{ max-height:460px; overflow:auto; border:1px solid #e6ebf2; border-radius:12px; padding:8px; background:#fff; }
 .add-prod .tree-node{ padding:2px 0; }
 .add-prod .tree-row{ display:flex; align-items:center; gap:6px; padding:3px 6px; border-radius:6px; }
 .add-prod .tree-row:hover{ background:#f9fbfd; }
@@ -174,15 +154,14 @@
 .add-prod .gcount{ color:#94a3b8; font-size:12px; }
 
 /* ==================== PRICE — одна строка ==================== */
+/* 4 колонки: [Цена+валюта] [Единица] [Остаток] [Наличие] */
 .add-prod .price-box .price-inline{
   display:grid;
-  grid-template-columns: minmax(0, 1fr) 150px 160px 160px; /* Цена|Валюта слитно, потом Ед., Остаток */
+  grid-template-columns: 220px 160px 140px 180px;
   gap:10px;
 }
 @media (max-width: 900px){
-  .add-prod .price-box .price-inline{
-    grid-template-columns: 1fr; /* на узких экранах — перенос */
-  }
+  .add-prod .price-box .price-inline{ grid-template-columns: 1fr; }
 }
 
 /* Слитный инпут (Цена + валюта) */
@@ -193,20 +172,21 @@
   min-height:40px;
 }
 .add-prod .input-merge--fluid:focus-within{ border-color:var(--primary); background:#fff; box-shadow:var(--ring); }
-.add-prod .input-merge--fluid > input{
+.add-prod .input-merge--fluid > input.price-input{
   flex:1 1 auto; min-width:0; border:none; background:transparent; padding:10px 12px;
-  font-size:14px; color:#0f172a; text-align:right; outline:none;
+  font-size:14px; color:#0f172a; text-align:right !important; outline:none;
 }
 
-/* Кастомный select внутри merge */
+/* Кастомные селекты */
 .add-prod .select-wrap{
-  position:relative; background:#f3f6fb; border:1px solid transparent; border-left:1px solid #d0d7e2; border-radius:0;
-  min-width:76px; display:flex; align-items:center;
+  position:relative; background:#f3f6fb; border:1px solid #d0d7e2; border-radius:10px; min-height:40px;
+  display:flex; align-items:center;
 }
+.add-prod .select-wrap.currency-wrap{ border-left:1px solid #d0d7e2; border-radius:0; min-width:76px; }
 .add-prod .select-wrap select{
   -webkit-appearance:none; -moz-appearance:none; appearance:none;
   border:none; background:transparent; outline:none;
-  width:100%; height:100%; padding:0 26px 0 8px; font-size:14px; color:#0f172a; cursor:pointer;
+  width:100%; height:100%; padding:0 26px 0 12px; font-size:14px; color:#0f172a; cursor:pointer;
 }
 .add-prod .select-wrap::after{
   content:""; position:absolute; right:10px; top:50%; width:8px; height:8px;
@@ -214,29 +194,13 @@
   pointer-events:none;
 }
 
-/* Юнит и остаток вне merge — та же высота/вид */
-.add-prod .unit-wrap,
+/* Остаток */
 .add-prod .stock-input{
   border:1px solid #d0d7e2; border-radius:10px; background:#f9fbfd; min-height:40px;
+  padding:10px 12px; font-size:14px; color:#0f172a; outline:none;
 }
-.add-prod .unit-wrap{ display:flex; align-items:center; }
-.add-prod .unit-wrap select{
-  -webkit-appearance:none; -moz-appearance:none; appearance:none;
-  border:none; background:transparent; outline:none; width:100%; padding:0 26px 0 12px; font-size:14px; color:#0f172a; cursor:pointer;
-}
-.add-prod .unit-wrap::after{
-  content:""; position:absolute; right:10px; top:50%; width:8px; height:8px;
-  border-right:2px solid #64748b; border-bottom:2px solid #64748b; transform: translateY(-50%) rotate(45deg);
-  pointer-events:none;
-}
-.add-prod .unit-wrap{ position:relative; }
-.add-prod .stock-input{ padding:10px 12px; font-size:14px; color:#0f172a; outline:none; }
 .add-prod .stock-input:focus,
-.add-prod .unit-wrap select:focus,
-.add-prod .select-wrap select:focus{
-  box-shadow:var(--ring);
-  background:#fff;
-}
+.add-prod .select-wrap select:focus{ box-shadow:var(--ring); background:#fff; }
 
 /* Сносим спиннеры number (если где-то останутся) */
 .add-prod input[type=number]::-webkit-outer-spin-button,
