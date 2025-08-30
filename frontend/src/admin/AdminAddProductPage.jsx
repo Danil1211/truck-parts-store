@@ -560,7 +560,6 @@ export default function AdminAddProductPage() {
             <div className="card">
               <div className="card-title">Категория товара для Google</div>
               <AsyncGoogleCategorySelect value={googleCategory} onChange={setGoogleCategory} lang="ru-RU" />
-              <div className="help">Поиск по таксономии Google. Сохраняем ID категории.</div>
             </div>
 
             {/* Габариты */}
