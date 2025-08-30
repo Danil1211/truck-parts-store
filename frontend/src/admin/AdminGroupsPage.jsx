@@ -6,7 +6,8 @@ import "../assets/AdminPanel.css";
 import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
-const SUBMENU_WIDTH = 300; // ширина фиксированного AdminSubMenu (смещение контента)
+const SUBMENU_WIDTH = 300;   // фактическая ширина фиксированного AdminSubMenu
+const SUBMENU_GAP = 20;      // зазор от меню, чтобы не «липло»
 
 function buildTree(groups, parentId = null) {
   return groups
@@ -14,20 +15,12 @@ function buildTree(groups, parentId = null) {
     .map((g) => ({ ...g, children: buildTree(groups, g._id) }));
 }
 
-/* SVG иконки */
+/* ===== SVG иконки (без смайлов) ===== */
 const IconChevron = ({ open }) => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .12s", cursor: "pointer" }}
-    aria-hidden="true"
-  >
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+       style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .12s", cursor: "pointer" }}
+       aria-hidden="true">
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
@@ -41,14 +34,16 @@ const IconBox = () => (
 );
 
 const IconEdit = ({ color = "#117fff" }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 20h9" />
     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
   </svg>
 );
 
 const IconTrash = ({ color = "#e33c3c" }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6l-1 14H6L5 6" />
     <path d="M10 11v6M14 11v6" />
@@ -56,21 +51,16 @@ const IconTrash = ({ color = "#e33c3c" }) => (
 );
 
 const IconEditSmall = ({ color = "#2291ff" }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 20h9" />
     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
   </svg>
 );
 
+/* ===== строка дерева ===== */
 function renderGroupRows(
-  items,
-  expanded,
-  toggleExpand,
-  selectedGroup,
-  setSelectedGroup,
-  onEdit,
-  onDelete,
-  level = 0
+  items, expanded, toggleExpand, selectedGroup, setSelectedGroup, onEdit, onDelete, level = 0
 ) {
   return items.map((group) => {
     const hasChildren = !!(group.children && group.children.length);
@@ -118,10 +108,7 @@ function renderGroupRows(
 
             {hasChildren && (
               <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpand(group._id);
-                }}
+                onClick={(e) => { e.stopPropagation(); toggleExpand(group._id); }}
                 style={{ display: "inline-flex", alignItems: "center" }}
               >
                 <IconChevron open={isExpanded} />
@@ -138,20 +125,14 @@ function renderGroupRows(
               <button
                 style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer" }}
                 title="Редактировать"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(group);
-                }}
+                onClick={(e) => { e.stopPropagation(); onEdit(group); }}
               >
                 <IconEdit />
               </button>
               <button
                 style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer" }}
                 title="Удалить"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(group);
-                }}
+                onClick={(e) => { e.stopPropagation(); onDelete(group); }}
               >
                 <IconTrash />
               </button>
@@ -160,16 +141,7 @@ function renderGroupRows(
         </div>
 
         {hasChildren && isExpanded &&
-          renderGroupRows(
-            group.children,
-            expanded,
-            toggleExpand,
-            selectedGroup,
-            setSelectedGroup,
-            onEdit,
-            onDelete,
-            level + 1
-          )}
+          renderGroupRows(items = group.children, expanded, toggleExpand, selectedGroup, setSelectedGroup, onEdit, onDelete, level + 1)}
       </React.Fragment>
     );
   });
@@ -218,9 +190,7 @@ export default function AdminGroupsPage() {
     setExpanded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  function handleDeleteGroupClick(group) {
-    setDeleteModal(group);
-  }
+  function handleDeleteGroupClick(group) { setDeleteModal(group); }
 
   async function handleDeleteGroupConfirm() {
     await api.delete(`/api/groups/${deleteModal._id}`);
@@ -229,9 +199,7 @@ export default function AdminGroupsPage() {
     setSelectedGroup(null);
   }
 
-  function handleEditGroup(group) {
-    navigate(`/admin/groups/edit/${group._id}`);
-  }
+  function handleEditGroup(group) { navigate(`/admin/groups/edit/${group._id}`); }
 
   const filteredTree = search.trim()
     ? buildTree(groups.filter((g) => g.name.toLowerCase().includes(search.trim().toLowerCase())))
@@ -241,8 +209,14 @@ export default function AdminGroupsPage() {
     <div style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
       <AdminSubMenu />
 
-      {/* смещение контента вправо — фикс меню не перекрывает */}
-      <div style={{ display: "flex", flex: 1, minWidth: 0, marginLeft: SUBMENU_WIDTH, padding: "28px 16px" }}>
+      {/* контент смещён шириной меню + зазор */}
+      <div style={{
+        display: "flex",
+        flex: 1,
+        minWidth: 0,
+        marginLeft: SUBMENU_WIDTH + SUBMENU_GAP,
+        padding: "28px 16px"
+      }}>
         {/* Левая панель — группы */}
         <div
           style={{
@@ -298,13 +272,7 @@ export default function AdminGroupsPage() {
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
             {loading && <div style={{ textAlign: "center", color: "#888", marginTop: 12 }}>Загрузка…</div>}
             {renderGroupRows(
-              filteredTree,
-              expanded,
-              toggleExpand,
-              selectedGroup,
-              setSelectedGroup,
-              handleEditGroup,
-              handleDeleteGroupClick
+              filteredTree, expanded, toggleExpand, selectedGroup, setSelectedGroup, handleEditGroup, handleDeleteGroupClick
             )}
             {filteredTree.length === 0 && !loading && (
               <div style={{ color: "#a8a8ad", marginTop: 24, fontSize: 16, textAlign: "center" }}>Нет групп</div>
