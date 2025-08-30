@@ -28,6 +28,8 @@ const STOCK_STATES = [
   { value: "out", label: "Нет в наличии" },
 ];
 
+const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
+
 const textLength = (html) => {
   if (!html) return 0;
   const el = document.createElement("div");
@@ -129,9 +131,9 @@ export default function AdminEditProductPage() {
   const inputFileRef = useRef(null);
   const inputVideoRef = useRef(null);
 
-  // Цена
-  const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("UAH");
+  // Цена (retail)
+  const [price, setPrice] = useState("");            // retailPrice (строка в инпуте)
+  const [currency, setCurrency] = useState("UAH");   // retailCurrency
   const [unit, setUnit] = useState("шт");
   const [stock, setStock] = useState("");
   const [stockState, setStockState] = useState("in_stock");
@@ -189,6 +191,7 @@ export default function AdminEditProductPage() {
     (async () => {
       try {
         const { data: prod } = await api.get(`/api/products/${id}`);
+
         setName(prod?.name || "");
         setSku(prod?.sku || "");
         setDescription(prod?.description || "");
@@ -197,18 +200,16 @@ export default function AdminEditProductPage() {
         // Группа
         setGroup(typeof prod?.group === "object" ? prod.group?._id || "" : prod?.group || "");
 
-        // Цена/склад
-        setPrice(String(prod?.price ?? ""));
-        setCurrency(prod?.currency || "UAH");
+        // Цена/склад — учитываем новую схему и возможные старые поля
+        const priceFromSchema = prod?.retailPrice ?? prod?.price;
+        setPrice(priceFromSchema !== undefined && priceFromSchema !== null ? String(priceFromSchema) : "");
+        setCurrency(prod?.retailCurrency || prod?.currency || "UAH");
         setUnit(prod?.unit || "шт");
         setStock(String(prod?.stock ?? ""));
-        setStockState(
-          prod?.stockState ||
-          (prod?.availability === "order" ? "preorder" : prod?.availability === "out" ? "out" : "in_stock")
-        );
+        setStockState(prod?.stockState || "in_stock");
 
         // Видимость
-        setVisibility(prod?.availability === "hidden" ? "hidden" : "published");
+        setVisibility(prod?.availability || "published");
 
         // Поисковые запросы
         if (Array.isArray(prod?.queries)) setQueries(prod.queries);
@@ -241,10 +242,9 @@ export default function AdminEditProductPage() {
         // Видео
         setVideoUrl(prod?.videoUrl || "");
 
-        // Картинки (оставляем serverUrl чтобы отправить обратно, если не удалили)
-        const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
+        // Картинки
         const serverImages = (prod?.images || []).map((url, i) => {
-          const abs = url?.startsWith("http") ? url : `${base}${url}`;
+          const abs = url?.startsWith("http") ? url : `${BASE_URL}${url}`;
           return { id: "srv" + i, file: null, url: abs, serverUrl: url };
         });
         setImages(serverImages.slice(0, MAX_IMAGES));
@@ -265,7 +265,7 @@ export default function AdminEditProductPage() {
   const onImagesChange = (e) => {
     const files = Array.from(e.target.files || []);
     setImages(prev => {
-      const existing = prev.filter(x => x.serverUrl); // что уже на сервере и оставляем
+      const existing = prev.filter(x => x.serverUrl); // уже на сервере
       const seen = new Set(prev.filter(x => x.file).map(f => `${f.file?.name}_${f.file?.size}`));
       const nextFiles = [];
       for (const f of files) {
@@ -355,8 +355,16 @@ export default function AdminEditProductPage() {
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
 
-    const priceNum = parseFloat((price || "").replace(",", "."));
-    if (!isFinite(priceNum) || priceNum <= 0) { alert("Укажите корректную цену"); return; }
+    const retailPriceNum = parseFloat((price || "").replace(",", "."));
+    if (!isFinite(retailPriceNum) || retailPriceNum <= 0) { alert("Укажите корректную цену"); return; }
+
+    // Числовые поля
+    const num = (v) => (v === "" ? 0 : Number(v.toString().replace(",", ".")) || 0);
+    const stockNum  = num(stock);
+    const widthNum  = num(width);
+    const heightNum = num(height);
+    const lengthNum = num(length);
+    const weightNum = num(weight);
 
     const fd = new FormData();
 
@@ -364,6 +372,7 @@ export default function AdminEditProductPage() {
     fd.append("name", name.trim());
     fd.append("sku", sku.trim());
     fd.append("description", description);
+    fd.append("group", group);
 
     // Медиа
     images.forEach(img => img.file && fd.append("images", img.file));
@@ -371,18 +380,21 @@ export default function AdminEditProductPage() {
     if (videoFile) fd.append("video", videoFile);
     if (videoUrl) fd.append("videoUrl", videoUrl);
 
-    // Цена
-    fd.append("price", String(priceNum));
-    fd.append("currency", currency);
+    // Цена (по схеме ProductSchema)
+    fd.append("priceMode", "retail");
+    fd.append("retailPrice", String(retailPriceNum));
+    fd.append("retailCurrency", currency);
+    fd.append("priceFromFlag", "0");
+
+    // Склад
     fd.append("unit", unit);
-    fd.append("stock", stock);
+    fd.append("stock", String(stockNum));
     fd.append("stockState", stockState);
 
-    // Публикация
+    // Видимость
     fd.append("availability", visibility);
 
-    // Размещение
-    fd.append("group", group);
+    // Размещение / Поиск
     fd.append("queries", JSON.stringify(queries));
     fd.append("googleCategory", googleCategory);
 
@@ -390,8 +402,10 @@ export default function AdminEditProductPage() {
     fd.append("attrs", JSON.stringify(attrs.filter(a => a.key && a.value)));
 
     // Габариты
-    fd.append("width", width); fd.append("height", height);
-    fd.append("length", length); fd.append("weight", weight);
+    fd.append("width",  String(widthNum));
+    fd.append("height", String(heightNum));
+    fd.append("length", String(lengthNum));
+    fd.append("weight", String(weightNum));
 
     // SEO
     fd.append("seoTitle", seoTitle || name.trim());
