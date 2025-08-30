@@ -130,7 +130,7 @@ export default function AdminAddProductPage() {
 
   // Цена
   const [price, setPrice] = useState("");            // строка, нормализуем при сабмите
-  const [currency, setCurrency] = useState("UAH");
+  const [currency, setCurrency] = useState("UAH");   // попадёт в retailCurrency
   const [unit, setUnit] = useState("шт");
   const [stock, setStock] = useState("");
   const [stockState, setStockState] = useState("in_stock");
@@ -328,8 +328,16 @@ export default function AdminAddProductPage() {
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
 
-    const priceNum = parseFloat((price || "").replace(",", "."));
-    if (!isFinite(priceNum) || priceNum <= 0) { alert("Укажите корректную цену"); return; }
+    const retailPriceNum = parseFloat((price || "").replace(",", "."));
+    if (!isFinite(retailPriceNum) || retailPriceNum <= 0) { alert("Укажите корректную цену"); return; }
+
+    // Числа
+    const num = (v) => (v === "" ? 0 : Number(v.toString().replace(",", ".")) || 0);
+    const stockNum  = num(stock);
+    const widthNum  = num(width);
+    const heightNum = num(height);
+    const lengthNum = num(length);
+    const weightNum = num(weight);
 
     const fd = new FormData();
 
@@ -337,33 +345,39 @@ export default function AdminAddProductPage() {
     fd.append("name", name.trim());
     fd.append("sku", sku.trim());
     fd.append("description", description);
+    fd.append("group", group);
 
     // Медиа
     images.forEach(img => img.file && fd.append("images", img.file));
-    if (videoFile) fd.append("video", videoFile);
-    if (videoUrl) fd.append("videoUrl", videoUrl);
+    if (videoFile) fd.append("video", videoFile);       // сервер сохранит и вернёт videoUrl
+    if (videoUrl)  fd.append("videoUrl", videoUrl);
 
-    // Цена
-    fd.append("price", String(priceNum));
-    fd.append("currency", currency);
+    // Цены (под схему ProductSchema)
+    fd.append("priceMode", "retail");
+    fd.append("retailPrice", String(retailPriceNum));
+    fd.append("retailCurrency", currency);
+    fd.append("priceFromFlag", "0"); // если нужно "от", поменяешь на "1"
+
+    // Склад
     fd.append("unit", unit);
-    fd.append("stock", stock);
-    fd.append("stockState", stockState); // НАЛИЧИЕ в одном блоке с ценой
+    fd.append("stock", String(stockNum));
+    fd.append("stockState", stockState);
 
-    // Публикация
+    // Видимость
     fd.append("availability", visibility);
 
-    // Размещение
-    fd.append("group", group);
+    // Поисковые запросы / категории
     fd.append("queries", JSON.stringify(queries));
     fd.append("googleCategory", googleCategory);
 
     // Характеристики
     fd.append("attrs", JSON.stringify(attrs.filter(a => a.key && a.value)));
 
-    // Габариты
-    fd.append("width", width); fd.append("height", height);
-    fd.append("length", length); fd.append("weight", weight);
+    // Габариты (числа)
+    fd.append("width",  String(widthNum));
+    fd.append("height", String(heightNum));
+    fd.append("length", String(lengthNum));
+    fd.append("weight", String(weightNum));
 
     // SEO
     fd.append("seoTitle", seoTitle || name.trim());
