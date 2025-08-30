@@ -37,7 +37,7 @@ const textLength = (html) => {
   return (el.textContent || el.innerText || "").trim().length;
 };
 
-/* ===== Простой мультиселект регионов ===== */
+/* ===== (в коде оставлен на будущее, сейчас не используется) Простой мультиселект ===== */
 function RegionMultiSelect({ options, value = [], onChange, placeholder = "Выберите регионы" }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -114,23 +114,14 @@ export default function AdminAddProductPage() {
   const inputFileRef = useRef(null);
   const inputVideoRef = useRef(null);
 
-  // Цена / наличие / прочее
-  const [priceMode, setPriceMode] = useState("retail"); // retail | wholesale | both | service
-  const [retailPrice, setRetailPrice] = useState("");
-  const [retailCurrency, setRetailCurrency] = useState("UAH");
-  const [priceFromFlag, setPriceFromFlag] = useState(false); // показываем только в "Услуга"
-
-  const [wholesaleTiers, setWholesaleTiers] = useState([
-    { id: genId(), price: "", currency: "UAH", minQty: "" },
-  ]);
-
+  // Цена (упрощённый блок)
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("UAH");
   const [unit, setUnit] = useState("шт");
-  const [stockState, setStockState] = useState("in_stock"); // в "Видимость"
   const [stock, setStock] = useState("");
-  const [regions, setRegions] = useState([]);
 
   // Публикация
-  const [visibility, setVisibility] = useState("published");
+  const [visibility, setVisibility] = useState("published"); // published | hidden
 
   // Размещение
   const [groupsTree, setGroupsTree] = useState([]);
@@ -173,14 +164,24 @@ export default function AdminAddProductPage() {
       const setters = {
         name: setName, sku: setSku, description: setDescription,
         images: setImages, videoUrl: setVideoUrl,
-        priceMode: setPriceMode, retailPrice: setRetailPrice, retailCurrency: setRetailCurrency,
-        priceFromFlag: setPriceFromFlag, wholesaleTiers: setWholesaleTiers,
-        unit: setUnit, stockState: setStockState, stock: setStock, regions: setRegions,
+
+        // цена
+        price: setPrice, currency: setCurrency, unit: setUnit, stock: setStock,
+
+        // публикация
         visibility: setVisibility,
+
+        // дерево/размещение
         groupsTree: setGroupsTree, group: setGroup, queries: setQueries, googleCategory: setGoogleCategory,
         groupExpanded: setGroupExpanded,
+
+        // характеристики
         attrs: setAttrs,
+
+        // габариты
         width: setWidth, height: setHeight, length: setLength, weight: setWeight,
+
+        // seo
         seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys, seoSlug: setSeoSlug, seoNoindex: setSeoNoindex
       };
       Object.keys(setters).forEach(k => d[k] !== undefined && setters[k](d[k]));
@@ -192,20 +193,30 @@ export default function AdminAddProductPage() {
     const draft = {
       name, sku, description,
       images, videoUrl,
-      priceMode, retailPrice, retailCurrency, priceFromFlag, wholesaleTiers,
-      unit, stockState, stock, regions,
+
+      // цена
+      price, currency, unit, stock,
+
+      // публикация
       visibility,
+
+      // размещение
       groupsTree, group, queries, googleCategory, groupExpanded,
+
+      // характеристики
       attrs,
+
+      // габариты
       width, height, length, weight,
+
+      // seo
       seoTitle, seoDesc, seoKeys, seoSlug, seoNoindex
     };
     localStorage.setItem("draftProductV2", JSON.stringify(draft));
   }, [
     name, sku, description,
     images, videoUrl,
-    priceMode, retailPrice, retailCurrency, priceFromFlag, wholesaleTiers,
-    unit, stockState, stock, regions,
+    price, currency, unit, stock,
     visibility,
     groupsTree, group, queries, googleCategory, groupExpanded,
     attrs,
@@ -322,17 +333,6 @@ export default function AdminAddProductPage() {
     setAttrs(p => p.map(a => a.id === id ? { ...a, [field]: val } : a));
   };
 
-  /* ===== Оптовые ступени ===== */
-  const addWholesale = () => {
-    setWholesaleTiers(p => p.length >= 5 ? p : [...p, { id: genId(), price: "", currency: (p[0]?.currency || "UAH"), minQty: "" }]);
-  };
-  const updateWholesale = (id, patch) => {
-    setWholesaleTiers(p => p.map(t => t.id === id ? { ...t, ...patch } : t));
-  };
-  const removeWholesale = (id) => {
-    setWholesaleTiers(p => p.filter(t => t.id !== id));
-  };
-
   /* ===== Submit ===== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -340,6 +340,7 @@ export default function AdminAddProductPage() {
 
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
+    if (!price || Number(price) <= 0) { alert("Укажите корректную цену"); return; }
 
     const fd = new FormData();
 
@@ -353,19 +354,14 @@ export default function AdminAddProductPage() {
     if (videoFile) fd.append("video", videoFile);
     if (videoUrl) fd.append("videoUrl", videoUrl);
 
-    // Цена и наличие (отправляем всё — сервер возьмёт что нужно)
-    fd.append("priceMode", priceMode);
-    fd.append("retailPrice", retailPrice);
-    fd.append("retailCurrency", retailCurrency);
-    fd.append("priceFromFlag", priceFromFlag ? "1" : "0");
-    fd.append("wholesaleTiers", JSON.stringify(wholesaleTiers));
+    // Цена (упрощённо)
+    fd.append("price", String(price).trim());
+    fd.append("currency", currency);
     fd.append("unit", unit);
-    fd.append("stockState", stockState);
     fd.append("stock", stock);
-    fd.append("regions", JSON.stringify(regions));
 
     // Публикация
-    fd.append("availability", visibility);
+    fd.append("availability", visibility); // published / hidden
 
     // Размещение
     fd.append("group", group);
@@ -400,241 +396,48 @@ export default function AdminAddProductPage() {
     }
   };
 
-  /* ===== Рендер карточек цен (правая колонка) ===== */
-  const PriceCards = () => (
-    <div className="card pricing-as-cards">
+  /* ===== Рендер: Упрощённый блок цены ===== */
+  const PriceBox = () => (
+    <div className="card price-box">
       <div className="card-title">Цена</div>
 
-      <div className="pill-segment wide">
-        <button type="button" className={priceMode === "retail" ? "active" : ""} onClick={() => setPriceMode("retail")}>Розница</button>
-        <button type="button" className={priceMode === "wholesale" ? "active" : ""} onClick={() => setPriceMode("wholesale")}>Опт</button>
-        <button type="button" className={priceMode === "both" ? "active" : ""} onClick={() => setPriceMode("both")}>Оптом и в розницу</button>
-        <button type="button" className={priceMode === "service" ? "active" : ""} onClick={() => setPriceMode("service")}>Услуга</button>
+      <div className="field-col">
+        <label>Цена</label>
+        <div className="input-merge--fluid">
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="0"
+          />
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            <option value="UAH">₴</option>
+            <option value="USD">$</option>
+            <option value="EUR">€</option>
+          </select>
+        </div>
       </div>
 
-      {/* === РОЗНИЦА === */}
-      {priceMode === "retail" && (
-        <div className="price-card">
-          <label>Цена</label>
-          <div className="input-merge--fluid">
-            <input
-              type="number"
-              value={retailPrice}
-              onChange={(e) => setRetailPrice(e.target.value)}
-              placeholder="0"
-            />
-            <select
-              value={retailCurrency}
-              onChange={(e) => setRetailCurrency(e.target.value)}
-            >
-              <option value="UAH">₴</option>
-              <option value="USD">$</option>
-              <option value="EUR">€</option>
-            </select>
-          </div>
-
-          <label className="mt8">Единица</label>
+      <div className="form-row two mt6">
+        <div className="field-col">
+          <label>Единица измерения</label>
           <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
             {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
           </select>
-
-          <label className="mt8">Остаток</label>
-          <input type="text" value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
         </div>
-      )}
-
-      {/* === ТОЛЬКО ОПТ === */}
-      {priceMode === "wholesale" && (
-        <>
-          <div className="tiers-list">
-            {wholesaleTiers.map((t, idx) => (
-              <div className="price-card" key={t.id}>
-                <div className="row-two">
-                  <div className="col">
-                    <label>Оптовая цена</label>
-                    <div className="input-merge--fluid">
-                      <input
-                        type="number"
-                        value={t.price}
-                        onChange={(e)=>updateWholesale(t.id, { price: e.target.value })}
-                        placeholder="0"
-                      />
-                      <select
-                        value={t.currency}
-                        onChange={(e)=>updateWholesale(t.id, { currency: e.target.value })}
-                      >
-                        <option value="UAH">₴</option>
-                        <option value="USD">$</option>
-                        <option value="EUR">€</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="col">
-                    <label>При заказе от</label>
-                    <div className="input-merge--fluid">
-                      <input
-                        type="number"
-                        value={t.minQty}
-                        onChange={(e)=>updateWholesale(t.id, { minQty: e.target.value })}
-                        placeholder="0"
-                      />
-                      <div className="addon">{unit}.</div>
-                    </div>
-                  </div>
-                </div>
-
-                {idx > 0 && (
-                  <button type="button" className="btn-ghost danger mt8" onClick={() => removeWholesale(t.id)}>
-                    Удалить оптовую цену
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="tier-actions">
-            <button type="button" className="btn-link" onClick={addWholesale} disabled={wholesaleTiers.length >= 5}>
-              + Добавить оптовую цену {wholesaleTiers.length >= 5 ? "(макс. 5)" : ""}
-            </button>
-          </div>
-
-          <div className="price-card mt8">
-            <label>Единица</label>
-            <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
-              {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
-            </select>
-
-            <label className="mt8">Остаток</label>
-            <input type="text" value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
-          </div>
-        </>
-      )}
-
-      {/* === ОПТ + РОЗНИЦА === */}
-      {priceMode === "both" && (
-        <>
-          <div className="price-card">
-            <label>Розничная цена</label>
-            <div className="input-merge--fluid">
-              <input
-                type="number"
-                value={retailPrice}
-                onChange={(e) => setRetailPrice(e.target.value)}
-                placeholder="0"
-              />
-              <select
-                value={retailCurrency}
-                onChange={(e) => setRetailCurrency(e.target.value)}
-              >
-                <option value="UAH">₴</option>
-                <option value="USD">$</option>
-                <option value="EUR">€</option>
-              </select>
-            </div>
-          </div>
-
-          {/* оптовые ступени */}
-          <div className="tiers-list">
-            {wholesaleTiers.map((t, idx) => (
-              <div className="price-card" key={t.id}>
-                <div className="row-two">
-                  <div className="col">
-                    <label>Оптовая цена</label>
-                    <div className="input-merge--fluid">
-                      <input
-                        type="number"
-                        value={t.price}
-                        onChange={(e)=>updateWholesale(t.id, { price: e.target.value })}
-                        placeholder="0"
-                      />
-                      <select
-                        value={t.currency}
-                        onChange={(e)=>updateWholesale(t.id, { currency: e.target.value })}
-                      >
-                        <option value="UAH">₴</option>
-                        <option value="USD">$</option>
-                        <option value="EUR">€</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="col">
-                    <label>При заказе от</label>
-                    <div className="input-merge--fluid">
-                      <input
-                        type="number"
-                        value={t.minQty}
-                        onChange={(e)=>updateWholesale(t.id, { minQty: e.target.value })}
-                        placeholder="0"
-                      />
-                      <div className="addon">{unit}.</div>
-                    </div>
-                  </div>
-                </div>
-
-                {idx > 0 && (
-                  <button type="button" className="btn-ghost danger mt8" onClick={() => removeWholesale(t.id)}>
-                    Удалить оптовую цену
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="tier-actions">
-            <button type="button" className="btn-link" onClick={addWholesale} disabled={wholesaleTiers.length >= 5}>
-              + Добавить оптовую цену {wholesaleTiers.length >= 5 ? "(макс. 5)" : ""}
-            </button>
-          </div>
-
-          <div className="price-card mt8">
-            <label>Единица</label>
-            <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
-              {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
-            </select>
-
-            <label className="mt8">Остаток</label>
-            <input type="text" value={stock} onChange={(e)=>setStock(e.target.value)} placeholder="-" />
-          </div>
-        </>
-      )}
-
-      {/* === УСЛУГА === */}
-      {priceMode === "service" && (
-        <div className="price-card">
-          <label>Цена</label>
-          <div className="input-merge--fluid">
-            <input
-              type="number"
-              value={retailPrice}
-              onChange={(e) => setRetailPrice(e.target.value)}
-              placeholder="0"
-            />
-            <select
-              value={retailCurrency}
-              onChange={(e) => setRetailCurrency(e.target.value)}
-            >
-              <option value="UAH">₴</option>
-              <option value="USD">$</option>
-              <option value="EUR">€</option>
-            </select>
-          </div>
-
-          <label className="mt8">Единица</label>
-          <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
-            {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
-          </select>
-
-          <label className="inline-flag mt8">
-            <input type="checkbox" checked={priceFromFlag} onChange={(e)=>setPriceFromFlag(e.target.checked)} />
-            Установить цену «от»
-          </label>
-
-          <label className="mt8">Регион оказания услуги (Украина)</label>
-          <RegionMultiSelect options={UA_REGIONS} value={regions} onChange={setRegions} />
+        <div className="field-col">
+          <label>Остаток</label>
+          <input
+            type="text"
+            value={stock}
+            onChange={(e)=>setStock(e.target.value)}
+            placeholder="-"
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 
@@ -767,6 +570,9 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
+            {/* ЦЕНА — перенесена под основную информацию (упрощённый блок) */}
+            <PriceBox />
+
             {/* Характеристики */}
             <div className="card">
               <div className="card-title">Характеристики</div>
@@ -896,9 +702,6 @@ export default function AdminAddProductPage() {
           {/* ===== ПРАВАЯ КОЛОНКА ===== */}
           <div className="side-col">
 
-            {/* ЦЕНА — теперь первая */}
-            <PriceCards />
-
             {/* Размещение — Группы (дерево) */}
             <div className="card">
               <div className="card-title">Размещение — Группы</div>
@@ -907,24 +710,26 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Видимость + Наличие (теперь последняя) */}
+            {/* Видимость (без «Наличие») */}
             <div className="card">
               <div className="card-title">Видимость</div>
-
-              <div className="seg">
-                <label className="muted">Наличие</label>
-                <div className="seg-items">
-                  <button type="button" className={stockState === "in_stock" ? "active" : ""} onClick={() => setStockState("in_stock")}>В наличии</button>
-                  <button type="button" className={stockState === "preorder" ? "active" : ""} onClick={() => setStockState("preorder")}>Под заказ</button>
-                  <button type="button" className={stockState === "out" ? "active" : ""} onClick={() => setStockState("out")}>Нет в наличии</button>
-                </div>
-              </div>
-
               <div className="seg">
                 <label className="muted">Статус</label>
                 <div className="seg-items">
-                  <button type="button" className={visibility === "published" ? "active" : ""} onClick={() => setVisibility("published")}>Опубликовать</button>
-                  <button type="button" className={visibility === "hidden" ? "active" : ""} onClick={() => setVisibility("hidden")}>Скрыть</button>
+                  <button
+                    type="button"
+                    className={visibility === "published" ? "active" : ""}
+                    onClick={() => setVisibility("published")}
+                  >
+                    Опубликовать
+                  </button>
+                  <button
+                    type="button"
+                    className={visibility === "hidden" ? "active" : ""}
+                    onClick={() => setVisibility("hidden")}
+                  >
+                    Скрыть
+                  </button>
                 </div>
               </div>
             </div>

@@ -97,7 +97,7 @@
 .add-prod .mt8{ margin-top:8px; }
 .add-prod .mt14{ margin-top:14px; }
 
-/* Сегментные переключатели */
+/* Сегментные переключатели (используется только для видимости) */
 .add-prod .seg{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 6px; }
 .add-prod .seg > label{ font-size:13px; color:#334155; }
 .add-prod .seg-items{ display:inline-flex; gap:6px; background:#f4f7fa; border:1px solid #e4e8ef; border-radius:12px; padding:3px; }
@@ -205,89 +205,28 @@
   display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:10px; align-items:end;
 }
 
-/* ==================== PRICE as CARDS (правая колонка) ==================== */
-/* переключатели */
-.add-prod .pricing-as-cards .pill-segment.wide{
-  width:100%; display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:10px;
-}
-@media (min-width: 380px){
-  .add-prod .pricing-as-cards .pill-segment.wide{
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-  }
-}
-.add-prod .pricing-as-cards .pill-segment.wide > button{
-  white-space:nowrap;
-}
-
-/* карточка цены */
-.add-prod .price-card{
-  border:1px solid #e6ebf2; background:#fbfdff; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px;
-}
-.add-prod .price-card + .price-card{ margin-top:10px; }
-
-.add-prod .price-card label{ font-size:13px; color:#334155; }
-.add-prod .price-card input,
-.add-prod .price-card select{
-  width:100%; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px; background:#f9fbfd;
-  font-size:14px; color:#0f172a;
-}
-.add-prod .price-card input:focus,
-.add-prod .price-card select:focus{
-  outline:none; border-color:var(--primary); background:#fff; box-shadow:var(--ring);
-}
-
-/* ряды внутри карточки */
-.add-prod .price-card .row-two{
-  display:grid; grid-template-columns: 1fr; gap:10px;
-}
-.add-prod .price-card .row-two .col{ display:flex; flex-direction:column; gap:6px; }
-@media (min-width: 360px){
-  .add-prod .price-card .row-two{ grid-template-columns: 1fr 1fr; }
-}
-
-/* объединённый инпут — на всю ширину */
-.add-prod .input-merge--fluid{
+/* ==================== PRICE: упрощённый блок ==================== */
+.add-prod .price-box .input-merge--fluid{
   border-radius:10px; border:1px solid #d0d7e2; background:#f9fbfd; overflow:hidden;
   display:flex; align-items:center; width:100%; min-width:0;
   transition: border-color .18s, outline .18s, background .18s;
 }
-.add-prod .input-merge--fluid:focus-within{
+.add-prod .price-box .input-merge--fluid:focus-within{
   border-color: var(--primary);
   outline: 2px solid rgba(0,122,255,.35);
   outline-offset: 3px;
   background:#fff;
 }
-.add-prod .input-merge--fluid input{
+.add-prod .price-box .input-merge--fluid input{
   flex:1 1 auto; min-width:0;
   border:none; background:transparent; padding:10px 12px; font-size:14px; text-align:right;
   color:#0f172a; outline:none; box-sizing:border-box;
 }
-.add-prod .input-merge--fluid select,
-.add-prod .input-merge--fluid .addon{
+.add-prod .price-box .input-merge--fluid select{
   width:72px;
   border:none; border-left:1px solid #d0d7e2; background:#f3f6fb; padding:10px 8px; font-size:14px; color:#0f172a; outline:none;
   text-align:center;
 }
-
-/* действия под списком оптовых цен */
-.add-prod .tier-actions{ margin-top:6px; }
-
-/* ===== Async Google Category Select ===== */
-.add-prod .async-select { position:relative; }
-.add-prod .async-select input{
-  width:100%; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px; font-size:14px; background:#f9fbfd;
-  transition:border-color .18s, box-shadow .18s;
-}
-.add-prod .async-select input:focus{ outline:none; border-color:var(--primary); background:#fff; box-shadow:var(--ring); }
-.add-prod .async-select .dropdown{
-  position:absolute; z-index:20; top:100%; left:0; right:0; max-height:260px; overflow:auto; background:#fff;
-  border:1px solid #e0e5eb; border-radius:10px; box-shadow:0 6px 16px rgba(0,0,0,.08); margin-top:6px;
-}
-.add-prod .async-select .option{ padding:8px 10px; cursor:pointer; font-size:14px; }
-.add-prod .async-select .option:hover{ background:#f4f7fa; }
-.add-prod .async-select .id{ color:#64748b; font-size:12px; margin-left:6px; }
-.add-prod .async-select .selected{ margin-top:6px; font-size:13px; display:flex; gap:8px; align-items:center; }
-.add-prod .async-select .selected button{ border:none; background:none; cursor:pointer; color:#e12a2a; font-size:16px; line-height:1; }
 
 /* Ряд "Название + Код": 2/1 */
 .add-prod .form-row.two.name-sku {
