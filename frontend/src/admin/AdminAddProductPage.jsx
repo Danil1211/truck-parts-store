@@ -1,3 +1,4 @@
+// frontend/src/admin/AdminAddProductPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import LocalEditor from "../components/LocalEditor";
@@ -399,7 +400,7 @@ export default function AdminAddProductPage() {
     }
   };
 
-  /* ===== Рендер карточек цен (правый сайдбар) ===== */
+  /* ===== Рендер карточек цен (правая колонка) ===== */
   const PriceCards = () => (
     <div className="card pricing-as-cards">
       <div className="card-title">Цена</div>
@@ -895,7 +896,10 @@ export default function AdminAddProductPage() {
           {/* ===== ПРАВАЯ КОЛОНКА ===== */}
           <div className="side-col">
 
-            {/* Размещение: группы (дерево) */}
+            {/* ЦЕНА — теперь первая */}
+            <PriceCards />
+
+            {/* Размещение — Группы (дерево) */}
             <div className="card">
               <div className="card-title">Размещение — Группы</div>
               <div className="tree-wrap">
@@ -903,7 +907,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Видимость + Наличие */}
+            {/* Видимость + Наличие (теперь последняя) */}
             <div className="card">
               <div className="card-title">Видимость</div>
 
@@ -925,8 +929,6 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Цена — карточки (перенесено под Видимость) */}
-            <PriceCards />
           </div>
         </div>
       </form>
