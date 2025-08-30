@@ -22,14 +22,6 @@ const UNITS = [
   "услуга"
 ];
 
-const UA_REGIONS = [
-  "Киев", "Киевская область", "Львовская область", "Харьковская область",
-  "Днепропетровская область", "Одесская область", "Запорожская область",
-  "Николаевская область", "Полтавская область", "Черкасская область",
-  "Винницкая область", "Ивано-Франковская область", "Ровенская область",
-  "Тернопольская область", "Черниговская область"
-];
-
 const textLength = (html) => {
   if (!html) return 0;
   const el = document.createElement("div");
@@ -37,53 +29,7 @@ const textLength = (html) => {
   return (el.textContent || el.innerText || "").trim().length;
 };
 
-/* ===== (в коде оставлен на будущее, сейчас не используется) Простой мультиселект ===== */
-function RegionMultiSelect({ options, value = [], onChange, placeholder = "Выберите регионы" }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  useEffect(() => {
-    const onDoc = (e) => {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
-  }, []);
-
-  const toggle = (opt) => {
-    const set = new Set(value);
-    set.has(opt) ? set.delete(opt) : set.add(opt);
-    onChange(Array.from(set));
-  };
-
-  const label = value.length ? value.join(", ") : placeholder;
-
-  return (
-    <div className="multi-select" ref={wrapRef}>
-      <button type="button" className={`ms-trigger ${value.length ? "filled" : ""}`} onClick={() => setOpen(!open)}>
-        {label}
-        <span className={`chev ${open ? "up" : ""}`} />
-      </button>
-      {open && (
-        <div className="ms-dropdown">
-          {options.map((opt) => (
-            <label key={opt} className="ms-option">
-              <input
-                type="checkbox"
-                checked={value.includes(opt)}
-                onChange={() => toggle(opt)}
-              />
-              <span>{opt}</span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ===== SVG Play badge ===== */
+/* Мини-иконка play для дерева */
 function PlayBadge({ size = 18, open = false }) {
   return (
     <span
@@ -115,7 +61,7 @@ export default function AdminAddProductPage() {
   const inputVideoRef = useRef(null);
 
   // Цена (упрощённый блок)
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState("");         // Хранится строкой, нормализуем при сабмите
   const [currency, setCurrency] = useState("UAH");
   const [unit, setUnit] = useState("шт");
   const [stock, setStock] = useState("");
@@ -165,23 +111,17 @@ export default function AdminAddProductPage() {
         name: setName, sku: setSku, description: setDescription,
         images: setImages, videoUrl: setVideoUrl,
 
-        // цена
         price: setPrice, currency: setCurrency, unit: setUnit, stock: setStock,
 
-        // публикация
         visibility: setVisibility,
 
-        // дерево/размещение
         groupsTree: setGroupsTree, group: setGroup, queries: setQueries, googleCategory: setGoogleCategory,
         groupExpanded: setGroupExpanded,
 
-        // характеристики
         attrs: setAttrs,
 
-        // габариты
         width: setWidth, height: setHeight, length: setLength, weight: setWeight,
 
-        // seo
         seoTitle: setSeoTitle, seoDesc: setSeoDesc, seoKeys: setSeoKeys, seoSlug: setSeoSlug, seoNoindex: setSeoNoindex
       };
       Object.keys(setters).forEach(k => d[k] !== undefined && setters[k](d[k]));
@@ -194,22 +134,16 @@ export default function AdminAddProductPage() {
       name, sku, description,
       images, videoUrl,
 
-      // цена
       price, currency, unit, stock,
 
-      // публикация
       visibility,
 
-      // размещение
       groupsTree, group, queries, googleCategory, groupExpanded,
 
-      // характеристики
       attrs,
 
-      // габариты
       width, height, length, weight,
 
-      // seo
       seoTitle, seoDesc, seoKeys, seoSlug, seoNoindex
     };
     localStorage.setItem("draftProductV2", JSON.stringify(draft));
@@ -333,6 +267,24 @@ export default function AdminAddProductPage() {
     setAttrs(p => p.map(a => a.id === id ? { ...a, [field]: val } : a));
   };
 
+  /* ===== Цена: хэндлеры ===== */
+  const normalizePrice = (val) => {
+    // Разрешаем только цифры и одну точку/запятую
+    let s = String(val || "").replace(",", ".").replace(/[^\d.]/g, "");
+    // Удаляем вторую и последующие точки
+    s = s.replace(/(\..*)\./g, "$1");
+    return s;
+  };
+  const onPriceChange = (e) => {
+    setPrice(normalizePrice(e.target.value));
+  };
+  const blockBadKeys = (e) => {
+    // Запрет e/E/+/-, стрелок вверх/вниз, Enter — чтобы не было стэп-шага/сабмита
+    const bad = ["e", "E", "+", "-", "ArrowUp", "ArrowDown"];
+    if (bad.includes(e.key)) e.preventDefault();
+    if (e.key === "Enter") e.preventDefault();
+  };
+
   /* ===== Submit ===== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -340,7 +292,9 @@ export default function AdminAddProductPage() {
 
     if (!name.trim()) { alert("Введите название"); return; }
     if (!group) { alert("Выберите группу"); return; }
-    if (!price || Number(price) <= 0) { alert("Укажите корректную цену"); return; }
+
+    const priceNum = parseFloat((price || "").replace(",", "."));
+    if (!isFinite(priceNum) || priceNum <= 0) { alert("Укажите корректную цену"); return; }
 
     const fd = new FormData();
 
@@ -354,8 +308,8 @@ export default function AdminAddProductPage() {
     if (videoFile) fd.append("video", videoFile);
     if (videoUrl) fd.append("videoUrl", videoUrl);
 
-    // Цена (упрощённо)
-    fd.append("price", String(price).trim());
+    // Цена (чистое число)
+    fd.append("price", String(priceNum));
     fd.append("currency", currency);
     fd.append("unit", unit);
     fd.append("stock", stock);
@@ -396,47 +350,54 @@ export default function AdminAddProductPage() {
     }
   };
 
-  /* ===== Рендер: Упрощённый блок цены ===== */
+  /* ===== Рендер: Цена одной строкой ===== */
   const PriceBox = () => (
     <div className="card price-box">
       <div className="card-title">Цена</div>
 
-      <div className="field-col">
-        <label>Цена</label>
+      <div className="price-inline">
+        {/* Цена + валюта (слитно) */}
         <div className="input-merge--fluid">
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={onPriceChange}
+            onKeyDown={blockBadKeys}
             placeholder="0"
+            aria-label="Цена"
           />
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          >
-            <option value="UAH">₴</option>
-            <option value="USD">$</option>
-            <option value="EUR">€</option>
-          </select>
+          <div className="select-wrap currency-wrap">
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              aria-label="Валюта"
+            >
+              <option value="UAH">₴</option>
+              <option value="USD">$</option>
+              <option value="EUR">€</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div className="form-row two mt6">
-        <div className="field-col">
-          <label>Единица измерения</label>
-          <select value={unit} onChange={(e)=>setUnit(e.target.value)}>
+        {/* Единица */}
+        <div className="select-wrap unit-wrap">
+          <select value={unit} onChange={(e)=>setUnit(e.target.value)} aria-label="Единица измерения">
             {UNITS.map(u => <option key={u} value={u}>{u}.</option>)}
           </select>
         </div>
-        <div className="field-col">
-          <label>Остаток</label>
-          <input
-            type="text"
-            value={stock}
-            onChange={(e)=>setStock(e.target.value)}
-            placeholder="-"
-          />
-        </div>
+
+        {/* Остаток */}
+        <input
+          className="stock-input"
+          type="text"
+          value={stock}
+          onChange={(e)=>setStock(e.target.value)}
+          placeholder="-"
+          autoComplete="off"
+          aria-label="Остаток"
+        />
       </div>
     </div>
   );
@@ -454,10 +415,8 @@ export default function AdminAddProductPage() {
 
       <form id="add-prod-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="layout-grid">
-
           {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
           <div className="main-col">
-
             {/* Основная информация */}
             <div className="card">
               <div className="card-title">Основная информация</div>
@@ -467,7 +426,7 @@ export default function AdminAddProductPage() {
                   <label>Название <span className="muted">({name.length}/{NAME_MAX})</span></label>
                   <input
                     value={name}
-                    onChange={(e) => onChangeName(e.target.value)}
+                    onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
                     placeholder="Название товара"
                     type="text"
                   />
@@ -476,7 +435,7 @@ export default function AdminAddProductPage() {
                   <label>Код / Артикул <span className="muted">({sku.length}/{SKU_MAX})</span></label>
                   <input
                     value={sku}
-                    onChange={(e) => onChangeSku(e.target.value)}
+                    onChange={(e) => setSku(e.target.value.slice(0, SKU_MAX))}
                     placeholder="Артикул"
                     type="text"
                   />
@@ -570,7 +529,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* ЦЕНА — перенесена под основную информацию (упрощённый блок) */}
+            {/* ЦЕНА — под основной информацией */}
             <PriceBox />
 
             {/* Характеристики */}
@@ -701,8 +660,7 @@ export default function AdminAddProductPage() {
 
           {/* ===== ПРАВАЯ КОЛОНКА ===== */}
           <div className="side-col">
-
-            {/* Размещение — Группы (дерево) */}
+            {/* Размещение — Группы */}
             <div className="card">
               <div className="card-title">Размещение — Группы</div>
               <div className="tree-wrap">
@@ -710,7 +668,7 @@ export default function AdminAddProductPage() {
               </div>
             </div>
 
-            {/* Видимость (без «Наличие») */}
+            {/* Видимость */}
             <div className="card">
               <div className="card-title">Видимость</div>
               <div className="seg">
