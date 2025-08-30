@@ -6,17 +6,64 @@ import "../assets/AdminPanel.css";
 import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
+const SIDEBAR_WIDTH = 260; // ширина фиксированного AdminSubMenu, чтобы контент не заходил под меню
 
 // --- helpers ---
 function buildTree(groups, parentId = null) {
   return groups
     .filter((g) => String(g.parentId || "") === String(parentId || ""))
-    .map((g) => ({
-      ...g,
-      children: buildTree(groups, g._id),
-    }));
+    .map((g) => ({ ...g, children: buildTree(groups, g._id) }));
 }
 
+/* === Иконки (SVG) === */
+const IconChevron = ({ open }) => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .12s", cursor: "pointer" }}
+    aria-hidden="true"
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
+const IconBox = () => (
+  <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
+    <rect width="36" height="36" rx="7" fill="#e4e9f3" />
+    <path d="M9 13h18v12H9z" fill="none" stroke="#b8c2d3" strokeWidth="1.6" />
+    <path d="M9 13l9 5 9-5" fill="none" stroke="#b8c2d3" strokeWidth="1.6" />
+  </svg>
+);
+
+const IconEdit = ({ color = "#117fff" }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+  </svg>
+);
+
+const IconTrash = ({ color = "#e33c3c" }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6M14 11v6" />
+  </svg>
+);
+
+const IconEditSmall = ({ color = "#2291ff" }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+  </svg>
+);
+
+/* === Рендер строки группы === */
 function renderGroupRows(
   items,
   expanded,
@@ -28,7 +75,7 @@ function renderGroupRows(
   level = 0
 ) {
   return items.map((group) => {
-    const hasChildren = group.children && group.children.length > 0;
+    const hasChildren = !!(group.children && group.children.length);
     const isExpanded = expanded.includes(group._id);
     const isSelected = selectedGroup === group._id;
     const isParentGroup = group.name === "Родительская группа" && !group.parentId;
@@ -44,12 +91,11 @@ function renderGroupRows(
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            minHeight: 52,
+            minHeight: 56,
             padding: "10px 0",
             borderRadius: 12,
-            marginBottom: 8,
-            background: isSelected ? "#f0f6ff" : "#f9fbfd",
-            fontWeight: 400,
+            marginBottom: 10,
+            background: isSelected ? "#eaf4ff" : "#f7fafd",
             fontSize: 15,
             color: isSelected ? "#157ce8" : "#232a3b",
             gap: 10,
@@ -65,136 +111,57 @@ function renderGroupRows(
                 <img
                   src={group.img.startsWith("http") ? group.img : `${BASE_URL}${group.img}`}
                   alt={group.name}
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 6,
-                    objectFit: "cover",
-                    background: "#eef4fa",
-                  }}
+                  style={{ width: 36, height: 36, borderRadius: 7, objectFit: "cover", background: "#e9f3fa" }}
                 />
               ) : (
-                <div
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "#e5ebf2",
-                  }}
-                >
-                  {/* 📦 icon */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="#9aa6b8"
-                    strokeWidth="1.6"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z" />
-                    <path d="M3.3 7l8.7 5 8.7-5" />
-                    <path d="M12 22V12" />
-                  </svg>
-                </div>
+                <IconBox />
               )}
             </div>
+
             {hasChildren && (
               <span
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleExpand(group._id);
                 }}
-                style={{
-                  fontSize: 13,
-                  userSelect: "none",
-                  cursor: "pointer",
-                  transform: isExpanded ? "rotate(90deg)" : "none",
-                  transition: "transform 0.15s",
-                }}
+                style={{ display: "inline-flex", alignItems: "center" }}
               >
-                {/* ▶ icon */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
+                <IconChevron open={isExpanded} />
               </span>
             )}
-            <span>{group.name}</span>
+
+            <span style={{ fontWeight: 400, fontSize: 15, color: isSelected ? "#157ce8" : "#232a3b" }}>
+              {group.name}
+            </span>
           </div>
+
           {!isParentGroup && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, paddingRight: 6 }}>
               <button
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "4px 6px",
-                  cursor: "pointer",
-                  color: "#117fff",
-                }}
+                style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer" }}
                 title="Редактировать"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit(group);
                 }}
               >
-                {/* edit icon */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                </svg>
+                <IconEdit />
               </button>
               <button
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "4px 6px",
-                  cursor: "pointer",
-                  color: "#e33c3c",
-                }}
+                style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer" }}
                 title="Удалить"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(group);
                 }}
               >
-                {/* trash icon */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  viewBox="0 0 24 24"
-                >
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
+                <IconTrash />
               </button>
             </div>
           )}
         </div>
-        {hasChildren &&
-          isExpanded &&
+
+        {hasChildren && isExpanded &&
           renderGroupRows(
             group.children,
             expanded,
@@ -212,6 +179,7 @@ function renderGroupRows(
 
 export default function AdminGroupsPage() {
   const navigate = useNavigate();
+
   const [groups, setGroups] = useState([]);
   const [expanded, setExpanded] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -222,10 +190,7 @@ export default function AdminGroupsPage() {
 
   const rightPanelRef = useRef();
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
+  useEffect(() => { fetchGroups(); }, []);
   useEffect(() => {
     if (selectedGroup) fetchProducts(selectedGroup);
     if (rightPanelRef.current) rightPanelRef.current.scrollTop = 0;
@@ -255,50 +220,60 @@ export default function AdminGroupsPage() {
     setExpanded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  const handleDeleteGroupClick = (group) => setDeleteModal(group);
-  const handleDeleteGroupConfirm = async () => {
+  function handleDeleteGroupClick(group) {
+    setDeleteModal(group);
+  }
+
+  async function handleDeleteGroupConfirm() {
     await api.delete(`/api/groups/${deleteModal._id}`);
     setDeleteModal(null);
     fetchGroups();
     setSelectedGroup(null);
-  };
-  const handleEditGroup = (group) => navigate(`/admin/groups/edit/${group._id}`);
+  }
+
+  function handleEditGroup(group) {
+    navigate(`/admin/groups/edit/${group._id}`);
+  }
 
   const filteredTree = search.trim()
     ? buildTree(groups.filter((g) => g.name.toLowerCase().includes(search.trim().toLowerCase())))
     : buildTree(groups);
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 60px)", padding: "28px 0" }}>
+    <div style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
       <AdminSubMenu />
 
-      <div style={{ display: "flex", flex: 1, minWidth: 0, marginLeft: 80 }}>
+      {/* Сдвигаем рабочую область вправо на ширину сайдбара */}
+      <div style={{ display: "flex", flex: 1, minWidth: 0, padding: "28px 16px 28px", paddingLeft: SIDEBAR_WIDTH }}>
         {/* Левая панель — группы */}
         <div
           style={{
-            flex: "0 0 380px",
-            maxWidth: 400,
+            flex: "0 0 430px",
+            maxWidth: 460,
             background: "#fff",
-            borderRadius: 16,
-            margin: "0 18px 0 0",
+            borderRadius: 20,
+            marginRight: 18,
             padding: "22px",
-            boxShadow: "0 2px 10px #2291ff11",
+            boxShadow: "0 2px 12px #2291ff11",
+            minHeight: 640,
+            height: "calc(100vh - 100px)",
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <div style={{ marginBottom: 18, display: "flex", justifyContent: "space-between" }}>
+          <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", gap: 12 }}>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск по группам"
               style={{
                 flex: 1,
-                padding: "9px 14px",
-                borderRadius: 8,
+                padding: "10px 14px",
+                borderRadius: 10,
                 border: "1.3px solid #e4e8ee",
                 background: "#f7fafb",
-                fontSize: 14,
+                fontSize: 15,
+                outline: "none",
               }}
             />
             <button
@@ -306,88 +281,114 @@ export default function AdminGroupsPage() {
               style={{
                 background: "#2291ff",
                 color: "#fff",
-                borderRadius: 8,
+                borderRadius: 9,
                 border: "none",
-                padding: "9px 14px",
+                padding: "10px 14px",
                 fontSize: 14,
                 cursor: "pointer",
-                marginLeft: "10px",
+                whiteSpace: "nowrap",
               }}
             >
               + Добавить
             </button>
           </div>
 
-          <div style={{ color: "#828ca6", fontSize: 14, marginBottom: 6 }}>Группы</div>
+          <div style={{ color: "#828ca6", fontSize: 14, marginBottom: 8, paddingLeft: 2 }}>
+            Название группы
+          </div>
 
-          <div style={{ flex: 1, overflowY: "auto" }}>
-            {loading && <div style={{ textAlign: "center", color: "#888", marginTop: 12 }}>Загрузка...</div>}
-            {renderGroupRows(filteredTree, expanded, toggleExpand, selectedGroup, setSelectedGroup, handleEditGroup, handleDeleteGroupClick)}
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            {loading && <div style={{ textAlign: "center", color: "#888", marginTop: 12 }}>Загрузка…</div>}
+            {renderGroupRows(
+              filteredTree,
+              expanded,
+              toggleExpand,
+              selectedGroup,
+              setSelectedGroup,
+              handleEditGroup,
+              handleDeleteGroupClick
+            )}
             {filteredTree.length === 0 && !loading && (
-              <div style={{ color: "#a8a8ad", marginTop: 24, fontSize: 15, textAlign: "center" }}>Нет групп</div>
+              <div style={{ color: "#a8a8ad", marginTop: 24, fontSize: 16, textAlign: "center" }}>Нет групп</div>
             )}
           </div>
         </div>
 
-        {/* Правая панель */}
+        {/* Правая панель — список товаров в выбранной группе */}
         <div
           ref={rightPanelRef}
           style={{
             flex: 1,
             background: "#fff",
-            borderRadius: 16,
-            marginRight: 32,
-            padding: "22px",
-            boxShadow: "0 2px 10px #2291ff11",
+            borderRadius: 20,
+            padding: "22px 24px",
+            boxShadow: "0 2px 12px #2291ff11",
+            minHeight: 640,
+            height: "calc(100vh - 100px)",
             overflow: "auto",
           }}
         >
           {selectedGroup ? (
             <>
-              <div style={{ fontWeight: 600, fontSize: 18, color: "#2291ff", marginBottom: 16 }}>Товары группы</div>
-              {products.length === 0 && <div style={{ color: "#a0adc2", marginTop: 20, fontSize: 16 }}>Нет товаров в этой группе</div>}
+              <div style={{ fontWeight: 600, fontSize: 18, color: "#2291ff", marginBottom: 14 }}>
+                Товары группы
+              </div>
+
+              {products.length === 0 && (
+                <div style={{ color: "#a0adc2", marginTop: 12, fontSize: 16 }}>Нет товаров в этой группе</div>
+              )}
+
               {products.map((product) => (
                 <div
                   key={product._id}
-                  style={{ display: "flex", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #f0f3f8" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "12px 0",
+                    borderBottom: "1px solid #f0f3f8",
+                    gap: 16,
+                  }}
                 >
                   <img
                     src={
-                      product.images && product.images[0]
-                        ? product.images[0].startsWith("http")
-                          ? product.images[0]
-                          : `${BASE_URL}${product.images[0]}`
-                        : "https://dummyimage.com/52x52/e5eaf0/999&text=📦"
+                      product.images?.[0]
+                        ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
+                        : "https://dummyimage.com/60x60/eeeeee/bbb.png&text=IMG"
                     }
                     alt={product.name}
-                    style={{ width: 46, height: 46, borderRadius: 10, objectFit: "contain", marginRight: 18 }}
+                    style={{ width: 52, height: 52, borderRadius: 12, objectFit: "contain" }}
                   />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14 }}>{product.name}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {product.name}
+                    </div>
                     <div style={{ color: "#96a2b3", fontSize: 13 }}>{product.sku || product._id}</div>
                   </div>
-                  <div style={{ fontWeight: 500, color: "#2291ff", fontSize: 15, marginRight: 16 }}>
+                  <div style={{ fontWeight: 500, color: "#2291ff", fontSize: 15, marginLeft: "auto" }}>
                     {product.price} ₴
                   </div>
                   <button
-                    style={{
-                      background: "#f5faff",
-                      color: "#2291ff",
-                      borderRadius: 8,
-                      border: "none",
-                      fontSize: 15,
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                    }}
                     onClick={() => navigate(`/admin/products/${product._id}/edit`)}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid #2291ff",
+                      borderRadius: 8,
+                      padding: "6px 8px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginLeft: 8,
+                    }}
+                    title="Редактировать товар"
                   >
-                    Ред.
+                    <IconEditSmall />
                   </button>
                 </div>
               ))}
             </>
           ) : (
-            <div style={{ color: "#b8b8c3", fontSize: 18, textAlign: "center", marginTop: 150 }}>
+            <div style={{ color: "#b8b8c3", fontSize: 18, textAlign: "center", marginTop: 120 }}>
               Выберите группу или подгруппу для просмотра товаров
             </div>
           )}
@@ -397,29 +398,36 @@ export default function AdminGroupsPage() {
       {/* Модалка удаления */}
       {deleteModal && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.12)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+          }}
           onClick={() => setDeleteModal(null)}
         >
           <div
-            style={{ background: "#fff", borderRadius: 12, padding: 28, minWidth: 300 }}
+            style={{ background: "#fff", borderRadius: 14, padding: 28, minWidth: 320, boxShadow: "0 6px 28px rgba(0,0,0,.12)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: 17, fontWeight: 600, color: "#ff3333", marginBottom: 8 }}>Удалить группу?</div>
-            <div style={{ color: "#333", fontSize: 14, marginBottom: 18, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#ff3333", marginBottom: 10 }}>Удалить группу?</div>
+            <div style={{ color: "#333", fontSize: 14, marginBottom: 18, textAlign: "center", lineHeight: 1.4 }}>
               Группа <b style={{ color: "#2291ff" }}>{deleteModal.name}</b> будет удалена.<br />
-              Все товары останутся в системе без группы.<br />
-              Действие необратимо!
+              Товары останутся в системе без группы. Действие необратимо.
             </div>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <button
                 onClick={() => setDeleteModal(null)}
-                style={{ background: "#eaf4ff", color: "#157ce8", border: "none", borderRadius: 6, padding: "7px 18px", cursor: "pointer" }}
+                style={{ background: "#eaf4ff", color: "#157ce8", border: "none", borderRadius: 8, padding: "9px 22px", cursor: "pointer" }}
               >
                 Отмена
               </button>
               <button
                 onClick={handleDeleteGroupConfirm}
-                style={{ background: "#e33c3c", color: "#fff", border: "none", borderRadius: 6, padding: "7px 18px", cursor: "pointer" }}
+                style={{ background: "#e33c3c", color: "#fff", border: "none", borderRadius: 8, padding: "9px 22px", cursor: "pointer" }}
               >
                 Удалить
               </button>
