@@ -566,10 +566,10 @@ export default function AdminAddProductPage() {
             <div className="card">
               <div className="card-title">Габариты</div>
               <div className="form-row four">
-                <div className="field-col"><label>Ширина</label><input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" type="text" /></div>
-                <div className="field-col"><label>Высота</label><input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" type="text" /></div>
-                <div className="field-col"><label>Длина</label><input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" type="text" /></div>
-                <div className="field-col"><label>Вес</label><input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" type="text" /></div>
+                <div className="field-col"><label>Ширина, см</label><input value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Ширина" type="text" /></div>
+                <div className="field-col"><label>Высота, см</label><input value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Высота" type="text" /></div>
+                <div className="field-col"><label>Длина, см</label><input value={length} onChange={(e) => setLength(e.target.value)} placeholder="Длина" type="text" /></div>
+                <div className="field-col"><label>Вес, кг</label><input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес" type="text" /></div>
               </div>
             </div>
 
