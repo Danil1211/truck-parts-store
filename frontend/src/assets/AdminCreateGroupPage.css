@@ -1,8 +1,9 @@
 /* ======================================================================
-   AdminCreateGroupPage — минималистичный «епел»-стиль (изолировано)
+   AdminCreateGroupPage — минимализм + корректный отступ от левого меню
    ====================================================================== */
 
 .admin-create-group-page {
+  /* Подтягиваем общие css-переменные, но даём дефолты */
   --surface: var(--surface, #ffffff);
   --bg: var(--bg, #f6f9fb);
   --primary: var(--primary, #117fff);
@@ -10,33 +11,49 @@
   --text-main: var(--text-main, #0f172a);
   --text-secondary: var(--text-secondary, #64748b);
 
+  /* Настройка геометрии оболочки проекта */
+  --left-rail: 260px;   /* ширина текстового левого меню раздела */
+  --sidebar: 72px;      /* узкая иконковая шина (если есть) — подстрой при нужде */
+  --header-h: 56px;     /* высота верхнего глобального хедера */
+
   background: var(--bg);
   min-height: 100vh;
   padding: 12px 18px 28px;
 }
 
+/* Сдвигаем топбар и контент правее, чтобы не налазило на левое меню */
+.admin-create-group-page.has-left-submenu .acg-topbar,
+.admin-create-group-page.has-left-submenu .acg-grid {
+  /* если нет иконковой шины, оставь только var(--left-rail) */
+  margin-left: var(--left-rail);
+  /* либо так, если у тебя и шина тоже занята: calc(var(--sidebar) + var(--left-rail)) */
+}
+
 /* Верхняя планка */
 .acg-topbar {
   position: sticky;
-  top: 0;
-  z-index: 6;
+  top: var(--header-h);
+  z-index: 7;
   height: 56px;
   background: var(--surface);
-  border-bottom: 1px solid #e8eef7;
+  border: 1px solid #e8eef7;
+  border-left: none;
+  border-right: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.03);
 }
 
 .acg-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-main);
-  letter-spacing: 0.2px;
+  letter-spacing: .2px;
 }
 
-/* Сетка: контент + правое субменю */
+/* Сетка: контент + правый слот под AdminSubMenu */
 .acg-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
@@ -58,7 +75,7 @@
   border: 1px solid #e8eef7;
   border-radius: 16px;
   padding: 18px;
-  box-shadow: 0 4px 18px rgba(17, 127, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 18px rgba(17,127,255,.06), 0 1px 2px rgba(0,0,0,.04);
 }
 
 /* Поля */
@@ -89,21 +106,18 @@
   font-size: 14px;
   color: var(--text-main);
   outline: none;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
 
 .acg-input:focus,
 .acg-select:focus,
 .acg-textarea:focus {
   border-color: #bcd9ff;
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(17, 127, 255, 0.08);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(17,127,255,.08);
 }
 
-.acg-textarea {
-  resize: vertical;
-  min-height: 110px;
-}
+.acg-textarea { resize: vertical; min-height: 110px; }
 
 /* Загрузка изображения */
 .acg-upload {
@@ -114,9 +128,7 @@
   text-align: center;
 }
 
-.acg-file {
-  display: none;
-}
+.acg-file { display: none; }
 
 .acg-file-label {
   display: inline-flex;
@@ -131,13 +143,9 @@
   font-weight: 500;
   cursor: pointer;
   border: 1px solid #d6e9ff;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background .15s ease, border-color .15s ease;
 }
-
-.acg-file-label:hover {
-  background: #e2efff;
-  border-color: #cce3ff;
-}
+.acg-file-label:hover { background: #e2efff; border-color: #cce3ff; }
 
 .acg-upload-hint {
   margin-top: 10px;
@@ -159,14 +167,11 @@
   height: 190px;
   object-fit: cover;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(17, 127, 255, 0.12);
+  box-shadow: 0 2px 10px rgba(17,127,255,.12);
   border: 1px solid #e8eef7;
 }
 
-.acg-btn-clear {
-  height: 36px;
-  padding: 0 12px;
-}
+.acg-btn-clear { height: 36px; padding: 0 12px; }
 
 /* Кнопки */
 .acg-btn {
@@ -182,7 +187,7 @@
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
 .acg-btn-ghost {
@@ -190,28 +195,21 @@
   color: var(--primary);
   border-color: #d9eaff;
 }
+.acg-btn-ghost:hover { background: #e6f2ff; border-color: #cfe7ff; }
 
-.acg-btn-ghost:hover {
-  background: #e6f2ff;
-  border-color: #cfe7ff;
+/* Форсируем бренд-цвет на кнопке "Сохранить", чтобы не становилась белой */
+.admin-create-group-page .acg-btn-primary {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 6px 16px rgba(17,127,255,.25);
 }
-
-.acg-btn-primary {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-  box-shadow: 0 6px 16px rgba(17, 127, 255, 0.25);
+.admin-create-group-page .acg-btn-primary:hover {
+  background: var(--primary-dark) !important;
+  border-color: var(--primary-dark) !important;
 }
-
-.acg-btn-primary:hover {
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
-}
-
-.acg-btn[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-  box-shadow: none;
+.admin-create-group-page .acg-btn[disabled] {
+  opacity: .6; cursor: not-allowed; box-shadow: none;
 }
 
 /* Нижняя панель действий */
@@ -222,20 +220,19 @@
   margin-top: 8px;
 }
 
-/* Правая колонка — субменю */
+/* Правое субменю */
 .acg-submenu {
   position: sticky;
-  top: 72px; /* под верхней планкой */
+  top: calc(var(--header-h) + 16px);
   align-self: start;
 }
 
-/* Адаптив */
-@media (max-width: 1100px) {
-  .acg-grid {
-    grid-template-columns: 1fr;
+/* Адаптив — убираем левый отступ, когда меню коллапсит */
+@media (max-width: 1200px) {
+  .admin-create-group-page.has-left-submenu .acg-topbar,
+  .admin-create-group-page.has-left-submenu .acg-grid {
+    margin-left: 0;
   }
-  .acg-submenu {
-    position: static;
-    margin-top: 0;
-  }
+  .acg-grid { grid-template-columns: 1fr; }
+  .acg-submenu { position: static; margin-top: 0; }
 }

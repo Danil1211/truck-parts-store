@@ -17,7 +17,6 @@ export default function AdminCreateGroupPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // безопасный axios-запрос
   const axiosSafe = async (fn) => {
     try {
       const { data } = await fn();
@@ -45,29 +44,24 @@ export default function AdminCreateGroupPage() {
     const file = e.target.files?.[0];
     if (!file) return setPreview(null);
     const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result); // data:image/...;base64,...
+    reader.onloadend = () => setPreview(reader.result);
     reader.readAsDataURL(file);
   };
 
   const handleSaveGroup = async (e) => {
     e.preventDefault();
     if (!name.trim() || saving) return;
-
     setSaving(true);
     try {
       const payload = {
         name: name.trim(),
         parentId: parentId || null,
         description: description || "",
-        img: preview || null, // base64 или null
+        img: preview || null,
       };
-
       const created = await axiosSafe(() => api.post("/api/groups", payload));
-      if (created?._id) {
-        navigate("/admin/groups");
-      } else {
-        alert("Ошибка сохранения группы");
-      }
+      if (created?._id) navigate("/admin/groups");
+      else alert("Ошибка сохранения группы");
     } catch (err) {
       alert(err.message || "Ошибка при сохранении группы");
     } finally {
@@ -79,14 +73,14 @@ export default function AdminCreateGroupPage() {
   const availableParents = groups.filter((g) => g._id !== (ROOT_GROUP && ROOT_GROUP._id));
 
   return (
-    <div className="admin-create-group-page">
-      {/* Верхняя планка */}
+    <div className="admin-create-group-page has-left-submenu">
+      {/* Верхняя панель */}
       <div className="acg-topbar">
         <button
           type="button"
           className="acg-btn acg-btn-ghost"
           onClick={() => navigate("/admin/groups")}
-          aria-label="Назад к списку групп"
+          aria-label="Назад"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d="M15.5 19.09 9.41 13l6.09-6.09L14.08 5.5 6.59 13l7.49 7.5z" />
@@ -106,9 +100,9 @@ export default function AdminCreateGroupPage() {
         </button>
       </div>
 
-      {/* Контент + правое субменю */}
+      {/* Контент + правый субменю-слот */}
       <div className="acg-grid">
-        {/* Левая колонка: форма */}
+        {/* Форма */}
         <form id="create-group-form" className="acg-form" onSubmit={handleSaveGroup}>
           <div className="acg-card">
             <div className="acg-field">
@@ -126,8 +120,7 @@ export default function AdminCreateGroupPage() {
 
             <div className="acg-field">
               <label className="acg-label">
-                Родительская группа{" "}
-                <span className="acg-hint">(группа верхнего уровня)</span>
+                Родительская группа <span className="acg-hint">(группа верхнего уровня)</span>
               </label>
               <select
                 className="acg-select"
@@ -167,12 +160,10 @@ export default function AdminCreateGroupPage() {
                   className="acg-file"
                   type="file"
                   accept="image/*"
-                  onChange={handleImageChange}
                   id="acg-file-input"
+                  onChange={handleImageChange}
                 />
-                <label htmlFor="acg-file-input" className="acg-file-label">
-                  Выбрать файл
-                </label>
+                <label htmlFor="acg-file-input" className="acg-file-label">Выбрать файл</label>
 
                 {preview ? (
                   <div className="acg-preview-wrap">
@@ -194,7 +185,6 @@ export default function AdminCreateGroupPage() {
             </div>
           </div>
 
-          {/* Нижняя панель действий (для удобства, дублирует верхнюю кнопку) */}
           <div className="acg-actions-bottom">
             <button
               type="button"
@@ -209,7 +199,7 @@ export default function AdminCreateGroupPage() {
           </div>
         </form>
 
-        {/* Правая колонка: субменю */}
+        {/* Правое субменю */}
         <aside className="acg-submenu">
           <AdminSubMenu />
         </aside>
