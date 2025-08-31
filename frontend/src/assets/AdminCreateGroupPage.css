@@ -1,9 +1,10 @@
 /* ======================================================================
-   AdminCreateGroupPage — минимализм + жёсткий отступ от левого меню
+   AdminCreateGroupPage — прижали к верху, убрали заезд на левое меню,
+   кнопки всегда синие
    ====================================================================== */
 
-.admin-create-group-page {
-  /* Дефолты */
+.admin-create-group-page{
+  /* Общие переменные (с дефолтами) */
   --surface: var(--surface, #ffffff);
   --bg: var(--bg, #f6f9fb);
   --primary: var(--primary, #117fff);
@@ -11,57 +12,49 @@
   --text-main: var(--text-main, #0f172a);
   --text-secondary: var(--text-secondary, #64748b);
 
-  /* Высота верхнего глобального хедера */
-  --header-h: 64px;
+  /* Лейаут проекта */
+  --left-rail: 280px;   /* ширина левого текстового меню */
+  --header-h: 64px;     /* высота глобального хедера */
 
   background: var(--bg);
   min-height: 100vh;
 
-  /* ВАЖНО: сдвиг всей страницы вправо от левого меню
-     (подстроится под разные ширины меню) */
+  /* НИЧЕГО не заезжает на левое меню */
   margin-left: clamp(280px, 22vw, 360px);
-  padding: 12px 18px 28px;
+
+  /* Прижали страницу максимально к верху (под глобальный хедер) */
+  padding: 0 18px 28px;
   box-sizing: border-box;
 }
 
-/* Верхняя панель */
-.acg-topbar {
+/* Верхняя панель — прилипает прямо под глобальный хедер, без зазора */
+.acg-topbar{
   position: sticky;
   top: var(--header-h);
   z-index: 7;
   height: 56px;
   background: var(--surface);
-  border: 1px solid #e8eef7;
-  border-left: none;
-  border-right: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  border-bottom: 1px solid #e8eef7;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 0 14px;
   box-shadow: 0 2px 12px rgba(0,0,0,.03);
+  margin: 0;           /* убрали возможные внешние отступы */
 }
 
-.acg-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-main);
-  letter-spacing: .2px;
-}
-
-/* Сетка: контент + правый слот под AdminSubMenu */
-.acg-grid {
+/* Контент сразу под топбаром — без промежутков сверху */
+.acg-grid{
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0,1fr) 280px;
   gap: 18px;
   align-items: start;
-  margin-top: 16px;
+  margin-top: 0;       /* критично: убрали отступ */
 }
 
-/* Левая колонка — форма */
-.acg-form { display: grid; gap: 16px; align-content: start; }
+/* Левая колонка */
+.acg-form{ display: grid; gap: 16px; align-content: start; }
 
 /* Карточки */
-.acg-card {
+.acg-card{
   background: var(--surface);
   border: 1px solid #e8eef7;
   border-radius: 16px;
@@ -70,100 +63,83 @@
 }
 
 /* Поля */
-.acg-field + .acg-field { margin-top: 14px; }
+.acg-field + .acg-field{ margin-top: 14px; }
+.acg-label{ display:block; color:var(--text-main); font-size:14px; margin-bottom:6px; font-weight:500; }
+.acg-hint{ color:var(--text-secondary); font-size:12px; font-weight:400; }
 
-.acg-label {
-  display: block;
-  color: var(--text-main);
-  font-size: 14px;
-  margin-bottom: 6px;
-  font-weight: 500;
+.acg-input,.acg-select,.acg-textarea{
+  width:100%;
+  border:1px solid #dbe7f6;
+  background:#f7fbff;
+  border-radius:12px;
+  padding:12px 14px;
+  font-size:14px;
+  color:var(--text-main);
+  outline:none;
+  transition:border-color .15s, background .15s, box-shadow .15s;
 }
-.acg-hint { color: var(--text-secondary); font-weight: 400; font-size: 12px; }
-
-.acg-input,
-.acg-select,
-.acg-textarea {
-  width: 100%;
-  border: 1px solid #dbe7f6;
-  background: #f7fbff;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 14px;
-  color: var(--text-main);
-  outline: none;
-  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+.acg-input:focus,.acg-select:focus,.acg-textarea:focus{
+  border-color:#bcd9ff; background:#fff; box-shadow:0 0 0 4px rgba(17,127,255,.08);
 }
-.acg-input:focus,
-.acg-select:focus,
-.acg-textarea:focus {
-  border-color: #bcd9ff;
-  background: #fff;
-  box-shadow: 0 0 0 4px rgba(17,127,255,.08);
-}
-.acg-textarea { resize: vertical; min-height: 110px; }
+.acg-textarea{ resize:vertical; min-height:110px; }
 
 /* Загрузка изображения */
-.acg-upload {
-  border: 1px dashed #cfe2ff;
-  border-radius: 14px;
-  background: #f6fbff;
-  padding: 16px;
-  text-align: center;
-}
-.acg-file { display: none; }
+.acg-upload{ border:1px dashed #cfe2ff; border-radius:14px; background:#f6fbff; padding:16px; text-align:center; }
+.acg-file{ display:none; }
 .acg-file-label{
-  display:inline-flex;align-items:center;justify-content:center;
-  height:38px;padding:0 14px;border-radius:10px;background:#eaf4ff;
-  color:var(--primary);font-size:14px;font-weight:500;cursor:pointer;
-  border:1px solid #d6e9ff;transition:background .15s,border-color .15s;
+  display:inline-flex; align-items:center; justify-content:center;
+  height:38px; padding:0 14px; border-radius:10px;
+  background:#eaf4ff; color:var(--primary); font-size:14px; font-weight:500;
+  cursor:pointer; border:1px solid #d6e9ff; transition:background .15s, border-color .15s;
 }
-.acg-file-label:hover{background:#e2efff;border-color:#cce3ff;}
-
-.acg-upload-hint{margin-top:10px;font-size:12px;color:var(--text-secondary);}
-.acg-preview-wrap{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;}
+.acg-file-label:hover{ background:#e2efff; border-color:#cce3ff; }
+.acg-upload-hint{ margin-top:10px; font-size:12px; color:var(--text-secondary); }
+.acg-preview-wrap{ margin-top:12px; display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
 .acg-preview{
-  justify-self:center;width:190px;height:190px;object-fit:cover;border-radius:12px;
-  box-shadow:0 2px 10px rgba(17,127,255,.12);border:1px solid #e8eef7;
+  justify-self:center; width:190px; height:190px; object-fit:cover; border-radius:12px;
+  box-shadow:0 2px 10px rgba(17,127,255,.12); border:1px solid #e8eef7;
 }
 
-/* Кнопки */
+/* Кнопки — базовые */
 .acg-btn{
-  appearance:none;border:1px solid transparent;background:transparent;color:var(--text-main);
-  font-size:14px;font-weight:500;border-radius:12px;padding:8px 12px;cursor:pointer;
-  display:inline-flex;gap:8px;align-items:center;
-  transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  appearance:none; -webkit-appearance:none;
+  border:1px solid transparent; background:transparent; color:var(--text-main);
+  font-size:14px; font-weight:500; border-radius:12px; padding:8px 12px; cursor:pointer;
+  display:inline-flex; gap:8px; align-items:center;
+  transition:background .15s, color .15s, border-color .15s, box-shadow .15s, filter .15s;
 }
-.acg-btn-ghost{background:#eef6ff;color:var(--primary);border-color:#d9eaff;}
-.acg-btn-ghost:hover{background:#e6f2ff;border-color:#cfe7ff;}
+.acg-btn-ghost{ background:#eef6ff; color:var(--primary); border-color:#d9eaff; }
+.acg-btn-ghost:hover{ background:#e6f2ff; border-color:#cfe7ff; }
 
-/* Жёсткая фиксация синей кнопки "Сохранить".
-   Отключаем любые темы/градиенты/фильтры, которые могли её делать белой */
+/* КНОПКИ СОХРАНЕНИЯ — форс синего цвета (перебиваем любые темы/глобальные стили) */
 #acg-save-top,
 #acg-save-bottom,
 .admin-create-group-page .acg-btn-primary{
+  appearance:none !important; -webkit-appearance:none !important;
   background: var(--primary) !important;
-  color: #fff !important;
-  border: none !important;
   background-image: none !important;
-  filter: none !important;
+  color:#fff !important;
+  border:1px solid var(--primary) !important;
   box-shadow: 0 6px 16px rgba(17,127,255,.25) !important;
+  filter:none !important;
 }
 #acg-save-top:hover,
 #acg-save-bottom:hover,
 .admin-create-group-page .acg-btn-primary:hover{
   background: var(--primary-dark) !important;
+  border-color: var(--primary-dark) !important;
 }
+.admin-create-group-page .acg-btn[disabled]{ opacity:.6; cursor:not-allowed; box-shadow:none; }
 
 /* Низ формы */
-.acg-actions-bottom{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
+.acg-actions-bottom{ display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
 
 /* Правое субменю */
-.acg-submenu{position:sticky;top:calc(var(--header-h) + 16px);align-self:start;}
+.acg-submenu{ position:sticky; top:calc(var(--header-h) + 16px); align-self:start; }
 
-/* Адаптив — при узком экране убираем сдвиг и делаем 1 колонку */
+/* Адаптив */
 @media (max-width: 1200px){
-  .admin-create-group-page{ margin-left: 0; }
-  .acg-grid{ grid-template-columns: 1fr; }
-  .acg-submenu{ position: static; margin-top: 0; }
+  .admin-create-group-page{ margin-left:0; }
+  .acg-grid{ grid-template-columns:1fr; }
+  .acg-submenu{ position:static; }
 }

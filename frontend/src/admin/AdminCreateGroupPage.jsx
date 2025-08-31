@@ -74,7 +74,7 @@ export default function AdminCreateGroupPage() {
 
   return (
     <div className="admin-create-group-page">
-      {/* Верхняя панель */}
+      {/* Верхняя панель — прилипает к верху (с учётом глобального хедера) */}
       <div className="acg-topbar">
         <button
           type="button"
@@ -101,9 +101,8 @@ export default function AdminCreateGroupPage() {
         </button>
       </div>
 
-      {/* Контент + правый субменю-слот */}
+      {/* Контент сразу под топбаром, без зазора */}
       <div className="acg-grid">
-        {/* Форма */}
         <form id="create-group-form" className="acg-form" onSubmit={handleSaveGroup}>
           <div className="acg-card">
             <div className="acg-field">
@@ -200,7 +199,6 @@ export default function AdminCreateGroupPage() {
           </div>
         </form>
 
-        {/* Правое субменю */}
         <aside className="acg-submenu">
           <AdminSubMenu />
         </aside>
