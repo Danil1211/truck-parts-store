@@ -73,7 +73,7 @@ export default function AdminCreateGroupPage() {
   const availableParents = groups.filter((g) => g._id !== (ROOT_GROUP && ROOT_GROUP._id));
 
   return (
-    <div className="admin-create-group-page has-left-rail">
+    <div className="admin-create-group-page">
       {/* Верхняя панель */}
       <div className="acg-topbar">
         <button
@@ -194,11 +194,7 @@ export default function AdminCreateGroupPage() {
             >
               Отмена
             </button>
-            <button
-              id="acg-save-bottom"
-              className="acg-btn acg-btn-primary"
-              disabled={saving}
-            >
+            <button id="acg-save-bottom" className="acg-btn acg-btn-primary" disabled={saving}>
               {saving ? "Сохраняем…" : "Сохранить группу"}
             </button>
           </div>

@@ -1,9 +1,9 @@
 /* ======================================================================
-   AdminCreateGroupPage — минимализм + корректный отступ от левого меню
+   AdminCreateGroupPage — минимализм + жёсткий отступ от левого меню
    ====================================================================== */
 
 .admin-create-group-page {
-  /* Общие переменные с дефолтами */
+  /* Дефолты */
   --surface: var(--surface, #ffffff);
   --bg: var(--bg, #f6f9fb);
   --primary: var(--primary, #117fff);
@@ -11,17 +11,16 @@
   --text-main: var(--text-main, #0f172a);
   --text-secondary: var(--text-secondary, #64748b);
 
-  /* Геометрия твоего layout — подгони при необходимости */
-  --left-rail: 280px;   /* ширина левого текстового меню */
-  --header-h: 64px;     /* высота верхнего хедера с переключателями */
+  /* Высота верхнего глобального хедера */
+  --header-h: 64px;
 
   background: var(--bg);
   min-height: 100vh;
-  padding: 12px 18px 28px;
 
-  /* Ключ: общий отступ справа от левого меню,
-     чтобы НИЧЕГО не заезжало под него */
-  padding-left: var(--left-rail);
+  /* ВАЖНО: сдвиг всей страницы вправо от левого меню
+     (подстроится под разные ширины меню) */
+  margin-left: clamp(280px, 22vw, 360px);
+  padding: 12px 18px 28px;
   box-sizing: border-box;
 }
 
@@ -138,22 +137,23 @@
 .acg-btn-ghost{background:#eef6ff;color:var(--primary);border-color:#d9eaff;}
 .acg-btn-ghost:hover{background:#e6f2ff;border-color:#cfe7ff;}
 
-/* Жёсткая фиксация синей кнопки (перебиваем любые глобальные .btn *) */
+/* Жёсткая фиксация синей кнопки "Сохранить".
+   Отключаем любые темы/градиенты/фильтры, которые могли её делать белой */
 #acg-save-top,
 #acg-save-bottom,
 .admin-create-group-page .acg-btn-primary{
   background: var(--primary) !important;
   color: #fff !important;
-  border-color: var(--primary) !important;
-  box-shadow: 0 6px 16px rgba(17,127,255,.25);
+  border: none !important;
+  background-image: none !important;
+  filter: none !important;
+  box-shadow: 0 6px 16px rgba(17,127,255,.25) !important;
 }
 #acg-save-top:hover,
 #acg-save-bottom:hover,
 .admin-create-group-page .acg-btn-primary:hover{
   background: var(--primary-dark) !important;
-  border-color: var(--primary-dark) !important;
 }
-.admin-create-group-page .acg-btn[disabled]{opacity:.6;cursor:not-allowed;box-shadow:none;}
 
 /* Низ формы */
 .acg-actions-bottom{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
@@ -161,9 +161,9 @@
 /* Правое субменю */
 .acg-submenu{position:sticky;top:calc(var(--header-h) + 16px);align-self:start;}
 
-/* Адаптив — при узком экране убираем отступ и делаем одну колонку */
+/* Адаптив — при узком экране убираем сдвиг и делаем 1 колонку */
 @media (max-width: 1200px){
-  .admin-create-group-page{padding-left: 0;}
-  .acg-grid{grid-template-columns:1fr;}
-  .acg-submenu{position:static;margin-top:0;}
+  .admin-create-group-page{ margin-left: 0; }
+  .acg-grid{ grid-template-columns: 1fr; }
+  .acg-submenu{ position: static; margin-top: 0; }
 }
