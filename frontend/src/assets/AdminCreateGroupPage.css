@@ -3,7 +3,7 @@
    ====================================================================== */
 
 .admin-create-group-page {
-  /* Подтягиваем общие css-переменные, но даём дефолты */
+  /* Общие переменные с дефолтами */
   --surface: var(--surface, #ffffff);
   --bg: var(--bg, #f6f9fb);
   --primary: var(--primary, #117fff);
@@ -11,25 +11,21 @@
   --text-main: var(--text-main, #0f172a);
   --text-secondary: var(--text-secondary, #64748b);
 
-  /* Настройка геометрии оболочки проекта */
-  --left-rail: 260px;   /* ширина текстового левого меню раздела */
-  --sidebar: 72px;      /* узкая иконковая шина (если есть) — подстрой при нужде */
-  --header-h: 56px;     /* высота верхнего глобального хедера */
+  /* Геометрия твоего layout — подгони при необходимости */
+  --left-rail: 280px;   /* ширина левого текстового меню */
+  --header-h: 64px;     /* высота верхнего хедера с переключателями */
 
   background: var(--bg);
   min-height: 100vh;
   padding: 12px 18px 28px;
+
+  /* Ключ: общий отступ справа от левого меню,
+     чтобы НИЧЕГО не заезжало под него */
+  padding-left: var(--left-rail);
+  box-sizing: border-box;
 }
 
-/* Сдвигаем топбар и контент правее, чтобы не налазило на левое меню */
-.admin-create-group-page.has-left-submenu .acg-topbar,
-.admin-create-group-page.has-left-submenu .acg-grid {
-  /* если нет иконковой шины, оставь только var(--left-rail) */
-  margin-left: var(--left-rail);
-  /* либо так, если у тебя и шина тоже занята: calc(var(--sidebar) + var(--left-rail)) */
-}
-
-/* Верхняя планка */
+/* Верхняя панель */
 .acg-topbar {
   position: sticky;
   top: var(--header-h);
@@ -63,11 +59,7 @@
 }
 
 /* Левая колонка — форма */
-.acg-form {
-  display: grid;
-  gap: 16px;
-  align-content: start;
-}
+.acg-form { display: grid; gap: 16px; align-content: start; }
 
 /* Карточки */
 .acg-card {
@@ -88,12 +80,7 @@
   margin-bottom: 6px;
   font-weight: 500;
 }
-
-.acg-hint {
-  color: var(--text-secondary);
-  font-weight: 400;
-  font-size: 12px;
-}
+.acg-hint { color: var(--text-secondary); font-weight: 400; font-size: 12px; }
 
 .acg-input,
 .acg-select,
@@ -108,7 +95,6 @@
   outline: none;
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
-
 .acg-input:focus,
 .acg-select:focus,
 .acg-textarea:focus {
@@ -116,7 +102,6 @@
   background: #fff;
   box-shadow: 0 0 0 4px rgba(17,127,255,.08);
 }
-
 .acg-textarea { resize: vertical; min-height: 110px; }
 
 /* Загрузка изображения */
@@ -127,112 +112,58 @@
   padding: 16px;
   text-align: center;
 }
-
 .acg-file { display: none; }
-
-.acg-file-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 10px;
-  background: #eaf4ff;
-  color: var(--primary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid #d6e9ff;
-  transition: background .15s ease, border-color .15s ease;
+.acg-file-label{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:38px;padding:0 14px;border-radius:10px;background:#eaf4ff;
+  color:var(--primary);font-size:14px;font-weight:500;cursor:pointer;
+  border:1px solid #d6e9ff;transition:background .15s,border-color .15s;
 }
-.acg-file-label:hover { background: #e2efff; border-color: #cce3ff; }
+.acg-file-label:hover{background:#e2efff;border-color:#cce3ff;}
 
-.acg-upload-hint {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--text-secondary);
+.acg-upload-hint{margin-top:10px;font-size:12px;color:var(--text-secondary);}
+.acg-preview-wrap{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;}
+.acg-preview{
+  justify-self:center;width:190px;height:190px;object-fit:cover;border-radius:12px;
+  box-shadow:0 2px 10px rgba(17,127,255,.12);border:1px solid #e8eef7;
 }
-
-.acg-preview-wrap {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.acg-preview {
-  justify-self: center;
-  width: 190px;
-  height: 190px;
-  object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(17,127,255,.12);
-  border: 1px solid #e8eef7;
-}
-
-.acg-btn-clear { height: 36px; padding: 0 12px; }
 
 /* Кнопки */
-.acg-btn {
-  appearance: none;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 12px;
-  padding: 8px 12px;
-  cursor: pointer;
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+.acg-btn{
+  appearance:none;border:1px solid transparent;background:transparent;color:var(--text-main);
+  font-size:14px;font-weight:500;border-radius:12px;padding:8px 12px;cursor:pointer;
+  display:inline-flex;gap:8px;align-items:center;
+  transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
 }
+.acg-btn-ghost{background:#eef6ff;color:var(--primary);border-color:#d9eaff;}
+.acg-btn-ghost:hover{background:#e6f2ff;border-color:#cfe7ff;}
 
-.acg-btn-ghost {
-  background: #eef6ff;
-  color: var(--primary);
-  border-color: #d9eaff;
-}
-.acg-btn-ghost:hover { background: #e6f2ff; border-color: #cfe7ff; }
-
-/* Форсируем бренд-цвет на кнопке "Сохранить", чтобы не становилась белой */
-.admin-create-group-page .acg-btn-primary {
+/* Жёсткая фиксация синей кнопки (перебиваем любые глобальные .btn *) */
+#acg-save-top,
+#acg-save-bottom,
+.admin-create-group-page .acg-btn-primary{
   background: var(--primary) !important;
   color: #fff !important;
   border-color: var(--primary) !important;
   box-shadow: 0 6px 16px rgba(17,127,255,.25);
 }
-.admin-create-group-page .acg-btn-primary:hover {
+#acg-save-top:hover,
+#acg-save-bottom:hover,
+.admin-create-group-page .acg-btn-primary:hover{
   background: var(--primary-dark) !important;
   border-color: var(--primary-dark) !important;
 }
-.admin-create-group-page .acg-btn[disabled] {
-  opacity: .6; cursor: not-allowed; box-shadow: none;
-}
+.admin-create-group-page .acg-btn[disabled]{opacity:.6;cursor:not-allowed;box-shadow:none;}
 
-/* Нижняя панель действий */
-.acg-actions-bottom {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
-}
+/* Низ формы */
+.acg-actions-bottom{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
 
 /* Правое субменю */
-.acg-submenu {
-  position: sticky;
-  top: calc(var(--header-h) + 16px);
-  align-self: start;
-}
+.acg-submenu{position:sticky;top:calc(var(--header-h) + 16px);align-self:start;}
 
-/* Адаптив — убираем левый отступ, когда меню коллапсит */
-@media (max-width: 1200px) {
-  .admin-create-group-page.has-left-submenu .acg-topbar,
-  .admin-create-group-page.has-left-submenu .acg-grid {
-    margin-left: 0;
-  }
-  .acg-grid { grid-template-columns: 1fr; }
-  .acg-submenu { position: static; margin-top: 0; }
+/* Адаптив — при узком экране убираем отступ и делаем одну колонку */
+@media (max-width: 1200px){
+  .admin-create-group-page{padding-left: 0;}
+  .acg-grid{grid-template-columns:1fr;}
+  .acg-submenu{position:static;margin-top:0;}
 }
