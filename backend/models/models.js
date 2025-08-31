@@ -79,7 +79,6 @@ touchUpdatedAt(GroupSchema);
 if (tenantScope) GroupSchema.plugin(tenantScope);
 
 /* ====================== Product ====================== */
-/* ====================== Product ====================== */
 const ProductSchema = new Schema({
   tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   name:        { type: String, required: true },

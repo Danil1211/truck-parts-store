@@ -1,7 +1,9 @@
 // frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import AdminSubMenu from "./AdminSubMenu";
 import api from "../utils/api.js";
+import "../assets/AdminCreateGroupPage.css";
 
 export default function AdminCreateGroupPage() {
   const navigate = useNavigate();
@@ -13,8 +15,9 @@ export default function AdminCreateGroupPage() {
 
   const [groups, setGroups] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // безопасный axios-запрос (короткий helper)
+  // безопасный axios-запрос
   const axiosSafe = async (fn) => {
     try {
       const { data } = await fn();
@@ -32,6 +35,8 @@ export default function AdminCreateGroupPage() {
         setGroups(Array.isArray(data) ? data : []);
       } catch {
         setGroups([]);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -46,7 +51,7 @@ export default function AdminCreateGroupPage() {
 
   const handleSaveGroup = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || saving) return;
 
     setSaving(true);
     try {
@@ -58,7 +63,6 @@ export default function AdminCreateGroupPage() {
       };
 
       const created = await axiosSafe(() => api.post("/api/groups", payload));
-
       if (created?._id) {
         navigate("/admin/groups");
       } else {
@@ -75,278 +79,141 @@ export default function AdminCreateGroupPage() {
   const availableParents = groups.filter((g) => g._id !== (ROOT_GROUP && ROOT_GROUP._id));
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f6fafd",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        padding: "44px 0 60px 0",
-      }}
-    >
-      <div style={{ position: "absolute", left: 60, top: 38, zIndex: 10 }}>
+    <div className="admin-create-group-page">
+      {/* Верхняя планка */}
+      <div className="acg-topbar">
         <button
           type="button"
+          className="acg-btn acg-btn-ghost"
           onClick={() => navigate("/admin/groups")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            background: "#eaf4ff",
-            color: "#2291ff",
-            border: "none",
-            fontWeight: 400,
-            fontSize: 18,
-            borderRadius: 11,
-            padding: "10px 20px 10px 14px",
-            boxShadow: "0 2px 12px #2291ff11",
-            cursor: "pointer",
-            transition: "background 0.17s",
-            gap: 8,
-          }}
+          aria-label="Назад к списку групп"
         >
-          <svg height="22" width="22" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
-            <path fill="#2291ff" d="M15.5 19.09 9.41 13l6.09-6.09L14.08 5.5 6.59 13l7.49 7.5z" />
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M15.5 19.09 9.41 13l6.09-6.09L14.08 5.5 6.59 13l7.49 7.5z" />
           </svg>
           Назад
         </button>
+
+        <h1 className="acg-title">Добавить группу</h1>
+
+        <button
+          type="submit"
+          form="create-group-form"
+          className="acg-btn acg-btn-primary"
+          disabled={saving}
+        >
+          {saving ? "Сохраняем…" : "Сохранить"}
+        </button>
       </div>
 
-      <form
-        onSubmit={handleSaveGroup}
-        style={{
-          background: "#fff",
-          borderRadius: 24,
-          maxWidth: 900,
-          width: "100%",
-          boxShadow: "0 8px 32px #2291ff12",
-          display: "flex",
-          flexDirection: "row",
-          gap: 0,
-          overflow: "hidden",
-          marginTop: 34,
-        }}
-      >
-        {/* Левая часть */}
-        <div
-          style={{
-            flex: 2,
-            padding: "40px 38px 38px 38px",
-            borderRight: "1.5px solid #eaf1fa",
-            display: "flex",
-            flexDirection: "column",
-            gap: 30,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 32,
-              fontWeight: 500,
-              marginBottom: 16,
-              color: "#1b2437",
-              letterSpacing: 0.1,
-            }}
-          >
-            Добавить группу
-          </h1>
+      {/* Контент + правое субменю */}
+      <div className="acg-grid">
+        {/* Левая колонка: форма */}
+        <form id="create-group-form" className="acg-form" onSubmit={handleSaveGroup}>
+          <div className="acg-card">
+            <div className="acg-field">
+              <label className="acg-label">Название группы</label>
+              <input
+                className="acg-input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Введите название группы"
+                required
+                autoFocus
+              />
+            </div>
 
-          <div>
-            <label
-              style={{
-                fontWeight: 400,
-                color: "#1b2437",
-                fontSize: 17,
-                marginBottom: 7,
-                display: "block",
-              }}
-            >
-              Название группы
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Введите название группы"
-              style={{
-                width: "100%",
-                marginTop: 7,
-                padding: "13px 16px",
-                borderRadius: 11,
-                border: "1.5px solid #c9e4ff",
-                fontSize: 16,
-                fontWeight: 400,
-                background: "#f6fafd",
-              }}
-              required
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label
-              style={{
-                fontWeight: 400,
-                color: "#1b2437",
-                fontSize: 17,
-                marginBottom: 7,
-                display: "block",
-              }}
-            >
-              Родительская группа
-              <span
-                style={{
-                  color: "#b1bacf",
-                  marginLeft: 6,
-                  fontWeight: 400,
-                  fontSize: 13,
-                }}
+            <div className="acg-field">
+              <label className="acg-label">
+                Родительская группа{" "}
+                <span className="acg-hint">(группа верхнего уровня)</span>
+              </label>
+              <select
+                className="acg-select"
+                value={parentId}
+                onChange={(e) => setParentId(e.target.value)}
+                disabled={loading}
               >
-                (группа верхнего уровня)
-              </span>
-            </label>
-            <select
-              value={parentId}
-              onChange={(e) => setParentId(e.target.value)}
-              style={{
-                width: "100%",
-                marginTop: 7,
-                padding: "12px 16px",
-                borderRadius: 11,
-                border: "1.5px solid #c9e4ff",
-                fontSize: 16,
-                fontWeight: 400,
-                background: "#f6fafd",
-              }}
-            >
-              <option value={ROOT_GROUP?._id || ""}>
-                Родительская группа (группа верхнего уровня)
-              </option>
-              {availableParents.map((group) => (
-                <option key={group._id} value={group._id}>
-                  {group.name}
+                <option value={ROOT_GROUP?._id || ""}>
+                  Родительская группа (группа верхнего уровня)
                 </option>
-              ))}
-            </select>
-          </div>
+                {availableParents.map((group) => (
+                  <option key={group._id} value={group._id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label
-              style={{
-                fontWeight: 400,
-                color: "#1b2437",
-                fontSize: 17,
-                marginBottom: 7,
-                display: "block",
-              }}
-            >
-              Описание группы
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Введите описание группы"
-              style={{
-                width: "100%",
-                marginTop: 7,
-                padding: "13px 16px",
-                borderRadius: 11,
-                border: "1.5px solid #c9e4ff",
-                fontSize: 15,
-                fontWeight: 400,
-                minHeight: 120,
-                resize: "vertical",
-                background: "#f6fafd",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Правая часть */}
-        <div
-          style={{
-            flex: 1.25,
-            padding: "40px 34px 38px 34px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-          }}
-        >
-          <div>
-            <label
-              style={{
-                fontWeight: 400,
-                color: "#1b2437",
-                fontSize: 17,
-                marginBottom: 7,
-                display: "block",
-              }}
-            >
-              Изображение группы
-            </label>
-            <div
-              style={{
-                margin: "15px 0 18px 0",
-                border: "1.5px dashed #b6d4fc",
-                borderRadius: 14,
-                padding: "22px 10px",
-                background: "#f8fbff",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <input type="file" accept="image/*" onChange={handleImageChange} style={{ marginBottom: "10px" }} />
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="Preview"
-                  style={{
-                    width: "100%",
-                    maxWidth: 190,
-                    borderRadius: 13,
-                    boxShadow: "0 2px 10px #2291ff19",
-                    marginTop: 6,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    color: "#b8b8c3",
-                    fontSize: 16,
-                    marginTop: 8,
-                    textAlign: "center",
-                  }}
-                >
-                  Рекомендованный размер 200x200 пикселей
-                  <br />
-                  JPG, PNG, WEBP. Макс. размер: 10MB.
-                </div>
-              )}
+            <div className="acg-field">
+              <label className="acg-label">Описание группы</label>
+              <textarea
+                className="acg-textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Короткое описание группы"
+                rows={5}
+              />
             </div>
           </div>
 
-          <button
-            type="submit"
-            style={{
-              background: saving ? "#98ccfd" : "#2291ff",
-              color: "#fff",
-              padding: "15px 0",
-              borderRadius: 13,
-              border: "none",
-              fontSize: 18,
-              fontWeight: 400,
-              width: "100%",
-              marginTop: 22,
-              boxShadow: "0 4px 14px #2291ff19",
-              cursor: saving ? "not-allowed" : "pointer",
-              transition: "background 0.16s",
-            }}
-            disabled={saving}
-          >
-            {saving ? "Сохраняем..." : "Сохранить группу"}
-          </button>
-        </div>
-      </form>
+          <div className="acg-card">
+            <div className="acg-field">
+              <label className="acg-label">Изображение группы</label>
+
+              <div className="acg-upload">
+                <input
+                  className="acg-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  id="acg-file-input"
+                />
+                <label htmlFor="acg-file-input" className="acg-file-label">
+                  Выбрать файл
+                </label>
+
+                {preview ? (
+                  <div className="acg-preview-wrap">
+                    <img src={preview} alt="Preview" className="acg-preview" />
+                    <button
+                      type="button"
+                      className="acg-btn acg-btn-ghost acg-btn-clear"
+                      onClick={() => setPreview(null)}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                ) : (
+                  <div className="acg-upload-hint">
+                    Рекомендовано: 200×200 px • JPG / PNG / WEBP • до 10 MB
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Нижняя панель действий (для удобства, дублирует верхнюю кнопку) */}
+          <div className="acg-actions-bottom">
+            <button
+              type="button"
+              className="acg-btn acg-btn-ghost"
+              onClick={() => navigate("/admin/groups")}
+            >
+              Отмена
+            </button>
+            <button className="acg-btn acg-btn-primary" disabled={saving}>
+              {saving ? "Сохраняем…" : "Сохранить группу"}
+            </button>
+          </div>
+        </form>
+
+        {/* Правая колонка: субменю */}
+        <aside className="acg-submenu">
+          <AdminSubMenu />
+        </aside>
+      </div>
     </div>
   );
 }
