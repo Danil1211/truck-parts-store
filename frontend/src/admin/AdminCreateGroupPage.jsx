@@ -32,7 +32,7 @@ export default function AdminCreateGroupPage() {
     return () => (mounted = false);
   }, []);
 
-  // Ctrl/Cmd + S => submit
+  // Ctrl/Cmd + S — сохранить
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -45,7 +45,7 @@ export default function AdminCreateGroupPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // предупреждение об уходе со страницы при несохранённых изменениях
+  // предупреждение при несохранённых изменениях
   useEffect(() => {
     const handler = (e) => {
       if (dirty && !saving) {
@@ -97,13 +97,8 @@ export default function AdminCreateGroupPage() {
   };
 
   const handlePaste = (e) => {
-    const fileItem = Array.from(e.clipboardData.items || []).find(
-      (i) => i.kind === "file"
-    );
-    if (fileItem) {
-      const file = fileItem.getAsFile();
-      handleImageFile(file);
-    }
+    const fileItem = Array.from(e.clipboardData.items || []).find((i) => i.kind === "file");
+    if (fileItem) handleImageFile(fileItem.getAsFile());
   };
 
   const clearPreview = () => {
@@ -139,14 +134,20 @@ export default function AdminCreateGroupPage() {
 
   return (
     <div className="admin-root">
-      {/* Субменю слева (как на всех админ-страницах) */}
-      <AdminSubMenu />
+      {/* наше субменю */}
+      <AdminSubMenu
+        title="Управление товарами"
+        items={[
+          { label: "Товары", to: "/admin/products" },
+          { label: "Группы", to: "/admin/groups", active: true },
+        ]}
+      />
 
       <div className="admin-content">
-        {/* Контейнер с небольшим внутренним отступом, чтобы не лип к вертикальному меню */}
+        {/* резервируем место слева под субменю, чтобы форма не залезала */}
         <div className="cg-container">
           <form className="cg-card" onSubmit={handleSaveGroup}>
-            {/* Левая колонка */}
+            {/* левая колонка */}
             <div className="cg-left">
               <h1>Добавить группу</h1>
 
@@ -159,12 +160,11 @@ export default function AdminCreateGroupPage() {
                   placeholder="Введите название группы"
                   required
                 />
-                <div className="cg-hint">Коротко и понятно. Например: «Амортизаторы»</div>
+                <div className="cg-hint">Коротко и понятно: «Амортизаторы», «Колодки тормозные»</div>
               </div>
 
               <div className="cg-block">
                 <label>Родительская группа</label>
-
                 <div className="cg-inline">
                   <input
                     className="cg-parent-filter"
@@ -188,7 +188,6 @@ export default function AdminCreateGroupPage() {
                     ))}
                   </select>
                 </div>
-
                 {loadingGroups && <div className="cg-skeleton">Загрузка групп…</div>}
               </div>
 
@@ -202,17 +201,16 @@ export default function AdminCreateGroupPage() {
               </div>
             </div>
 
-            {/* Правая колонка */}
+            {/* правая колонка */}
             <div className="cg-right">
               <div className="cg-block">
                 <label>Изображение</label>
-
                 <div
                   className={`cg-upload ${preview ? "has-image" : ""}`}
                   onDrop={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
                   onPaste={handlePaste}
-                  title="Перетащите файл сюда или нажмите для выбора. Также можно вставить из буфера (Ctrl/Cmd+V)."
+                  title="Перетащите файл сюда или нажмите для выбора. Можно вставить из буфера (Ctrl/Cmd+V)."
                 >
                   {!preview && (
                     <>
@@ -221,16 +219,10 @@ export default function AdminCreateGroupPage() {
                       <span className="cg-upload-badge">Drag & Drop / Paste</span>
                     </>
                   )}
-
                   {preview && (
                     <div className="cg-preview-wrap">
                       <img src={preview} alt="Preview" className="cg-preview" />
-                      <button
-                        type="button"
-                        className="cg-btn-ghost"
-                        onClick={clearPreview}
-                        aria-label="Удалить изображение"
-                      >
+                      <button type="button" className="cg-btn-ghost" onClick={clearPreview}>
                         Удалить
                       </button>
                     </div>
@@ -250,7 +242,7 @@ export default function AdminCreateGroupPage() {
           </form>
 
           <div className="cg-shortcuts">
-            ⌘/Ctrl + S — сохранить • Перетащите/вставьте картинку в область загрузки
+            ⌘/Ctrl + S — сохранить • Перетащите/вставьте изображение в область загрузки
           </div>
         </div>
       </div>
