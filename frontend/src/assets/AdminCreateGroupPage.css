@@ -1,9 +1,7 @@
-/* frontend/src/assets/AdminCreateGroupPage.css */
-/* ===== Edge-to-edge по ширине контента (без пустот) ===== */
+/* ===== Create Group Page — в стиле AddProduct ===== */
 
 :root { --cg-submenu-w: 248px; }
 
-/* Сдвиг под левое субменю на десктопе */
 @media (min-width: 1120px) {
   .cg-container { margin-left: var(--cg-submenu-w); }
 }
@@ -11,140 +9,126 @@
   .cg-container { margin-left: 0; }
 }
 
-/* У контейнера убираем горизонтальные паддинги, чтобы карта шла на всю ширину */
-.cg-container{
+.cg-container {
   padding: 0 0 28px 0;
 }
 
-/* Карточка растянута: без max-width и без auto-маржинов */
-.cg-card{
-  width: 100%;
-  margin: 12px 0;
+/* topbar */
+.cg-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 56px;
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+.cg-topbar h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+.cg-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* сетка */
+.cg-grid {
   display: grid;
-  grid-template-columns: 1.9fr 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  padding: 20px;
+}
+.cg-left, .cg-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* блоки */
+.cg-block label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+  display: block;
+}
+.cg-block input,
+.cg-block select,
+.cg-block textarea {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  background: #f8fafc;
+  transition: all .18s ease;
+}
+.cg-block textarea { min-height: 100px; }
+.cg-block input:focus,
+.cg-block select:focus,
+.cg-block textarea:focus {
+  border-color: #3b82f6;
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 6px 22px rgba(17,127,255,0.06), 0 2px 8px rgba(10,14,29,0.04);
-  border: 1px solid #eef2f8;
-  overflow: hidden;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.cg-hint {
+  font-size: 12.5px;
+  color: #8ea0b5;
+  margin-top: 6px;
 }
 
-/* Sticky заголовок */
-.cg-head{
-  grid-column: 1 / -1;
-  position: sticky; top: 0; z-index: 5;
+/* загрузка */
+.cg-upload {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  background: #f9fafb;
+}
+.cg-preview-wrap {
+  display: grid;
+  gap: 10px;
+  place-items: center;
+}
+.cg-preview {
+  max-width: 180px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* кнопки */
+.cg-btn-ghost {
+  border: 1px solid #e2e8f0;
   background: #fff;
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #edf2f7;
+  color: #0f172a;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
 }
-.cg-head h1{ font-size: 20px; font-weight: 600; color: #0f172a; margin: 0; }
-.cg-head-title{ display:flex; align-items:center; gap:10px; }
-.cg-dot{ font-size: 12.5px; color:#64748b; }
+.cg-btn-ghost:hover { background: #f8fafc; }
 
-/* Колонки */
-.cg-left, .cg-right{
-  padding: 18px 16px 20px 16px;
-  display: flex; flex-direction: column; gap: 18px;
+.cg-save {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.cg-left{ border-right: 1px solid #f1f5f9; }
+.cg-save:hover { background: #1e40af; }
+.cg-save:disabled { background: #9ec5ff; cursor: not-allowed; }
 
-/* Блоки / поля */
-.cg-block label{
-  font-size: 13.5px; font-weight: 600; color:#0f172a;
-  margin-bottom: 8px; display:block; letter-spacing:.2px;
-}
-.cg-hint{ font-size:12.5px; color:#8ea0b5; margin-top:6px; }
-.cg-input-wrap{ position: relative; }
-.cg-input-wrap .cg-input-icon{
-  position:absolute; left:12px; top:50%; transform:translateY(-50%);
-  font-size:14px; pointer-events:none; color:#94a3b8;
-}
-.cg-input-wrap input, .cg-input-wrap textarea{ padding-left: 36px !important; }
-
-.cg-block input, .cg-block select, .cg-block textarea{
-  width:100%; border:1.5px solid #e2e8f0; border-radius:12px;
-  padding:12px 14px; font-size:15px; line-height:1.35; background:#f8fafc;
-  transition: border .18s ease, background .18s ease, box-shadow .18s ease;
-}
-.cg-block textarea{ min-height:104px; resize:vertical; }
-.cg-block input::placeholder, .cg-block textarea::placeholder{ color:#9aa9bd; }
-.cg-block input:focus, .cg-block select:focus, .cg-block textarea:focus{
-  border-color:#3b82f6; background:#fff; outline:none; box-shadow:0 0 0 4px rgba(59,130,246,.12);
-}
-
-/* Ошибки */
-.cg-input-wrap.is-invalid input{
-  border-color:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.12); background:#fff;
-}
-.cg-error{ margin-top:6px; font-size:12.5px; color:#ef4444; }
-
-/* Фильтр + select */
-.cg-inline{ display:grid; grid-template-columns:1fr; gap:10px; }
-.cg-parent-filter{ padding-left:36px !important; }
-
-/* Скелетон */
-.cg-skeleton{
-  margin-top:8px; height:14px; width:160px; border-radius:7px;
-  background:linear-gradient(90deg,#eef2f8 25%,#f6f9ff 37%,#eef2f8 63%);
-  background-size:400% 100%; animation: cgShimmer 1.2s infinite;
-}
-@keyframes cgShimmer{ 0%{background-position:100% 0} 100%{background-position:0 0} }
-
-/* Загрузка изображения */
-.cg-upload{
-  position:relative; border:1.5px dashed #cbd5e1; border-radius:14px;
-  padding:22px 16px; text-align:center; background:#f9fafb;
-  transition:border-color .18s ease, background .18s ease; min-height:140px;
-}
-.cg-upload:hover{ border-color:#94a3b8; background:#ffffff; }
-.cg-upload input[type="file"]{ margin-bottom:10px; }
-.cg-upload p{ font-size:13px; color:#93a3b8; margin:6px 0 2px; }
-.cg-upload-badge{
-  position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
-  font-size:11.5px; color:#6b7e97; background:#eef3fb; border:1px solid #e2e8f0;
-  padding:4px 8px; border-radius:999px;
-}
-
-/* Drag overlay */
-.cg-upload.drag-active{ border-color:#3b82f6; background:#ffffff; }
-.cg-drop-overlay{ position:absolute; inset:0; background:rgba(59,130,246,.08); border-radius:14px; display:grid; place-items:center; pointer-events:none; }
-.cg-drop-inner{
-  padding:10px 14px; background:#fff; border:1px solid #dbeafe; border-radius:999px;
-  font-size:13px; color:#1e40af; box-shadow:0 6px 18px rgba(59,130,246,.18);
-}
-
-/* Превью */
-.cg-preview-card{
-  display:grid; gap:10px; place-items:center; background:#fff; border:1px solid #eef2f8;
-  border-radius:14px; padding:12px; box-shadow:0 3px 12px rgba(0,0,0,.06);
-}
-.cg-preview{ max-width:200px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
-.cg-preview-actions{ display:flex; gap:8px; }
-
-/* Кнопки */
-.cg-btn-ghost{
-  appearance:none; border:1px solid #e2e8f0; background:#fff; color:#0f172a;
-  padding:8px 12px; border-radius:10px; font-size:13.5px; cursor:pointer;
-  transition:border .18s, background .18s, box-shadow .18s;
-}
-.cg-btn-ghost:hover{ background:#f8fafc; box-shadow:0 1px 4px rgba(0,0,0,.06); }
-
-.cg-head-actions{ display:flex; gap:10px; }
-.cg-save-top{
-  appearance:none; border:none; background:#2563eb; color:#fff;
-  padding:10px 14px; border-radius:12px; font-size:14.5px; font-weight:600;
-  cursor:pointer; transition:background .18s ease, transform .06s ease;
-}
-.cg-save-top:hover{ background:#1e40af; }
-.cg-save-top:active{ transform: translateY(1px); }
-.cg-save-top:disabled{ background:#9ec5ff; cursor:not-allowed; }
-
-.cg-side-hint{ margin-top:auto; font-size:12.5px; color:#6b7e97; }
-
-/* Адаптив */
-@media (max-width: 980px){
-  .cg-card{ grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .cg-left{ border-right: none; border-bottom: 1px solid #f1f5f9; }
+/* адаптив */
+@media (max-width: 980px) {
+  .cg-grid { grid-template-columns: 1fr; }
 }
