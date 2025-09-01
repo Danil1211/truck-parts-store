@@ -21,10 +21,8 @@ export default function AdminCreateGroupPage() {
   const [dirty, setDirty] = useState(false);
   const [parentQuery, setParentQuery] = useState("");
   const [dragActive, setDragActive] = useState(false);
-
   const [errors, setErrors] = useState({});
 
-  // Подгружаем группы
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -40,7 +38,6 @@ export default function AdminCreateGroupPage() {
     return () => (mounted = false);
   }, []);
 
-  // Загружаем черновик (если форма пустая)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
@@ -56,18 +53,14 @@ export default function AdminCreateGroupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Автосохранение черновика (debounce 600 мс)
   useEffect(() => {
     const id = setTimeout(() => {
       const draft = { name, parentId, description, preview };
-      try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      } catch {}
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
     }, 600);
     return () => clearTimeout(id);
   }, [name, parentId, description, preview]);
 
-  // Горячие клавиши: Ctrl/Cmd+S — сохранить, Esc — назад (с предупреждением)
   useEffect(() => {
     const onKey = (e) => {
       const key = e.key.toLowerCase();
@@ -88,7 +81,6 @@ export default function AdminCreateGroupPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [dirty, saving, navigate]);
 
-  // Предупреждение при несохранённых изменениях
   useEffect(() => {
     const handler = (e) => {
       if (dirty && !saving) {
@@ -100,13 +92,11 @@ export default function AdminCreateGroupPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty, saving]);
 
-  // Опорная "верхняя" группа (может быть, может не быть)
   const ROOT_GROUP = useMemo(
     () => groups.find((g) => g.name === "Родительская группа" && !g.parentId),
     [groups]
   );
 
-  // Список доступных родителей + фильтр
   const availableParents = useMemo(() => {
     const excludeRootId = ROOT_GROUP && ROOT_GROUP._id;
     const base = groups.filter((g) => g._id !== excludeRootId);
@@ -121,7 +111,6 @@ export default function AdminCreateGroupPage() {
     setter(value);
   };
 
-  // Валидация
   const validate = () => {
     const next = {};
     const n = name.trim();
@@ -132,7 +121,6 @@ export default function AdminCreateGroupPage() {
     return Object.keys(next).length === 0;
   };
 
-  // Работа с изображением
   const handleImageFile = (file) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
@@ -149,26 +137,11 @@ export default function AdminCreateGroupPage() {
 
   const handleImageChange = (e) => handleImageFile(e.target.files?.[0]);
 
-  // drag overlay
-  const onDragEnter = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(true);
-  };
-  const onDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(true);
-  };
-  const onDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-  };
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const onDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); };
+  const onDragOver  = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); };
+  const onDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); };
+  const handleDrop  = (e) => {
+    e.preventDefault(); e.stopPropagation(); setDragActive(false);
     const file = e.dataTransfer.files?.[0];
     handleImageFile(file);
   };
@@ -178,16 +151,8 @@ export default function AdminCreateGroupPage() {
     if (fileItem) handleImageFile(fileItem.getAsFile());
   };
 
-  const clearPreview = () => {
-    setPreview(null);
-    setDirty(true);
-  };
-
-  const clearDraft = () => {
-    try {
-      localStorage.removeItem(DRAFT_KEY);
-    } catch {}
-  };
+  const clearPreview = () => { setPreview(null); setDirty(true); };
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
 
   const handleSaveGroup = async (e) => {
     e.preventDefault();
@@ -229,7 +194,6 @@ export default function AdminCreateGroupPage() {
       <div className="admin-content">
         <div className="cg-container">
           <form className="cg-card" onSubmit={handleSaveGroup} onPaste={handlePaste}>
-            {/* Sticky-заголовок внутри карточки */}
             <div className="cg-head">
               <div className="cg-head-title">
                 <h1>Добавить группу</h1>
@@ -260,7 +224,6 @@ export default function AdminCreateGroupPage() {
               </div>
             </div>
 
-            {/* Левая колонка */}
             <div className="cg-left">
               <div className="cg-block">
                 <label>Название группы</label>
@@ -282,9 +245,7 @@ export default function AdminCreateGroupPage() {
                 {errors.name ? (
                   <div className="cg-error">{errors.name}</div>
                 ) : (
-                  <div className="cg-hint">
-                    Коротко и понятно: «Амортизаторы», «Колодки тормозные»
-                  </div>
+                  <div className="cg-hint">Коротко и понятно: «Амортизаторы», «Колодки тормозные»</div>
                 )}
               </div>
 
@@ -310,9 +271,7 @@ export default function AdminCreateGroupPage() {
                       Родительская группа (верхний уровень)
                     </option>
                     {availableParents.map((g) => (
-                      <option key={g._id} value={g._id}>
-                        {g.name}
-                      </option>
+                      <option key={g._id} value={g._id}>{g.name}</option>
                     ))}
                   </select>
                 </div>
@@ -333,11 +292,9 @@ export default function AdminCreateGroupPage() {
               </div>
             </div>
 
-            {/* Правая колонка */}
             <div className="cg-right">
               <div className="cg-block">
                 <label>Изображение</label>
-
                 <div
                   className={`cg-upload ${preview ? "has-image" : ""} ${dragActive ? "drag-active" : ""}`}
                   onDragEnter={onDragEnter}
@@ -353,7 +310,6 @@ export default function AdminCreateGroupPage() {
                       <span className="cg-upload-badge">Drag & Drop / Paste</span>
                     </>
                   )}
-
                   {preview && (
                     <div className="cg-preview-card">
                       <img src={preview} alt="Preview" className="cg-preview" />
@@ -364,7 +320,6 @@ export default function AdminCreateGroupPage() {
                       </div>
                     </div>
                   )}
-
                   {dragActive && (
                     <div className="cg-drop-overlay">
                       <div className="cg-drop-inner">Отпустите файл для загрузки</div>
