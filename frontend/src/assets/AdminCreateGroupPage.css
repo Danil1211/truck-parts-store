@@ -1,20 +1,16 @@
+/* frontend/src/assets/AdminCreateGroupPage.css */
 /* ===== Create Group Page — минималистичный епел-стиль ===== */
 
-/* Ширина нашего субменю (резерв для контента).
-   Подгони при необходимости под твой AdminSubMenu. */
 :root { --cg-submenu-w: 248px; }
 
-/* Контейнер страницы: добавляем слева отступ под субменю,
-   чтобы карточка НЕ залезала под него */
+/* Контейнер страницы — резерв под левое субменю */
 @media (min-width: 1120px) {
   .cg-container { margin-left: var(--cg-submenu-w); }
 }
-/* На узких экранах субменю становится плавающим — убираем отступ */
 @media (max-width: 1119.98px) {
   .cg-container { margin-left: 0; }
 }
 
-/* Доп. внутренние отступы страницы */
 .cg-container{
   padding: 12px 16px 28px 18px;
 }
@@ -23,35 +19,50 @@
 .cg-card{
   display: grid;
   grid-template-columns: 1.9fr 1fr;
+  grid-template-rows: auto 1fr;
   gap: 0;
   background: #fff;
   border-radius: 20px;
   box-shadow: 0 6px 22px rgba(17,127,255,0.06), 0 2px 8px rgba(10,14,29,0.04);
   margin: 18px auto;
-  max-width: 980px;
+  max-width: 1100px;
   border: 1px solid #eef2f8;
+  overflow: hidden;
+}
+
+/* Sticky заголовок внутри карточки */
+.cg-head{
+  grid-column: 1 / -1;
+  position: sticky; top: 0; z-index: 5;
+  background: #ffffffcc;
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  backdrop-filter: saturate(180%) blur(8px);
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #edf2f7;
+}
+.cg-head h1{
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+.cg-head-title{ display:flex; align-items:center; gap:10px; }
+.cg-dot{
+  font-size: 12.5px; color:#64748b;
 }
 
 /* Колонки */
 .cg-left, .cg-right{
-  padding: 28px 28px 24px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
+  padding: 22px 22px 24px 22px;
+  display: flex; flex-direction: column; gap: 20px;
 }
 .cg-left{ border-right: 1px solid #f1f5f9; }
 
-.cg-left h1{
-  font-size: 26px;
-  line-height: 1.15;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 2px 0 8px;
-}
-
 /* Блоки */
 .cg-block label{
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #0f172a;
   margin-bottom: 8px;
@@ -62,6 +73,19 @@
   font-size: 12.5px;
   color: #8ea0b5;
   margin-top: 6px;
+}
+
+/* Обёртка инпутов с иконкой */
+.cg-input-wrap{
+  position: relative;
+}
+.cg-input-wrap .cg-input-icon{
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; pointer-events: none; color: #94a3b8;
+}
+.cg-input-wrap input,
+.cg-input-wrap textarea{
+  padding-left: 36px !important;
 }
 
 /* Поля */
@@ -77,10 +101,7 @@
   background: #f8fafc;
   transition: border .18s ease, background .18s ease, box-shadow .18s ease;
 }
-.cg-block textarea{
-  min-height: 104px;
-  resize: vertical;
-}
+.cg-block textarea{ min-height: 104px; resize: vertical; }
 .cg-block input::placeholder,
 .cg-block textarea::placeholder{ color: #9aa9bd; }
 .cg-block input:focus,
@@ -92,14 +113,22 @@
   box-shadow: 0 0 0 4px rgba(59,130,246,0.12);
 }
 
+/* Ошибки */
+.cg-input-wrap.is-invalid input{
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.12);
+  background: #fff;
+}
+.cg-error{
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: #ef4444;
+}
+
 /* Фильтр + select */
 .cg-inline{ display: grid; grid-template-columns: 1fr; gap: 10px; }
 .cg-parent-filter{
-  padding-left: 38px !important;
-  background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 12px 50%;
-  background-size: 18px;
+  padding-left: 36px !important;
 }
 
 /* Скелетон */
@@ -121,6 +150,7 @@
   text-align: center;
   background: #f9fafb;
   transition: border-color .18s ease, background .18s ease;
+  min-height: 140px;
 }
 .cg-upload:hover{ border-color:#94a3b8; background:#ffffff; }
 .cg-upload input[type="file"]{ margin-bottom: 10px; }
@@ -131,9 +161,43 @@
   padding:4px 8px; border-radius:999px;
 }
 
-.cg-preview-wrap{ display:grid; place-items:center; gap:10px; }
+/* Drag overlay */
+.cg-upload.drag-active{
+  border-color: #3b82f6;
+  background: #ffffff;
+}
+.cg-drop-overlay{
+  position:absolute; inset:0;
+  background: rgba(59,130,246,0.08);
+  border-radius: 14px;
+  display:grid; place-items:center;
+  pointer-events:none;
+}
+.cg-drop-inner{
+  padding: 10px 14px;
+  background:#fff;
+  border:1px solid #dbeafe;
+  border-radius: 999px;
+  font-size: 13px; color:#1e40af;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.18);
+}
+
+/* Карточка превью */
+.cg-preview-card{
+  display: grid; gap: 10px; place-items: center;
+  background: #fff;
+  border: 1px solid #eef2f8;
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+}
 .cg-preview{
-  max-width:190px; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,0.07);
+  max-width: 200px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.cg-preview-actions{
+  display:flex; gap:8px;
 }
 
 /* Кнопки */
@@ -144,23 +208,26 @@
 }
 .cg-btn-ghost:hover{ background:#f8fafc; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
 
-.cg-save{
-  margin-top:auto; width:100%; background:#2563eb; color:#fff; border:none;
-  padding:14px; border-radius:12px; font-size:15.5px; font-weight:600; cursor:pointer;
-  transition:background .18s ease, transform .06s ease;
+/* Primary наверху (не белая) */
+.cg-head-actions{ display:flex; gap:10px; }
+.cg-save-top{
+  appearance:none; border:none; background:#2563eb; color:#fff;
+  padding:10px 14px; border-radius:12px; font-size:14.5px; font-weight:600;
+  cursor:pointer; transition:background .18s ease, transform .06s ease;
 }
-.cg-save:hover{ background:#1e40af; }
-.cg-save:active{ transform:translateY(1px); }
-.cg-save:disabled{ background:#9ec5ff; cursor:not-allowed; }
+.cg-save-top:hover{ background:#1e40af; }
+.cg-save-top:active{ transform: translateY(1px); }
+.cg-save-top:disabled{ background:#9ec5ff; cursor:not-allowed; }
 
-/* Подпись снизу */
-.cg-shortcuts{
-  max-width: 980px; margin: 8px auto 0; padding: 0 6px;
-  font-size: 12.5px; color: #6b7e97;
+/* Подпись-напоминание справа */
+.cg-side-hint{
+  margin-top: auto;
+  font-size: 12.5px;
+  color: #6b7e97;
 }
 
-/* Адаптив: одна колонка */
+/* Адаптив */
 @media (max-width: 980px){
-  .cg-card{ grid-template-columns: 1fr; }
+  .cg-card{ grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .cg-left{ border-right: none; border-bottom: 1px solid #f1f5f9; }
 }

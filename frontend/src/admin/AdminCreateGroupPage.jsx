@@ -1,8 +1,11 @@
+// frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminCreateGroupPage.css";
+
+const DRAFT_KEY = "cg_draft_v1";
 
 export default function AdminCreateGroupPage() {
   const navigate = useNavigate();
@@ -11,12 +14,17 @@ export default function AdminCreateGroupPage() {
   const [parentId, setParentId] = useState("");
   const [description, setDescription] = useState("");
   const [preview, setPreview] = useState(null);
+
   const [groups, setGroups] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [parentQuery, setParentQuery] = useState("");
+  const [dragActive, setDragActive] = useState(false);
 
+  const [errors, setErrors] = useState({});
+
+  // Подгружаем группы
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -32,20 +40,55 @@ export default function AdminCreateGroupPage() {
     return () => (mounted = false);
   }, []);
 
-  // Ctrl/Cmd + S — сохранить
+  // Загружаем черновик (если форма пустая)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (!name && !description && !preview && !parentId) {
+        if (draft?.name) setName(draft.name);
+        if (draft?.parentId) setParentId(draft.parentId);
+        if (draft?.description) setDescription(draft.description);
+        if (draft?.preview) setPreview(draft.preview);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Автосохранение черновика (debounce 600 мс)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const draft = { name, parentId, description, preview };
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch {}
+    }, 600);
+    return () => clearTimeout(id);
+  }, [name, parentId, description, preview]);
+
+  // Горячие клавиши: Ctrl/Cmd+S — сохранить, Esc — назад (с предупреждением)
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && key === "s") {
         e.preventDefault();
-        const btn = document.querySelector(".cg-save");
+        const btn = document.querySelector(".cg-save-top");
         if (btn && !btn.disabled) btn.click();
+      }
+      if (key === "escape") {
+        if (dirty && !saving) {
+          const ok = window.confirm("Есть несохранённые изменения. Выйти без сохранения?");
+          if (!ok) return;
+        }
+        navigate("/admin/groups");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [dirty, saving, navigate]);
 
-  // предупреждение при несохранённых изменениях
+  // Предупреждение при несохранённых изменениях
   useEffect(() => {
     const handler = (e) => {
       if (dirty && !saving) {
@@ -57,23 +100,39 @@ export default function AdminCreateGroupPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty, saving]);
 
+  // Опорная "верхняя" группа (может быть, может не быть)
   const ROOT_GROUP = useMemo(
     () => groups.find((g) => g.name === "Родительская группа" && !g.parentId),
     [groups]
   );
 
+  // Список доступных родителей + фильтр
   const availableParents = useMemo(() => {
-    const list = groups.filter((g) => g._id !== (ROOT_GROUP && ROOT_GROUP._id));
-    if (!parentQuery.trim()) return list;
+    const excludeRootId = ROOT_GROUP && ROOT_GROUP._id;
+    const base = groups.filter((g) => g._id !== excludeRootId);
+    if (!parentQuery.trim()) return base;
     const q = parentQuery.toLowerCase();
-    return list.filter((g) => (g.name || "").toLowerCase().includes(q));
+    return base.filter((g) => (g.name || "").toLowerCase().includes(q));
   }, [groups, ROOT_GROUP, parentQuery]);
 
   const setDirtyValue = (setter) => (v) => {
     setDirty(true);
-    setter(typeof v === "function" ? v : v.target ? v.target.value : v);
+    const value = typeof v === "function" ? v : v?.target ? v.target.value : v;
+    setter(value);
   };
 
+  // Валидация
+  const validate = () => {
+    const next = {};
+    const n = name.trim();
+    if (!n) next.name = "Введите название группы";
+    else if (n.length < 2) next.name = "Слишком короткое название";
+    else if (n.length > 120) next.name = "Слишком длинное название (до 120 символов)";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  // Работа с изображением
   const handleImageFile = (file) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
@@ -90,8 +149,26 @@ export default function AdminCreateGroupPage() {
 
   const handleImageChange = (e) => handleImageFile(e.target.files?.[0]);
 
+  // drag overlay
+  const onDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+  const onDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+  const onDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
   const handleDrop = (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
     const file = e.dataTransfer.files?.[0];
     handleImageFile(file);
   };
@@ -106,9 +183,15 @@ export default function AdminCreateGroupPage() {
     setDirty(true);
   };
 
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
+  };
+
   const handleSaveGroup = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!validate()) return;
 
     setSaving(true);
     try {
@@ -121,6 +204,7 @@ export default function AdminCreateGroupPage() {
       const { data } = await api.post("/api/groups", payload);
       if (data?._id) {
         setDirty(false);
+        clearDraft();
         navigate("/admin/groups");
       } else {
         alert("Ошибка сохранения группы");
@@ -134,7 +218,6 @@ export default function AdminCreateGroupPage() {
 
   return (
     <div className="admin-root">
-      {/* наше субменю */}
       <AdminSubMenu
         title="Управление товарами"
         items={[
@@ -144,35 +227,80 @@ export default function AdminCreateGroupPage() {
       />
 
       <div className="admin-content">
-        {/* резервируем место слева под субменю, чтобы форма не залезала */}
         <div className="cg-container">
-          <form className="cg-card" onSubmit={handleSaveGroup}>
-            {/* левая колонка */}
-            <div className="cg-left">
-              <h1>Добавить группу</h1>
+          <form className="cg-card" onSubmit={handleSaveGroup} onPaste={handlePaste}>
+            {/* Sticky-заголовок внутри карточки */}
+            <div className="cg-head">
+              <div className="cg-head-title">
+                <h1>Добавить группу</h1>
+                {dirty && <span className="cg-dot">● Черновик</span>}
+              </div>
+              <div className="cg-head-actions">
+                <button
+                  type="button"
+                  className="cg-btn-ghost"
+                  onClick={() => {
+                    if (dirty && !saving) {
+                      const ok = window.confirm("Есть несохранённые изменения. Выйти без сохранения?");
+                      if (!ok) return;
+                    }
+                    navigate("/admin/groups");
+                  }}
+                >
+                  Назад
+                </button>
+                <button
+                  type="submit"
+                  className="cg-save-top"
+                  disabled={saving || !!errors.name || !name.trim()}
+                  title="Ctrl/Cmd + S"
+                >
+                  {saving ? "Сохраняем…" : "Сохранить"}
+                </button>
+              </div>
+            </div>
 
+            {/* Левая колонка */}
+            <div className="cg-left">
               <div className="cg-block">
                 <label>Название группы</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={setDirtyValue(setName)}
-                  placeholder="Введите название группы"
-                  required
-                />
-                <div className="cg-hint">Коротко и понятно: «Амортизаторы», «Колодки тормозные»</div>
+                <div className={`cg-input-wrap ${errors.name ? "is-invalid" : ""}`}>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setDirtyValue(setName)(e);
+                      if (errors.name) validate();
+                    }}
+                    onBlur={validate}
+                    placeholder="Введите название группы"
+                    aria-invalid={!!errors.name}
+                    required
+                  />
+                  <span className="cg-input-icon" aria-hidden="true">📦</span>
+                </div>
+                {errors.name ? (
+                  <div className="cg-error">{errors.name}</div>
+                ) : (
+                  <div className="cg-hint">
+                    Коротко и понятно: «Амортизаторы», «Колодки тормозные»
+                  </div>
+                )}
               </div>
 
               <div className="cg-block">
                 <label>Родительская группа</label>
                 <div className="cg-inline">
-                  <input
-                    className="cg-parent-filter"
-                    type="text"
-                    value={parentQuery}
-                    onChange={setDirtyValue(setParentQuery)}
-                    placeholder="Фильтр по названию…"
-                  />
+                  <div className="cg-input-wrap">
+                    <input
+                      className="cg-parent-filter"
+                      type="text"
+                      value={parentQuery}
+                      onChange={setDirtyValue(setParentQuery)}
+                      placeholder="Фильтр по названию…"
+                    />
+                    <span className="cg-input-icon" aria-hidden="true">🔎</span>
+                  </div>
                   <select
                     value={parentId}
                     onChange={setDirtyValue(setParentId)}
@@ -193,23 +321,29 @@ export default function AdminCreateGroupPage() {
 
               <div className="cg-block">
                 <label>Описание</label>
-                <textarea
-                  value={description}
-                  onChange={setDirtyValue(setDescription)}
-                  placeholder="Краткое описание группы (необязательно)"
-                />
+                <div className="cg-input-wrap">
+                  <textarea
+                    value={description}
+                    onChange={setDirtyValue(setDescription)}
+                    placeholder="Краткое описание группы (необязательно)"
+                    rows={5}
+                  />
+                  <span className="cg-input-icon" aria-hidden="true">✏️</span>
+                </div>
               </div>
             </div>
 
-            {/* правая колонка */}
+            {/* Правая колонка */}
             <div className="cg-right">
               <div className="cg-block">
                 <label>Изображение</label>
+
                 <div
-                  className={`cg-upload ${preview ? "has-image" : ""}`}
+                  className={`cg-upload ${preview ? "has-image" : ""} ${dragActive ? "drag-active" : ""}`}
+                  onDragEnter={onDragEnter}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
                   onDrop={handleDrop}
-                  onDragOver={(e) => e.preventDefault()}
-                  onPaste={handlePaste}
                   title="Перетащите файл сюда или нажмите для выбора. Можно вставить из буфера (Ctrl/Cmd+V)."
                 >
                   {!preview && (
@@ -219,31 +353,31 @@ export default function AdminCreateGroupPage() {
                       <span className="cg-upload-badge">Drag & Drop / Paste</span>
                     </>
                   )}
+
                   {preview && (
-                    <div className="cg-preview-wrap">
+                    <div className="cg-preview-card">
                       <img src={preview} alt="Preview" className="cg-preview" />
-                      <button type="button" className="cg-btn-ghost" onClick={clearPreview}>
-                        Удалить
-                      </button>
+                      <div className="cg-preview-actions">
+                        <button type="button" className="cg-btn-ghost" onClick={clearPreview}>
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {dragActive && (
+                    <div className="cg-drop-overlay">
+                      <div className="cg-drop-inner">Отпустите файл для загрузки</div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="cg-save"
-                disabled={saving || !name.trim()}
-                title="Ctrl/Cmd + S"
-              >
-                {saving ? "Сохраняем…" : "Сохранить группу"}
-              </button>
+              <div className="cg-side-hint">
+                ⌘/Ctrl + S — сохранить • Можно вставить картинку из буфера • Drag & Drop поддерживается
+              </div>
             </div>
           </form>
-
-          <div className="cg-shortcuts">
-            ⌘/Ctrl + S — сохранить • Перетащите/вставьте изображение в область загрузки
-          </div>
         </div>
       </div>
     </div>
