@@ -1,3 +1,4 @@
+// frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
@@ -119,105 +120,106 @@ export default function AdminCreateGroupPage() {
         ]}
       />
 
+      {/* фиксированная шапка */}
+      <div className="cg-topbar">
+        <h1>Добавить группу</h1>
+        <div className="cg-actions">
+          <button
+            type="button"
+            className="cg-btn-ghost"
+            onClick={() => navigate("/admin/groups")}
+          >
+            Назад
+          </button>
+          <button
+            type="submit"
+            form="cg-form"
+            className="cg-save"
+            disabled={saving || !name.trim()}
+          >
+            {saving ? "Сохраняем…" : "Сохранить"}
+          </button>
+        </div>
+      </div>
+
+      {/* форма */}
       <div className="admin-content">
-        <div className="cg-container">
-          {/* topbar */}
-          <div className="cg-topbar">
-            <h1>Добавить группу</h1>
-            <div className="cg-actions">
-              <button
-                type="button"
-                className="cg-btn-ghost"
-                onClick={() => navigate("/admin/groups")}
-              >
-                Назад
-              </button>
-              <button
-                type="submit"
-                form="cg-form"
-                className="cg-save"
-                disabled={saving || !name.trim()}
-              >
-                {saving ? "Сохраняем…" : "Сохранить"}
-              </button>
+        <form id="cg-form" className="cg-grid" onSubmit={handleSaveGroup}>
+          <div className="cg-left">
+            <div className="cg-block">
+              <label>Название группы</label>
+              <input
+                type="text"
+                value={name}
+                onChange={setDirtyValue(setName)}
+                placeholder="Введите название группы"
+                required
+              />
+              <div className="cg-hint">Например: «Амортизаторы», «Колодки тормозные»</div>
+            </div>
+
+            <div className="cg-block">
+              <label>Родительская группа</label>
+              <div className="cg-inline">
+                <input
+                  className="cg-parent-filter"
+                  type="text"
+                  value={parentQuery}
+                  onChange={setDirtyValue(setParentQuery)}
+                  placeholder="Фильтр по названию…"
+                />
+                <select
+                  value={parentId}
+                  onChange={setDirtyValue(setParentId)}
+                  disabled={loadingGroups}
+                >
+                  <option value={ROOT_GROUP?._id || ""}>
+                    Родительская группа (верхний уровень)
+                  </option>
+                  {availableParents.map((g) => (
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {loadingGroups && <div className="cg-skeleton">Загрузка групп…</div>}
+            </div>
+
+            <div className="cg-block">
+              <label>Описание</label>
+              <textarea
+                value={description}
+                onChange={setDirtyValue(setDescription)}
+                placeholder="Краткое описание группы (необязательно)"
+              />
             </div>
           </div>
 
-          <form id="cg-form" className="cg-grid" onSubmit={handleSaveGroup}>
-            {/* левая колонка */}
-            <div className="cg-left">
-              <div className="cg-block">
-                <label>Название группы</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={setDirtyValue(setName)}
-                  placeholder="Введите название группы"
-                  required
-                />
-                <div className="cg-hint">Например: «Амортизаторы», «Колодки тормозные»</div>
-              </div>
-
-              <div className="cg-block">
-                <label>Родительская группа</label>
-                <div className="cg-inline">
-                  <input
-                    className="cg-parent-filter"
-                    type="text"
-                    value={parentQuery}
-                    onChange={setDirtyValue(setParentQuery)}
-                    placeholder="Фильтр по названию…"
-                  />
-                  <select
-                    value={parentId}
-                    onChange={setDirtyValue(setParentId)}
-                    disabled={loadingGroups}
-                  >
-                    <option value={ROOT_GROUP?._id || ""}>
-                      Родительская группа (верхний уровень)
-                    </option>
-                    {availableParents.map((g) => (
-                      <option key={g._id} value={g._id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
+          <div className="cg-right">
+            <div className="cg-block">
+              <label>Изображение</label>
+              {!preview && (
+                <div className="cg-upload">
+                  <input type="file" accept="image/*" onChange={handleImageChange} />
+                  <p>200×200 • JPG, PNG, WEBP • до 10MB</p>
                 </div>
-                {loadingGroups && <div className="cg-skeleton">Загрузка групп…</div>}
-              </div>
-
-              <div className="cg-block">
-                <label>Описание</label>
-                <textarea
-                  value={description}
-                  onChange={setDirtyValue(setDescription)}
-                  placeholder="Краткое описание группы (необязательно)"
-                />
-              </div>
+              )}
+              {preview && (
+                <div className="cg-preview-wrap">
+                  <img src={preview} alt="Preview" className="cg-preview" />
+                  <button
+                    type="button"
+                    className="cg-btn-ghost"
+                    onClick={clearPreview}
+                  >
+                    Удалить
+                  </button>
+                </div>
+              )}
             </div>
-
-            {/* правая колонка */}
-            <div className="cg-right">
-              <div className="cg-block">
-                <label>Изображение</label>
-                {!preview && (
-                  <div className="cg-upload">
-                    <input type="file" accept="image/*" onChange={handleImageChange} />
-                    <p>200×200 • JPG, PNG, WEBP • до 10MB</p>
-                  </div>
-                )}
-                {preview && (
-                  <div className="cg-preview-wrap">
-                    <img src={preview} alt="Preview" className="cg-preview" />
-                    <button type="button" className="cg-btn-ghost" onClick={clearPreview}>
-                      Удалить
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -1,23 +1,10 @@
-/* ===== Create Group Page — в стиле AddProduct ===== */
+/* frontend/src/assets/AdminCreateGroupPage.css */
 
-:root { --cg-submenu-w: 248px; }
-
-@media (min-width: 1120px) {
-  .cg-container { margin-left: var(--cg-submenu-w); }
-}
-@media (max-width: 1119.98px) {
-  .cg-container { margin-left: 0; }
-}
-
-.cg-container {
-  padding: 0 0 28px 0;
-}
-
-/* topbar */
+/* фиксированная шапка */
 .cg-topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 15;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -42,7 +29,7 @@
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
-  padding: 20px;
+  padding: 24px;
 }
 .cg-left, .cg-right {
   display: flex;
