@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
-import "../assets/AdminPanel.css";
 import "../assets/AdminCreateGroupPage.css";
 
 export default function AdminCreateGroupPage() {
@@ -41,13 +40,9 @@ export default function AdminCreateGroupPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleImageChange = (e) => handleImageFile(e.target.files?.[0]);
-  const clearPreview = () => setPreview(null);
-
   const handleSaveGroup = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-
     setSaving(true);
     try {
       const payload = {
@@ -56,14 +51,10 @@ export default function AdminCreateGroupPage() {
         description: description || "",
         img: preview || null,
       };
-      const { data } = await api.post("/api/groups", payload);
-      if (data?._id) {
-        navigate("/admin/groups");
-      } else {
-        alert("Ошибка сохранения группы");
-      }
+      await api.post("/api/groups", payload);
+      navigate("/admin/groups");
     } catch (err) {
-      alert(err?.response?.data?.error || err?.message || "Ошибка при сохранении");
+      alert(err?.response?.data?.error || err.message || "Ошибка сохранения");
     } finally {
       setSaving(false);
     }
@@ -79,7 +70,6 @@ export default function AdminCreateGroupPage() {
         ]}
       />
 
-      {/* локальная шапка */}
       <div className="cg-topbar">
         <button
           type="button"
@@ -91,20 +81,21 @@ export default function AdminCreateGroupPage() {
         <button
           type="submit"
           form="cg-form"
-          disabled={saving || !name.trim()}
           className="btn-primary"
+          disabled={saving || !name.trim()}
         >
           {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
 
-      <form id="cg-form" className="cg-form" onSubmit={handleSaveGroup}>
-        <div className="layout-grid">
-          {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
-          <div className="main-col">
+      <div className="cg-content-wrap">
+        <form id="cg-form" className="cg-grid" onSubmit={handleSaveGroup}>
+          {/* Левая колонка */}
+          <div className="cg-left">
             <div className="card">
-              <div className="card-title">Название группы</div>
+              <div className="card-title">Основная информация</div>
               <div className="field-col">
+                <label>Название группы</label>
                 <input
                   type="text"
                   value={name}
@@ -112,35 +103,26 @@ export default function AdminCreateGroupPage() {
                   placeholder="Введите название группы"
                   required
                 />
-                <div className="muted">
-                  Например: «Амортизаторы», «Колодки тормозные»
-                </div>
               </div>
-            </div>
 
-            <div className="card">
-              <div className="card-title">Родительская группа</div>
-              {loadingGroups && <div className="muted">Загрузка…</div>}
-              {!loadingGroups && (
-                <div className="field-col">
-                  <select
-                    value={parentId}
-                    onChange={(e) => setParentId(e.target.value)}
-                  >
-                    <option value="">Верхний уровень</option>
-                    {groups.map((g) => (
-                      <option key={g._id} value={g._id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className="card">
-              <div className="card-title">Описание</div>
               <div className="field-col">
+                <label>Родительская группа</label>
+                <select
+                  value={parentId}
+                  onChange={(e) => setParentId(e.target.value)}
+                  disabled={loadingGroups}
+                >
+                  <option value="">(Верхний уровень)</option>
+                  {groups.map((g) => (
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field-col">
+                <label>Описание</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -150,23 +132,27 @@ export default function AdminCreateGroupPage() {
             </div>
           </div>
 
-          {/* ===== ПРАВАЯ КОЛОНКА ===== */}
-          <div className="side-col">
+          {/* Правая колонка */}
+          <div className="cg-right">
             <div className="card">
               <div className="card-title">Изображение</div>
               {!preview && (
-                <div className="upload">
-                  <input type="file" accept="image/*" onChange={handleImageChange} />
-                  <p className="muted">200×200 • JPG, PNG, WEBP • до 10MB</p>
+                <div className="upload-box">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageFile(e.target.files?.[0])}
+                  />
+                  <p>200×200 • JPG, PNG, WEBP • до 10MB</p>
                 </div>
               )}
               {preview && (
                 <div className="preview-wrap">
-                  <img src={preview} alt="Preview" className="preview" />
+                  <img src={preview} alt="Preview" />
                   <button
                     type="button"
-                    className="btn-ghost danger"
-                    onClick={clearPreview}
+                    className="btn-ghost"
+                    onClick={() => setPreview(null)}
                   >
                     Удалить
                   </button>
@@ -174,8 +160,8 @@ export default function AdminCreateGroupPage() {
               )}
             </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
