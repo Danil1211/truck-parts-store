@@ -1,4 +1,3 @@
-// frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
@@ -120,7 +119,7 @@ export default function AdminCreateGroupPage() {
         ]}
       />
 
-      {/* фиксированная шапка */}
+      {/* фиксированная локальная шапка */}
       <div className="cg-topbar">
         <h1>Добавить группу</h1>
         <div className="cg-actions">
@@ -142,8 +141,8 @@ export default function AdminCreateGroupPage() {
         </div>
       </div>
 
-      {/* форма */}
-      <div className="admin-content">
+      {/* контент с отступом под шапку */}
+      <div className="admin-content groups-create">
         <form id="cg-form" className="cg-grid" onSubmit={handleSaveGroup}>
           <div className="cg-left">
             <div className="cg-block">
