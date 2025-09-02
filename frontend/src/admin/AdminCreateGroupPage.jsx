@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+// frontend/src/admin/AdminCreateGroupPage.jsx
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
+import LocalEditor from "../components/LocalEditor";
+import "../assets/AdminPanel.css";
 import "../assets/AdminCreateGroupPage.css";
 
 export default function AdminCreateGroupPage() {
@@ -11,50 +14,46 @@ export default function AdminCreateGroupPage() {
   const [parentId, setParentId] = useState("");
   const [description, setDescription] = useState("");
   const [preview, setPreview] = useState(null);
-
   const [groups, setGroups] = useState([]);
-  const [loadingGroups, setLoadingGroups] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const fileRef = useRef(null);
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get("/api/groups");
-        setGroups(Array.isArray(data) ? data : []);
-      } catch {
-        setGroups([]);
-      } finally {
-        setLoadingGroups(false);
+        setGroups(data || []);
+      } catch (err) {
+        console.error("Ошибка загрузки групп:", err);
       }
     })();
   }, []);
 
-  const handleImageFile = (file) => {
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Файл слишком большой (макс. 10MB)");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result);
-    reader.readAsDataURL(file);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setPreview(URL.createObjectURL(file));
   };
 
-  const handleSaveGroup = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    setSaving(true);
+    if (!name.trim()) {
+      alert("Введите название группы");
+      return;
+    }
     try {
-      const payload = {
-        name: name.trim(),
-        parentId: parentId || null,
-        description: description || "",
-        img: preview || null,
-      };
-      await api.post("/api/groups", payload);
+      setSaving(true);
+      const fd = new FormData();
+      fd.append("name", name);
+      fd.append("description", description);
+      fd.append("parentId", parentId);
+      if (fileRef.current?.files[0]) {
+        fd.append("image", fileRef.current.files[0]);
+      }
+      await api.post("/api/groups", fd);
       navigate("/admin/groups");
     } catch (err) {
-      alert(err?.response?.data?.error || err.message || "Ошибка сохранения");
+      alert("Ошибка сохранения: " + (err.response?.data?.error || err.message));
     } finally {
       setSaving(false);
     }
@@ -62,38 +61,29 @@ export default function AdminCreateGroupPage() {
 
   return (
     <div className="add-group groups-page">
-      <AdminSubMenu
-        title="Управление товарами"
-        items={[
-          { label: "Товары", to: "/admin/products" },
-          { label: "Группы", to: "/admin/groups", active: true },
-        ]}
-      />
+      <AdminSubMenu type="groups" activeKey="create" />
 
       <div className="cg-topbar">
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => navigate("/admin/groups")}
-        >
+        <button className="btn-ghost" onClick={() => navigate("/admin/groups")}>
           ← Назад
         </button>
         <button
           type="submit"
           form="cg-form"
+          disabled={saving}
           className="btn-primary"
-          disabled={saving || !name.trim()}
         >
           {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
 
       <div className="cg-content-wrap">
-        <form id="cg-form" className="cg-grid" onSubmit={handleSaveGroup}>
-          {/* Левая колонка */}
-          <div className="cg-left">
+        <form id="cg-form" className="cg-grid" onSubmit={handleSubmit}>
+          {/* ====== Левая колонка ====== */}
+          <div className="main-col">
             <div className="card">
               <div className="card-title">Основная информация</div>
+
               <div className="field-col">
                 <label>Название группы</label>
                 <input
@@ -101,7 +91,6 @@ export default function AdminCreateGroupPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Введите название группы"
-                  required
                 />
               </div>
 
@@ -110,7 +99,6 @@ export default function AdminCreateGroupPage() {
                 <select
                   value={parentId}
                   onChange={(e) => setParentId(e.target.value)}
-                  disabled={loadingGroups}
                 >
                   <option value="">(Верхний уровень)</option>
                   {groups.map((g) => (
@@ -123,41 +111,53 @@ export default function AdminCreateGroupPage() {
 
               <div className="field-col">
                 <label>Описание</label>
-                <textarea
+                <LocalEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder="Краткое описание группы (необязательно)"
+                  minHeight={180}
                 />
               </div>
             </div>
           </div>
 
-          {/* Правая колонка */}
-          <div className="cg-right">
+          {/* ====== Правая колонка ====== */}
+          <div className="side-col">
             <div className="card">
               <div className="card-title">Изображение</div>
-              {!preview && (
-                <div className="upload-box">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageFile(e.target.files?.[0])}
-                  />
-                  <p>200×200 • JPG, PNG, WEBP • до 10MB</p>
-                </div>
-              )}
-              {preview && (
-                <div className="preview-wrap">
-                  <img src={preview} alt="Preview" />
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => setPreview(null)}
-                  >
-                    Удалить
-                  </button>
-                </div>
-              )}
+              <div
+                className="upload-box"
+                onClick={() => fileRef.current?.click()}
+              >
+                {!preview ? (
+                  <div className="upload-placeholder">
+                    <span className="icon">📷</span>
+                    <p>Выберите файл или перетащите сюда</p>
+                    <small>200×200 • JPG, PNG, WEBP • до 10MB</small>
+                  </div>
+                ) : (
+                  <div className="preview-wrap">
+                    <img src={preview} alt="preview" />
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => {
+                        setPreview(null);
+                        if (fileRef.current) fileRef.current.value = "";
+                      }}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileRef}
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+              </div>
             </div>
           </div>
         </form>
