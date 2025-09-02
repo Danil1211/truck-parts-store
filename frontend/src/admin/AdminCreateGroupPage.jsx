@@ -60,7 +60,7 @@ export default function AdminCreateGroupPage() {
   };
 
   return (
-    <div className="add-group groups-page">
+    <div className="admin-content with-submenu add-group groups-page">
       <AdminSubMenu type="groups" activeKey="create" />
 
       <div className="cg-topbar">
