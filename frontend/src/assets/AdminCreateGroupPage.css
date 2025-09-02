@@ -1,132 +1,80 @@
-/* ==========================================================================
-   Create Group Page — Apple style
-   ========================================================================== */
+/* =======================================================================
+   AdminCreateGroupPage — современный минимализм (scoped под .add-group)
+   ======================================================================= */
 
-.cg-topbar {
-  position: fixed;
-  top: var(--topbar-h); /* под глобальной шапкой */
-  left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 0;
-  height: 64px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
-  z-index: 130;
-}
-.cg-topbar h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 0;
-}
-.cg-actions { display: flex; gap: 12px; }
+.add-group.groups-page { padding: 0 0 28px; }
 
-@media (max-width: 1100px) {
-  .cg-topbar { left: var(--sidebar-w); }
+/* Topbar */
+.add-group .cg-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background: var(--surface);
+  display:flex; align-items:center; justify-content:space-between;
+  height:56px; padding:0 20px;
+  border-bottom:1px solid #e5e7eb; border-radius:0;
 }
+.add-group .btn-ghost{
+  appearance:none; border:none; background:transparent; color:var(--primary);
+  font-size:14px; font-weight:500; cursor:pointer; padding:6px 8px; border-radius:8px;
+}
+.add-group .btn-ghost:hover{ background:rgba(0,0,0,.04); }
+.add-group .btn-ghost.danger{ color:#e12a2a; }
+.add-group .btn-primary{
+  appearance:none; border:none; border-radius:10px; height:36px; padding:0 16px;
+  background:linear-gradient(180deg,#2da8ff,#007aff); color:#fff; font-size:14px; font-weight:500; cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,122,255,.25);
+}
+.add-group .btn-primary:disabled{ opacity:.6; cursor:default }
 
-/* контент с отступом под локальную шапку */
-.admin-content.groups-create {
-  padding-top: calc(var(--topbar-h) + 64px);
-}
+/* Формовая обвязка */
+.add-group .cg-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
 
-/* сетка */
-.cg-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-  padding: 20px 24px 40px;
+/* Разметка колонок */
+.add-group .layout-grid{
+  display:grid; gap:20px; align-items:start;
+  grid-template-columns: minmax(0, 1fr) 360px;
 }
-.cg-left,
-.cg-right {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+@media (max-width:1100px){ .add-group .layout-grid{ grid-template-columns: 1fr; } }
+.add-group .main-col,
+.add-group .side-col{ display:flex; flex-direction:column; gap:18px; }
 
-/* блоки */
-.cg-block label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 8px;
-  display: block;
+/* Карточки */
+.add-group .card{
+  background:var(--surface); border:1px solid #e6ebf2;
+  border-radius:14px; padding:16px 18px;
 }
-.cg-block input,
-.cg-block select,
-.cg-block textarea {
-  width: 100%;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 15px;
-  background: #f8fafc;
-  transition: all .18s ease;
-}
-.cg-block textarea { min-height: 100px; }
-.cg-block input:focus,
-.cg-block select:focus,
-.cg-block textarea:focus {
-  border-color: var(--primary);
-  background: #fff;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(17,127,255,.12);
-}
-.cg-hint {
-  font-size: 12.5px;
-  color: #8ea0b5;
-  margin-top: 6px;
+.add-group .card-title{
+  font-size:15px; font-weight:600; color:#0f172a; margin-bottom:12px;
 }
 
-/* загрузка */
-.cg-upload {
-  border: 1.5px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-  background: #f9fafb;
+/* Поля */
+.add-group .field-col{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.add-group .field-col label{ font-size:13px; font-weight:500; color:#334155; }
+.add-group .muted{ color:#94a3b8; font-weight:400; font-size:12px; }
+
+.add-group input,
+.add-group select,
+.add-group textarea{
+  width:100%; border:1px solid #d0d7e2; border-radius:10px; padding:10px 12px;
+  font-size:14px; color:#0f172a; background:#f9fbfd;
+  transition:border-color .18s, box-shadow .18s; box-sizing:border-box; min-height:40px;
+  outline:none;
 }
-.cg-preview-wrap {
-  display: grid;
-  gap: 10px;
-  place-items: center;
-}
-.cg-preview {
-  max-width: 180px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+.add-group textarea{ min-height:90px; resize:vertical; }
+.add-group input:focus,
+.add-group textarea:focus,
+.add-group select:focus{
+  border-color:var(--primary); background:#fff; box-shadow:var(--ring);
 }
 
-/* кнопки */
-.cg-btn-ghost {
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: var(--text-main);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
+/* Загрузка картинок */
+.add-group .upload{
+  border:1.5px dashed #d0d7e2; border-radius:12px;
+  padding:20px; text-align:center; background:#f9fafb;
 }
-.cg-btn-ghost:hover { background: #f8fafc; }
-
-.cg-save {
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.cg-save:hover { background: var(--primary-dark); }
-.cg-save:disabled { background: #9ec5ff; cursor: not-allowed; }
-
-/* адаптив */
-@media (max-width: 980px) {
-  .cg-grid { grid-template-columns: 1fr; }
+.add-group .preview-wrap{ display:grid; gap:10px; place-items:center; }
+.add-group .preview{
+  max-width:180px; border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);
 }

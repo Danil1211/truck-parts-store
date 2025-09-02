@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
+import "../assets/AdminPanel.css";
 import "../assets/AdminCreateGroupPage.css";
 
 export default function AdminCreateGroupPage() {
@@ -15,53 +16,19 @@ export default function AdminCreateGroupPage() {
   const [groups, setGroups] = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
-  const [parentQuery, setParentQuery] = useState("");
 
-  // загрузка групп
   useEffect(() => {
-    let mounted = true;
     (async () => {
       try {
         const { data } = await api.get("/api/groups");
-        if (mounted) setGroups(Array.isArray(data) ? data : []);
+        setGroups(Array.isArray(data) ? data : []);
       } catch {
-        if (mounted) setGroups([]);
+        setGroups([]);
       } finally {
-        if (mounted) setLoadingGroups(false);
+        setLoadingGroups(false);
       }
     })();
-    return () => (mounted = false);
   }, []);
-
-  // предупреждение при несохранённых изменениях
-  useEffect(() => {
-    const handler = (e) => {
-      if (dirty && !saving) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty, saving]);
-
-  const ROOT_GROUP = useMemo(
-    () => groups.find((g) => g.name === "Родительская группа" && !g.parentId),
-    [groups]
-  );
-
-  const availableParents = useMemo(() => {
-    const list = groups.filter((g) => g._id !== (ROOT_GROUP && ROOT_GROUP._id));
-    if (!parentQuery.trim()) return list;
-    const q = parentQuery.toLowerCase();
-    return list.filter((g) => (g.name || "").toLowerCase().includes(q));
-  }, [groups, ROOT_GROUP, parentQuery]);
-
-  const setDirtyValue = (setter) => (v) => {
-    setDirty(true);
-    setter(typeof v === "function" ? v : v.target ? v.target.value : v);
-  };
 
   const handleImageFile = (file) => {
     if (!file) return;
@@ -70,18 +37,12 @@ export default function AdminCreateGroupPage() {
       return;
     }
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreview(reader.result);
-      setDirty(true);
-    };
+    reader.onloadend = () => setPreview(reader.result);
     reader.readAsDataURL(file);
   };
 
   const handleImageChange = (e) => handleImageFile(e.target.files?.[0]);
-  const clearPreview = () => {
-    setPreview(null);
-    setDirty(true);
-  };
+  const clearPreview = () => setPreview(null);
 
   const handleSaveGroup = async (e) => {
     e.preventDefault();
@@ -97,7 +58,6 @@ export default function AdminCreateGroupPage() {
       };
       const { data } = await api.post("/api/groups", payload);
       if (data?._id) {
-        setDirty(false);
         navigate("/admin/groups");
       } else {
         alert("Ошибка сохранения группы");
@@ -110,7 +70,7 @@ export default function AdminCreateGroupPage() {
   };
 
   return (
-    <div className="admin-root">
+    <div className="add-group groups-page">
       <AdminSubMenu
         title="Управление товарами"
         items={[
@@ -119,107 +79,97 @@ export default function AdminCreateGroupPage() {
         ]}
       />
 
-      {/* фиксированная локальная шапка */}
+      {/* локальная шапка */}
       <div className="cg-topbar">
-        <h1>Добавить группу</h1>
-        <div className="cg-actions">
-          <button
-            type="button"
-            className="cg-btn-ghost"
-            onClick={() => navigate("/admin/groups")}
-          >
-            Назад
-          </button>
-          <button
-            type="submit"
-            form="cg-form"
-            className="cg-save"
-            disabled={saving || !name.trim()}
-          >
-            {saving ? "Сохраняем…" : "Сохранить"}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => navigate("/admin/groups")}
+        >
+          ← Назад
+        </button>
+        <button
+          type="submit"
+          form="cg-form"
+          disabled={saving || !name.trim()}
+          className="btn-primary"
+        >
+          {saving ? "Сохраняем…" : "Сохранить"}
+        </button>
       </div>
 
-      {/* контент с отступом под шапку */}
-      <div className="admin-content groups-create">
-        <form id="cg-form" className="cg-grid" onSubmit={handleSaveGroup}>
-          <div className="cg-left">
-            <div className="cg-block">
-              <label>Название группы</label>
-              <input
-                type="text"
-                value={name}
-                onChange={setDirtyValue(setName)}
-                placeholder="Введите название группы"
-                required
-              />
-              <div className="cg-hint">Например: «Амортизаторы», «Колодки тормозные»</div>
-            </div>
-
-            <div className="cg-block">
-              <label>Родительская группа</label>
-              <div className="cg-inline">
+      <form id="cg-form" className="cg-form" onSubmit={handleSaveGroup}>
+        <div className="layout-grid">
+          {/* ===== ЛЕВАЯ КОЛОНКА ===== */}
+          <div className="main-col">
+            <div className="card">
+              <div className="card-title">Название группы</div>
+              <div className="field-col">
                 <input
-                  className="cg-parent-filter"
                   type="text"
-                  value={parentQuery}
-                  onChange={setDirtyValue(setParentQuery)}
-                  placeholder="Фильтр по названию…"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Введите название группы"
+                  required
                 />
-                <select
-                  value={parentId}
-                  onChange={setDirtyValue(setParentId)}
-                  disabled={loadingGroups}
-                >
-                  <option value={ROOT_GROUP?._id || ""}>
-                    Родительская группа (верхний уровень)
-                  </option>
-                  {availableParents.map((g) => (
-                    <option key={g._id} value={g._id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="muted">Например: «Амортизаторы», «Колодки тормозные»</div>
               </div>
-              {loadingGroups && <div className="cg-skeleton">Загрузка групп…</div>}
             </div>
 
-            <div className="cg-block">
-              <label>Описание</label>
-              <textarea
-                value={description}
-                onChange={setDirtyValue(setDescription)}
-                placeholder="Краткое описание группы (необязательно)"
-              />
+            <div className="card">
+              <div className="card-title">Родительская группа</div>
+              {loadingGroups && <div className="muted">Загрузка…</div>}
+              {!loadingGroups && (
+                <div className="field-col">
+                  <select
+                    value={parentId}
+                    onChange={(e) => setParentId(e.target.value)}
+                  >
+                    <option value="">Верхний уровень</option>
+                    {groups.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="card">
+              <div className="card-title">Описание</div>
+              <div className="field-col">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Краткое описание группы (необязательно)"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="cg-right">
-            <div className="cg-block">
-              <label>Изображение</label>
+          {/* ===== ПРАВАЯ КОЛОНКА ===== */}
+          <div className="side-col">
+            <div className="card">
+              <div className="card-title">Изображение</div>
               {!preview && (
-                <div className="cg-upload">
+                <div className="upload">
                   <input type="file" accept="image/*" onChange={handleImageChange} />
-                  <p>200×200 • JPG, PNG, WEBP • до 10MB</p>
+                  <p className="muted">200×200 • JPG, PNG, WEBP • до 10MB</p>
                 </div>
               )}
               {preview && (
-                <div className="cg-preview-wrap">
-                  <img src={preview} alt="Preview" className="cg-preview" />
-                  <button
-                    type="button"
-                    className="cg-btn-ghost"
-                    onClick={clearPreview}
-                  >
+                <div className="preview-wrap">
+                  <img src={preview} alt="Preview" className="preview" />
+                  <button type="button" className="btn-ghost danger" onClick={clearPreview}>
                     Удалить
                   </button>
                 </div>
               )}
             </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
