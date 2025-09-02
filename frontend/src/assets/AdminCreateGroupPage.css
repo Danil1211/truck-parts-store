@@ -1,22 +1,26 @@
-/* frontend/src/assets/AdminCreateGroupPage.css */
+/* ==========================================================================
+   Create Group Page — Apple style
+   ========================================================================== */
 
-/* фиксированная шапка */
 .cg-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 15;
+  position: fixed;
+  top: var(--topbar-h); /* учитываем глобальную шапку */
+  left: calc(var(--sidebar-w) + var(--submenu-w));
+  right: 0;
+  height: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 56px;
   padding: 0 20px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  z-index: 130;
 }
 .cg-topbar h1 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-main);
   margin: 0;
 }
 .cg-actions {
@@ -24,14 +28,20 @@
   gap: 12px;
 }
 
+/* адаптив для скрытия субменю */
+@media (max-width: 1100px) {
+  .cg-topbar { left: var(--sidebar-w); }
+}
+
 /* сетка */
 .cg-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
-  padding: 24px;
+  padding: 90px 24px 24px; /* отступ сверху под фиксированную шапку */
 }
-.cg-left, .cg-right {
+.cg-left,
+.cg-right {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -41,7 +51,7 @@
 .cg-block label {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-main);
   margin-bottom: 8px;
   display: block;
 }
@@ -60,10 +70,10 @@
 .cg-block input:focus,
 .cg-block select:focus,
 .cg-block textarea:focus {
-  border-color: #3b82f6;
+  border-color: var(--primary);
   background: #fff;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  box-shadow: 0 0 0 3px rgba(17,127,255,.12);
 }
 .cg-hint {
   font-size: 12.5px;
@@ -94,7 +104,7 @@
 .cg-btn-ghost {
   border: 1px solid #e2e8f0;
   background: #fff;
-  color: #0f172a;
+  color: var(--text-main);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 14px;
@@ -103,7 +113,7 @@
 .cg-btn-ghost:hover { background: #f8fafc; }
 
 .cg-save {
-  background: #2563eb;
+  background: var(--primary);
   color: #fff;
   border: none;
   padding: 8px 14px;
@@ -112,7 +122,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-.cg-save:hover { background: #1e40af; }
+.cg-save:hover { background: var(--primary-dark); }
 .cg-save:disabled { background: #9ec5ff; cursor: not-allowed; }
 
 /* адаптив */
