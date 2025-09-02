@@ -63,9 +63,13 @@ export default function AdminCreateGroupPage() {
     <div className="admin-content with-submenu add-group groups-page">
       <AdminSubMenu type="groups" activeKey="create" />
 
+      {/* ===== Topbar ===== */}
       <div className="cg-topbar">
         <button className="btn-ghost" onClick={() => navigate("/admin/groups")}>
-          ← Назад
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Назад
         </button>
         <button
           type="submit"
@@ -77,11 +81,12 @@ export default function AdminCreateGroupPage() {
         </button>
       </div>
 
+      {/* ===== Content ===== */}
       <div className="cg-content-wrap">
         <form id="cg-form" className="cg-grid" onSubmit={handleSubmit}>
-          {/* ====== Левая колонка ====== */}
+          {/* Левая колонка */}
           <div className="main-col">
-            <div className="card">
+            <div className="card no-radius">
               <div className="card-title">Основная информация</div>
 
               <div className="field-col">
@@ -121,9 +126,9 @@ export default function AdminCreateGroupPage() {
             </div>
           </div>
 
-          {/* ====== Правая колонка ====== */}
+          {/* Правая колонка */}
           <div className="side-col">
-            <div className="card">
+            <div className="card no-radius">
               <div className="card-title">Изображение</div>
               <div
                 className="upload-box"
@@ -131,15 +136,7 @@ export default function AdminCreateGroupPage() {
               >
                 {!preview ? (
                   <div className="upload-placeholder">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="32"
-                      height="32"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                     <p>Выберите файл или перетащите сюда</p>

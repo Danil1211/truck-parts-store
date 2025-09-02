@@ -1,125 +1,65 @@
-/* =====================================================================
-   Create Group Page — строгий Apple стиль
-   ===================================================================== */
+/* frontend/src/assets/AdminCreateGroupPage.css */
 
-.add-group .cg-topbar {
-  position: fixed;
-  top: var(--topbar-h);
-  left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 0;
-  height: 56px;
+/* убираем скругления у блоков */
+.add-group .card.no-radius {
+  border-radius: 0;
+}
+
+/* Topbar */
+.cg-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 56px;
   padding: 0 20px;
-  background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  z-index: 120;
-}
-@media (max-width: 1100px) {
-  .add-group .cg-topbar {
-    left: var(--sidebar-w);
-  }
 }
 
-.add-group .cg-content-wrap {
-  padding-top: 70px;
-  margin-left: calc(var(--sidebar-w) + var(--submenu-w));
-  padding-right: 20px;
-}
-@media (max-width: 1100px) {
-  .add-group .cg-content-wrap {
-    margin-left: var(--sidebar-w);
-  }
-}
-
-.add-group .cg-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
-}
-@media (max-width: 1100px) {
-  .add-group .cg-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Card — без скруглений */
-.card {
-  background: #fff;
-  border: 1px solid #e6ebf2;
-  border-radius: 0;
-  padding: 20px 22px;
-}
-.card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 14px;
-}
-
-/* Fields */
-.field-col {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-.field-col label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #334155;
-}
-.field-col input,
-.field-col select,
-.field-col textarea {
-  width: 100%;
-  border: 1.5px solid #d0d7e2;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #0f172a;
-  background: #f9fbfd;
-  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-  min-height: 40px;
-}
-.field-col input:focus,
-.field-col select:focus,
-.field-col textarea:focus {
-  border-color: #007aff;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
-  outline: none;
-}
-
-/* Upload */
-.upload-box {
-  border: 2px dashed #cbd5e1;
-  border-radius: 10px;
-  padding: 26px 18px;
-  text-align: center;
-  background: #f9fafb;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.upload-box:hover {
-  border-color: #007aff;
-  background: #f0f7ff;
-}
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.cg-topbar .btn-ghost {
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
 }
+
+.cg-topbar .btn-ghost:hover {
+  background: rgba(0,0,0,.04);
+}
+
+/* upload-box */
+.upload-box {
+  border: 1.5px dashed #cfd8e3;
+  padding: 20px;
+  text-align: center;
+  background: #f9fbfd;
+  cursor: pointer;
+  transition: border-color .18s ease;
+}
+
+.upload-box:hover {
+  border-color: var(--primary);
+}
+
 .upload-placeholder p {
   font-size: 14px;
-  color: #0f172a;
-  margin: 0;
+  margin: 8px 0 4px;
+  color: #475569;
 }
+
 .upload-placeholder small {
-  color: #64748b;
   font-size: 12px;
+  color: #94a3b8;
 }
 
 .preview-wrap {
@@ -128,8 +68,8 @@
   gap: 10px;
   align-items: center;
 }
+
 .preview-wrap img {
-  max-width: 220px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-width: 100%;
+  border: 1px solid #e2e8f0;
 }
