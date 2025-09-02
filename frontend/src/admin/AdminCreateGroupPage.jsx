@@ -112,7 +112,9 @@ export default function AdminCreateGroupPage() {
                   placeholder="Введите название группы"
                   required
                 />
-                <div className="muted">Например: «Амортизаторы», «Колодки тормозные»</div>
+                <div className="muted">
+                  Например: «Амортизаторы», «Колодки тормозные»
+                </div>
               </div>
             </div>
 
@@ -161,7 +163,11 @@ export default function AdminCreateGroupPage() {
               {preview && (
                 <div className="preview-wrap">
                   <img src={preview} alt="Preview" className="preview" />
-                  <button type="button" className="btn-ghost danger" onClick={clearPreview}>
+                  <button
+                    type="button"
+                    className="btn-ghost danger"
+                    onClick={clearPreview}
+                  >
                     Удалить
                   </button>
                 </div>

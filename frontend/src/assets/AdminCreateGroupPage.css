@@ -7,8 +7,8 @@
 /* Topbar */
 .add-group .cg-topbar {
   position: sticky;
-  top: 0;
-  z-index: 12;
+  top: var(--topbar-h); /* фиксим — теперь ниже глобального topbar */
+  z-index: 120;
   background: var(--surface);
   display:flex; align-items:center; justify-content:space-between;
   height:56px; padding:0 20px;
@@ -28,7 +28,11 @@
 .add-group .btn-primary:disabled{ opacity:.6; cursor:default }
 
 /* Формовая обвязка */
-.add-group .cg-form{ display:flex; flex-direction:column; gap:18px; padding:16px 20px; }
+.add-group .cg-form{
+  display:flex; flex-direction:column; gap:18px;
+  padding:20px;
+  margin-top:12px; /* отступ, чтобы не прилипало */
+}
 
 /* Разметка колонок */
 .add-group .layout-grid{
