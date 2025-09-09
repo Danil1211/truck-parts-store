@@ -22,62 +22,28 @@
 }
 @media (max-width:1100px){ .groups-topbar{ left: var(--sidebar-w) } }
 
-.groups-h1{
-  font-weight: 600;
-  font-size: 17px;
-  color: #0f172a;
-  letter-spacing: .2px;
-  white-space: nowrap;
-}
+.groups-h1{ font-weight: 600; font-size: 17px; color: #0f172a; letter-spacing: .2px; white-space: nowrap }
 .groups-h1 .count{ color:#117fff }
 
 .groups-search{
-  flex: 0 1 360px;
-  width: 360px;
-  max-width: 40vw;
-  height: 38px;
-  line-height: 38px;
-  padding: 0 14px 0 34px;
-  border-radius: 12px;
-  border: 1px solid #d0d7e2;
-  background:
-    #f9fbfd
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364758b' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E")
-    10px 50% no-repeat;
-  background-size: 14px;
-  font-size: 14px;
-  color: #0f172a;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
-  transition: all .2s ease;
+  flex: 0 1 360px; width: 360px; max-width: 40vw;
+  height: 38px; line-height: 38px; padding: 0 14px 0 34px; border-radius: 12px; border: 1px solid #d0d7e2;
+  background:#f9fbfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364758b' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") 10px 50% no-repeat;
+  background-size: 14px; font-size: 14px; color: #0f172a; box-shadow: inset 0 1px 2px rgba(0,0,0,.05); transition: all .2s ease;
 }
-.groups-search:focus{
-  border-color:#007aff;
-  background-color:#fff;
-  box-shadow:0 0 0 3px rgba(0,122,255,.15);
-  outline:none;
-}
+.groups-search:focus{ border-color:#007aff; background-color:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none }
 
 .flex-spacer{ flex: 1 1 auto }
-
 .add-btn{ height:38px; padding:0 16px; border-radius:10px; font-size:14px; margin-left:8px }
 
-/* ===== body under page topbar — небольшая щель, БЕЗ боковых отступов ===== */
-.groups-body{
-  padding: 14px 0 18px;   /* top чуть-чуть воздуха, слева/справа 0 */
-}
+/* ===== body under page topbar — небольшая щель, без боковых отступов ===== */
+.groups-body{ padding: 12px 0 18px; }
 .groups-card{ margin-top: 0 !important; }
 
 /* ===== unified card — вся ширина контента, без скруглений ===== */
 .groups-card{
-  width:100%;
-  background:#fff;
-  border-radius:0;                 /* убрали скругления */
-  box-shadow:0 2px 12px #2291ff11;
-  overflow:hidden;
-  display:grid;
-  grid-template-columns:420px 1fr;
-  gap:0;
-  min-height:520px;
+  width:100%; background:#fff; border-radius:0; box-shadow:0 2px 12px #2291ff11;
+  overflow:hidden; display:grid; grid-template-columns:420px 1fr; gap:0; min-height:520px;
 }
 @media (max-width:980px){ .groups-card{ grid-template-columns:1fr } }
 
@@ -85,7 +51,7 @@
 .col-left{ border-right:1px solid #eef2f7; padding:14px 16px }
 @media (max-width:980px){ .col-left{ border-right:none; border-bottom:1px solid #eef2f7 } }
 .col-right{ padding:14px 20px; max-height:calc(100vh - 200px); overflow:auto }
-.right-title{ font-weight:600; font-size:17px; color:#117fff; margin-bottom:12px }
+.right-title{ font-weight:600; font-size:17px; color:#0f172a; margin-bottom:12px } /* ← чёрный */
 .muted{ color:#96a2b3; font-size:14px }
 .muted.center{ text-align:center }
 .muted.center.big{ margin:48px 0 32px; font-size:16px }
@@ -116,17 +82,22 @@
 .icon-btn .icon{ width:18px; height:18px; stroke:#117fff; fill:none; stroke-width:2 }
 .icon-btn.danger .icon{ stroke:#e33c3c }
 
-/* Right products list */
+/* Right products list: Фото | Название+код | Наличие */
 .prod-row{
-  display:grid; grid-template-columns:56px 1fr 110px 44px; align-items:center; gap:14px;
-  padding:10px 0; border-bottom:1px solid #f0f3f8;
+  display:grid; grid-template-columns:56px 1fr 160px; align-items:center; gap:16px;
+  padding:12px 0; border-bottom:1px solid #f0f3f8;
 }
-.pr-thumb{ width:56px; height:56px; border-radius:12px; object-fit:contain; background:#f1f5f9 }
+.pr-thumb{ width:56px; height:56px; border-radius:12px; object-fit:cover; background:#f1f5f9 }
 .pr-info{ min-width:0 }
-.pr-name{ font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.pr-name{ font-size:15px; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
 .pr-sku{ color:#96a2b3; font-size:13px; margin-top:2px }
-.pr-price{ justify-self:end; font-weight:600; color:#117fff; font-size:14px; white-space:nowrap }
-.pr-edit{ justify-self:end; background:transparent; border:1px solid #2291ff; border-radius:10px; padding:6px 8px; cursor:pointer }
+.pr-stock{
+  justify-self:end; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:600;
+  border:1px solid transparent; white-space:nowrap;
+}
+.pr-stock.ok{ color:#15803d; background:#e9f9f0; border-color:#b7f0cc }
+.pr-stock.pre{ color:#a96200; background:#fff4e5; border-color:#ffd9a8 }
+.pr-stock.out{ color:#b91c1c; background:#ffecec; border-color:#ffb2b2 }
 
 /* Modal tweaks */
 .modal-title.danger{ color:#ff3333 }

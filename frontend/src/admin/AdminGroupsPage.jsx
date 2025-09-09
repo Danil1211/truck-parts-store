@@ -13,7 +13,6 @@ function buildTree(groups, parentId = null) {
     .map((g) => ({ ...g, children: buildTree(groups, g._id) }));
 }
 const isRoot = (g) => g?.name === "Родительская группа" && !g?.parentId;
-const currencySign = (c) => (c === "UAH" ? "₴" : c === "USD" ? "$" : c === "EUR" ? "€" : c || "");
 
 const IconChevron = ({ open }) => (
   <svg className={`g-chevron${open ? " open" : ""}`} viewBox="0 0 24 24" aria-hidden="true">
@@ -126,6 +125,14 @@ function Rows({
   });
 }
 
+/* helpers для наличия */
+const STOCK_LABEL = {
+  in_stock: "В наличии",
+  preorder: "Под заказ",
+  out: "Нет в наличии",
+};
+const stockCls = (s) => (s === "in_stock" ? "ok" : s === "preorder" ? "pre" : "out");
+
 export default function AdminGroupsPage() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
@@ -179,19 +186,13 @@ export default function AdminGroupsPage() {
         <h1 className="groups-h1">
           Группы <span className="count">({groups.length})</span>
         </h1>
-
-        {/* поиск СЛЕВА отступом от заголовка */}
         <input
           className="groups-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Поиск по группам"
         />
-
-        {/* расталкиватель */}
         <div className="flex-spacer" />
-
-        {/* кнопка справа */}
         <button
           type="button"
           className="btn-primary add-btn"
@@ -201,7 +202,7 @@ export default function AdminGroupsPage() {
         </button>
       </div>
 
-      {/* ===== BODY under fixed page-topbar ===== */}
+      {/* ===== BODY ===== */}
       <div className="groups-body">
         <div className="groups-card">
           <div className="col-left">
@@ -229,14 +230,14 @@ export default function AdminGroupsPage() {
               <>
                 <div className="right-title">Товары группы</div>
                 {products.length === 0 && <div className="muted">Нет товаров</div>}
+
                 {products.map((p) => {
                   const cover = p?.images?.[0]
                     ? p.images[0].startsWith("http")
                       ? p.images[0]
                       : `${BASE_URL}${p.images[0]}`
                     : "https://dummyimage.com/60x60/eeeeee/bbb.png&text=IMG";
-                  const price = p?.retailPrice ?? p?.price ?? 0;
-                  const cur = currencySign(p?.retailCurrency || "UAH");
+                  const s = p?.stockState || "in_stock";
                   return (
                     <div key={p._id} className="prod-row">
                       <img className="pr-thumb" src={cover} alt="" loading="lazy" />
@@ -244,15 +245,7 @@ export default function AdminGroupsPage() {
                         <div className="pr-name" title={p.name}>{p.name}</div>
                         <div className="pr-sku">{p.sku || p._id}</div>
                       </div>
-                      <div className="pr-price">{price ? `${price} ${cur}` : "—"}</div>
-                      <button
-                        type="button"
-                        className="pr-edit"
-                        onClick={() => navigate(`/admin/products/${p._id}/edit`)}
-                        title="Редактировать товар"
-                      >
-                        <IconEdit />
-                      </button>
+                      <div className={`pr-stock ${stockCls(s)}`}>{STOCK_LABEL[s] || "—"}</div>
                     </div>
                   );
                 })}
