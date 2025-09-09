@@ -1,5 +1,9 @@
-/* ===== Базовые переменные (у тебя уже есть в AdminPanel.css, дублирую локально на всякий) ===== */
-.add-group{
+/* ========================================================================
+   AdminCreateGroupPage — Apple style
+   ======================================================================== */
+
+/* ===== Базовые переменные (локально, чтобы не зависеть от AdminPanel.css) ===== */
+.add-group {
   --topbar-h: 56px;
   --sidebar-w: 76px;       /* ширина левого икон-сайдбара */
   --submenu-w: 240px;      /* ширина текстового подменю (AdminSubMenu) */
@@ -11,165 +15,263 @@
 }
 
 /* ===== Макет: показываем левое подменю и тянем контент ===== */
-.admin-content.with-submenu.add-group{
+.admin-content.with-submenu.add-group {
   padding-left: calc(var(--sidebar-w) + var(--submenu-w)); /* резерв под левое меню */
   padding-right: 0;
+  padding-top: 0 !important; /* убираем лишний отступ */
 }
 
-/* убираем верхний отступ контента */
-.add-group .cg-content-wrap{ padding: 0 20px 24px; }
+.admin-content.add-group {
+  padding-top: 0 !important; /* защита */
+}
 
 /* ===== Topbar ===== */
-.add-group .cg-topbar{
-  position: sticky; top: 0; z-index: 12;
+.add-group .cg-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
   height: var(--topbar-h);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: #fff;
   padding: 0 20px;
   border-bottom: 1px solid #e5eaf0;
-}
-
-/* кнопка Назад — ghost */
-.add-group .btn-ghost.cg-back{
-  display:inline-flex; align-items:center; gap:8px;
-  height: 34px; padding: 0 10px;
-  background: transparent; border: 1px solid transparent;
-  border-radius: 10px; color: var(--primary);
-  font-size: 14px; font-weight: 500; cursor: pointer;
-  transition: background .18s ease, border-color .18s ease;
-}
-.add-group .btn-ghost.cg-back:hover{ background: rgba(0,0,0,.04); border-color: #e8edf5; }
-.add-group .btn-ghost.cg-back svg{ width:18px; height:18px; }
-
-.add-group .btn-primary{
-  display:inline-flex; align-items:center; justify-content:center;
-  height: 36px; padding: 0 16px; border: none; border-radius: 12px;
-  background: linear-gradient(180deg,#2da8ff,#007aff);
-  color:#fff; font-size:14px; font-weight:500; cursor:pointer;
-  box-shadow: 0 3px 9px rgba(0,122,255,.25);
-}
-.add-group .btn-primary:disabled{ opacity:.6; cursor: default; }
-
-/* ===== Сетка формы ===== */
-.add-group .layout-grid{
-  display: grid;
-  grid-template-columns: minmax(0,1fr) 360px; /* левая тянется, правая фикс */
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width:1100px){
-  .admin-content.with-submenu.add-group{ padding-left: var(--sidebar-w); }
-  .add-group .layout-grid{ grid-template-columns: 1fr; }
-}
-
-/* ===== Карточки и поля ===== */
-.add-group .card{
-  background:#fff; border:1px solid #e6ebf2; border-radius:16px; overflow:hidden;
-}
-.add-group .card-title{
-  padding:14px 16px; border-bottom:1px solid #eef2f7; font-weight:600; color:var(--text);
-}
-.add-group .field-col{
-  padding:14px 16px; display:flex; flex-direction:column; gap:8px;
-}
-.add-group .field-col label{ font-size:13px; color:#334155; font-weight:500; }
-
-.add-group input[type="text"],
-.add-group select,
-.add-group textarea{
-  width:100%;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:10px 12px;
-  font-size:14px; color:var(--text);
-  background:#f9fbfd;
-  outline:none;
-  transition:border-color .18s, box-shadow .18s, background .18s;
-}
-.add-group input:focus,
-.add-group select:focus,
-.add-group textarea:focus{
-  border-color:var(--primary); background:#fff; box-shadow:0 0 0 6px rgba(0,122,255,.10);
-}
-
-/* LocalEditor — единый вид */
-.add-group .field-col :where([contenteditable="true"], .le-editor, .editor){
-  border:1px solid var(--line); border-radius:12px; background:#fff; min-height:160px; padding:10px;
-}
-.add-group .field-col :where([contenteditable="true"], .le-editor, .editor):focus{
-  border-color:var(--primary); box-shadow:0 0 0 6px rgba(0,122,255,.10); outline:none;
-}
-
-/* ===== Upload (новый) ===== */
-.add-group .upload-zone{
-  margin: 16px;
-  border-radius: 16px;
-  border: 1.5px dashed #cfd8e3;
-  background:
-    radial-gradient(120% 120% at 50% 0%, rgba(0,122,255,.06) 0%, rgba(0,122,255,0) 60%),
-    #f9fbfd;
-  min-height: 240px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: border-color .18s ease, box-shadow .18s ease, transform .06s ease;
-}
-.add-group .upload-zone:hover{
-  border-color: var(--primary);
-  box-shadow: 0 8px 22px rgba(0,122,255,.08), 0 2px 4px rgba(0,0,0,.04);
-  transform: translateY(-1px);
-}
-.add-group .upload-zone.dragging{
-  border-color: var(--primary);
-  box-shadow: inset 0 0 0 4px rgba(0,122,255,.12);
-}
-
-.add-group .upload-inner{ display:flex; flex-direction:column; align-items:center; gap:12px; padding:18px; text-align:center; }
-.add-group .upload-text p{ font-size:14px; color:#475569; margin:0; }
-.add-group .upload-text small{ font-size:12px; color:var(--muted); }
-
-.add-group .upload-badge{
-  width:72px; height:72px; border-radius:16px;
-  display:flex; align-items:center; justify-content:center;
-  background: linear-gradient(180deg,#ffffff,#f3f6fb);
-  border: 1px solid #e6ebf2;
-  box-shadow: 0 1px 2px rgba(0,0,0,.05), inset 0 0 0 6px rgba(0,122,255,.05);
-}
-.add-group .upload-badge .plus{
-  font-size:28px; line-height:1; color:#0a84ff; font-weight:600;
-}
-
-/* preview */
-.add-group .preview-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:16px; }
-.add-group .preview-frame{
-  width:100%; max-width:260px; aspect-ratio:1/1; overflow:hidden;
-  border:1px solid #e2e8f0; border-radius:16px; background:#fff;
-  box-shadow: 0 6px 20px rgba(15,23,42,.06);
-}
-.add-group .preview-frame img{ width:100%; height:100%; object-fit:cover; display:block; }
-.add-group .preview-actions{ display:flex; gap:8px; }
-.add-group .preview-actions .btn-ghost{
-  padding:8px 10px; border-radius:10px; border:1px solid transparent; background:transparent; color:#0a84ff; cursor:pointer;
-}
-.add-group .preview-actions .btn-ghost:hover{ background:rgba(15,23,42,.04); }
-
-.add-group .hint{ padding:0 16px 16px; font-size:12.5px; color:var(--muted); }
-
-
-/* ——— Снять верхний отступ контейнера контента на этой странице ——— */
-.admin-content.add-group,
-.admin-content.with-submenu.add-group{
-  padding-top: 0 !important;
-}
-
-/* На всякий пожарный: убираем любые внешние отступы у локального топбара */
-.add-group .cg-topbar{
   margin-top: 0 !important;
   border-top: none;
 }
 
-/* отступ сверху от топбара */
+/* кнопка Назад */
+.add-group .btn-ghost.cg-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease;
+}
+.add-group .btn-ghost.cg-back:hover {
+  background: rgba(0, 0, 0, .04);
+  border-color: #e8edf5;
+}
+.add-group .btn-ghost.cg-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* кнопка Сохранить */
+.add-group .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #2da8ff, #007aff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 3px 9px rgba(0, 122, 255, .25);
+}
+.add-group .btn-primary:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
+/* ===== Контент ===== */
 .add-group .cg-content-wrap {
-  padding: 0 0 28px;
-  padding-right: var(--submenu-w);
-  margin-top: 20px;   /* ✅ вот это добавляем */
+  padding: 0 20px 28px;
+  margin-top: 20px; /* отступ от топбара */
+}
+
+/* ===== Сетка формы ===== */
+.add-group .layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .admin-content.with-submenu.add-group {
+    padding-left: var(--sidebar-w);
+  }
+  .add-group .layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Карточки и поля ===== */
+.add-group .card {
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.add-group .card-title {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef2f7;
+  font-weight: 600;
+  color: var(--text);
+}
+.add-group .field-col {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.add-group .field-col label {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.add-group input[type="text"],
+.add-group select,
+.add-group textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: #f9fbfd;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.add-group input:focus,
+.add-group select:focus,
+.add-group textarea:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 6px rgba(0, 122, 255, .10);
+}
+
+/* LocalEditor */
+.add-group .field-col :where([contenteditable="true"], .le-editor, .editor) {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  min-height: 160px;
+  padding: 10px;
+}
+.add-group .field-col :where([contenteditable="true"], .le-editor, .editor):focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 6px rgba(0, 122, 255, .10);
+  outline: none;
+}
+
+/* ===== Upload ===== */
+.add-group .upload-zone {
+  margin: 16px;
+  border-radius: 16px;
+  border: 1.5px dashed #cfd8e3;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(0, 122, 255, .06) 0%, rgba(0, 122, 255, 0) 60%),
+    #f9fbfd;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .06s ease;
+}
+.add-group .upload-zone:hover {
+  border-color: var(--primary);
+  box-shadow: 0 8px 22px rgba(0, 122, 255, .08), 0 2px 4px rgba(0, 0, 0, .04);
+  transform: translateY(-1px);
+}
+.add-group .upload-zone.dragging {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 4px rgba(0, 122, 255, .12);
+}
+
+.add-group .upload-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  text-align: center;
+}
+.add-group .upload-text p {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+}
+.add-group .upload-text small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.add-group .upload-badge {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ffffff, #f3f6fb);
+  border: 1px solid #e6ebf2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05), inset 0 0 0 6px rgba(0, 122, 255, .05);
+}
+.add-group .upload-badge .plus {
+  font-size: 28px;
+  line-height: 1;
+  color: #0a84ff;
+  font-weight: 600;
+}
+
+/* preview */
+.add-group .preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+}
+.add-group .preview-frame {
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1/1;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, .06);
+}
+.add-group .preview-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.add-group .preview-actions {
+  display: flex;
+  gap: 8px;
+}
+.add-group .preview-actions .btn-ghost {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #0a84ff;
+  cursor: pointer;
+}
+.add-group .preview-actions .btn-ghost:hover {
+  background: rgba(15, 23, 42, .04);
+}
+
+.add-group .hint {
+  padding: 0 16px 16px;
+  font-size: 12.5px;
+  color: var(--muted);
 }
