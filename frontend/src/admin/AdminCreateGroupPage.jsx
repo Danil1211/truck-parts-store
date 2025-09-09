@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
 import LocalEditor from "../components/LocalEditor";
-
 import "../assets/AdminPanel.css";
-import "../assets/AdminAddProductPage.css"; // берём готовый лейаут/кнопки/карточки
-import "../assets/AdminCreateGroupPage.css"; // оверрайды под эту страницу
+import "../assets/AdminCreateGroupPage.css";
 
 export default function AdminCreateGroupPage() {
   const navigate = useNavigate();
@@ -20,7 +18,6 @@ export default function AdminCreateGroupPage() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -35,7 +32,9 @@ export default function AdminCreateGroupPage() {
   }, []);
 
   useEffect(() => {
-    return () => { if (preview) URL.revokeObjectURL(preview); };
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
   }, [preview]);
 
   const applyFile = (f) => {
@@ -51,13 +50,24 @@ export default function AdminCreateGroupPage() {
   };
 
   const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
     const f = e.dataTransfer.files?.[0];
     if (f) applyFile(f);
   };
-  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
-  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
   const clearImage = () => {
     setFile(null);
@@ -68,7 +78,10 @@ export default function AdminCreateGroupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) { alert("Введите название группы"); return; }
+    if (!name.trim()) {
+      alert("Введите название группы");
+      return;
+    }
     try {
       setSaving(true);
       const fd = new FormData();
@@ -89,17 +102,31 @@ export default function AdminCreateGroupPage() {
     <div className="admin-content with-submenu add-prod add-group groups-page">
       <AdminSubMenu type="groups" activeKey="create" />
 
-      {/* Topbar — как на AddProduct */}
-      <div className="addprod-topbar">
-        <button className="btn-ghost" onClick={() => navigate("/admin/groups")}>← Назад</button>
-        <button type="submit" form="add-group-form" disabled={saving} className="btn-primary">
-          {saving ? "Сохраняем..." : "Сохранить"}
+      {/* ===== Topbar ===== */}
+      <div className="cg-topbar">
+        <button
+          className="btn-ghost cg-back"
+          onClick={() => navigate("/admin/groups")}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Назад
+        </button>
+
+        <button
+          type="submit"
+          form="cg-form"
+          disabled={saving}
+          className="btn-primary"
+        >
+          {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
 
-      {/* Контент — тот же грид */}
-      <form id="add-group-form" className="addprod-form" onSubmit={handleSubmit}>
-        <div className="layout-grid">
+      {/* ===== Content ===== */}
+      <div className="cg-content-wrap">
+        <form id="cg-form" className="layout-grid" onSubmit={handleSubmit}>
           {/* Левая колонка */}
           <div className="main-col">
             <div className="card">
@@ -118,10 +145,15 @@ export default function AdminCreateGroupPage() {
 
               <div className="field-col">
                 <label>Родительская группа</label>
-                <select value={parentId} onChange={(e) => setParentId(e.target.value)}>
+                <select
+                  value={parentId}
+                  onChange={(e) => setParentId(e.target.value)}
+                >
                   <option value="">(Верхний уровень)</option>
                   {groups.map((g) => (
-                    <option key={g._id} value={g._id}>{g.name}</option>
+                    <option key={g._id} value={g._id}>
+                      {g.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -132,7 +164,7 @@ export default function AdminCreateGroupPage() {
                   value={description}
                   onChange={setDescription}
                   placeholder="Краткое описание группы (необязательно)"
-                  minHeight={200}
+                  minHeight={180}
                 />
               </div>
             </div>
@@ -149,9 +181,6 @@ export default function AdminCreateGroupPage() {
                 tabIndex={0}
                 aria-label="Загрузить изображение"
                 onClick={() => fileRef.current?.click()}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current?.click(); }
-                }}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -168,21 +197,39 @@ export default function AdminCreateGroupPage() {
                   </div>
                 ) : (
                   <div className="preview-wrap">
-                    <div className="preview-frame"><img src={preview} alt="preview" /></div>
+                    <div className="preview-frame">
+                      <img src={preview} alt="preview" />
+                    </div>
                     <div className="preview-actions">
-                      <button type="button" className="btn-ghost" onClick={clearImage}>Удалить</button>
-                      <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>Заменить</button>
+                      <button type="button" className="btn-ghost" onClick={clearImage}>
+                        Удалить
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        Заменить
+                      </button>
                     </div>
                   </div>
                 )}
-                <input type="file" accept="image/*" ref={fileRef} style={{ display: "none" }} onChange={handleFileChange} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileRef}
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
               </div>
 
-              <div className="hint">Изображение используется в списках и карточке группы.</div>
+              <div className="hint">
+                Изображение используется в списках и карточке группы.
+              </div>
             </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
