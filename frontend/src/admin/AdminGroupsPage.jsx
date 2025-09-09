@@ -1,138 +1,125 @@
-// frontend/src/admin/AdminGroupsPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSubMenu from "./AdminSubMenu";
 import "../assets/AdminPanel.css";
+import "../assets/AdminGroupsPage.css";
 import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
-const SUBMENU_WIDTH = 300;   // фактическая ширина фиксированного AdminSubMenu
-const SUBMENU_GAP = 20;      // зазор от меню, чтобы не «липло»
 
+/* =============== helpers =============== */
 function buildTree(groups, parentId = null) {
   return groups
     .filter((g) => String(g.parentId || "") === String(parentId || ""))
     .map((g) => ({ ...g, children: buildTree(groups, g._id) }));
 }
+const isRootGroup = (g) => g?.name === "Родительская группа" && !g?.parentId;
 
-/* ===== SVG иконки (без смайлов) ===== */
+/* =============== icons (SVG) =============== */
 const IconChevron = ({ open }) => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-       style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .12s", cursor: "pointer" }}
-       aria-hidden="true">
+  <svg className={`g-chevron${open ? " open" : ""}`} viewBox="0 0 24 24" aria-hidden="true">
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
-
 const IconBox = () => (
-  <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
-    <rect width="36" height="36" rx="7" fill="#e4e9f3" />
-    <path d="M9 13h18v12H9z" fill="none" stroke="#b8c2d3" strokeWidth="1.6" />
-    <path d="M9 13l9 5 9-5" fill="none" stroke="#b8c2d3" strokeWidth="1.6" />
+  <svg className="g-fallback" viewBox="0 0 36 36" aria-hidden="true">
+    <rect width="36" height="36" rx="7" />
+    <path d="M9 13h18v12H9z" />
+    <path d="M9 13l9 5 9-5" />
   </svg>
 );
-
-const IconEdit = ({ color = "#117fff" }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+const IconEdit = () => (
+  <svg className="icon edit" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M12 20h9" />
     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
   </svg>
 );
-
-const IconTrash = ({ color = "#e33c3c" }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+const IconTrash = () => (
+  <svg className="icon trash" viewBox="0 0 24 24" aria-hidden="true">
     <polyline points="3 6 5 6 21 6" />
     <path d="M19 6l-1 14H6L5 6" />
     <path d="M10 11v6M14 11v6" />
   </svg>
 );
 
-const IconEditSmall = ({ color = "#2291ff" }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M12 20h9" />
-    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-  </svg>
-);
-
-/* ===== строка дерева ===== */
-function renderGroupRows(
-  items, expanded, toggleExpand, selectedGroup, setSelectedGroup, onEdit, onDelete, level = 0
-) {
-  return items.map((group) => {
+/* =============== tree rows =============== */
+function Rows({
+  items,
+  expanded,
+  toggleExpand,
+  selectedGroup,
+  setSelectedGroup,
+  onEdit,
+  onDelete,
+  level = 0,
+}) {
+  return (items || []).map((group) => {
     const hasChildren = !!(group.children && group.children.length);
     const isExpanded = expanded.includes(group._id);
     const isSelected = selectedGroup === group._id;
-    const isParentGroup = group.name === "Родительская группа" && !group.parentId;
 
     return (
       <React.Fragment key={group._id}>
         <div
+          className={`group-row${isSelected ? " active" : ""}`}
+          style={{ "--level": level }}
           onClick={() => {
             if (hasChildren) toggleExpand(group._id);
             setSelectedGroup(group._id);
           }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            minHeight: 56,
-            padding: "10px 0",
-            borderRadius: 12,
-            marginBottom: 10,
-            background: isSelected ? "#eaf4ff" : "#f7fafd",
-            fontSize: 15,
-            color: isSelected ? "#157ce8" : "#232a3b",
-            gap: 10,
-            cursor: "pointer",
-            border: "1.5px solid",
-            borderColor: isSelected ? "#2291ff44" : "transparent",
-            marginLeft: level * 22,
-          }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div>
-              {group.img ? (
-                <img
-                  src={group.img.startsWith("http") ? group.img : `${BASE_URL}${group.img}`}
-                  alt={group.name}
-                  style={{ width: 36, height: 36, borderRadius: 7, objectFit: "cover", background: "#e9f3fa" }}
-                />
-              ) : (
-                <IconBox />
-              )}
-            </div>
-
-            {hasChildren && (
-              <span
-                onClick={(e) => { e.stopPropagation(); toggleExpand(group._id); }}
-                style={{ display: "inline-flex", alignItems: "center" }}
-              >
-                <IconChevron open={isExpanded} />
-              </span>
+          <div className="group-left">
+            {group.img ? (
+              <img
+                className="g-thumb"
+                src={group.img.startsWith("http") ? group.img : `${BASE_URL}${group.img}`}
+                alt={group.name}
+                loading="lazy"
+              />
+            ) : (
+              <IconBox />
             )}
 
-            <span style={{ fontWeight: 400, fontSize: 15, color: isSelected ? "#157ce8" : "#232a3b" }}>
-              {group.name}
-            </span>
+            {hasChildren ? (
+              <button
+                type="button"
+                className="chev-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpand(group._id);
+                }}
+                aria-label={isExpanded ? "Свернуть" : "Развернуть"}
+              >
+                <IconChevron open={isExpanded} />
+              </button>
+            ) : (
+              <span className="chev-spacer" aria-hidden="true" />
+            )}
+
+            <span className="group-name">{group.name}</span>
           </div>
 
-          {!isParentGroup && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, paddingRight: 6 }}>
+          {!isRootGroup(group) && (
+            <div className="group-actions">
               <button
-                style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer" }}
+                type="button"
+                className="icon-btn"
                 title="Редактировать"
-                onClick={(e) => { e.stopPropagation(); onEdit(group); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(group);
+                }}
               >
                 <IconEdit />
               </button>
               <button
-                style={{ background: "transparent", border: "none", padding: 4, cursor: "pointer" }}
+                type="button"
+                className="icon-btn danger"
                 title="Удалить"
-                onClick={(e) => { e.stopPropagation(); onDelete(group); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(group);
+                }}
               >
                 <IconTrash />
               </button>
@@ -140,16 +127,26 @@ function renderGroupRows(
           )}
         </div>
 
-        {hasChildren && isExpanded &&
-          renderGroupRows(items = group.children, expanded, toggleExpand, selectedGroup, setSelectedGroup, onEdit, onDelete, level + 1)}
+        {hasChildren && isExpanded && (
+          <Rows
+            items={group.children}
+            expanded={expanded}
+            toggleExpand={toggleExpand}
+            selectedGroup={selectedGroup}
+            setSelectedGroup={setSelectedGroup}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            level={level + 1}
+          />
+        )}
       </React.Fragment>
     );
   });
 }
 
+/* =============== page =============== */
 export default function AdminGroupsPage() {
   const navigate = useNavigate();
-
   const [groups, setGroups] = useState([]);
   const [expanded, setExpanded] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -157,10 +154,12 @@ export default function AdminGroupsPage() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [deleteModal, setDeleteModal] = useState(null);
-
   const rightPanelRef = useRef();
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
   useEffect(() => {
     if (selectedGroup) fetchProducts(selectedGroup);
     if (rightPanelRef.current) rightPanelRef.current.scrollTop = 0;
@@ -169,7 +168,7 @@ export default function AdminGroupsPage() {
   async function fetchGroups() {
     setLoading(true);
     try {
-      const { data } = await api.get(`/api/groups`);
+      const { data } = await api.get("/api/groups");
       setGroups(Array.isArray(data) ? data : []);
     } catch {
       setGroups([]);
@@ -179,222 +178,154 @@ export default function AdminGroupsPage() {
 
   async function fetchProducts(groupId) {
     try {
-      const { data } = await api.get(`/api/products`, { params: { group: groupId } });
+      const { data } = await api.get("/api/products", { params: { group: groupId } });
       setProducts(Array.isArray(data) ? data : []);
     } catch {
       setProducts([]);
     }
   }
 
-  const toggleExpand = (id) => {
+  const toggleExpand = (id) =>
     setExpanded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
 
-  function handleDeleteGroupClick(group) { setDeleteModal(group); }
+  const handleDeleteGroupClick = (group) => setDeleteModal(group);
 
   async function handleDeleteGroupConfirm() {
-    await api.delete(`/api/groups/${deleteModal._id}`);
-    setDeleteModal(null);
-    fetchGroups();
-    setSelectedGroup(null);
+    try {
+      await api.delete(`/api/groups/${deleteModal._id}`);
+      setDeleteModal(null);
+      fetchGroups();
+      setSelectedGroup(null);
+    } catch (e) {
+      alert("Ошибка удаления: " + (e?.response?.data?.error || e.message));
+    }
   }
 
-  function handleEditGroup(group) { navigate(`/admin/groups/edit/${group._id}`); }
+  const handleEditGroup = (group) => navigate(`/admin/groups/edit/${group._id}`);
 
   const filteredTree = search.trim()
     ? buildTree(groups.filter((g) => g.name.toLowerCase().includes(search.trim().toLowerCase())))
     : buildTree(groups);
 
+  const currencySign = (c) =>
+    c === "UAH" ? "₴" : c === "USD" ? "$" : c === "EUR" ? "€" : c || "";
+
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
-      <AdminSubMenu />
+    <div className="admin-content with-submenu groups-page">
+      <AdminSubMenu type="products" activeKey="groups" />
 
-      {/* контент смещён шириной меню + зазор */}
-      <div style={{
-        display: "flex",
-        flex: 1,
-        minWidth: 0,
-        marginLeft: SUBMENU_WIDTH + SUBMENU_GAP,
-        padding: "28px 16px"
-      }}>
-        {/* Левая панель — группы */}
-        <div
-          style={{
-            flex: "0 0 430px",
-            maxWidth: 460,
-            background: "#fff",
-            borderRadius: 20,
-            marginRight: 18,
-            padding: "22px",
-            boxShadow: "0 2px 12px #2291ff11",
-            minHeight: 640,
-            height: "calc(100vh - 100px)",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", gap: 12 }}>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по группам"
-              style={{
-                flex: 1,
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1.3px solid #e4e8ee",
-                background: "#f7fafb",
-                fontSize: 15,
-                outline: "none",
-              }}
-            />
-            <button
-              onClick={() => navigate("/admin/groups/create")}
-              style={{
-                background: "#2291ff",
-                color: "#fff",
-                borderRadius: 9,
-                border: "none",
-                padding: "10px 14px",
-                fontSize: 14,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              + Добавить
-            </button>
-          </div>
+      {/* header */}
+      <div className="groups-header">
+        <div className="groups-header-left">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="groups-search"
+            placeholder="Поиск по группам"
+          />
+        </div>
+        <div className="groups-header-right">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate("/admin/groups/create")}
+          >
+            + Добавить группу
+          </button>
+        </div>
+      </div>
 
-          <div style={{ color: "#828ca6", fontSize: 14, marginBottom: 8, paddingLeft: 2 }}>
-            Название группы
-          </div>
+      {/* content */}
+      <div className="groups-content-wrap">
+        {/* left */}
+        <div className="groups-left">
+          <div className="tree-caption">Название группы</div>
 
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-            {loading && <div style={{ textAlign: "center", color: "#888", marginTop: 12 }}>Загрузка…</div>}
-            {renderGroupRows(
-              filteredTree, expanded, toggleExpand, selectedGroup, setSelectedGroup, handleEditGroup, handleDeleteGroupClick
+          <div className="groups-tree">
+            {loading && <div className="muted center">Загрузка…</div>}
+
+            {!loading && filteredTree.length > 0 && (
+              <Rows
+                items={filteredTree}
+                expanded={expanded}
+                toggleExpand={toggleExpand}
+                selectedGroup={selectedGroup}
+                setSelectedGroup={setSelectedGroup}
+                onEdit={handleEditGroup}
+                onDelete={handleDeleteGroupClick}
+              />
             )}
-            {filteredTree.length === 0 && !loading && (
-              <div style={{ color: "#a8a8ad", marginTop: 24, fontSize: 16, textAlign: "center" }}>Нет групп</div>
+
+            {!loading && filteredTree.length === 0 && (
+              <div className="muted center empty">Нет групп</div>
             )}
           </div>
         </div>
 
-        {/* Правая панель — товары выбранной группы */}
-        <div
-          ref={rightPanelRef}
-          style={{
-            flex: 1,
-            background: "#fff",
-            borderRadius: 20,
-            padding: "22px 24px",
-            boxShadow: "0 2px 12px #2291ff11",
-            minHeight: 640,
-            height: "calc(100vh - 100px)",
-            overflow: "auto",
-          }}
-        >
+        {/* right */}
+        <div ref={rightPanelRef} className="groups-right">
           {selectedGroup ? (
             <>
-              <div style={{ fontWeight: 600, fontSize: 18, color: "#2291ff", marginBottom: 14 }}>
-                Товары группы
-              </div>
+              <div className="groups-right-title">Товары группы</div>
 
               {products.length === 0 && (
-                <div style={{ color: "#a0adc2", marginTop: 12, fontSize: 16 }}>Нет товаров в этой группе</div>
+                <div className="muted">Нет товаров в этой группе</div>
               )}
 
-              {products.map((product) => (
-                <div
-                  key={product._id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "12px 0",
-                    borderBottom: "1px solid #f0f3f8",
-                    gap: 16,
-                  }}
-                >
-                  <img
-                    src={
-                      product.images?.[0]
-                        ? (product.images[0].startsWith("http") ? product.images[0] : `${BASE_URL}${product.images[0]}`)
-                        : "https://dummyimage.com/60x60/eeeeee/bbb.png&text=IMG"
-                    }
-                    alt={product.name}
-                    style={{ width: 52, height: 52, borderRadius: 12, objectFit: "contain" }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {product.name}
+              {products.map((p) => {
+                const cover = p?.images?.[0]
+                  ? p.images[0].startsWith("http")
+                    ? p.images[0]
+                    : `${BASE_URL}${p.images[0]}`
+                  : "https://dummyimage.com/60x60/eeeeee/bbb.png&text=IMG";
+
+                const price = p?.retailPrice ?? p?.price ?? 0;
+                const cur = currencySign(p?.retailCurrency || "UAH");
+
+                return (
+                  <div key={p._id} className="group-product-row">
+                    <img className="gp-thumb" src={cover} alt="" loading="lazy" />
+                    <div className="gp-info">
+                      <div className="gp-name" title={p.name}>{p.name}</div>
+                      <div className="gp-sku">{p.sku || p._id}</div>
                     </div>
-                    <div style={{ color: "#96a2b3", fontSize: 13 }}>{product.sku || product._id}</div>
+                    <div className="gp-price">
+                      {price ? `${price} ${cur}` : "—"}
+                    </div>
+                    <button
+                      type="button"
+                      className="gp-edit"
+                      title="Редактировать товар"
+                      onClick={() => navigate(`/admin/products/${p._id}/edit`)}
+                    >
+                      <IconEdit />
+                    </button>
                   </div>
-                  <div style={{ fontWeight: 500, color: "#2291ff", fontSize: 15, marginLeft: "auto" }}>
-                    {product.price} ₴
-                  </div>
-                  <button
-                    onClick={() => navigate(`/admin/products/${product._id}/edit`)}
-                    style={{
-                      background: "transparent",
-                      border: "1px solid #2291ff",
-                      borderRadius: 8,
-                      padding: "6px 8px",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginLeft: 8,
-                    }}
-                    title="Редактировать товар"
-                  >
-                    <IconEditSmall />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </>
           ) : (
-            <div style={{ color: "#b8b8c3", fontSize: 18, textAlign: "center", marginTop: 120 }}>
+            <div className="groups-right-empty">
               Выберите группу или подгруппу для просмотра товаров
             </div>
           )}
         </div>
       </div>
 
-      {/* Модалка удаления */}
+      {/* delete modal */}
       {deleteModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.12)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
-          onClick={() => setDeleteModal(null)}
-        >
-          <div
-            style={{ background: "#fff", borderRadius: 14, padding: 28, minWidth: 320, boxShadow: "0 6px 28px rgba(0,0,0,.12)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#ff3333", marginBottom: 10 }}>Удалить группу?</div>
-            <div style={{ color: "#333", fontSize: 14, marginBottom: 18, textAlign: "center", lineHeight: 1.4 }}>
-              Группа <b style={{ color: "#2291ff" }}>{deleteModal.name}</b> будет удалена.<br />
-              Товары останутся в системе без группы. Действие необратимо.
-            </div>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button
-                onClick={() => setDeleteModal(null)}
-                style={{ background: "#eaf4ff", color: "#157ce8", border: "none", borderRadius: 8, padding: "9px 22px", cursor: "pointer" }}
-              >
+        <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title danger">Удалить группу?</div>
+            <p className="modal-text">
+              Группа <b className="highlight">{deleteModal.name}</b> будет удалена.
+              <br /> Товары останутся в системе без группы. Действие необратимо.
+            </p>
+            <div className="modal-actions">
+              <button className="btn-ghost" onClick={() => setDeleteModal(null)}>
                 Отмена
               </button>
-              <button
-                onClick={handleDeleteGroupConfirm}
-                style={{ background: "#e33c3c", color: "#fff", border: "none", borderRadius: 8, padding: "9px 22px", cursor: "pointer" }}
-              >
+              <button className="btn-primary danger" onClick={handleDeleteGroupConfirm}>
                 Удалить
               </button>
             </div>
