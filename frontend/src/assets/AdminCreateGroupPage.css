@@ -166,3 +166,10 @@
   margin-top: 0 !important;
   border-top: none;
 }
+
+/* отступ сверху от топбара */
+.add-group .cg-content-wrap {
+  padding: 0 0 28px;
+  padding-right: var(--submenu-w);
+  margin-top: 20px;   /* ✅ вот это добавляем */
+}
