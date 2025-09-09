@@ -1,3 +1,4 @@
+// backend/middleware/withTenant.js
 const jwt = require('jsonwebtoken');
 const { Types } = require('mongoose');
 const { Tenant } = require('../models/models');
@@ -43,31 +44,23 @@ async function findTenantByIdMaybe(val) {
 
 module.exports = async function withTenant(req, res, next) {
   try {
-    // health / root пусть проходят
-    if (req.method === 'HEAD' || req.path === '/' || req.path === '/healthz') {
+    // технические эндпоинты/методы пропускаем
+    if (req.method === 'HEAD' || req.method === 'OPTIONS' || req.path === '/' || req.path === '/healthz') {
       return next();
     }
 
-    // 1) x-tenant-id
+    // 1) X-Tenant-Id / X-Tenant
     const headerTid = (req.headers['x-tenant-id'] || req.headers['x-tenant'] || '').toString().trim();
     if (headerTid) {
       const t = await findTenantByIdMaybe(headerTid);
-      if (t) {
-        req.tenant = t;
-        req.tenantId = t._id.toString();
-        return next();
-      }
+      if (t) { req.tenant = t; req.tenantId = t._id.toString(); return next(); }
     }
 
-    // 2) ?tenant / ?tid
+    // 2) query ?tenant / ?tid
     const queryTid = (req.query?.tenant || req.query?.tid || '').toString().trim();
     if (queryTid) {
       const t = await findTenantByIdMaybe(queryTid);
-      if (t) {
-        req.tenant = t;
-        req.tenantId = t._id.toString();
-        return next();
-      }
+      if (t) { req.tenant = t; req.tenantId = t._id.toString(); return next(); }
     }
 
     // 3) cookie=tid
@@ -75,14 +68,10 @@ module.exports = async function withTenant(req, res, next) {
     const m = cookie.match(/(?:^|;\s*)tid=([a-f0-9]{24})/i);
     if (m?.[1]) {
       const t = await findTenantByIdMaybe(m[1]);
-      if (t) {
-        req.tenant = t;
-        req.tenantId = t._id.toString();
-        return next();
-      }
+      if (t) { req.tenant = t; req.tenantId = t._id.toString(); return next(); }
     }
 
-    // 4) Authorization Bearer (jwt.decode достаточно – мы лишь читаем payload)
+    // 4) Authorization: Bearer <jwt> (только читаем payload)
     const auth = (req.headers.authorization || '').trim();
     if (auth.toLowerCase().startsWith('bearer ')) {
       const token = auth.slice(7).trim();
@@ -91,16 +80,12 @@ module.exports = async function withTenant(req, res, next) {
         const tid = payload?.tenantId || payload?.tid;
         if (tid) {
           const t = await findTenantByIdMaybe(tid);
-          if (t) {
-            req.tenant = t;
-            req.tenantId = t._id.toString();
-            return next();
-          }
+          if (t) { req.tenant = t; req.tenantId = t._id.toString(); return next(); }
         }
       } catch {}
     }
 
-    // 5) hostы
+    // 5) hostы: Origin / Referer / X-Forwarded-Host / Host
     const originHost  = toHostname(req.headers.origin);
     const refererHost = toHostname(req.headers.referer);
     const xfwdHost    = toHostname(req.headers['x-forwarded-host']);
@@ -112,25 +97,30 @@ module.exports = async function withTenant(req, res, next) {
       (xfwdHost    && await findTenantByHostname(xfwdHost)) ||
       (host        && await findTenantByHostname(host));
 
-    if (!t) {
-      console.error("❌ Tenant not resolved", {
-        method: req.method,
-        path: req.path,
-        originHost, refererHost, xfwdHost, host,
-        headers: {
-          host: req.headers.host,
-          origin: req.headers.origin,
-          referer: req.headers.referer,
-          'x-tenant-id': req.headers['x-tenant-id'],
-          authorization: req.headers.authorization ? 'present' : 'absent',
-        }
-      });
-      return res.status(403).json({ error: 'Tenant not resolved' });
+    if (t) { req.tenant = t; req.tenantId = t._id.toString(); return next(); }
+
+    // 6) ПОСЛЕДНИЙ резерв — тело запроса (JSON/FormData)
+    const bodyTid = (req.body?.tenantId || req.body?.tenant || req.body?.tid || '').toString().trim();
+    if (bodyTid) {
+      const tb = await findTenantByIdMaybe(bodyTid);
+      if (tb) { req.tenant = tb; req.tenantId = tb._id.toString(); return next(); }
     }
 
-    req.tenant = t;
-    req.tenantId = t._id.toString();
-    return next();
+    // фейл — лог и 404, чтобы совпадало с прежней ошибкой в UI
+    console.error("❌ Tenant not resolved", {
+      method: req.method,
+      path: req.path,
+      originHost, refererHost, xfwdHost, host,
+      headers: {
+        host: req.headers.host,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        'x-tenant-id': req.headers['x-tenant-id'],
+        authorization: req.headers.authorization ? 'present' : 'absent',
+        contentType: req.headers['content-type']
+      }
+    });
+    return res.status(404).json({ error: 'Ресурс не найден' });
   } catch (e) {
     console.error('withTenant error:', e);
     return res.status(500).json({ error: 'Tenant resolver error' });
