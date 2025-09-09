@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Groups — fixed page topbar + full-width unified card
+   Groups — fixed page topbar + full-width unified card (full-bleed)
    ========================================================================== */
 
 .groups-page { padding-bottom: 20px; }
@@ -61,19 +61,17 @@
 
 .add-btn{ height:38px; padding:0 16px; border-radius:10px; font-size:14px; margin-left:8px }
 
-/* ===== body under page topbar — БЕЗ лишнего зазора ===== */
+/* ===== body under page topbar — небольшая щель, БЕЗ боковых отступов ===== */
 .groups-body{
-  /* компенсируем фиксированный локальный топбар и оставляем крошечный зазор */
-  padding: 15px 16px 18px;
-  /* убираем случайные внешние отступы сверху у вложенных блоков */
+  padding: 12px 0 18px;   /* top чуть-чуть воздуха, слева/справа 0 */
 }
 .groups-card{ margin-top: 0 !important; }
 
-/* ===== unified card — вся ширина контента ===== */
+/* ===== unified card — вся ширина контента, без скруглений ===== */
 .groups-card{
   width:100%;
   background:#fff;
-  border-radius:20px;
+  border-radius:0;                 /* убрали скругления */
   box-shadow:0 2px 12px #2291ff11;
   overflow:hidden;
   display:grid;
@@ -84,7 +82,7 @@
 @media (max-width:980px){ .groups-card{ grid-template-columns:1fr } }
 
 /* Columns */
-.col-left{ border-right:1px solid #eef2f7; padding:14px 16px } /* было 18px — чуть ближе к верху */
+.col-left{ border-right:1px solid #eef2f7; padding:14px 16px }
 @media (max-width:980px){ .col-left{ border-right:none; border-bottom:1px solid #eef2f7 } }
 .col-right{ padding:14px 20px; max-height:calc(100vh - 200px); overflow:auto }
 .right-title{ font-weight:600; font-size:17px; color:#117fff; margin-bottom:12px }
