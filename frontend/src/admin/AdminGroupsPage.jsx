@@ -7,7 +7,6 @@ import api from "../utils/api.js";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
-/* helpers */
 function buildTree(groups, parentId = null) {
   return groups
     .filter((g) => String(g.parentId || "") === String(parentId || ""))
@@ -16,7 +15,6 @@ function buildTree(groups, parentId = null) {
 const isRoot = (g) => g?.name === "Родительская группа" && !g?.parentId;
 const currencySign = (c) => (c === "UAH" ? "₴" : c === "USD" ? "$" : c === "EUR" ? "€" : c || "");
 
-/* icons */
 const IconChevron = ({ open }) => (
   <svg className={`g-chevron${open ? " open" : ""}`} viewBox="0 0 24 24" aria-hidden="true">
     <polyline points="9 18 15 12 9 6" />
@@ -43,7 +41,6 @@ const IconTrash = () => (
   </svg>
 );
 
-/* tree rows */
 function Rows({
   items,
   expanded,
@@ -183,8 +180,7 @@ export default function AdminGroupsPage() {
           Группы <span className="count">({groups.length})</span>
         </h1>
 
-        <div className="flex-spacer" />
-
+        {/* поиск СЛЕВА отступом от заголовка */}
         <input
           className="groups-search"
           value={search}
@@ -192,6 +188,10 @@ export default function AdminGroupsPage() {
           placeholder="Поиск по группам"
         />
 
+        {/* расталкиватель */}
+        <div className="flex-spacer" />
+
+        {/* кнопка справа */}
         <button
           type="button"
           className="btn-primary add-btn"
@@ -203,7 +203,6 @@ export default function AdminGroupsPage() {
 
       {/* ===== BODY under fixed page-topbar ===== */}
       <div className="groups-body">
-        {/* Unified wide card: fills the whole content width */}
         <div className="groups-card">
           <div className="col-left">
             <div className="tree">
