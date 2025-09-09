@@ -5,9 +5,8 @@ import AdminSubMenu from "./AdminSubMenu";
 import LocalEditor from "../components/LocalEditor";
 
 import "../assets/AdminPanel.css";
-/* важно: чтобы получить тот же лейаут и стили, что у страницы товара */
-import "../assets/AdminAddProductPage.css";
-import "../assets/AdminCreateGroupPage.css";
+import "../assets/AdminAddProductPage.css"; // берём готовый лейаут/кнопки/карточки
+import "../assets/AdminCreateGroupPage.css"; // оверрайды под эту страницу
 
 export default function AdminCreateGroupPage() {
   const navigate = useNavigate();
@@ -98,6 +97,7 @@ export default function AdminCreateGroupPage() {
         </button>
       </div>
 
+      {/* Контент — тот же грид */}
       <form id="add-group-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="layout-grid">
           {/* Левая колонка */}
