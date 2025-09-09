@@ -1,7 +1,7 @@
 // backend/routes/groups.js
 const express = require("express");
 const router = express.Router();
-const { Group } = require("../models/models");
+const { Group, Product } = require("../models/models");
 const { authMiddleware } = require("./protected");
 const withTenant = require("../middleware/withTenant");
 
@@ -16,7 +16,7 @@ async function ensureRootGroup(tenantId) {
       name: "Родительская группа",
       description: "Системная корневая группа",
       parentId: null,
-      order: -9999, // чтобы всегда шла первой
+      order: -9999,
     }).save();
   }
   return root;
@@ -37,8 +37,6 @@ router.get("/", async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
     const groups = await Group.find({ tenantId: req.tenantId }).sort({ order: 1, name: 1 });
-
-    // root всегда вверху
     const sorted = [root, ...groups.filter((g) => String(g._id) !== String(root._id))];
     res.json(sorted);
   } catch (err) {
@@ -51,8 +49,6 @@ router.get("/tree", async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
     const groups = await Group.find({ tenantId: req.tenantId }).sort({ order: 1, name: 1 });
-
-    // root всегда вверху
     const tree = buildTree(groups, null);
     const rootObj = tree.find((g) => String(g._id) === String(root._id));
     const others = tree.filter((g) => String(g._id) !== String(root._id));
@@ -77,7 +73,7 @@ router.post("/", authMiddleware, async (req, res) => {
       tenantId: req.tenantId,
       name: req.body.name,
       description: req.body.description || "",
-      img: req.body.img || null, // URL, пришедший с /api/upload
+      img: req.body.img || null, // URL от /api/upload
       parentId,
       order: req.body.order || 0,
     });
@@ -96,7 +92,6 @@ router.patch("/:id", authMiddleware, async (req, res) => {
     const root = await ensureRootGroup(req.tenantId);
     const groupId = req.params.id;
 
-    // root нельзя менять
     if (String(groupId) === String(root._id)) {
       return res.status(400).json({ error: "Родительская группа не может быть изменена" });
     }
@@ -112,7 +107,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
         $set: {
           name: req.body.name,
           description: req.body.description || "",
-          img: req.body.img || null, // URL от upload
+          img: req.body.img || null,
           parentId,
           order: req.body.order || 0,
         },
@@ -128,7 +123,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-/* ========================== delete ========================== */
+/* ========================== delete (fix) ========================== */
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
@@ -138,8 +133,27 @@ router.delete("/:id", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Родительская группа не может быть удалена" });
     }
 
-    await Group.findOneAndDelete({ _id: groupId, tenantId: req.tenantId });
-    res.json({ success: true });
+    // 1) Поднять детей на верхний уровень
+    const childRes = await Group.updateMany(
+      { tenantId: req.tenantId, parentId: groupId },
+      { $set: { parentId: null } }
+    );
+
+    // 2) Отвязать товары от группы
+    const prodRes = await Product.updateMany(
+      { tenantId: req.tenantId, group: groupId },
+      { $unset: { group: "" } }
+    );
+
+    // 3) Удалить саму группу
+    const delRes = await Group.deleteOne({ _id: groupId, tenantId: req.tenantId });
+
+    res.json({
+      success: true,
+      movedChildren: childRes.modifiedCount || 0,
+      ungroupedProducts: prodRes.modifiedCount || 0,
+      deleted: delRes.deletedCount || 0,
+    });
   } catch (err) {
     console.error("delete group error:", err);
     res.status(500).json({ error: "Ошибка при удалении группы" });
