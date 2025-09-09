@@ -1,50 +1,20 @@
-// backend/routes/groups.js
 const express = require("express");
 const router = express.Router();
-const path = require("path");
-const fs = require("fs");
-const multer = require("multer");
 
 const { Group, Product } = require("../models/models");
 const { authMiddleware } = require("./protected");
-// ВАЖНО: withTenant уже стоит глобально в server.js. Тут доп. вызов НЕ НУЖЕН.
-// const withTenant = require("../middleware/withTenant");
 
-// --- uploads/groups ---
-const UP_DIR = path.join(__dirname, "..", "uploads", "groups");
-fs.mkdirSync(UP_DIR, { recursive: true });
+// ⚠️ Никаких multer/локальных upload'ов. Картинка приходит как готовый URL (Cloudinary).
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UP_DIR),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase();
-    const base = path
-      .basename(file.originalname || "group", ext)
-      .replace(/[^\w\-]+/g, "_")
-      .slice(0, 60);
-    cb(null, `${Date.now()}_${base}${ext || ".jpg"}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
-const publicPath = (abs) =>
-  abs.replace(path.join(__dirname, ".."), "").replace(/\\/g, "/");
-
-// Применяем multer ТОЛЬКО если пришёл multipart/form-data
-const maybeUpload = (req, res, next) => {
-  const ct = (req.headers["content-type"] || "").toLowerCase();
-  if (ct.includes("multipart/form-data")) {
-    return upload.single("image")(req, res, next);
-  }
-  return next();
-};
-
-/* ================= helpers ================= */
+/* ========================== helpers ========================== */
 async function ensureRootGroup(tenantId) {
+  // системная корневая группа
   let root = await Group.findOne({
     tenantId,
     name: "Родительская группа",
     parentId: null,
-  });
+  }).lean();
+
   if (!root) {
     root = await new Group({
       tenantId,
@@ -52,8 +22,11 @@ async function ensureRootGroup(tenantId) {
       description: "Системная корневая группа",
       parentId: null,
       order: -9999,
+      img: null,
     }).save();
+    root = root.toObject();
   }
+
   return root;
 }
 
@@ -61,18 +34,40 @@ function buildTree(groups, parentId = null) {
   return groups
     .filter((g) => String(g.parentId || "") === String(parentId || ""))
     .sort((a, b) => (a.order || 0) - (b.order || 0))
-    .map((g) => ({ ...g.toObject(), children: buildTree(groups, g._id) }));
+    .map((g) => ({
+      ...g,
+      children: buildTree(groups, g._id),
+    }));
 }
 
-/* ================= list ================= */
+// Мини-валидатор URL (разрешим только Cloudinary и/или http/https)
+function normalizeImageUrl(img) {
+  const s = String(img || "").trim();
+  if (!s) return null;
+  try {
+    const u = new URL(s);
+    if (!/^https?:$/.test(u.protocol)) return null;
+    // если хочешь жёстко ограничить на Cloudinary — раскомментируй:
+    // if (!u.hostname.includes("res.cloudinary.com")) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/* ========================== list ========================== */
 router.get("/", async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
-    const groups = await Group.find({ tenantId: req.tenantId }).sort({
-      order: 1,
-      name: 1,
-    });
-    const sorted = [root, ...groups.filter((g) => String(g._id) !== String(root._id))];
+    const groups = await Group.find({ tenantId: req.tenantId })
+      .sort({ order: 1, name: 1 })
+      .lean();
+
+    // root первым
+    const sorted = [
+      root,
+      ...groups.filter((g) => String(g._id) !== String(root._id)),
+    ];
     res.json(sorted);
   } catch (err) {
     console.error("groups list error:", err);
@@ -83,10 +78,9 @@ router.get("/", async (req, res) => {
 router.get("/tree", async (req, res) => {
   try {
     await ensureRootGroup(req.tenantId);
-    const groups = await Group.find({ tenantId: req.tenantId }).sort({
-      order: 1,
-      name: 1,
-    });
+    const groups = await Group.find({ tenantId: req.tenantId })
+      .sort({ order: 1, name: 1 })
+      .lean();
     res.json(buildTree(groups, null));
   } catch (err) {
     console.error("groups tree error:", err);
@@ -94,29 +88,28 @@ router.get("/tree", async (req, res) => {
   }
 });
 
-/* ================= create ================= */
-// Принимает: JSON { name, description, parentId?, order?, img? }
-// или multipart/form-data с полем "image" (+ те же текстовые поля)
-router.post("/", authMiddleware, maybeUpload, async (req, res) => {
+/* ========================== create ========================== */
+/** body: { name, description?, parentId?, order?, img? } */
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
 
+    const name = String(req.body.name || "").trim();
+    if (!name) return res.status(400).json({ error: "Введите название" });
+
     let parentId = req.body.parentId || null;
+    // Под-группы у системного root делаем как верхний уровень (parentId=null)
     if (parentId && String(parentId) === String(root._id)) parentId = null;
 
-    let img = req.body.img || null;
-    if (req.file) img = publicPath(req.file.path);
-
-    const group = new Group({
+    const group = await new Group({
       tenantId: req.tenantId,
-      name: (req.body.name || "").trim(),
-      description: req.body.description || "",
-      img,
+      name,
+      description: String(req.body.description || ""),
+      img: normalizeImageUrl(req.body.img), // URL из Cloudinary
       parentId,
       order: Number(req.body.order || 0),
-    });
+    }).save();
 
-    await group.save();
     res.status(201).json(group);
   } catch (err) {
     console.error("create group error:", err);
@@ -124,8 +117,9 @@ router.post("/", authMiddleware, maybeUpload, async (req, res) => {
   }
 });
 
-/* ================= update ================= */
-router.patch("/:id", authMiddleware, maybeUpload, async (req, res) => {
+/* ========================== update ========================== */
+/** body: { name?, description?, parentId?, order?, img? } */
+router.patch("/:id", authMiddleware, async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
     const groupId = req.params.id;
@@ -136,18 +130,22 @@ router.patch("/:id", authMiddleware, maybeUpload, async (req, res) => {
         .json({ error: "Родительская группа не может быть изменена" });
     }
 
-    let parentId = req.body.parentId || null;
-    if (parentId && String(parentId) === String(root._id)) parentId = null;
+    const set = {};
+    if (req.body.name !== undefined)
+      set.name = String(req.body.name || "").trim();
+    if (req.body.description !== undefined)
+      set.description = String(req.body.description || "");
+    if (req.body.order !== undefined) set.order = Number(req.body.order || 0);
 
-    const set = {
-      name: (req.body.name || "").trim(),
-      description: req.body.description || "",
-      parentId,
-      order: Number(req.body.order || 0),
-    };
+    if (req.body.parentId !== undefined) {
+      let parentId = req.body.parentId || null;
+      if (parentId && String(parentId) === String(root._id)) parentId = null;
+      set.parentId = parentId;
+    }
 
-    if (req.file) set.img = publicPath(req.file.path);
-    else if (typeof req.body.img === "string") set.img = req.body.img || null;
+    if (req.body.img !== undefined) {
+      set.img = normalizeImageUrl(req.body.img); // можно очистить: '' -> null
+    }
 
     const updated = await Group.findOneAndUpdate(
       { _id: groupId, tenantId: req.tenantId },
@@ -163,7 +161,7 @@ router.patch("/:id", authMiddleware, maybeUpload, async (req, res) => {
   }
 });
 
-/* ================= delete ================= */
+/* ========================== delete ========================== */
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const root = await ensureRootGroup(req.tenantId);
@@ -175,7 +173,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         .json({ error: "Родительская группа не может быть удалена" });
     }
 
-    // запретим удаление, если в группе есть товары
+    // запрет, если в группе есть товары
     const prodCount = await Product.countDocuments({
       tenantId: req.tenantId,
       group: groupId,
@@ -186,7 +184,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         .json({ error: "Сначала переместите товары из этой группы" });
     }
 
-    // детей поднимаем на верхний уровень (можно убрать — по вкусу)
+    // детей поднимаем на верхний уровень
     await Group.updateMany(
       { tenantId: req.tenantId, parentId: groupId },
       { $set: { parentId: null } }
