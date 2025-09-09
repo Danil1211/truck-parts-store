@@ -153,3 +153,16 @@
 .add-group .preview-actions .btn-ghost:hover{ background:rgba(15,23,42,.04); }
 
 .add-group .hint{ padding:0 16px 16px; font-size:12.5px; color:var(--muted); }
+
+
+/* ——— Снять верхний отступ контейнера контента на этой странице ——— */
+.admin-content.add-group,
+.admin-content.with-submenu.add-group{
+  padding-top: 0 !important;
+}
+
+/* На всякий пожарный: убираем любые внешние отступы у локального топбара */
+.add-group .cg-topbar{
+  margin-top: 0 !important;
+  border-top: none;
+}
