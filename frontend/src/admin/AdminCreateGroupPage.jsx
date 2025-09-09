@@ -33,9 +33,7 @@ export default function AdminCreateGroupPage() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
+    return () => { if (preview) URL.revokeObjectURL(preview); };
   }, [preview]);
 
   const applyFile = (f) => {
@@ -45,30 +43,19 @@ export default function AdminCreateGroupPage() {
     setPreview(URL.createObjectURL(f));
   };
 
-  const handleFileChange = (e) => {
+  const onFileInput = (e) => {
     const f = e.target.files?.[0];
     if (f) applyFile(f);
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const onDrop = (e) => {
+    e.preventDefault(); e.stopPropagation();
     setIsDragging(false);
     const f = e.dataTransfer.files?.[0];
     if (f) applyFile(f);
   };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isDragging) setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
+  const onDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const onDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
 
   const clearImage = () => {
     setFile(null);
@@ -79,10 +66,8 @@ export default function AdminCreateGroupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      alert("Введите название группы");
-      return;
-    }
+    if (!name.trim()) return alert("Введите название группы");
+
     try {
       setSaving(true);
       const fd = new FormData();
@@ -103,29 +88,25 @@ export default function AdminCreateGroupPage() {
     <div className="admin-content with-submenu add-group groups-page">
       <AdminSubMenu type="products" activeKey="groups" />
 
-      {/* ===== Topbar ===== */}
+      {/* Topbar */}
       <div className="cg-topbar">
         <button
+          type="button"
           className="btn-ghost cg-back"
           onClick={() => navigate("/admin/groups")}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M15 18l-6-6 6-6" />
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           Назад
         </button>
 
-        <button
-          type="submit"
-          form="cg-form"
-          disabled={saving}
-          className="btn-primary"
-        >
+        <button type="submit" form="cg-form" disabled={saving} className="btn-primary">
           {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
 
-      {/* ===== Content ===== */}
+      {/* Content */}
       <div className="cg-content-wrap">
         <form id="cg-form" className="layout-grid" onSubmit={handleSubmit}>
           {/* Левая колонка */}
@@ -146,15 +127,10 @@ export default function AdminCreateGroupPage() {
 
               <div className="field-col">
                 <label>Родительская группа</label>
-                <select
-                  value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
-                >
+                <select value={parentId} onChange={(e) => setParentId(e.target.value)}>
                   <option value="">(Верхний уровень)</option>
                   {groups.map((g) => (
-                    <option key={g._id} value={g._id}>
-                      {g.name}
-                    </option>
+                    <option key={g._id} value={g._id}>{g.name}</option>
                   ))}
                 </select>
               </div>
@@ -177,52 +153,44 @@ export default function AdminCreateGroupPage() {
               <div className="card-title">Изображение</div>
 
               <div
-                className={`upload-box ${isDragging ? "dragging" : ""}`}
+                className={`upload-zone ${isDragging ? "dragging" : ""}`}
+                onClick={() => fileRef.current?.click()}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
                 role="button"
                 tabIndex={0}
-                onClick={() => fileRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
+                aria-label="Загрузить изображение"
               >
                 {!preview ? (
-                  <div className="upload-placeholder">
-                    <div className="upload-icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
+                  <div className="upload-inner">
+                    <div className="upload-badge">
+                      <span className="plus">+</span>
                     </div>
-                    <p>Выберите файл или перетащите сюда</p>
-                    <small>Рекомендация: 200×200 • JPG/PNG/WEBP • до 10MB</small>
+                    <div className="upload-text">
+                      <p>Выберите файл или перетащите сюда</p>
+                      <small>Рекомендация: 200×200 • JPG/PNG/WEBP • до 10MB</small>
+                    </div>
                   </div>
                 ) : (
                   <div className="preview-wrap">
-                    <div className="preview-frame">
-                      <img src={preview} alt="preview" />
-                    </div>
+                    <div className="preview-frame"><img src={preview} alt="preview" /></div>
                     <div className="preview-actions">
-                      <button type="button" className="btn-ghost" onClick={clearImage}>
-                        Удалить
-                      </button>
-                      <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>
-                        Заменить
-                      </button>
+                      <button type="button" className="btn-ghost" onClick={clearImage}>Удалить</button>
+                      <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>Заменить</button>
                     </div>
                   </div>
                 )}
-
                 <input
+                  ref={fileRef}
                   type="file"
                   accept="image/*"
-                  ref={fileRef}
                   style={{ display: "none" }}
-                  onChange={handleFileChange}
+                  onChange={onFileInput}
                 />
               </div>
 
-              <div className="hint">
-                Изображение используется в списках и карточке группы.
-              </div>
+              <div className="hint">Изображение используется в списках и карточке группы.</div>
             </div>
           </div>
         </form>
