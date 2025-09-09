@@ -1,3 +1,4 @@
+// frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
@@ -10,7 +11,7 @@ export default function AdminCreateGroupPage() {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
-  const [parentId, setParentId] = useState("");
+  const [parentId, setParentId] = useState(null);
   const [description, setDescription] = useState("");
   const [groups, setGroups] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -33,7 +34,9 @@ export default function AdminCreateGroupPage() {
   }, []);
 
   useEffect(() => {
-    return () => { if (preview) URL.revokeObjectURL(preview); };
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
   }, [preview]);
 
   const applyFile = (f) => {
@@ -49,13 +52,20 @@ export default function AdminCreateGroupPage() {
   };
 
   const onDrop = (e) => {
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
     const f = e.dataTransfer.files?.[0];
     if (f) applyFile(f);
   };
-  const onDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
-  const onDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const onDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
 
   const clearImage = () => {
     setFile(null);
@@ -73,7 +83,7 @@ export default function AdminCreateGroupPage() {
       const fd = new FormData();
       fd.append("name", name);
       fd.append("description", description);
-      fd.append("parentId", parentId);
+      if (parentId) fd.append("parentId", parentId); // 🔥 только если выбран
       if (file) fd.append("image", file);
       await api.post("/api/groups", fd);
       navigate("/admin/groups");
@@ -96,12 +106,24 @@ export default function AdminCreateGroupPage() {
           onClick={() => navigate("/admin/groups")}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <path
+              d="M15 18l-6-6 6-6"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           Назад
         </button>
 
-        <button type="submit" form="cg-form" disabled={saving} className="btn-primary">
+        <button
+          type="submit"
+          form="cg-form"
+          disabled={saving}
+          className="btn-primary"
+        >
           {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
@@ -127,11 +149,18 @@ export default function AdminCreateGroupPage() {
 
               <div className="field-col">
                 <label>Родительская группа</label>
-                <select value={parentId} onChange={(e) => setParentId(e.target.value)}>
+                <select
+                  value={parentId || ""}
+                  onChange={(e) => setParentId(e.target.value || null)}
+                >
                   <option value="">(Верхний уровень)</option>
-                  {groups.map((g) => (
-                    <option key={g._id} value={g._id}>{g.name}</option>
-                  ))}
+                  {groups
+                    .filter((g) => g.name !== "Родительская группа") // 🔥 скрываем системную
+                    .map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -169,15 +198,31 @@ export default function AdminCreateGroupPage() {
                     </div>
                     <div className="upload-text">
                       <p>Выберите файл или перетащите сюда</p>
-                      <small>Рекомендация: 200×200 • JPG/PNG/WEBP • до 10MB</small>
+                      <small>
+                        Рекомендация: 200×200 • JPG/PNG/WEBP • до 10MB
+                      </small>
                     </div>
                   </div>
                 ) : (
                   <div className="preview-wrap">
-                    <div className="preview-frame"><img src={preview} alt="preview" /></div>
+                    <div className="preview-frame">
+                      <img src={preview} alt="preview" />
+                    </div>
                     <div className="preview-actions">
-                      <button type="button" className="btn-ghost" onClick={clearImage}>Удалить</button>
-                      <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>Заменить</button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={clearImage}
+                      >
+                        Удалить
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        Заменить
+                      </button>
                     </div>
                   </div>
                 )}
@@ -190,7 +235,9 @@ export default function AdminCreateGroupPage() {
                 />
               </div>
 
-              <div className="hint">Изображение используется в списках и карточке группы.</div>
+              <div className="hint">
+                Изображение используется в списках и карточке группы.
+              </div>
             </div>
           </div>
         </form>
