@@ -134,6 +134,7 @@
   font-weight: 500;
 }
 
+/* ===== Инпуты, селекты, текстовые поля ===== */
 .add-group input[type="text"],
 .add-group select,
 .add-group textarea {
@@ -146,16 +147,30 @@
   background: #f9fbfd;
   outline: none;
   transition: border-color .18s, box-shadow .18s, background .18s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
+
+/* иконка стрелки для select */
+.add-group select {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px 18px;
+}
+
 .add-group input:focus,
 .add-group select:focus,
 .add-group textarea:focus {
   border-color: var(--primary);
   background: #fff;
   box-shadow: 0 0 0 6px rgba(0, 122, 255, .10);
+  outline: none !important;
 }
 
-/* LocalEditor */
+/* ===== LocalEditor ===== */
 .add-group .field-col :where([contenteditable="true"], .le-editor, .editor) {
   border: 1px solid var(--line);
   border-radius: 12px;
