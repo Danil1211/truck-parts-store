@@ -18,6 +18,7 @@ export default function AdminCreateGroupPage() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -99,8 +100,8 @@ export default function AdminCreateGroupPage() {
   };
 
   return (
-    <div className="admin-content with-submenu add-prod add-group groups-page">
-      <AdminSubMenu type="groups" activeKey="create" />
+    <div className="admin-content with-submenu add-group groups-page">
+      <AdminSubMenu type="products" activeKey="groups" />
 
       {/* ===== Topbar ===== */}
       <div className="cg-topbar">
@@ -179,7 +180,6 @@ export default function AdminCreateGroupPage() {
                 className={`upload-box ${isDragging ? "dragging" : ""}`}
                 role="button"
                 tabIndex={0}
-                aria-label="Загрузить изображение"
                 onClick={() => fileRef.current?.click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -204,16 +204,13 @@ export default function AdminCreateGroupPage() {
                       <button type="button" className="btn-ghost" onClick={clearImage}>
                         Удалить
                       </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        onClick={() => fileRef.current?.click()}
-                      >
+                      <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>
                         Заменить
                       </button>
                     </div>
                   </div>
                 )}
+
                 <input
                   type="file"
                   accept="image/*"

@@ -1,139 +1,107 @@
-/* ===== CREATE GROUP PAGE (эпел стиль, full width, меню видно) ===== */
-
-.add-group{
-  --submenu-w: 300px; /* ширина правого меню */
-  --topbar-h: 56px;
-  --border: #d0d7e2;
-  --muted: #94a3b8;
-  --text: #0f172a;
-  --primary: #007aff;
+/* ===== Layout ===== */
+.admin-content.with-submenu.add-group {
+  padding-left: calc(var(--sidebar-w) + var(--submenu-w));
+  padding-right: 0;
 }
 
-/* базовая сетка */
-.add-group .layout-grid{
-  display:grid;
-  grid-template-columns:1fr 360px;
-  gap:20px;
-}
-@media(max-width:1100px){
-  .add-group .layout-grid{ grid-template-columns:1fr; }
-}
-
-/* топбар */
-.add-group .cg-topbar{
-  position:sticky;top:0;z-index:10;
-  height:56px;background:#fff;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 calc(20px + var(--submenu-w)) 0 20px;
-  border-bottom:1px solid #e5eaf0;
-}
-.add-group .cg-back{
-  display:flex;align-items:center;gap:6px;
-  background:none;border:0;color:var(--primary);
-  font-size:14px;font-weight:500;cursor:pointer;
-}
-.add-group .btn-primary{
-  background:linear-gradient(180deg,#2da8ff,#007aff);
-  color:#fff;border:none;border-radius:12px;
-  padding:0 18px;height:36px;cursor:pointer;
-  font-size:14px;font-weight:500;
+.add-group .cg-topbar {
+  position: sticky; top: 0; z-index: 10;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid #e5eaf0;
 }
 
-/* карточки */
-.add-group .card{
-  background:#fff;border:1px solid var(--border);
-  border-radius:16px;overflow:hidden;
-}
-.add-group .card-title{
-  padding:14px 16px;font-weight:600;font-size:15px;
-  border-bottom:1px solid #e5eaf0;
-  color:var(--text);
-}
-.add-group .field-col{
-  display:flex;flex-direction:column;gap:8px;
-  padding:14px 16px;
-}
-.add-group .field-col label{ font-size:13px;font-weight:500;color:#334155; }
-
-/* инпуты */
-.add-group input[type="text"],
-.add-group select,
-.add-group textarea{
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:10px 12px;
-  font-size:14px;
-  width:100%;
-  background:#f9fbfd;
-}
-.add-group input:focus,
-.add-group select:focus,
-.add-group textarea:focus{
-  border-color:var(--primary);
-  background:#fff;
-  box-shadow:0 0 0 6px rgba(0,122,255,.1);
-  outline:none;
+.add-group .cg-content-wrap {
+  padding: 20px;
 }
 
-/* LocalEditor */
-.add-group .field-col :where([contenteditable="true"], .le-editor, .editor){
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:#fff;
-  min-height:160px;
-  padding:10px;
-}
-.add-group .field-col :where([contenteditable="true"], .le-editor, .editor):focus{
-  border-color:var(--primary);
-  box-shadow:0 0 0 6px rgba(0,122,255,.1);
-  outline:none;
+.add-group .layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
 }
 
-/* upload */
-.add-group .upload-box{
-  border:1.5px dashed #cfd8e3;
-  border-radius:14px;
-  min-height:236px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;
-  background:#f9fbfd;
-}
-.add-group .upload-placeholder{text-align:center;padding:18px;}
-.add-group .upload-icon{
-  width:68px;height:68px;border-radius:14px;
-  background:#fff;border:1px solid #e2e8f0;
-  display:flex;align-items:center;justify-content:center;
-}
-.add-group .upload-placeholder p{font-size:14px;margin:10px 0 4px;}
-.add-group .upload-placeholder small{font-size:12px;color:var(--muted);}
-
-.add-group .preview-wrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;}
-.add-group .preview-frame{
-  width:100%;max-width:260px;aspect-ratio:1/1;
-  border:1px solid #e2e8f0;border-radius:16px;
-  overflow:hidden;background:#fff;
-}
-.add-group .preview-frame img{width:100%;height:100%;object-fit:cover;}
-.add-group .preview-actions{display:flex;gap:8px;}
-.add-group .preview-actions .btn-ghost{
-  border:none;background:none;color:var(--primary);
-  cursor:pointer;padding:6px 10px;border-radius:8px;
-}
-.add-group .hint{padding:0 16px 16px;font-size:12.5px;color:var(--muted);}
-
-/* правое меню — всегда видно */
-.admin-content.with-submenu.add-group .admin-submenu{
-  position:fixed;top:var(--topbar-h);right:0;
-  width:var(--submenu-w);
-  height:calc(100vh - var(--topbar-h));
-  display:block;
-  background:rgba(255,255,255,.9);
-  border-left:1px solid #e5eaf0;
-  z-index:50;
+@media (max-width: 1100px) {
+  .admin-content.with-submenu.add-group {
+    padding-left: var(--sidebar-w);
+  }
+  .add-group .layout-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* адаптив */
-@media(max-width:1100px){
-  .admin-content.with-submenu.add-group{padding-right:0;}
-  .admin-content.with-submenu.add-group .admin-submenu{display:none;}
+/* ===== Cards ===== */
+.add-group .card {
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.add-group .card-title {
+  padding: 14px 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #eef2f7;
+}
+
+/* ===== Fields ===== */
+.add-group .field-col {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 14px 16px;
+}
+.add-group input, .add-group select, .add-group textarea {
+  border: 1px solid #d0d7e2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #f9fbfd;
+}
+.add-group input:focus, .add-group select:focus, .add-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(17,127,255,.15);
+}
+
+/* ===== Upload ===== */
+.add-group .upload-box {
+  margin: 16px;
+  border: 1.5px dashed #cfd8e3;
+  border-radius: 16px;
+  min-height: 220px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f9fbfd;
+  cursor: pointer;
+}
+.add-group .upload-placeholder {
+  text-align: center; color: #475569;
+}
+.add-group .upload-icon {
+  width: 68px; height: 68px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px; background: #fff;
+  border: 1px solid #e2e8f0;
+}
+.add-group .preview-wrap {
+  padding: 16px; text-align: center;
+}
+.add-group .preview-frame {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 260px;
+  margin: 0 auto 12px;
+}
+.add-group .preview-frame img {
+  width: 100%; height: auto; display: block;
+}
+.add-group .preview-actions {
+  display: flex; gap: 8px; justify-content: center;
+}
+
+.add-group .hint {
+  padding: 0 16px 16px;
+  font-size: 12px;
+  color: #64748b;
 }
