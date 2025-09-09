@@ -63,7 +63,7 @@
 
 /* ===== body under page topbar — небольшая щель, БЕЗ боковых отступов ===== */
 .groups-body{
-  padding: 12px 0 18px;   /* top чуть-чуть воздуха, слева/справа 0 */
+  padding: 14px 0 18px;   /* top чуть-чуть воздуха, слева/справа 0 */
 }
 .groups-card{ margin-top: 0 !important; }
 
