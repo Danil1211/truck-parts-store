@@ -1,11 +1,11 @@
-// frontend/src/admin/AdminCreateGroupPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
 import LocalEditor from "../components/LocalEditor";
+
 import "../assets/AdminPanel.css";
-/* важно: подключаем стили AddProduct, чтобы получить идентичный лейаут/кнопки/карточки */
+/* важно: чтобы получить тот же лейаут и стили, что у страницы товара */
 import "../assets/AdminAddProductPage.css";
 import "../assets/AdminCreateGroupPage.css";
 
@@ -35,7 +35,9 @@ export default function AdminCreateGroupPage() {
     })();
   }, []);
 
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview); };
+  }, [preview]);
 
   const applyFile = (f) => {
     if (!f) return;
@@ -50,8 +52,10 @@ export default function AdminCreateGroupPage() {
   };
 
   const handleDrop = (e) => {
-    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
-    const f = e.dataTransfer.files?.[0]; if (f) applyFile(f);
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) applyFile(f);
   };
   const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); if (!isDragging) setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
@@ -83,7 +87,7 @@ export default function AdminCreateGroupPage() {
   };
 
   return (
-    <div className="add-prod add-group groups-page">
+    <div className="admin-content with-submenu add-prod add-group groups-page">
       <AdminSubMenu type="groups" activeKey="create" />
 
       {/* Topbar — как на AddProduct */}
@@ -94,7 +98,6 @@ export default function AdminCreateGroupPage() {
         </button>
       </div>
 
-      {/* Контент — идентичная сетка */}
       <form id="add-group-form" className="addprod-form" onSubmit={handleSubmit}>
         <div className="layout-grid">
           {/* Левая колонка */}
@@ -172,7 +175,6 @@ export default function AdminCreateGroupPage() {
                     </div>
                   </div>
                 )}
-
                 <input type="file" accept="image/*" ref={fileRef} style={{ display: "none" }} onChange={handleFileChange} />
               </div>
 
