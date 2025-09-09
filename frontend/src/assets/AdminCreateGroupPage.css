@@ -1,199 +1,71 @@
 /* frontend/src/assets/AdminCreateGroupPage.css */
+/* Мини-оверрайды для страницы создания групп поверх AdminAddProductPage.css */
 
-/* ===== БАЗА/ТОКЕНЫ ===== */
-.add-group{
-  --primary: #007aff;
-  --ring: 0 0 0 6px rgba(0,122,255,.10);
-  --border: #e6ebf2;
-  --line: #d0d7e2;
-  --text: #0f172a;
-  --muted: #94a3b8;
-  --surface: #fff;
-  --radius: 16px;      /* крупные скругления */
-  --submenu-w: 300px;  /* поставь свою ширину субменю, если другая */
+/* растянуть контент на доступную ширину, как на AddProduct */
+.add-group.add-prod .addprod-form{ padding:16px 20px; }
+.add-group.add-prod .layout-grid{
+  grid-template-columns: minmax(0, 1fr) 360px; /* левая тянется, правая фикс */
+  gap: 20px;
 }
 
-/* убираем верхний зазор и резерв справа под субменю */
-.admin-content.with-submenu.add-group{ padding-top:0 !important; padding-right:var(--submenu-w) !important; }
-.add-group .cg-content-wrap{ padding:0 0 28px; padding-right:var(--submenu-w); }
-
-/* ===== TOPBAR ===== */
-.add-group .cg-topbar{
-  position: sticky; top:0; z-index:8;
-  height:56px; background:var(--surface);
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 calc(20px + var(--submenu-w)) 0 20px;
-  border-bottom:1px solid #e9eef5; box-shadow:0 1px 0 rgba(15,23,42,.03);
-}
-.add-group .cg-topbar .cg-back{
-  display:inline-flex; align-items:center; gap:6px;
-  padding:6px 10px; border-radius:10px; border:0; background:transparent;
-  color:var(--primary); font-size:14px; font-weight:500; cursor:pointer;
-}
-.add-group .cg-topbar .cg-back:hover{ background:rgba(0,0,0,.04); }
-
-/* кнопки как на AddProduct */
-.add-group .btn-primary{
-  appearance:none; border:none; border-radius:12px; height:36px; padding:0 16px;
-  background:linear-gradient(180deg,#2da8ff,#007aff); color:#fff; font-size:14px; font-weight:500; cursor:pointer;
-  box-shadow:0 2px 8px rgba(0,122,255,.25);
-}
-.add-group .btn-primary:disabled{ opacity:.6; cursor:default; }
-.add-group .btn-ghost{
-  appearance:none; border:none; background:transparent; color:var(--primary);
-  font-size:14px; font-weight:500; cursor:pointer; padding:6px 8px; border-radius:10px;
-}
-.add-group .btn-ghost:hover{ background:rgba(0,0,0,.04); }
-
-/* ===== ЛЕЙАУТ (две половинки без зазора между ними) ===== */
-.add-group .cg-grid{
-  display:grid; grid-template-columns:minmax(560px,1fr) 360px; gap:0; align-items:start;
-}
-@media (max-width:1100px){ .add-group .cg-grid{ grid-template-columns:1fr; } }
-
-.add-group .card{ background:#fff; border:1px solid var(--border); }
-.add-group .main-col .card{
-  border-right:none;
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-.add-group .side-col .card{
-  border-left:1px solid var(--border);
-  border-radius: 0 var(--radius) var(--radius) 0;
-}
-@media (max-width:1100px){
-  .add-group .main-col .card,
-  .add-group .side-col .card{ border-radius: var(--radius); border-right:1px solid var(--border); }
-  .add-group .side-col .card{ margin-top:10px; }
-}
-
-/* заголовок карты */
-.add-group .card .card-title{
-  padding:14px 16px; border-bottom:1px solid #eef2f7;
-  font-size:15px; font-weight:600; color:var(--text);
-}
-
-/* ===== ПОЛЯ (как на AddProduct) ===== */
-.add-group .field-col{ padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
-.add-group .field-col label{ font-size:13px; color:#334155; font-weight:500; }
-
-.add-group input[type="text"],
-.add-group select,
-.add-group textarea{
-  width:100%;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:10px 12px;
-  font-size:14px; color:var(--text);
-  background:#f9fbfd;
-  min-height:44px; outline:none;
+/* поля — те же радиусы/фокус */
+.add-group .field-col > input:not([type="file"]),
+.add-group .field-col > select,
+.add-group .field-col > textarea{
+  border:1px solid #d0d7e2; border-radius:12px; background:#f9fbfd;
+  min-height:44px; padding:10px 12px; font-size:14px; color:#0f172a; outline:none;
   transition:border-color .18s, box-shadow .18s, background .18s;
 }
-.add-group textarea{ min-height:120px; resize:vertical; }
-.add-group input:focus,
-.add-group select:focus,
-.add-group textarea:focus{ border-color:var(--primary); background:#fff; box-shadow:var(--ring); }
+.add-group .field-col > input:focus,
+.add-group .field-col > select:focus,
+.add-group .field-col > textarea:focus{
+  border-color:#007aff; background:#fff; box-shadow:0 0 0 6px rgba(0,122,255,.10);
+}
 
-/* стрелка у select */
-.add-group select{
+/* select стрелка */
+.add-group .field-col > select{
   -webkit-appearance:none; appearance:none; padding-right:36px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center; background-size:18px 18px;
 }
 
-/* деликатное focus-within */
-.add-group .field-col:focus-within{
-  background: linear-gradient(0deg, rgba(0,122,255,.04), rgba(0,122,255,0));
-  border-radius:14px;
-}
-
-/* LocalEditor (универсальный обвод) */
+/* LocalEditor рамка */
 .add-group .field-col :where([contenteditable="true"], .le-editor, .editor){
-  border:1px solid var(--line); border-radius:12px; background:#fff; min-height:140px; padding:10px;
+  border:1px solid #d0d7e2; border-radius:12px; background:#fff; min-height:160px; padding:10px;
 }
 .add-group .field-col :where([contenteditable="true"], .le-editor, .editor):focus{
-  outline:none; border-color:var(--primary); box-shadow:var(--ring);
+  outline:none; border-color:#007aff; box-shadow:0 0 0 6px rgba(0,122,255,.10);
 }
 
-/* ===== UPLOAD (премиум) ===== */
+/* Upload box — эпл-глянец */
 .add-group .upload-box{
-  margin:0; border:1.5px dashed #cfd8e3; border-radius: calc(var(--radius) + 2px);
-  min-height:236px; cursor:pointer;
+  border:1.5px dashed #cfd8e3; border-radius:14px; min-height:236px;
   background:
     radial-gradient(120% 120% at 50% 0%, rgba(0,122,255,.06) 0%, rgba(0,122,255,0) 60%),
     #f9fbfd;
   display:flex; align-items:center; justify-content:center;
   transition:border-color .18s, box-shadow .18s, transform .10s;
+  cursor:pointer;
 }
 .add-group .upload-box:hover{
-  border-color:var(--primary);
+  border-color:#007aff;
   box-shadow:0 10px 26px rgba(0,122,255,.06), 0 2px 4px rgba(0,0,0,.04);
-  transform: translateY(-1px);
+  transform:translateY(-1px);
 }
-.add-group .upload-box.dragging{
-  border-color:var(--primary);
-  box-shadow: inset 0 0 0 4px rgba(0,122,255,.12);
-}
-
+.add-group .upload-box.dragging{ border-color:#007aff; box-shadow: inset 0 0 0 4px rgba(0,122,255,.12); }
 .add-group .upload-placeholder{ text-align:center; padding:18px; }
 .add-group .upload-placeholder .upload-icon{
-  width:68px; height:68px; border-radius:14px; background:#fff; border:1px solid #e2e8f0;
-  display:inline-flex; align-items:center; justify-content:center;
-  box-shadow:0 1px 2px rgba(0,0,0,.03); transition: transform .12s ease;
+  width:68px; height:68px; border-radius:14px; border:1px solid #e2e8f0; background:#fff;
+  display:inline-flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgba(0,0,0,.03);
 }
-.add-group .upload-box:hover .upload-icon{ transform:scale(1.03); }
 .add-group .upload-placeholder p{ font-size:14px; margin:10px 0 4px; color:#475569; }
-.add-group .upload-placeholder small{ font-size:12px; color:var(--muted); }
+.add-group .upload-placeholder small{ font-size:12px; color:#94a3b8; }
 
-/* превью */
-.add-group .preview-wrap{ width:100%; padding:16px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+.add-group .preview-wrap{ width:100%; padding:16px; display:flex; gap:12px; flex-direction:column; align-items:center; }
 .add-group .preview-frame{
-  width:100%; max-width:260px; aspect-ratio:1/1;
-  border:1px solid #e2e8f0; border-radius: var(--radius);
-  background:#fff; display:flex; align-items:center; justify-content:center;
-  box-shadow:0 6px 20px rgba(15,23,42,.06);
+  width:100%; max-width:260px; aspect-ratio:1/1; border:1px solid #e2e8f0; border-radius:14px; background:#fff;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(15,23,42,.06);
 }
 .add-group .preview-frame img{ width:100%; height:100%; object-fit:cover; border-radius:12px; }
 .add-group .preview-actions{ display:flex; gap:8px; }
-.add-group .preview-actions .btn-ghost{ padding:8px 10px; border-radius:10px; }
-.add-group .preview-actions .btn-ghost:hover{ background:rgba(15,23,42,.04); }
-
-/* подпись под загрузчиком */
-.add-group .hint{ padding:0 16px 16px; font-size:12.5px; color:var(--muted); }
-
-
-/* === FIX: меню видно + контент на всю ширину === */
-
-/* контент без max-width и по всей ширине */
-.admin-content.with-submenu.add-group,
-.add-group .cg-content-wrap,
-.add-group .cg-grid{
-  max-width: none !important;
-  margin: 0 !important;
-  width: 100% !important;
-}
-
-/* левая колонка растягивается, правая фикс — без зазора */
-.add-group .cg-grid{
-  grid-template-columns: 1fr 360px !important;
-  gap: 0 !important;
-}
-
-/* резерв под правое субменю */
-.admin-content.with-submenu.add-group,
-.add-group .cg-content-wrap{ padding-right: var(--submenu-w, 300px) !important; }
-
-.add-group .cg-topbar{
-  padding-right: calc(20px + var(--submenu-w, 300px)) !important;
-}
-
-/* само субменю — поверх и всегда видно */
-.add-group .admin-submenu{
-  position: fixed !important;
-  right: 0;
-  top: var(--admin-topbar-h, 112px) !important; /* при необходимости подправь */
-  width: var(--submenu-w, 300px) !important;
-  z-index: 50 !important;
-}
-
-/* не обрезать субменю родителем */
-.add-group{ overflow: visible !important; }
+.add-group .hint{ padding:0 16px 16px; font-size:12.5px; color:#94a3b8; }
