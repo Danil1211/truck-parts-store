@@ -182,79 +182,86 @@ export default function AdminGroupsPage() {
         <h1 className="groups-h1">
           Группы <span className="count">({groups.length})</span>
         </h1>
+
+        <div className="flex-spacer" />
+
         <input
           className="groups-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Поиск по группам"
         />
+
         <button
           type="button"
-          className="btn-primary"
+          className="btn-primary add-btn"
           onClick={() => navigate("/admin/groups/create")}
         >
           + Добавить
         </button>
       </div>
 
-      {/* ===== UNIFIED CARD: left tree + right products ===== */}
-      <div className="groups-card">
-        <div className="col-left">
-          <div className="tree">
-            {loading && <div className="muted center">Загрузка…</div>}
-            {!loading && filteredTree.length > 0 && (
-              <Rows
-                items={filteredTree}
-                expanded={expanded}
-                toggleExpand={toggleExpand}
-                selectedGroup={selectedGroup}
-                setSelectedGroup={setSelectedGroup}
-                onEdit={(g) => navigate(`/admin/groups/edit/${g._id}`)}
-                onDelete={setDeleteModal}
-              />
-            )}
-            {!loading && filteredTree.length === 0 && (
-              <div className="muted center empty">Нет групп</div>
+      {/* ===== BODY under fixed page-topbar ===== */}
+      <div className="groups-body">
+        {/* Unified wide card: fills the whole content width */}
+        <div className="groups-card">
+          <div className="col-left">
+            <div className="tree">
+              {loading && <div className="muted center">Загрузка…</div>}
+              {!loading && filteredTree.length > 0 && (
+                <Rows
+                  items={filteredTree}
+                  expanded={expanded}
+                  toggleExpand={toggleExpand}
+                  selectedGroup={selectedGroup}
+                  setSelectedGroup={setSelectedGroup}
+                  onEdit={(g) => navigate(`/admin/groups/edit/${g._id}`)}
+                  onDelete={setDeleteModal}
+                />
+              )}
+              {!loading && filteredTree.length === 0 && (
+                <div className="muted center empty">Нет групп</div>
+              )}
+            </div>
+          </div>
+
+          <div ref={rightRef} className="col-right">
+            {selectedGroup ? (
+              <>
+                <div className="right-title">Товары группы</div>
+                {products.length === 0 && <div className="muted">Нет товаров</div>}
+                {products.map((p) => {
+                  const cover = p?.images?.[0]
+                    ? p.images[0].startsWith("http")
+                      ? p.images[0]
+                      : `${BASE_URL}${p.images[0]}`
+                    : "https://dummyimage.com/60x60/eeeeee/bbb.png&text=IMG";
+                  const price = p?.retailPrice ?? p?.price ?? 0;
+                  const cur = currencySign(p?.retailCurrency || "UAH");
+                  return (
+                    <div key={p._id} className="prod-row">
+                      <img className="pr-thumb" src={cover} alt="" loading="lazy" />
+                      <div className="pr-info">
+                        <div className="pr-name" title={p.name}>{p.name}</div>
+                        <div className="pr-sku">{p.sku || p._id}</div>
+                      </div>
+                      <div className="pr-price">{price ? `${price} ${cur}` : "—"}</div>
+                      <button
+                        type="button"
+                        className="pr-edit"
+                        onClick={() => navigate(`/admin/products/${p._id}/edit`)}
+                        title="Редактировать товар"
+                      >
+                        <IconEdit />
+                      </button>
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <div className="muted center big">Выберите группу или подгруппу</div>
             )}
           </div>
-        </div>
-
-        <div ref={rightRef} className="col-right">
-          {selectedGroup ? (
-            <>
-              <div className="right-title">Товары группы</div>
-              {products.length === 0 && <div className="muted">Нет товаров</div>}
-              {products.map((p) => {
-                const cover = p?.images?.[0]
-                  ? p.images[0].startsWith("http")
-                    ? p.images[0]
-                    : `${BASE_URL}${p.images[0]}`
-                  : "https://dummyimage.com/60x60/eeeeee/bbb.png&text=IMG";
-                const price = p?.retailPrice ?? p?.price ?? 0;
-                const cur = currencySign(p?.retailCurrency || "UAH");
-                return (
-                  <div key={p._id} className="prod-row">
-                    <img className="pr-thumb" src={cover} alt="" loading="lazy" />
-                    <div className="pr-info">
-                      <div className="pr-name" title={p.name}>{p.name}</div>
-                      <div className="pr-sku">{p.sku || p._id}</div>
-                    </div>
-                    <div className="pr-price">{price ? `${price} ${cur}` : "—"}</div>
-                    <button
-                      type="button"
-                      className="pr-edit"
-                      onClick={() => navigate(`/admin/products/${p._id}/edit`)}
-                      title="Редактировать товар"
-                    >
-                      <IconEdit />
-                    </button>
-                  </div>
-                );
-              })}
-            </>
-          ) : (
-            <div className="muted center big">Выберите группу или подгруппу</div>
-          )}
         </div>
       </div>
 
