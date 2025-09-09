@@ -1,95 +1,279 @@
 /* frontend/src/assets/AdminCreateGroupPage.css */
 
-/* убираем верхний зазор этой страницы */
+/* убираем верхний зазор страницы */
 .admin-content.with-submenu.add-group{ padding-top: 0 !important; }
 
-/* контент на всю ширину, без центрального max-width и без зазора между колонками */
+/* контент на всю ширину, между колонками — НЕТ зазора */
 .add-group .cg-content-wrap{ padding: 0 0 28px; }
 .add-group .cg-grid{
   max-width: none;
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(560px,1fr) 360px; /* правая колонка фикс, левая растягивается */
-  gap: 0;                                         /* НЕТ промежутка между “Инфо” и “Изображение” */
+  grid-template-columns: minmax(560px,1fr) 360px;
+  gap: 0;
   align-items: start;
 }
 .add-group .main-col, .add-group .side-col{ min-width: 0; }
-@media (max-width: 1100px){
+
+/* радиусы для “общей” карты из двух половинок */
+:root{ --epel-radius: 14px; --epel-border:#e7effa; --line:#dfe7f3; }
+.add-group .card{ background:#fff; border:1px solid var(--epel-border); }
+.add-group .card.no-radius{ border-radius: 0; } /* оставим совместимость */
+.add-group .main-col .card{
+  border-right: none;
+  border-radius: var(--epel-radius) 0 0 var(--epel-radius);
+}
+.add-group .side-col .card{
+  border-left: 1px solid var(--epel-border);
+  border-radius: 0 var(--epel-radius) var(--epel-radius) 0;
+}
+@media (max-width:1100px){
   .add-group .cg-grid{ grid-template-columns: 1fr; }
+  .add-group .main-col .card,
+  .add-group .side-col .card{ border-radius: var(--epel-radius); border-right:1px solid var(--epel-border); }
+  .add-group .side-col .card{ margin-top: 10px; }
 }
 
-/* топбар строгий, без лишней “квадратности” */
+/* топбар — строгий, “эппл” тень */
 .add-group .cg-topbar{
   position: sticky; top: 0; z-index: 12;
   background: var(--surface);
-  display: flex; align-items: center; justify-content: space-between;
-  height: 56px; padding: 0 20px;
-  border-bottom: 1px solid #e9eef5;
-  box-shadow: 0 1px 0 rgba(15,23,42, .03);
+  display:flex; align-items:center; justify-content:space-between;
+  height:56px; padding:0 20px;
+  border-bottom:1px solid #e9eef5;
+  box-shadow: 0 1px 0 rgba(15,23,42,.03);
 }
 .add-group .cg-topbar .cg-back{
   display:inline-flex; align-items:center; gap:6px;
-  font-size:14px; font-weight:500;
-  border:0; background:transparent; color:var(--primary);
-  cursor:pointer; padding:6px 10px; border-radius:8px;
+  font-size:14px; font-weight:500; color:var(--primary);
+  padding:6px 10px; border:0; background:transparent; border-radius:9px; cursor:pointer;
 }
-.add-group .cg-topbar .cg-back:hover{ background: rgba(0,0,0,.04); }
+.add-group .cg-topbar .cg-back:hover{ background:rgba(0,0,0,.04); }
 
-/* карточки: одна сплошная плоскость без “дыры” между колонками */
-.add-group .card{ background:#fff; border:1px solid #e7effa; }
-.add-group .card.no-radius{ border-radius:0; }
-.add-group .main-col .card{ border-right: none; }       /* убираем двойную границу между колонками */
-.add-group .side-col .card{ border-left: 1px solid #e7effa; }
-
+/* заголовки карт */
 .add-group .card .card-title{
   padding: 14px 16px;
   border-bottom: 1px solid #eef2f7;
-  font-weight: 600; color: var(--text-main);
+  font-weight: 600; letter-spacing:.2px; color: var(--text-main);
 }
 
-/* поля */
+/* поля: крупные скругления, мягкая глубина, эппловский фокус */
 .add-group .field-col{ padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
 .add-group .field-col label{ font-size:13px; color:var(--text-secondary); }
-.add-group input[type="text"], .add-group select, .add-group textarea{
-  height:40px; border:1px solid #dfe7f3; background:#fff; padding:8px 10px; font-size:14px;
+
+.add-group input[type="text"],
+.add-group select,
+.add-group textarea{
+  height:44px;
+  border:1px solid var(--line);
+  background: linear-gradient(#fff,#fff) padding-box,
+              linear-gradient(180deg, rgba(15,23,42,.02), rgba(15,23,42,0)) border-box;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size:14px;
+  transition: box-shadow .18s ease, border-color .18s ease, background .18s ease;
 }
-.add-group input[type="text"]:focus, .add-group select:focus, .add-group textarea:focus{
-  outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(17,127,255,.12);
+.add-group textarea{ min-height:120px; height:auto; resize: vertical; }
+.add-group input::placeholder, .add-group textarea::placeholder{ color:#98a3b3; }
+
+.add-group input:focus,
+.add-group select:focus,
+.add-group textarea:focus{
+  outline: none;
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 6px rgba(17,127,255,.07),
+    0 1px 0 rgba(15,23,42,.02);
+  background: #fff;
 }
 
-/* upload — убрал “квадратную” сетку и любые внешние отступы */
-.add-group .upload-box{
-  margin: 0;                               /* НЕТ внешних отступов — прилегает к левой карточке без зазора */
-  border: 1.5px dashed #cfd8e3;
-  background: #f9fbfd;                     /* чистая плоскость, без клеток */
-  cursor: pointer;
-  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
-  display:flex; align-items:center; justify-content:center;
-  min-height:228px; user-select:none;
+/* кастомный select со стрелкой в стиле системы */
+.add-group select{
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2390a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px 18px;
 }
-.add-group .upload-box:hover{ border-color: var(--primary); }
+
+/* лёгкое подсвечивание всей области поля при фокусе */
+.add-group .field-col:focus-within{
+  background: linear-gradient(0deg, rgba(17,127,255,.03), rgba(17,127,255,0)) ;
+  border-radius: 14px;
+}
+
+/* ===== Upload: премиум-вид, большие радиусы, деликатный объём ===== */
+.add-group .upload-box{
+  margin: 0;
+  position: relative;
+  border: 1.5px dashed #cfd8e3;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(17,127,255,.05) 0%, rgba(17,127,255,0) 60%) ,
+    #f9fbfd;
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease, transform .12s ease;
+  display:flex; align-items:center; justify-content:center;
+  min-height: 236px; user-select:none;
+}
+.add-group .upload-box:hover{
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px rgba(17,127,255,.06), 0 2px 4px rgba(0,0,0,.04);
+}
 .add-group .upload-box.dragging{
   border-color: var(--primary);
-  box-shadow: inset 0 0 0 3px rgba(17,127,255,.10);
+  box-shadow: inset 0 0 0 4px rgba(17,127,255,.12);
+  transform: translateY(-1px);
 }
 
-.add-group .upload-placeholder{ text-align:center; padding:16px; }
+.add-group .upload-placeholder{ text-align:center; padding:18px; }
 .add-group .upload-placeholder .upload-icon{
   display:inline-flex; align-items:center; justify-content:center;
-  width:60px; height:60px; border:1px solid #e2e8f0; background:#fff;
+  width:66px; height:66px;
+  border-radius: 14px;
+  border:1px solid #e2e8f0; background:#fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
 }
 .add-group .upload-placeholder p{ font-size:14px; margin:10px 0 4px; color:#475569; }
 .add-group .upload-placeholder small{ font-size:12px; color:#94a3b8; }
 
-/* превью — убрал “квадратные” узоры */
-.add-group .preview-wrap{ width:100%; padding:16px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+/* превью — ровный квадрат, мягкая рамка и тень */
+.add-group .preview-wrap{
+  width: 100%; padding:16px;
+  display:flex; flex-direction:column; gap:12px; align-items:center;
+}
 .add-group .preview-frame{
   width:100%; max-width:260px; aspect-ratio:1/1;
-  border:1px solid #e2e8f0; background:#fff;
+  border:1px solid #e2e8f0; border-radius: 14px; background:#fff;
   display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 18px rgba(15,23,42,.06);
 }
-.add-group .preview-frame img{ width:100%; height:100%; object-fit:cover; object-position:center; }
+.add-group .preview-frame img{
+  width:100%; height:100%; object-fit:cover; object-position:center; border-radius: 12px;
+}
 .add-group .preview-actions{ display:flex; gap:8px; }
-
-/* подсказка */
 .add-group .hint{ padding:0 16px 16px; font-size:12.5px; color:var(--text-secondary); }
+
+/* на случай текста/редактора: сглаживаем контент-editable */
+.add-group .field-col :where([contenteditable="true"], .le-editor, .editor){
+  border:1px solid var(--line);
+  border-radius: 12px;
+  background:#fff;
+  min-height:140px;
+  padding: 10px;
+}
+.add-group .field-col :where([contenteditable="true"], .le-editor, .editor):focus{
+  outline:none; border-color:var(--primary);
+  box-shadow: 0 0 0 6px rgba(17,127,255,.07);
+}
+
+/* мелкая полировка */
+.add-group .main-col .card:first-child{ margin-top: 0; }
+
+
+/* === 1) Вернуть правое субменю (резерв места) === */
+.add-group .cg-topbar,
+.add-group .cg-content-wrap,
+.admin-content.with-submenu.add-group{
+  --submenu-w: 300px; /* если у тебя другое — поставь нужную ширину */
+}
+
+/* резервируем место справа под субменю */
+.admin-content.with-submenu.add-group{ padding-right: var(--submenu-w) !important; }
+.add-group .cg-content-wrap{ padding-right: var(--submenu-w); }
+
+/* чтобы кнопка "Сохранить" не заезжала под субменю */
+.add-group .cg-topbar{
+  padding-right: calc(20px + var(--submenu-w));
+  z-index: 8; /* ниже субменю */
+}
+
+/* если нужно — подними z-index у самого субменю (в общем CSS)
+.admin-submenu{ z-index: 20; } */
+
+/* === 2) Епел-глянец для инпутов/селекта/текста === */
+.add-group{
+  --epel-radius: 16px;
+  --line: #dfe7f3;
+}
+.add-group input[type="text"],
+.add-group select,
+.add-group textarea{
+  border: 1px solid var(--line);
+  border-radius: var(--epel-radius);
+  background: #fff;
+  box-shadow:
+    0 1px 0 rgba(15,23,42,.02),
+    0 0 0 0 rgba(17,127,255,0);
+  transition: box-shadow .18s ease, border-color .18s ease, background .18s ease, transform .06s ease;
+}
+.add-group input[type="text"]:hover,
+.add-group select:hover,
+.add-group textarea:hover{
+  border-color: #cfd9eb;
+}
+.add-group input[type="text"]:focus,
+.add-group select:focus,
+.add-group textarea:focus{
+  outline: none;
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 6px rgba(17,127,255,.07),
+    0 2px 6px rgba(15,23,42,.04);
+}
+.add-group .field-col:focus-within{
+  background: linear-gradient(0deg, rgba(17,127,255,.03), rgba(17,127,255,0));
+  border-radius: calc(var(--epel-radius) + 2px);
+}
+
+/* стрелка у select — аккуратнее */
+.add-group select{
+  -webkit-appearance:none;appearance:none;padding-right:36px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:18px 18px;
+}
+
+/* === 3) Upload — премиум-вид (радиусы, лёгкий объём, анимации) === */
+.add-group .upload-box{
+  border-radius: calc(var(--epel-radius) + 2px);
+  border: 1.5px dashed #cfd8e3;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(17,127,255,.05) 0%, rgba(17,127,255,0) 60%),
+    #f9fbfd;
+  min-height: 236px;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .10s ease;
+}
+.add-group .upload-box:hover{
+  border-color: var(--primary);
+  box-shadow: 0 10px 26px rgba(17,127,255,.06), 0 2px 4px rgba(0,0,0,.04);
+  transform: translateY(-1px);
+}
+.add-group .upload-box.dragging{
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 4px rgba(17,127,255,.12);
+}
+
+.add-group .upload-placeholder .upload-icon{
+  width:68px;height:68px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03); transition: transform .12s ease;
+}
+.add-group .upload-box:hover .upload-icon{ transform: scale(1.03); }
+
+.add-group .preview-frame{
+  border-radius: var(--epel-radius);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 6px 20px rgba(15,23,42,.06);
+  background:#fff;
+}
+.add-group .preview-frame img{
+  border-radius: calc(var(--epel-radius) - 2px);
+}
+
+/* кнопки действий под превью — компактные “призрачные” */
+.add-group .preview-actions .btn-ghost{
+  padding:8px 10px;border-radius:10px;
+}
+.add-group .preview-actions .btn-ghost:hover{
+  background: rgba(15,23,42,.04);
+}
