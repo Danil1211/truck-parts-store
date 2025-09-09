@@ -1,3 +1,4 @@
+// backend/routes/groups.js
 const express = require("express");
 const router = express.Router();
 const { Group } = require("../models/models");
@@ -68,7 +69,6 @@ router.post("/", authMiddleware, async (req, res) => {
     const root = await ensureRootGroup(req.tenantId);
 
     let parentId = req.body.parentId || null;
-    // нельзя делать подгруппы у root
     if (parentId && String(parentId) === String(root._id)) {
       parentId = null;
     }
@@ -77,12 +77,12 @@ router.post("/", authMiddleware, async (req, res) => {
       tenantId: req.tenantId,
       name: req.body.name,
       description: req.body.description || "",
-      img: req.body.img || null,
+      img: req.body.img || null, // URL, пришедший с /api/upload
       parentId,
       order: req.body.order || 0,
     });
-    await group.save();
 
+    await group.save();
     res.json(group);
   } catch (err) {
     console.error("create group error:", err);
@@ -112,7 +112,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
         $set: {
           name: req.body.name,
           description: req.body.description || "",
-          img: req.body.img || null,
+          img: req.body.img || null, // URL от upload
           parentId,
           order: req.body.order || 0,
         },

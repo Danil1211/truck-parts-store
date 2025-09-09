@@ -80,12 +80,24 @@ export default function AdminCreateGroupPage() {
 
     try {
       setSaving(true);
-      const fd = new FormData();
-      fd.append("name", name);
-      fd.append("description", description);
-      if (parentId) fd.append("parentId", parentId); // 🔥 только если выбран
-      if (file) fd.append("image", file);
-      await api.post("/api/groups", fd);
+
+      // --- загрузка фото через /api/upload ---
+      let imgUrl = null;
+      if (file) {
+        const fdUpload = new FormData();
+        fdUpload.append("files", file);
+        const { data } = await api.post("/api/upload", fdUpload);
+        imgUrl = data?.[0] || null;
+      }
+
+      // --- сохранение группы ---
+      await api.post("/api/groups", {
+        name,
+        description,
+        parentId,
+        img: imgUrl,
+      });
+
       navigate("/admin/groups");
     } catch (err) {
       alert("Ошибка сохранения: " + (err.response?.data?.error || err.message));
@@ -155,7 +167,7 @@ export default function AdminCreateGroupPage() {
                 >
                   <option value="">(Верхний уровень)</option>
                   {groups
-                    .filter((g) => g.name !== "Родительская группа") // 🔥 скрываем системную
+                    .filter((g) => g.name !== "Родительская группа")
                     .map((g) => (
                       <option key={g._id} value={g._id}>
                         {g.name}
