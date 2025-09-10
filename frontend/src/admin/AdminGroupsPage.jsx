@@ -17,9 +17,18 @@ function buildTree(groups, parentId = null) {
 
 /* ── icons ──────────────────────────────────────────────────────────────── */
 const IconChevron = ({ open }) => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-       className={`g-chevron ${open ? "open" : ""}`} aria-hidden="true">
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`g-chevron ${open ? "open" : ""}`}
+    aria-hidden="true"
+  >
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
@@ -46,57 +55,103 @@ const IconTrash = () => (
 
 /* ── tree rows ──────────────────────────────────────────────────────────── */
 function renderGroupRows(
-  items, expanded, toggleExpand, selectedGroup, setSelectedGroup, onEdit, onDelete, level = 0
+  items,
+  expanded,
+  toggleExpand,
+  selectedGroup,
+  setSelectedGroup,
+  onEdit,
+  onDelete,
+  level = 0
 ) {
   return items.map((group) => {
     const hasChildren = !!(group.children && group.children.length);
     const isExpanded = expanded.includes(group._id);
     const isSelected = selectedGroup === group._id;
-    const isParentGroup = group.name === "Родительская группа" && !group.parentId;
+    const isParentGroup =
+      group.name === "Родительская группа" && !group.parentId;
 
     return (
       <React.Fragment key={group._id}>
         <div
           className={`group-row ${isSelected ? "selected" : ""}`}
           style={{ marginLeft: level * 22 }}
-          onClick={() => { if (hasChildren) toggleExpand(group._id); setSelectedGroup(group._id); }}
+          onClick={() => {
+            if (hasChildren) toggleExpand(group._id);
+            setSelectedGroup(group._id);
+          }}
         >
           <div className="group-left">
             {group.img ? (
               <img
-                src={group.img.startsWith("http") ? group.img : `${BASE_URL}${group.img}`}
+                src={
+                  group.img.startsWith("http")
+                    ? group.img
+                    : `${BASE_URL}${group.img}`
+                }
                 alt={group.name}
                 className="g-thumb"
               />
-            ) : (<IconBox />)}
+            ) : (
+              <IconBox />
+            )}
 
             {hasChildren ? (
               <button
                 className="chev-btn"
                 title={isExpanded ? "Свернуть" : "Развернуть"}
-                onClick={(e) => { e.stopPropagation(); toggleExpand(group._id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpand(group._id);
+                }}
               >
                 <IconChevron open={isExpanded} />
               </button>
-            ) : <span className="chev-spacer" aria-hidden="true" />}
+            ) : (
+              <span className="chev-spacer" aria-hidden="true" />
+            )}
 
             <span className="group-name">{group.name}</span>
           </div>
 
           {!isParentGroup && (
             <div className="group-actions">
-              <button className="icon-btn" title="Редактировать" onClick={(e)=>{e.stopPropagation(); onEdit(group);}}>
+              <button
+                className="icon-btn"
+                title="Редактировать"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(group);
+                }}
+              >
                 <IconEdit />
               </button>
-              <button className="icon-btn danger" title="Удалить" onClick={(e)=>{e.stopPropagation(); onDelete(group);}}>
+              <button
+                className="icon-btn danger"
+                title="Удалить"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(group);
+                }}
+              >
                 <IconTrash />
               </button>
             </div>
           )}
         </div>
 
-        {hasChildren && isExpanded &&
-          renderGroupRows(group.children, expanded, toggleExpand, selectedGroup, setSelectedGroup, onEdit, onDelete, level + 1)}
+        {hasChildren &&
+          isExpanded &&
+          renderGroupRows(
+            group.children,
+            expanded,
+            toggleExpand,
+            selectedGroup,
+            setSelectedGroup,
+            onEdit,
+            onDelete,
+            level + 1
+          )}
       </React.Fragment>
     );
   });
@@ -120,16 +175,30 @@ export default function AdminGroupsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(null);
 
-  const [filterStock, setFilterStock] = useState("");          // in_stock | preorder | out
+  const [filterStock, setFilterStock] = useState(""); // in_stock | preorder | out
   const [filterVisibility, setFilterVisibility] = useState(""); // published | hidden | draft
   const [searchProducts, setSearchProducts] = useState("");
+  const prodSearchRef = useRef(null);
 
-  // delete modal
-  const [deleteModal, setDeleteModal] = useState(null);
+  // "/" фокусирует поле поиска товаров
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      if (e.key === "/" && tag !== "input" && tag !== "textarea") {
+        e.preventDefault();
+        prodSearchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   /* load groups */
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    fetchGroups();
+  }, []);
   async function fetchGroups() {
     setLoading(true);
     try {
@@ -162,12 +231,18 @@ export default function AdminGroupsPage() {
           sort: "desc",
         },
       });
-      const items = Array.isArray(data) ? data : (data.items || data.results || []);
-      const total = (data && (data.total || data.count || data.totalCount)) || null;
+      const items = Array.isArray(data)
+        ? data
+        : data.items || data.results || [];
+      const t =
+        (data && (data.total || data.count || data.totalCount)) || null;
+
       setProducts(items || []);
-      setHasMore(total ? page * limit < total : (items || []).length === limit);
+      setTotal(t);
+      setHasMore(t ? page * limit < t : (items || []).length === limit);
     } catch {
       setProducts([]);
+      setTotal(null);
       setHasMore(false);
     }
     setProdLoading(false);
@@ -175,14 +250,21 @@ export default function AdminGroupsPage() {
 
   /* tree helpers */
   const toggleExpand = (id) => {
-    setExpanded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setExpanded((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const filteredTree = search.trim()
-    ? buildTree(groups.filter((g) => g.name.toLowerCase().includes(search.trim().toLowerCase())))
+    ? buildTree(
+        groups.filter((g) =>
+          g.name.toLowerCase().includes(search.trim().toLowerCase())
+        )
+      )
     : buildTree(groups);
 
   /* delete */
+  const [deleteModal, setDeleteModal] = useState(null);
   async function handleDeleteGroupConfirm() {
     if (!deleteModal) return;
     try {
@@ -198,13 +280,24 @@ export default function AdminGroupsPage() {
   /* ui helpers */
   const displayGroupsCount = groups.length;
 
+  const SkeletonRow = () => (
+    <div className="prod-row sk">
+      <div className="sk-thumb" />
+      <div className="sk-line" />
+      <div className="sk-pill" />
+      <div className="sk-btn" />
+    </div>
+  );
+
   return (
     <div className="groups-page admin-content with-submenu">
       <AdminSubMenu type="products" activeKey="groups" />
 
       {/* ===== page-topbar ===== */}
       <div className="groups-topbar">
-        <div className="groups-h1">Группы <span className="count">({displayGroupsCount})</span></div>
+        <div className="groups-h1">
+          Группы <span className="count">({displayGroupsCount})</span>
+        </div>
 
         <input
           className="groups-search"
@@ -234,11 +327,16 @@ export default function AdminGroupsPage() {
                 expanded,
                 toggleExpand,
                 selectedGroup,
-                (id) => { setSelectedGroup(id); setPage(1); },
+                (id) => {
+                  setSelectedGroup(id);
+                  setPage(1);
+                },
                 (g) => navigate(`/admin/groups/edit/${g._id}`),
                 setDeleteModal
               )}
-              {filteredTree.length === 0 && !loading && <div className="empty muted">Нет групп</div>}
+              {filteredTree.length === 0 && !loading && (
+                <div className="empty muted">Нет групп</div>
+              )}
             </div>
           </div>
 
@@ -248,109 +346,289 @@ export default function AdminGroupsPage() {
               <>
                 <div className="right-title">Товары группы</div>
 
-                {/* filters */}
-                <div className="product-filters">
-                  <input
-                    type="text"
-                    placeholder="Поиск товара…"
-                    value={searchProducts}
-                    onChange={(e) => { setSearchProducts(e.target.value); setPage(1); }}
-                  />
-                  <select value={filterStock} onChange={(e)=>{ setFilterStock(e.target.value); setPage(1); }}>
-                    <option value="">Все по наличию</option>
-                    <option value="in_stock">В наличии</option>
-                    <option value="preorder">Под заказ</option>
-                    <option value="out">Нет в наличии</option>
-                  </select>
-                  <select value={filterVisibility} onChange={(e)=>{ setFilterVisibility(e.target.value); setPage(1); }}>
-                    <option value="">Все по отображению</option>
-                    <option value="published">Опубликовано</option>
-                    <option value="hidden">Скрыто</option>
-                    <option value="draft">Черновик</option>
-                  </select>
-                  <div className="filters-spacer" />
-                  <select className="page-size" value={limit} onChange={(e)=>{ setLimit(Number(e.target.value)); setPage(1); }}>
-                    <option value={10}>10 на странице</option>
-                    <option value={20}>20 на странице</option>
-                    <option value={50}>50 на странице</option>
-                    <option value={100}>100 на странице</option>
+                {/* toolbar */}
+                <div className="product-toolbar">
+                  <div className="input-with-icon">
+                    <input
+                      ref={prodSearchRef}
+                      type="text"
+                      placeholder="Поиск товара…  (/ — быстрый фокус)"
+                      value={searchProducts}
+                      onChange={(e) => {
+                        setSearchProducts(e.target.value);
+                        setPage(1);
+                      }}
+                    />
+                    {searchProducts && (
+                      <button
+                        className="clear"
+                        aria-label="Очистить поиск"
+                        onClick={() => {
+                          setSearchProducts("");
+                          setPage(1);
+                          prodSearchRef.current?.focus();
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {/* segmented: наличие */}
+                  <div className="seg" role="group" aria-label="Фильтр по наличию">
+                    {[
+                      { v: "", label: "Все" },
+                      { v: "in_stock", label: "В наличии" },
+                      { v: "preorder", label: "Под заказ" },
+                      { v: "out", label: "Нет" },
+                    ].map(({ v, label }) => (
+                      <button
+                        key={v || "all"}
+                        className={filterStock === v ? "on" : ""}
+                        onClick={() => {
+                          setFilterStock(v);
+                          setPage(1);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* segmented: отображение */}
+                  <div className="seg" role="group" aria-label="Фильтр по отображению">
+                    {[
+                      { v: "", label: "Все" },
+                      { v: "published", label: "Публ." },
+                      { v: "hidden", label: "Скрыто" },
+                      { v: "draft", label: "Черн." },
+                    ].map(({ v, label }) => (
+                      <button
+                        key={v || "all"}
+                        className={filterVisibility === v ? "on" : ""}
+                        onClick={() => {
+                          setFilterVisibility(v);
+                          setPage(1);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="toolbar-spacer" />
+
+                  <select
+                    className="page-size"
+                    value={limit}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setPage(1);
+                    }}
+                  >
+                    <option value={10}>10 / стр.</option>
+                    <option value={20}>20 / стр.</option>
+                    <option value={50}>50 / стр.</option>
+                    <option value={100}>100 / стр.</option>
                   </select>
                 </div>
 
-                {prodLoading && <div className="loading muted">Загрузка товаров…</div>}
-                {!prodLoading && products.length === 0 && <div className="empty muted">Нет товаров</div>}
-
-                {/* list */}
-                {products.map((p) => (
-                  <div key={p._id} className="prod-row">
-                    <img
-                      className="pr-thumb"
-                      alt={p.name}
-                      src={
-                        p.images?.[0]
-                          ? (p.images[0].startsWith("http") ? p.images[0] : `${BASE_URL}${p.images[0]}`)
-                          : "https://dummyimage.com/64x64/eff2f6/b4bfcc.png&text=IMG"
-                      }
-                    />
-
-                    <div className="pr-info">
-                      <button
-                        type="button"
-                        className="pr-name link"
-                        title="Редактировать товар"
-                        onClick={() => navigate(`/admin/products/${p._id}/edit`)}
-                      >
-                        {p.name}
-                      </button>
-                      <div className="pr-sku">{p.sku || p._id}</div>
-                    </div>
-
-                    <div className="pr-availability">
-                      <span className={`pill ${
-                        p.stockState === "in_stock" ? "good"
-                        : p.stockState === "preorder" ? "warn"
-                        : "bad"
-                      }`}>
-                        {p.stockState === "in_stock" ? "В наличии" :
-                         p.stockState === "preorder" ? "Под заказ" : "Нет в наличии"}
-                      </span>
-                    </div>
-
+                {/* active filter chips */}
+                <div className="chips">
+                  {searchProducts && (
                     <button
-                      className="pr-edit"
-                      title="Редактировать"
-                      onClick={() => navigate(`/admin/products/${p._id}/edit`)}
+                      className="chip"
+                      onClick={() => {
+                        setSearchProducts("");
+                        setPage(1);
+                      }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                           stroke="#2291ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                      </svg>
+                      Поиск: “{searchProducts}” <span>×</span>
+                    </button>
+                  )}
+                  {filterStock && (
+                    <button
+                      className="chip"
+                      onClick={() => {
+                        setFilterStock("");
+                        setPage(1);
+                      }}
+                    >
+                      Наличие:{" "}
+                      {filterStock === "in_stock"
+                        ? "В наличии"
+                        : filterStock === "preorder"
+                        ? "Под заказ"
+                        : "Нет"}{" "}
+                      <span>×</span>
+                    </button>
+                  )}
+                  {filterVisibility && (
+                    <button
+                      className="chip"
+                      onClick={() => {
+                        setFilterVisibility("");
+                        setPage(1);
+                      }}
+                    >
+                      Отобр.:{" "}
+                      {filterVisibility === "published"
+                        ? "Публ."
+                        : filterVisibility === "hidden"
+                        ? "Скрыто"
+                        : "Черн."}{" "}
+                      <span>×</span>
+                    </button>
+                  )}
+                  {(searchProducts || filterStock || filterVisibility) && (
+                    <button
+                      className="chip clear-all"
+                      onClick={() => {
+                        setSearchProducts("");
+                        setFilterStock("");
+                        setFilterVisibility("");
+                        setPage(1);
+                      }}
+                    >
+                      Сбросить всё
+                    </button>
+                  )}
+                </div>
+
+                {/* list / states */}
+                {prodLoading && (
+                  <>
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                  </>
+                )}
+
+                {!prodLoading && products.length === 0 && (
+                  <div className="empty-state">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                      <rect x="6" y="10" width="36" height="26" rx="6" />
+                      <path d="M10 28l6-6 7 7 5-5 10 10" />
+                    </svg>
+                    <div className="empty-title">Нет товаров</div>
+                    <div className="empty-sub">
+                      Попробуйте изменить фильтры или добавьте новый товар.
+                    </div>
+                    <button
+                      className="btn-primary"
+                      onClick={() =>
+                        navigate(`/admin/products/create?group=${selectedGroup}`)
+                      }
+                    >
+                      Добавить товар
                     </button>
                   </div>
-                ))}
+                )}
 
-                {/* pagination */}
-                <div className="pagination">
-                  <button
-                    className="page-btn"
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    Назад
-                  </button>
-                  <span className="page-info">Страница {page}</span>
-                  <button
-                    className="page-btn"
-                    disabled={!hasMore}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Вперёд
-                  </button>
+                {!prodLoading &&
+                  products.map((p) => (
+                    <div key={p._id} className="prod-row">
+                      <img
+                        className="pr-thumb"
+                        alt={p.name}
+                        src={
+                          p.images?.[0]
+                            ? p.images[0].startsWith("http")
+                              ? p.images[0]
+                              : `${BASE_URL}${p.images[0]}`
+                            : "https://dummyimage.com/64x64/eff2f6/b4bfcc.png&text=IMG"
+                        }
+                      />
+
+                      <div className="pr-info">
+                        <button
+                          type="button"
+                          className="pr-name link"
+                          title="Редактировать товар"
+                          onClick={() =>
+                            navigate(`/admin/products/${p._id}/edit`)
+                          }
+                        >
+                          {p.name}
+                        </button>
+                        <div className="pr-sku">{p.sku || p._id}</div>
+                      </div>
+
+                      <div className="pr-availability">
+                        <span
+                          className={`pill ${
+                            p.stockState === "in_stock"
+                              ? "good"
+                              : p.stockState === "preorder"
+                              ? "warn"
+                              : "bad"
+                          }`}
+                        >
+                          {p.stockState === "in_stock"
+                            ? "В наличии"
+                            : p.stockState === "preorder"
+                            ? "Под заказ"
+                            : "Нет в наличии"}
+                        </span>
+                      </div>
+
+                      <button
+                        className="pr-edit"
+                        title="Редактировать"
+                        onClick={() => navigate(`/admin/products/${p._id}/edit`)}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#2291ff"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+
+                {/* sticky pager */}
+                <div className="pager-sticky">
+                  <div className="pager-info">
+                    {total
+                      ? `Показаны ${Math.min(
+                          (page - 1) * limit + 1,
+                          total
+                        )}–${Math.min(page * limit, total)} из ${total}`
+                      : `Страница ${page}`}
+                  </div>
+                  <div className="pager-controls">
+                    <button
+                      className="page-btn"
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      Назад
+                    </button>
+                    <button
+                      className="page-btn"
+                      disabled={!hasMore}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Вперёд
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (
-              <div className="empty muted center big">Выберите группу или подгруппу для просмотра товаров</div>
+              <div className="empty muted center big">
+                Выберите группу или подгруппу для просмотра товаров
+              </div>
             )}
           </div>
         </div>
@@ -359,15 +637,23 @@ export default function AdminGroupsPage() {
       {/* delete modal */}
       {deleteModal && (
         <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
-          <div className="modal" onClick={(e)=>e.stopPropagation()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-title danger">Удалить группу?</div>
             <div className="modal-text">
-              Группа <b className="highlight">{deleteModal.name}</b> будет удалена.<br/>
+              Группа <b className="highlight">{deleteModal.name}</b> будет
+              удалена.<br />
               Товары останутся в системе без группы.
             </div>
             <div className="modal-actions">
-              <button className="btn-ghost" onClick={() => setDeleteModal(null)}>Отмена</button>
-              <button className="btn-primary danger" onClick={handleDeleteGroupConfirm}>Удалить</button>
+              <button className="btn-ghost" onClick={() => setDeleteModal(null)}>
+                Отмена
+              </button>
+              <button
+                className="btn-primary danger"
+                onClick={handleDeleteGroupConfirm}
+              >
+                Удалить
+              </button>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+/* frontend/src/assets/AdminGroupsPage.css */
 /* ==========================================================================
    Groups — fixed page topbar + full-width unified card (updated)
    ========================================================================== */
@@ -42,7 +43,7 @@
 .col-right{ padding:16px 16px; max-height:calc(100vh - 200px); overflow:auto }
 
 /* texts */
-.right-title{ font-weight:600; font-size:17px; color:#0f172a; margin-bottom:12px } /* чёрный */
+.right-title{ font-weight:600; font-size:17px; color:#0f172a; margin-bottom:12px }
 .muted{ color:#96a2b3; font-size:14px }
 .muted.center{ text-align:center }
 .muted.center.big{ margin:60px 0 40px; font-size:16px }
@@ -65,7 +66,7 @@
 .chev-btn{ display:inline-flex; align-items:center; justify-content:center; background:transparent; border:none; padding:4px; border-radius:8px; cursor:pointer }
 .chev-btn:hover{ background:#f0f4f9 }
 .chev-spacer{ display:inline-block; width:22px; height:22px }
-.g-chevron{ width:18px; height:18px }
+.g-chevron{ width:18px; height:18px; transition:transform .16s ease }
 .g-chevron.open{ transform:rotate(90deg) }
 .group-actions{ display:flex; align-items:center; gap:6px; padding-right:2px }
 .icon-btn{ background:transparent; border:none; padding:6px; border-radius:8px; cursor:pointer; transition:background .18s ease }
@@ -73,26 +74,49 @@
 .icon-btn .icon{ width:18px; height:18px; stroke:#117fff; fill:none; stroke-width:2 }
 .icon-btn.danger .icon{ stroke:#e33c3c }
 
-/* ── product filters (right) ───────────────────────────────────────────── */
-.product-filters{
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 12px;
+/* ── products toolbar ──────────────────────────────────────────────────── */
+.product-toolbar{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin:0 0 8px;
 }
-.product-filters input,
-.product-filters select{
-  padding:7px 10px;
-  border:1px solid #d0d7e2;
-  border-radius:8px;
-  font-size:14px; background:#fff;
+.input-with-icon{ position:relative; }
+.input-with-icon input{
+  width:280px; max-width:40vw; height:38px;
+  padding:0 34px 0 36px; border:1px solid #d0d7e2; border-radius:12px;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364758b' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") 10px 50% no-repeat;
+  background-size:14px; font-size:14px; color:#0f172a;
+  transition:border .2s, box-shadow .2s;
 }
-.product-filters input{ min-width:240px; }
-.filters-spacer{ flex:1 1 auto; }
-.page-size{ min-width:160px; }
+.input-with-icon input:focus{ border-color:#007aff; box-shadow:0 0 0 3px rgba(0,122,255,.12); outline:none }
+.input-with-icon .clear{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; border-radius:8px; border:0; background:#eef3f9; cursor:pointer; font-size:16px; line-height:26px;
+}
+.seg{ display:inline-flex; align-items:center; gap:0; border:1px solid #d0d7e2; border-radius:12px; overflow:hidden; background:#fff }
+.seg button{
+  height:38px; padding:0 12px; font-size:14px; color:#334155; border:0; background:transparent; cursor:pointer;
+}
+.seg button + button{ border-left:1px solid #e6eaf1 }
+.seg button:hover{ background:#f5f8fc }
+.seg button.on{ background:#eaf4ff; color:#117fff; font-weight:600 }
+.toolbar-spacer{ flex:1 1 auto; }
+.page-size{ min-width:148px; height:38px; border-radius:10px; border:1px solid #d0d7e2; padding:0 10px; }
+
+/* chips of active filters */
+.chips{ display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 10px }
+.chip{
+  display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 10px;
+  border-radius:999px; border:1px solid #d0d7e2; background:#fff; color:#334155; font-size:13px; cursor:pointer;
+}
+.chip span{ font-weight:600 }
+.chip.clear-all{ background:#eaf4ff; border-color:#cfe0fb; color:#157ce8 }
 
 /* ── product list row ──────────────────────────────────────────────────── */
 .prod-row{
   display:grid; grid-template-columns:60px 1fr 140px 44px; align-items:center; gap:14px;
-  padding:10px 0; border-bottom:1px solid #f0f3f8;
+  padding:10px 0; border-bottom:1px solid #f0f3f8; transition:background .15s;
 }
+.prod-row:hover{ background:#f9fbff }
 .pr-thumb{ width:56px; height:56px; border-radius:12px; object-fit:contain; background:#f1f5f9 }
 .pr-info{ min-width:0; }
 .pr-name{
@@ -114,15 +138,37 @@
   justify-self:end; background:transparent; border:1px solid #2291ff; border-radius:10px; padding:6px 8px; cursor:pointer;
 }
 
-/* ── pagination ────────────────────────────────────────────────────────── */
-.pagination{
-  display:flex; align-items:center; gap:10px; margin-top:12px; justify-content:flex-start;
+/* ── sticky pager ──────────────────────────────────────────────────────── */
+.pager-sticky{
+  position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(to top, #fff 78%, rgba(255,255,255,0));
+  padding:10px 0 6px; margin-top:6px; border-top:1px solid #eef2f7;
 }
-.page-btn{
-  padding:6px 12px; border-radius:8px; border:1px solid #117fff; background:#117fff; color:#fff; cursor:pointer;
+.pager-info{ color:#64748b; font-size:13px }
+.pager-controls{ display:flex; gap:8px }
+.pager-sticky .page-btn{
+  padding:8px 14px; border-radius:10px; border:1px solid #117fff; background:#117fff; color:#fff; font-size:14px; cursor:pointer;
 }
-.page-btn:disabled{ opacity:.5; cursor:default }
-.page-info{ color:#0f172a; font-size:14px }
+.pager-sticky .page-btn:disabled{ opacity:.5; cursor:default }
+
+/* ── empty state ───────────────────────────────────────────────────────── */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; padding:48px 12px; text-align:center; color:#64748b;
+}
+.empty-state svg{ width:72px; height:72px }
+.empty-state svg rect{ fill:#f3f6fb }
+.empty-state svg path{ fill:none; stroke:#a8c9ff; stroke-width:2.2 }
+.empty-state .empty-title{ font-size:16px; color:#0f172a; font-weight:600 }
+.empty-state .btn-primary{ margin-top:4px; padding:10px 16px; border-radius:10px }
+
+/* ── skeletons ─────────────────────────────────────────────────────────── */
+.prod-row.sk{ grid-template-columns:60px 1fr 140px 44px; gap:14px; padding:10px 0 }
+.sk-thumb{ width:56px; height:56px; border-radius:12px; background:linear-gradient(90deg,#eef2f7,#f6f9fc,#eef2f7); background-size:200% 100%; animation:sh 1.3s infinite }
+.sk-line{ height:18px; border-radius:8px; background:linear-gradient(90deg,#eef2f7,#f6f9fc,#eef2f7); background-size:200% 100%; animation:sh 1.3s infinite }
+.sk-pill{ width:120px; height:26px; border-radius:999px; background:linear-gradient(90deg,#eef2f7,#f6f9fc,#eef2f7); background-size:200% 100%; animation:sh 1.3s infinite; justify-self:end }
+.sk-btn{ width:36px; height:28px; border-radius:8px; background:linear-gradient(90deg,#eef2f7,#f6f9fc,#eef2f7); background-size:200% 100%; animation:sh 1.3s infinite; justify-self:end }
+@keyframes sh{ 0%{background-position:0 0} 100%{background-position:200% 0} }
 
 /* ── modal tweaks ──────────────────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;z-index:1001;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.25);backdrop-filter:blur(3px)}
