@@ -1,6 +1,6 @@
 /* frontend/src/assets/AdminGroupsPage.css */
 /* ==========================================================================
-   Groups — compact toolbar + centered paginator + spinners
+   Groups — compact toolbar + centered paginator + thin spinner
    ========================================================================== */
 
 .groups-page { padding-bottom: 16px; }
@@ -163,36 +163,20 @@
 .empty-state .empty-title{ font-size:16px; color:#0f172a; font-weight:600 }
 .empty-state .btn-primary{ margin-top:4px; padding:10px 16px; border-radius:10px }
 
-/* ── spinners (красивый кружок) ───────────────────────────────────────── */
+/* ── THIN SPINNER (как на первом скрине) ──────────────────────────────── */
 .loader-wrap{
   display:flex; align-items:center; justify-content:center;
-  min-height:160px; padding:16px 0;
+  min-height:140px; padding:16px 0;
 }
 .spinner{
-  width:28px; height:28px; border-radius:50%;
-  border:3px solid #eaf1fb; border-top-color:#117fff;
-  animation:spin .9s linear infinite;
-  box-shadow:0 6px 18px rgba(17,127,255,.18);
+  position:relative;
+  width:26px; height:26px; border-radius:50%;
+  background: conic-gradient(#117fff 0 85deg, #e6ecf4 85deg 360deg);
+  animation:spin 1s linear infinite;
 }
-.spinner.spinner-lg{ width:34px; height:34px; border-width:3.5px }
+.spinner::before{
+  content:""; position:absolute; inset:3px; background:#fff; border-radius:50%;
+}
+.spinner.spinner-lg{ width:32px; height:32px }
+.spinner.spinner-lg::before{ inset:3.5px }
 @keyframes spin{ to{ transform:rotate(360deg) } }
-
-/* skeleton (оставил если вдруг пригодится) */
-.prod-row.sk{ grid-template-columns:60px 1fr 140px 44px; gap:14px; padding:10px 0 }
-.sk-thumb,.sk-line,.sk-pill,.sk-btn{ background:linear-gradient(90deg,#eef2f7,#f6f9fc,#eef2f7); background-size:200% 100%; animation:sh 1.3s infinite }
-.sk-thumb{ width:56px; height:56px; border-radius:12px }
-.sk-line{ height:16px; border-radius:8px }
-.sk-pill{ width:110px; height:24px; border-radius:999px; justify-self:end }
-.sk-btn{ width:32px; height:26px; border-radius:8px; justify-self:end }
-@keyframes sh{ 0%{background-position:0 0} 100%{background-position:200% 0} }
-
-/* modal */
-.modal-overlay{position:fixed;inset:0;z-index:1001;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.25);backdrop-filter:blur(3px)}
-.modal{position:relative;background:#fff;border-radius:16px;padding:34px;min-width:330px;box-shadow:0 8px 44px #174ec32f}
-.modal-title{font-size:20px;margin-bottom:18px;font-weight:700;color:#0f172a}
-.modal-title.danger{ color:#ff3333 }
-.modal-text{ color:#333; font-size:14px; margin:10px 0 18px; text-align:center; line-height:1.4 }
-.modal-actions{ display:flex; gap:12px; justify-content:center }
-.btn-ghost{ background:#eaf4ff; color:#157ce8; border:1px solid #cfe0fb; border-radius:8px; padding:9px 22px; cursor:pointer }
-.btn-primary.danger{ background:linear-gradient(180deg,#ff5a5a,#e12a2a) }
-.highlight{ color:#2291ff }

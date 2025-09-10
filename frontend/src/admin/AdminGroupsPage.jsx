@@ -168,7 +168,7 @@ export default function AdminGroupsPage() {
           group: groupId,
           page,
           limit,
-          availability: filterVisibility || undefined, // '' | 'published' | 'hidden'
+          availability: filterVisibility || undefined,
           search: searchProducts || undefined,
           sort: "desc",
         },
