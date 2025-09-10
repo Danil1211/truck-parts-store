@@ -339,7 +339,7 @@ export default function AdminGroupsPage() {
                   ))
                 )}
 
-                {/* paginator (центр) */}
+                {/* paginator */}
                 <div className="pager-min">
                   <div className="pager-min-left">
                     <button className="pg-ctrl" disabled={page === 1}
