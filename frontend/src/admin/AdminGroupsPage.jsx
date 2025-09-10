@@ -263,7 +263,7 @@ export default function AdminGroupsPage() {
                     <input
                       ref={prodSearchRef}
                       type="text"
-                      placeholder="Поиск товара…  (/ — быстрый фокус)"
+                      placeholder="Поиск товара"
                       value={searchProducts}
                       onChange={(e) => { setSearchProducts(e.target.value); setPage(1); }}
                     />
