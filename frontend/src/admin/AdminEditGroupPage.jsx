@@ -1,13 +1,11 @@
-// frontend/src/admin/AdminEditGroupPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
 import LocalEditor from "../components/LocalEditor";
 
-// используем те же базовые стили, что и на создании
 import "../assets/AdminPanel.css";
-import "../assets/AdminCreateGroupPage.css";
+import "../assets/AdminCreateGroupPage.css"; // используем те же стили, что и на странице создания
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 
@@ -27,21 +25,19 @@ export default function AdminEditGroupPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // картинка: serverPath — что лежит/будет лежать на сервере; preview — что показываем (blob/url)
-  const [serverPath, setServerPath] = useState(null as null | string);
-  const [preview, setPreview] = useState(null as null | string);
-  const [file, setFile] = useState<File | null>(null);
+  // картинка
+  const [serverPath, setServerPath] = useState(null); // путь, который хранится на сервере
+  const [preview, setPreview] = useState(null);       // blob/url для предпросмотра
+  const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const fileRef = useRef(null);
 
-  // helpers
-  const toAbs = (p?: string | null) =>
-    !p ? null : p.startsWith("http") ? p : `${BASE_URL}${p}`;
+  const toAbs = (p) => (!p ? null : p.startsWith("http") ? p : `${BASE_URL}${p}`);
 
-  // revoke blob url при замене
+  // cleanup blob url
   useEffect(() => {
     return () => {
-      if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+      if (preview && String(preview).startsWith("blob:")) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
@@ -72,36 +68,35 @@ export default function AdminEditGroupPage() {
   }, [id]);
 
   // загрузка файла
-  const applyFile = (f: File) => {
+  const applyFile = (f) => {
     if (!f) return;
-    if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+    if (preview && String(preview).startsWith("blob:")) URL.revokeObjectURL(preview);
     setFile(f);
     setPreview(URL.createObjectURL(f));
-    // при замене файла сразу “обнулим” старый serverPath — он станет новым после upload
-    setServerPath(null);
+    setServerPath(null); // при выборе нового файла "старый" путь считаем сброшенным
   };
 
-  const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileInput = (e) => {
     const f = e.target.files?.[0];
     if (f) applyFile(f);
   };
-  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
     const f = e.dataTransfer.files?.[0];
     if (f) applyFile(f);
   };
-  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
   };
-  const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDragLeave = (e) => {
     e.preventDefault();
     setIsDragging(false);
   };
   const clearImage = () => {
-    if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+    if (preview && String(preview).startsWith("blob:")) URL.revokeObjectURL(preview);
     setPreview(null);
     setServerPath(null);
     setFile(null);
@@ -109,7 +104,7 @@ export default function AdminEditGroupPage() {
   };
 
   // сохранение
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return alert("Введите название группы");
 
@@ -124,7 +119,7 @@ export default function AdminEditGroupPage() {
         const { data } = await api.post("/api/upload", fd);
         imgPath = data?.[0] || null;
       }
-      // если нажали “Удалить” — serverPath уже null + file=null => удаляем
+
       await api.put(`/api/groups/${id}`, {
         name,
         description,
@@ -133,14 +128,14 @@ export default function AdminEditGroupPage() {
       });
 
       navigate("/admin/groups");
-    } catch (err: any) {
+    } catch (err) {
       alert("Не удалось сохранить: " + (err?.response?.data?.error || err?.message));
     } finally {
       setSaving(false);
     }
   };
 
-  // списки для селекта (нельзя выбрать саму себя)
+  // списки для селекта (нельзя выбрать саму группу и «Родительскую группу»)
   const parentOptions = groups
     .filter((g) => g._id !== id && g.name !== "Родительская группа")
     .map((g) => ({ value: g._id, label: g.name }));
@@ -169,12 +164,7 @@ export default function AdminEditGroupPage() {
           Назад
         </button>
 
-        <button
-          type="submit"
-          form="eg-form"
-          disabled={saving}
-          className="btn-primary"
-        >
+        <button type="submit" form="eg-form" disabled={saving} className="btn-primary">
           {saving ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
@@ -183,6 +173,7 @@ export default function AdminEditGroupPage() {
       <div className="cg-content-wrap">
         {initialLoading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+            {/* компактный спиннер */}
             <span
               style={{
                 width: 32,
@@ -196,7 +187,6 @@ export default function AdminEditGroupPage() {
             >
               <span
                 style={{
-                  content: "''",
                   position: "absolute",
                   inset: 3.5,
                   background: "#fff",
@@ -274,9 +264,7 @@ export default function AdminEditGroupPage() {
                       </div>
                       <div className="upload-text">
                         <p>Выберите файл или перетащите сюда</p>
-                        <small>
-                          Рекомендация: 200×200 • JPG/PNG/WEBP • до 10MB
-                        </small>
+                        <small>Рекомендация: 200×200 • JPG/PNG/WEBP • до 10MB</small>
                       </div>
                     </div>
                   ) : (
@@ -285,11 +273,7 @@ export default function AdminEditGroupPage() {
                         <img src={preview} alt="preview" />
                       </div>
                       <div className="preview-actions">
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          onClick={clearImage}
-                        >
+                        <button type="button" className="btn-ghost" onClick={clearImage}>
                           Удалить
                         </button>
                         <button
@@ -311,9 +295,7 @@ export default function AdminEditGroupPage() {
                   />
                 </div>
 
-                <div className="hint">
-                  Изображение используется в списках и карточке группы.
-                </div>
+                <div className="hint">Изображение используется в списках и карточке группы.</div>
               </div>
             </div>
           </form>
