@@ -177,7 +177,6 @@ export default function AdminGroupsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(null);
 
-  const [filterStock, setFilterStock] = useState(""); // in_stock | preorder | out
   const [filterVisibility, setFilterVisibility] = useState(""); // published | hidden | draft
   const [searchProducts, setSearchProducts] = useState("");
   const prodSearchRef = useRef(null);
@@ -215,7 +214,7 @@ export default function AdminGroupsPage() {
     if (!selectedGroup) return;
     fetchProducts(selectedGroup);
     if (rightPanelRef.current) rightPanelRef.current.scrollTop = 0;
-  }, [selectedGroup, page, limit, filterStock, filterVisibility, searchProducts]);
+  }, [selectedGroup, page, limit, filterVisibility, searchProducts]);
 
   async function fetchProducts(groupId) {
     setProdLoading(true);
@@ -225,7 +224,6 @@ export default function AdminGroupsPage() {
           group: groupId,
           page,
           limit,
-          stockState: filterStock || undefined,
           availability: filterVisibility || undefined,
           search: searchProducts || undefined,
           sort: "desc",
@@ -289,6 +287,8 @@ export default function AdminGroupsPage() {
     </div>
   );
 
+  const totalPages = total ? Math.max(1, Math.ceil(total / limit)) : null;
+
   return (
     <div className="groups-page admin-content with-submenu">
       <AdminSubMenu type="products" activeKey="groups" />
@@ -346,7 +346,7 @@ export default function AdminGroupsPage() {
               <>
                 <div className="right-title">Товары группы</div>
 
-                {/* toolbar */}
+                {/* toolbar (поиск + видимость) */}
                 <div className="product-toolbar">
                   <div className="input-with-icon">
                     <input
@@ -374,27 +374,6 @@ export default function AdminGroupsPage() {
                     )}
                   </div>
 
-                  {/* segmented: наличие */}
-                  <div className="seg" role="group" aria-label="Фильтр по наличию">
-                    {[
-                      { v: "", label: "Все" },
-                      { v: "in_stock", label: "В наличии" },
-                      { v: "preorder", label: "Под заказ" },
-                      { v: "out", label: "Нет" },
-                    ].map(({ v, label }) => (
-                      <button
-                        key={v || "all"}
-                        className={filterStock === v ? "on" : ""}
-                        onClick={() => {
-                          setFilterStock(v);
-                          setPage(1);
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
                   {/* segmented: отображение */}
                   <div className="seg" role="group" aria-label="Фильтр по отображению">
                     {[
@@ -417,20 +396,6 @@ export default function AdminGroupsPage() {
                   </div>
 
                   <div className="toolbar-spacer" />
-
-                  <select
-                    className="page-size"
-                    value={limit}
-                    onChange={(e) => {
-                      setLimit(Number(e.target.value));
-                      setPage(1);
-                    }}
-                  >
-                    <option value={10}>10 / стр.</option>
-                    <option value={20}>20 / стр.</option>
-                    <option value={50}>50 / стр.</option>
-                    <option value={100}>100 / стр.</option>
-                  </select>
                 </div>
 
                 {/* active filter chips */}
@@ -444,23 +409,6 @@ export default function AdminGroupsPage() {
                       }}
                     >
                       Поиск: “{searchProducts}” <span>×</span>
-                    </button>
-                  )}
-                  {filterStock && (
-                    <button
-                      className="chip"
-                      onClick={() => {
-                        setFilterStock("");
-                        setPage(1);
-                      }}
-                    >
-                      Наличие:{" "}
-                      {filterStock === "in_stock"
-                        ? "В наличии"
-                        : filterStock === "preorder"
-                        ? "Под заказ"
-                        : "Нет"}{" "}
-                      <span>×</span>
                     </button>
                   )}
                   {filterVisibility && (
@@ -480,12 +428,11 @@ export default function AdminGroupsPage() {
                       <span>×</span>
                     </button>
                   )}
-                  {(searchProducts || filterStock || filterVisibility) && (
+                  {(searchProducts || filterVisibility) && (
                     <button
                       className="chip clear-all"
                       onClick={() => {
                         setSearchProducts("");
-                        setFilterStock("");
                         setFilterVisibility("");
                         setPage(1);
                       }}
@@ -557,20 +504,12 @@ export default function AdminGroupsPage() {
                       </div>
 
                       <div className="pr-availability">
-                        <span
-                          className={`pill ${
-                            p.stockState === "in_stock"
-                              ? "good"
-                              : p.stockState === "preorder"
-                              ? "warn"
-                              : "bad"
-                          }`}
-                        >
-                          {p.stockState === "in_stock"
-                            ? "В наличии"
+                        <span className="pill good">
+                          {p.stockState === "out"
+                            ? "Нет в наличии"
                             : p.stockState === "preorder"
                             ? "Под заказ"
-                            : "Нет в наличии"}
+                            : "В наличии"}
                         </span>
                       </div>
 
@@ -597,31 +536,43 @@ export default function AdminGroupsPage() {
                     </div>
                   ))}
 
-                {/* sticky pager */}
-                <div className="pager-sticky">
-                  <div className="pager-info">
-                    {total
-                      ? `Показаны ${Math.min(
-                          (page - 1) * limit + 1,
-                          total
-                        )}–${Math.min(page * limit, total)} из ${total}`
-                      : `Страница ${page}`}
-                  </div>
-                  <div className="pager-controls">
+                {/* NEW: компактный пагинатор как на скрине */}
+                <div className="pager-min">
+                  <div className="pager-min-left">
                     <button
-                      className="page-btn"
+                      className="pg-ctrl"
                       disabled={page === 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      aria-label="Назад"
                     >
-                      Назад
+                      ‹
                     </button>
+
+                    <div className="pg-current">{page}</div>
+
                     <button
-                      className="page-btn"
+                      className="pg-ctrl"
                       disabled={!hasMore}
                       onClick={() => setPage((p) => p + 1)}
+                      aria-label="Вперёд"
                     >
-                      Вперёд
+                      ›
                     </button>
+                  </div>
+
+                  <div className="pg-size">
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                    >
+                      <option value={10}>по 10 позиций</option>
+                      <option value={20}>по 20 позиций</option>
+                      <option value={50}>по 50 позиций</option>
+                      <option value={100}>по 100 позиций</option>
+                    </select>
                   </div>
                 </div>
               </>

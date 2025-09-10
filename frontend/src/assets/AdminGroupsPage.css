@@ -25,8 +25,8 @@
 .flex-spacer{ flex:1 1 auto }
 .add-btn{ height:38px; padding:0 16px; border-radius:10px; font-size:14px; margin-left:8px }
 
-/* ── body under topbar ─────────────────────────────────────────────────── */
-.groups-body{ padding: 72px 0 12px; }  /* небольшой зазор под топбаром */
+/* ── body under topbar (уменьшил отступ) ───────────────────────────────── */
+.groups-body{ padding: 56px 0 12px; }
 
 /* ── unified card — на всю ширину контента ─────────────────────────────── */
 .groups-card{
@@ -40,7 +40,7 @@
 /* columns */
 .col-left{ border-right:1px solid #eef2f7; padding:18px 0 18px 16px }
 @media (max-width:980px){ .col-left{ border-right:none; border-bottom:1px solid #eef2f7 } }
-.col-right{ padding:16px 16px; max-height:calc(100vh - 200px); overflow:auto }
+.col-right{ padding:16px 16px; max-height:calc(100vh - 188px); overflow:auto } /* скорректированная высота */
 
 /* texts */
 .right-title{ font-weight:600; font-size:17px; color:#0f172a; margin-bottom:12px }
@@ -74,7 +74,7 @@
 .icon-btn .icon{ width:18px; height:18px; stroke:#117fff; fill:none; stroke-width:2 }
 .icon-btn.danger .icon{ stroke:#e33c3c }
 
-/* ── products toolbar ──────────────────────────────────────────────────── */
+/* ── products toolbar (поиск + видимость) ──────────────────────────────── */
 .product-toolbar{
   display:flex; align-items:center; gap:10px; flex-wrap:wrap;
   margin:0 0 8px;
@@ -100,16 +100,6 @@
 .seg button:hover{ background:#f5f8fc }
 .seg button.on{ background:#eaf4ff; color:#117fff; font-weight:600 }
 .toolbar-spacer{ flex:1 1 auto; }
-.page-size{ min-width:148px; height:38px; border-radius:10px; border:1px solid #d0d7e2; padding:0 10px; }
-
-/* chips of active filters */
-.chips{ display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 10px }
-.chip{
-  display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 10px;
-  border-radius:999px; border:1px solid #d0d7e2; background:#fff; color:#334155; font-size:13px; cursor:pointer;
-}
-.chip span{ font-weight:600 }
-.chip.clear-all{ background:#eaf4ff; border-color:#cfe0fb; color:#157ce8 }
 
 /* ── product list row ──────────────────────────────────────────────────── */
 .prod-row{
@@ -138,18 +128,44 @@
   justify-self:end; background:transparent; border:1px solid #2291ff; border-radius:10px; padding:6px 8px; cursor:pointer;
 }
 
-/* ── sticky pager ──────────────────────────────────────────────────────── */
-.pager-sticky{
-  position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between;
+/* ── NEW: компактный пагинатор как на скрине ──────────────────────────── */
+.pager-min{
+  display:flex; align-items:center; justify-content:flex-start; gap:12px;
+  position:sticky; bottom:0; padding:10px 0 6px; margin-top:8px;
   background:linear-gradient(to top, #fff 78%, rgba(255,255,255,0));
-  padding:10px 0 6px; margin-top:6px; border-top:1px solid #eef2f7;
+  border-top:1px solid #eef2f7;
 }
-.pager-info{ color:#64748b; font-size:13px }
-.pager-controls{ display:flex; gap:8px }
-.pager-sticky .page-btn{
-  padding:8px 14px; border-radius:10px; border:1px solid #117fff; background:#117fff; color:#fff; font-size:14px; cursor:pointer;
+.pager-min-left{ display:flex; align-items:center; gap:8px }
+.pg-ctrl{
+  width:40px; height:40px; border-radius:12px;
+  border:1px solid #e6ecf4; background:#fff; color:#334155; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:18px; line-height:1;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
 }
-.pager-sticky .page-btn:disabled{ opacity:.5; cursor:default }
+.pg-ctrl:disabled{ opacity:.5; cursor:default }
+.pg-ctrl:hover:not(:disabled){ background:#f7f9fc }
+
+.pg-current{
+  min-width:40px; height:40px; padding:0 10px; border-radius:12px;
+  background:#117fff; color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:600; box-shadow:0 6px 24px rgba(17,127,255,.25);
+}
+
+.pg-size{
+  height:40px; border:1px solid #e6ecf4; border-radius:12px; background:#fff;
+  display:flex; align-items:center; padding:0 12px; margin-left:6px;
+  position:relative;
+}
+.pg-size select{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  border:0; background:transparent; padding-right:18px; height:38px; font-size:14px; color:#0f172a; cursor:pointer;
+}
+.pg-size::after{
+  content:""; position:absolute; right:10px; top:50%; width:10px; height:10px; pointer-events:none;
+  transform:translateY(-50%); background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    center/10px 10px no-repeat;
+}
 
 /* ── empty state ───────────────────────────────────────────────────────── */
 .empty-state{
