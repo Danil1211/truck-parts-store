@@ -88,7 +88,7 @@ function renderGroupRows(
               <button className="icon-btn" title="Редактировать" onClick={(e)=>{e.stopPropagation(); onEdit(group);}}>
                 <IconEdit />
               </button>
-              <button className="icon-btn danger" title="Удалить" onClick={(e)=>{e.stopPropagation(); onDelete(group);}}>
+              <button className="icon-btn" title="Удалить" onClick={(e)=>{e.stopPropagation(); onDelete(group);}}>
                 <IconTrash />
               </button>
             </div>
@@ -329,7 +329,7 @@ export default function AdminGroupsPage() {
                       </div>
                       <button className="pr-edit" title="Редактировать"
                               onClick={() => navigate(`/admin/products/${p._id}/edit`)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2291ff"
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a"
                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M12 20h9" />
                           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />

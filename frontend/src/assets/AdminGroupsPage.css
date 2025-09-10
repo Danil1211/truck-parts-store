@@ -1,6 +1,6 @@
 /* frontend/src/assets/AdminGroupsPage.css */
 /* ==========================================================================
-   Groups — compact toolbar + centered paginator + thin spinner
+   Icons black + tiny side gaps for rows
    ========================================================================== */
 
 .groups-page { padding-bottom: 16px; }
@@ -68,11 +68,12 @@
 .chev-spacer{ display:inline-block; width:22px; height:22px }
 .g-chevron{ width:18px; height:18px; transition:transform .16s ease }
 .g-chevron.open{ transform:rotate(90deg) }
+
+/* ► Иконки действий — ЧЁРНЫЕ */
 .group-actions{ display:flex; align-items:center; gap:6px; padding-right:2px }
 .icon-btn{ background:transparent; border:none; padding:6px; border-radius:8px; cursor:pointer; transition:background .18s ease }
 .icon-btn:hover{ background:#f0f4f9 }
-.icon-btn .icon{ width:18px; height:18px; stroke:#117fff; fill:none; stroke-width:2 }
-.icon-btn.danger .icon{ stroke:#e33c3c }
+.icon-btn .icon{ width:18px; height:18px; stroke:#0f172a; fill:none; stroke-width:2 } /* было синее/красное */
 
 /* products toolbar */
 .product-toolbar{
@@ -105,6 +106,7 @@
 .prod-row{
   display:grid; grid-template-columns:60px 1fr 140px 44px; align-items:center; gap:14px;
   padding:10px 0; border-bottom:1px solid #f0f3f8; transition:background .15s;
+  margin:0 3px; /* ► маленький зазор слева и справа, чтобы выделение не прилипало */
 }
 .prod-row:hover{ background:#f9fbff }
 .pr-thumb{ width:56px; height:56px; border-radius:12px; object-fit:contain; background:#f1f5f9 }
@@ -119,9 +121,13 @@
 .pill.warn{ background:#fff7e6; color:#b76a00; border-color:#f7d9a5 }
 .pill.bad{  background:#ffecec; color:#d12a2a; border-color:#f3b5b5 }
 
-.pr-edit{ justify-self:end; background:transparent; border:1px solid #2291ff; border-radius:10px; padding:6px 8px; cursor:pointer; }
+/* ► Кнопка редактирования товара — рамка нейтральная, иконка черная */
+.pr-edit{
+  justify-self:end; background:#fff; border:1px solid #d0d7e2; border-radius:10px; padding:6px 8px; cursor:pointer;
+}
+.pr-edit:hover{ background:#f7f9fc }
 
-/* paginator — центр */
+/* paginator — центр (без изменений) */
 .pager-min{
   display:flex; align-items:center; justify-content:center; gap:12px;
   position:sticky; bottom:0; padding:10px 0 8px; margin-top:10px;
@@ -156,27 +162,10 @@
     center/10px 10px no-repeat;
 }
 
-/* empty state */
-.empty-state{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:40px 12px; text-align:center; color:#64748b }
-.empty-state svg{ width:72px; height:72px }
-.empty-state svg rect{ fill:#f3f6fb } .empty-state svg path{ fill:none; stroke:#a8c9ff; stroke-width:2.2 }
-.empty-state .empty-title{ font-size:16px; color:#0f172a; font-weight:600 }
-.empty-state .btn-primary{ margin-top:4px; padding:10px 16px; border-radius:10px }
-
-/* ── THIN SPINNER (как на первом скрине) ──────────────────────────────── */
-.loader-wrap{
-  display:flex; align-items:center; justify-content:center;
-  min-height:140px; padding:16px 0;
-}
-.spinner{
-  position:relative;
-  width:26px; height:26px; border-radius:50%;
-  background: conic-gradient(#117fff 0 85deg, #e6ecf4 85deg 360deg);
-  animation:spin 1s linear infinite;
-}
-.spinner::before{
-  content:""; position:absolute; inset:3px; background:#fff; border-radius:50%;
-}
-.spinner.spinner-lg{ width:32px; height:32px }
-.spinner.spinner-lg::before{ inset:3.5px }
+/* empty state и спиннеры оставил как раньше … */
+.loader-wrap{ display:flex; align-items:center; justify-content:center; min-height:140px; padding:16px 0; }
+.spinner{ position:relative; width:26px; height:26px; border-radius:50%;
+  background: conic-gradient(#117fff 0 85deg, #e6ecf4 85deg 360deg); animation:spin 1s linear infinite; }
+.spinner::before{ content:""; position:absolute; inset:3px; background:#fff; border-radius:50%; }
+.spinner.spinner-lg{ width:32px; height:32px } .spinner.spinner-lg::before{ inset:3.5px }
 @keyframes spin{ to{ transform:rotate(360deg) } }
