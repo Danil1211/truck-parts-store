@@ -279,8 +279,8 @@ export default function AdminGroupsPage() {
                   <div className="seg" role="group" aria-label="Фильтр по отображению">
                     {[
                       { v: "", label: "Все" },
-                      { v: "published", label: "Публ." },
-                      { v: "hidden", label: "Скрыто" },
+                      { v: "published", label: "Опубликованные" },
+                      { v: "hidden", label: "Скрытые" },
                       { v: "draft", label: "Черн." },
                     ].map(({ v, label }) => (
                       <button key={v || "all"} className={filterVisibility === v ? "on" : ""}
@@ -360,7 +360,7 @@ export default function AdminGroupsPage() {
                   </div>
                 ))}
 
-                {/* compact paginator */}
+                {/* compact paginator (центр + чуть больше) */}
                 <div className="pager-min">
                   <div className="pager-min-left">
                     <button className="pg-ctrl" disabled={page === 1}
