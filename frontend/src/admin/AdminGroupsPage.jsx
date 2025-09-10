@@ -122,7 +122,8 @@ export default function AdminGroupsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(null);
 
-  const [filterVisibility, setFilterVisibility] = useState(""); // published | hidden | draft
+  // filters
+  const [filterVisibility, setFilterVisibility] = useState(""); // "" | "published" | "hidden"
   const [searchProducts, setSearchProducts] = useState("");
   const prodSearchRef = useRef(null);
 
@@ -167,7 +168,7 @@ export default function AdminGroupsPage() {
           group: groupId,
           page,
           limit,
-          availability: filterVisibility || undefined,
+          availability: filterVisibility || undefined, // '' | 'published' | 'hidden'
           search: searchProducts || undefined,
           sort: "desc",
         },
@@ -206,15 +207,6 @@ export default function AdminGroupsPage() {
 
   const displayGroupsCount = groups.length;
 
-  const SkeletonRow = () => (
-    <div className="prod-row sk">
-      <div className="sk-thumb" />
-      <div className="sk-line" />
-      <div className="sk-pill" />
-      <div className="sk-btn" />
-    </div>
-  );
-
   return (
     <div className="groups-page admin-content with-submenu">
       <AdminSubMenu type="products" activeKey="groups" />
@@ -230,7 +222,7 @@ export default function AdminGroupsPage() {
         />
         <div className="flex-spacer" />
         <button onClick={() => navigate("/admin/groups/create")} className="btn-primary add-btn">
-          <span className="plus-icon">+</span> Добавить
+          <span className="plus-icon">+</span> Добавить группу
         </button>
       </div>
 
@@ -239,16 +231,21 @@ export default function AdminGroupsPage() {
         <div className="groups-card">
           {/* left */}
           <div className="col-left">
-            {loading && <div className="loading muted">Загрузка…</div>}
-            <div className="tree">
-              {renderGroupRows(
-                filteredTree, expanded, toggleExpand, selectedGroup,
-                (id) => { setSelectedGroup(id); setPage(1); },
-                (g) => navigate(`/admin/groups/edit/${g._id}`),
-                setDeleteModal
-              )}
-              {filteredTree.length === 0 && !loading && <div className="empty muted">Нет групп</div>}
-            </div>
+            {loading ? (
+              <div className="loader-wrap">
+                <span className="spinner spinner-lg" aria-label="Загрузка групп" />
+              </div>
+            ) : (
+              <div className="tree">
+                {renderGroupRows(
+                  filteredTree, expanded, toggleExpand, selectedGroup,
+                  (id) => { setSelectedGroup(id); setPage(1); },
+                  (g) => navigate(`/admin/groups/edit/${g._id}`),
+                  setDeleteModal
+                )}
+                {filteredTree.length === 0 && <div className="empty muted">Нет групп</div>}
+              </div>
+            )}
           </div>
 
           {/* right */}
@@ -281,7 +278,6 @@ export default function AdminGroupsPage() {
                       { v: "", label: "Все" },
                       { v: "published", label: "Опубликованные" },
                       { v: "hidden", label: "Скрытые" },
-                      { v: "draft", label: "Черн." },
                     ].map(({ v, label }) => (
                       <button key={v || "all"} className={filterVisibility === v ? "on" : ""}
                               onClick={() => { setFilterVisibility(v); setPage(1); }}>
@@ -293,29 +289,12 @@ export default function AdminGroupsPage() {
                   <div className="toolbar-spacer" />
                 </div>
 
-                {/* chips */}
-                <div className="chips">
-                  {searchProducts && (
-                    <button className="chip" onClick={() => { setSearchProducts(""); setPage(1); }}>
-                      Поиск: “{searchProducts}” <span>×</span>
-                    </button>
-                  )}
-                  {filterVisibility && (
-                    <button className="chip" onClick={() => { setFilterVisibility(""); setPage(1); }}>
-                      Отобр.: {filterVisibility === "published" ? "Публ." : filterVisibility === "hidden" ? "Скрыто" : "Черн."} <span>×</span>
-                    </button>
-                  )}
-                  {(searchProducts || filterVisibility) && (
-                    <button className="chip clear-all" onClick={() => {
-                      setSearchProducts(""); setFilterVisibility(""); setPage(1);
-                    }}>Сбросить всё</button>
-                  )}
-                </div>
-
-                {/* list / states */}
-                {prodLoading && (<><SkeletonRow/><SkeletonRow/><SkeletonRow/><SkeletonRow/><SkeletonRow/></>)}
-
-                {!prodLoading && products.length === 0 && (
+                {/* content / states */}
+                {prodLoading ? (
+                  <div className="loader-wrap">
+                    <span className="spinner spinner-lg" aria-label="Загрузка товаров" />
+                  </div>
+                ) : products.length === 0 ? (
                   <div className="empty-state">
                     <svg viewBox="0 0 48 48" aria-hidden="true">
                       <rect x="6" y="10" width="36" height="26" rx="6"/>
@@ -327,40 +306,40 @@ export default function AdminGroupsPage() {
                       Добавить товар
                     </button>
                   </div>
+                ) : (
+                  products.map((p) => (
+                    <div key={p._id} className="prod-row">
+                      <img
+                        className="pr-thumb" alt={p.name}
+                        src={p.images?.[0]
+                          ? (p.images[0].startsWith("http") ? p.images[0] : `${BASE_URL}${p.images[0]}`)
+                          : "https://dummyimage.com/64x64/eff2f6/b4bfcc.png&text=IMG"}
+                      />
+                      <div className="pr-info">
+                        <button type="button" className="pr-name link" title="Редактировать товар"
+                                onClick={() => navigate(`/admin/products/${p._id}/edit`)}>
+                          {p.name}
+                        </button>
+                        <div className="pr-sku">{p.sku || p._id}</div>
+                      </div>
+                      <div className="pr-availability">
+                        <span className="pill good">
+                          {p.stockState === "out" ? "Нет в наличии" : p.stockState === "preorder" ? "Под заказ" : "В наличии"}
+                        </span>
+                      </div>
+                      <button className="pr-edit" title="Редактировать"
+                              onClick={() => navigate(`/admin/products/${p._id}/edit`)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2291ff"
+                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))
                 )}
 
-                {!prodLoading && products.map((p) => (
-                  <div key={p._id} className="prod-row">
-                    <img
-                      className="pr-thumb" alt={p.name}
-                      src={p.images?.[0]
-                        ? (p.images[0].startsWith("http") ? p.images[0] : `${BASE_URL}${p.images[0]}`)
-                        : "https://dummyimage.com/64x64/eff2f6/b4bfcc.png&text=IMG"}
-                    />
-                    <div className="pr-info">
-                      <button type="button" className="pr-name link" title="Редактировать товар"
-                              onClick={() => navigate(`/admin/products/${p._id}/edit`)}>
-                        {p.name}
-                      </button>
-                      <div className="pr-sku">{p.sku || p._id}</div>
-                    </div>
-                    <div className="pr-availability">
-                      <span className="pill good">
-                        {p.stockState === "out" ? "Нет в наличии" : p.stockState === "preorder" ? "Под заказ" : "В наличии"}
-                      </span>
-                    </div>
-                    <button className="pr-edit" title="Редактировать"
-                            onClick={() => navigate(`/admin/products/${p._id}/edit`)}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2291ff"
-                           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-
-                {/* compact paginator (центр + чуть больше) */}
+                {/* paginator (центр) */}
                 <div className="pager-min">
                   <div className="pager-min-left">
                     <button className="pg-ctrl" disabled={page === 1}
@@ -375,10 +354,10 @@ export default function AdminGroupsPage() {
                       value={limit}
                       onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
                     >
-                      <option value={10}>по 10 позиций</option>
-                      <option value={20}>по 20 позиций</option>
-                      <option value={50}>по 50 позиций</option>
-                      <option value={100}>по 100 позиций</option>
+                      <option value={10}>по 10 позициям</option>
+                      <option value={20}>по 20 позициям</option>
+                      <option value={50}>по 50 позициям</option>
+                      <option value={100}>по 100 позициям</option>
                     </select>
                   </div>
                 </div>
