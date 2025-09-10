@@ -1,3 +1,4 @@
+// frontend/src/admin/AdminEditGroupPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api.js";
@@ -5,9 +6,24 @@ import AdminSubMenu from "./AdminSubMenu";
 import LocalEditor from "../components/LocalEditor";
 
 import "../assets/AdminPanel.css";
-import "../assets/AdminCreateGroupPage.css"; // используем те же стили, что и на странице создания
+import "../assets/AdminCreateGroupPage.css"; // тот же стиль, что и страница создания
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
+
+// безопасно достаём объект группы из любого «обёрнутого» ответа
+function pickGroupShape(raw) {
+  if (!raw) return null;
+  // самые частые варианты
+  const g =
+    raw.item ||
+    raw.group ||
+    raw.result ||
+    raw.data ||
+    (Array.isArray(raw) ? raw[0] : null) ||
+    raw;
+  return g || null;
+}
+const toAbs = (p) => (!p ? null : String(p).startsWith("http") ? p : `${BASE_URL}${p}`);
 
 export default function AdminEditGroupPage() {
   const { id } = useParams();
@@ -26,13 +42,11 @@ export default function AdminEditGroupPage() {
   const [saving, setSaving] = useState(false);
 
   // картинка
-  const [serverPath, setServerPath] = useState(null); // путь, который хранится на сервере
+  const [serverPath, setServerPath] = useState(null); // путь на сервере (если уже есть)
   const [preview, setPreview] = useState(null);       // blob/url для предпросмотра
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef(null);
-
-  const toAbs = (p) => (!p ? null : p.startsWith("http") ? p : `${BASE_URL}${p}`);
 
   // cleanup blob url
   useEffect(() => {
@@ -41,17 +55,22 @@ export default function AdminEditGroupPage() {
     };
   }, [preview]);
 
-  // начальная загрузка
+  // начальная загрузка: список групп + данные редактируемой
   useEffect(() => {
     (async () => {
       setInitialLoading(true);
       try {
-        const [{ data: allGroups }, { data: grp }] = await Promise.all([
+        const [allGroupsResp, groupResp] = await Promise.all([
           api.get("/api/groups"),
           api.get(`/api/groups/${id}`),
         ]);
 
-        setGroups(Array.isArray(allGroups) ? allGroups : []);
+        const allGroupsData = allGroupsResp?.data;
+        const grp = pickGroupShape(groupResp?.data);
+
+        setGroups(Array.isArray(allGroupsData) ? allGroupsData : []);
+
+        // если вдруг API вернул пусто — не падаем
         setName(grp?.name || "");
         setParentId(grp?.parentId || null);
         setDescription(grp?.description || "");
@@ -60,7 +79,7 @@ export default function AdminEditGroupPage() {
         setServerPath(img);
         setPreview(toAbs(img));
       } catch (e) {
-        console.error("Ошибка загрузки группы", e);
+        console.error("Ошибка загрузки группы:", e);
       } finally {
         setInitialLoading(false);
       }
@@ -73,7 +92,7 @@ export default function AdminEditGroupPage() {
     if (preview && String(preview).startsWith("blob:")) URL.revokeObjectURL(preview);
     setFile(f);
     setPreview(URL.createObjectURL(f));
-    setServerPath(null); // при выборе нового файла "старый" путь считаем сброшенным
+    setServerPath(null); // при новом файле «обнуляем» старый путь
   };
 
   const onFileInput = (e) => {
@@ -117,7 +136,7 @@ export default function AdminEditGroupPage() {
         const fd = new FormData();
         fd.append("files", file);
         const { data } = await api.post("/api/upload", fd);
-        imgPath = data?.[0] || null;
+        imgPath = Array.isArray(data) ? data[0] : data?.[0] || data || null;
       }
 
       await api.put(`/api/groups/${id}`, {
@@ -135,7 +154,7 @@ export default function AdminEditGroupPage() {
     }
   };
 
-  // списки для селекта (нельзя выбрать саму группу и «Родительскую группу»)
+  // селект родителя: нельзя выбирать саму группу и «Родительскую группу»
   const parentOptions = groups
     .filter((g) => g._id !== id && g.name !== "Родительская группа")
     .map((g) => ({ value: g._id, label: g.name }));
@@ -173,7 +192,6 @@ export default function AdminEditGroupPage() {
       <div className="cg-content-wrap">
         {initialLoading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
-            {/* компактный спиннер */}
             <span
               style={{
                 width: 32,
