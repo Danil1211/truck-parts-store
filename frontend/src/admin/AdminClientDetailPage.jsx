@@ -1,11 +1,10 @@
-// src/admin/AdminClientDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
 
-import "../assets/AdminPanel.css"; // общий Apple-style
-import "../assets/AdminClientPage.css"; // отдельные стили для клиентов
+import "../assets/AdminPanel.css";
+import "../assets/AdminClientPage.css";
 
 const BASE_URL = String(api.defaults.baseURL || "").replace(/\/+$/, "");
 
@@ -22,7 +21,9 @@ const ORDERS_BY_USER_PATHS = [
 ];
 
 const joinUrl = (base, path) =>
-  path?.startsWith("http") ? path : `${base}${path?.startsWith("/") ? "" : "/"}${path || ""}`;
+  path?.startsWith("http")
+    ? path
+    : `${base}${path?.startsWith("/") ? "" : "/"}${path || ""}`;
 
 const firstDefined = (...vals) => vals.find((v) => v != null);
 
@@ -155,17 +156,28 @@ export default function AdminClientDetailPage() {
       {/* Основная карточка */}
       <div className="card client-main-card">
         <div className="client-info">
-          <h2>{client.firstName} {client.lastName}</h2>
-          <div><b>Телефон:</b> {client.phone || "—"}</div>
-          <div><b>Email:</b> {client.email || "—"}</div>
-          <div><b>Дата регистрации:</b> {client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}</div>
+          <h2>
+            {client.firstName} {client.lastName}
+          </h2>
+          <div>
+            <b>Телефон:</b> {client.phone || "—"}
+          </div>
+          <div>
+            <b>Email:</b> {client.email || "—"}
+          </div>
+          <div>
+            <b>Дата регистрации:</b>{" "}
+            {client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}
+          </div>
         </div>
         <div className="client-rating">
           <div className="rating-title">Рейтинг клиента</div>
           <div className="rating-score">{client.rating ?? "—"}/10</div>
           <div className="rating-stars">
             {Array.from({ length: 10 }).map((_, i) => (
-              <span key={i} className={i < (client.rating ?? 0) ? "star filled" : "star"}>★</span>
+              <span key={i} className={i < (client.rating ?? 0) ? "star filled" : "star"}>
+                ★
+              </span>
             ))}
           </div>
         </div>
@@ -192,15 +204,23 @@ export default function AdminClientDetailPage() {
             return (
               <div key={order._id} className="order-card">
                 <div className="order-header">
-                  <div className="order-id" onClick={() => navigate(`/admin/orders/${order._id}`)}>
+                  <div
+                    className="order-id"
+                    onClick={() => navigate(`/admin/orders/${order._id}`)}
+                  >
                     № {order._id.slice(-6)}
                     <span className="order-date">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—"}
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString()
+                        : "—"}
                     </span>
                   </div>
                   <div className="order-sum">{sum} ₴</div>
                   {items.length > 1 && (
-                    <button className="btn-link" onClick={() => toggleOrder(order._id)}>
+                    <button
+                      className="btn-link"
+                      onClick={() => toggleOrder(order._id)}
+                    >
                       Смотреть все ({items.length}) {opened ? "▲" : "▼"}
                     </button>
                   )}
@@ -210,13 +230,17 @@ export default function AdminClientDetailPage() {
                     <div key={idx} className="order-item">
                       <img
                         src={
-                          (it.product?.images?.[0] && joinUrl(BASE_URL, it.product.images[0])) ||
-                          (it.product?.image && joinUrl(BASE_URL, it.product.image)) ||
+                          (it.product?.images?.[0] &&
+                            joinUrl(BASE_URL, it.product.images[0])) ||
+                          (it.product?.image &&
+                            joinUrl(BASE_URL, it.product.image)) ||
                           "/images/no-image.png"
                         }
                         alt="Фото"
                       />
-                      <div className="order-item-name">{it.product?.name || "Товар"}</div>
+                      <div className="order-item-name">
+                        {it.product?.name || "Товар"}
+                      </div>
                       <div className="order-item-qty">{it.quantity} шт.</div>
                       <div className="order-item-price">
                         {(it.product?.price || 0) * (it.quantity || 1)} ₴
