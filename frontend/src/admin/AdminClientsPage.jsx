@@ -2,26 +2,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
+import "../assets/AdminClientPage.css";
 
-/**
- * Возможные пути для списка клиентов.
- * Порядок важен. Если 404 — пробуем следующий.
- * Первый успешно сработавший запоминаем в sessionStorage.
- */
 const CANDIDATE_PATHS = [
-  "/api/users/admin",      // бэк из users.js (рекомендованный)
-  "/api/clients/admin",    // если у тебя есть отдельный роут clients
-  "/api/admin/clients",    // альтернативный вариант
-  "/api/clients"           // общий список
+  "/api/users/admin",
+  "/api/clients/admin",
+  "/api/admin/clients",
+  "/api/clients",
 ];
 
 function normalizePayload(raw) {
-  // Унифицируем ответ разных бэков
   const clients =
-    raw?.clients ??
-    raw?.items ??
-    raw?.data ??
-    (Array.isArray(raw) ? raw : []);
+    raw?.clients ?? raw?.items ?? raw?.data ?? (Array.isArray(raw) ? raw : []);
   const total =
     raw?.total ??
     raw?.count ??
@@ -43,7 +35,6 @@ export default function AdminClientsPage() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
   const pageSize = 20;
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,51 +43,31 @@ export default function AdminClientsPage() {
     async function load() {
       setLoading(true);
       setError("");
+      const params = { q, status, page: String(page), limit: String(pageSize) };
 
-      const params = {
-        q,
-        status,
-        page: String(page),
-        limit: String(pageSize),
-      };
-
-      // Если уже находили рабочий путь — пробуем его первым
       const remembered = sessionStorage.getItem("admin_clients_endpoint");
       const paths = remembered
         ? [remembered, ...CANDIDATE_PATHS.filter((p) => p !== remembered)]
         : [...CANDIDATE_PATHS];
 
       let lastErr;
-
       for (const path of paths) {
         try {
           const { data } = await api.get(path, { params, signal: controller.signal });
           const normalized = normalizePayload(data);
-
           setClients(normalized.clients);
           setTotal(normalized.total);
           sessionStorage.setItem("admin_clients_endpoint", path);
           setLoading(false);
           return;
         } catch (e) {
-          // Если 404 — просто пробуем следующий маршрут
-          const statusCode = e?.response?.status;
-          if (statusCode === 404) continue;
+          if (e?.response?.status === 404) continue;
           lastErr = e;
-          if (controller.signal.aborted) return; // тишина при анмаунте
         }
       }
-
-      // Если сюда дошли — ничего не сработало
       setClients([]);
       setTotal(0);
-      const msg =
-        lastErr?.response?.data?.error ||
-        lastErr?.message ||
-        "Неизвестная ошибка";
-      setError(
-        `Не удалось загрузить клиентов (проверь актуальный маршрут, например /api/users/admin). ${msg}`
-      );
+      setError(lastErr?.response?.data?.error || lastErr?.message || "Ошибка");
       setLoading(false);
     }
 
@@ -109,29 +80,22 @@ export default function AdminClientsPage() {
   return (
     <div className="clients-admin-root">
       <div className="clients-admin-header">
-        {/* ФИКСИРУЕМ цвет заголовка — не зависит от темы сайта */}
-        <h1
-          className="clients-admin-title"
-          style={{ fontWeight: 400, fontSize: 20, margin: 0, color: "#2291ff" }}
-        >
-          Клиенты
-        </h1>
+        <h1 className="clients-admin-title">Клиенты</h1>
       </div>
 
       <div className="clients-admin-filters">
-        <div className="search-wrap">
-          <input
-            type="text"
-            placeholder="Поиск (имя / email / телефон)…"
-            value={q}
-            onChange={(e) => {
-              setPage(1);
-              setQ(e.target.value);
-            }}
-          />
-        </div>
-
+        <input
+          className="search-input"
+          type="text"
+          placeholder="Поиск (имя / email / телефон)…"
+          value={q}
+          onChange={(e) => {
+            setPage(1);
+            setQ(e.target.value);
+          }}
+        />
         <select
+          className="status-select"
           value={status}
           onChange={(e) => {
             setPage(1);
@@ -148,7 +112,7 @@ export default function AdminClientsPage() {
         <table className="clients-admin-table">
           <thead>
             <tr>
-              <th>Имя</th>
+              <th>Клиент</th>
               <th>Email</th>
               <th>Телефон</th>
               <th>Регистрация</th>
@@ -157,46 +121,35 @@ export default function AdminClientsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center" }}>
-                  Загрузка…
-                </td>
+                <td colSpan={4} className="table-center">Загрузка…</td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={4} style={{ color: "#e84242", textAlign: "center" }}>
-                  {error}
-                </td>
+                <td colSpan={4} className="table-error">{error}</td>
               </tr>
             ) : clients.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center" }}>
-                  Клиентов не найдено
-                </td>
+                <td colSpan={4} className="table-center">Клиентов нет</td>
               </tr>
             ) : (
-              clients.map((client) => (
+              clients.map((c) => (
                 <tr
-                  key={client._id || client.id}
-                  style={{ cursor: "pointer" }}
-                  onClick={() =>
-                    navigate(`/admin/clients/${client._id || client.id}`)
-                  }
+                  key={c._id || c.id}
+                  onClick={() => navigate(`/admin/clients/${c._id || c.id}`)}
                 >
                   <td>
                     <span className="client-avatar">
-                      {(client.firstName || client.name || "").charAt(0)}
-                    </span>{" "}
-                    {client.firstName && client.lastName
-                      ? `${client.firstName} ${client.lastName}`
-                      : client.name || ""}
+                      {(c.firstName || c.name || "?").charAt(0)}
+                    </span>
+                    <span className="client-name">
+                      {c.firstName && c.lastName
+                        ? `${c.firstName} ${c.lastName}`
+                        : c.name || "—"}
+                    </span>
                   </td>
-                  <td>{client.email || ""}</td>
-                  <td>{client.phone || ""}</td>
-                  <td>
-                    {client.createdAt
-                      ? new Date(client.createdAt).toLocaleDateString()
-                      : ""}
-                  </td>
+                  <td>{c.email || "—"}</td>
+                  <td>{c.phone || "—"}</td>
+                  <td>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}</td>
                 </tr>
               ))
             )}
@@ -206,18 +159,9 @@ export default function AdminClientsPage() {
 
       {totalPages > 1 && (
         <div className="clients-pagination">
-          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-            ← Назад
-          </button>
-          <span style={{ lineHeight: "32px" }}>
-            {page} / {totalPages}
-          </span>
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Вперёд →
-          </button>
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>←</button>
+          <span>{page} / {totalPages}</span>
+          <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>→</button>
         </div>
       )}
     </div>
