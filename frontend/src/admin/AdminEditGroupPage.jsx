@@ -6,7 +6,7 @@ import AdminSubMenu from "./AdminSubMenu";
 import LocalEditor from "../components/LocalEditor";
 
 import "../assets/AdminPanel.css";
-import "../assets/AdminCreateGroupPage.css"; // тот же стиль, что и страница создания
+import "../assets/AdminCreateGroupPage.css";
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
 const toAbs = (p) => (!p ? null : String(p).startsWith("http") ? p : `${BASE_URL}${p}`);
@@ -15,33 +15,27 @@ export default function AdminEditGroupPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // поля
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState(null);
   const [description, setDescription] = useState("");
 
-  // группы для селекта
   const [groups, setGroups] = useState([]);
-
-  // загрузка/сохранение
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // картинка
   const [serverPath, setServerPath] = useState(null);
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef(null);
 
-  // cleanup blob url
   useEffect(() => {
     return () => {
       if (preview && String(preview).startsWith("blob:")) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
-  // начальная загрузка
+  // загрузка данных
   useEffect(() => {
     (async () => {
       setInitialLoading(true);
@@ -51,10 +45,6 @@ export default function AdminEditGroupPage() {
           api.get(`/api/groups/${id}`),
         ]);
 
-        console.log("📂 Все группы:", allGroupsResp.data);
-        console.log("📂 Группа для редактирования:", groupResp.data);
-
-        // список групп
         const allGroups =
           allGroupsResp?.data?.items ||
           allGroupsResp?.data?.groups ||
@@ -62,16 +52,7 @@ export default function AdminEditGroupPage() {
           [];
         setGroups(Array.isArray(allGroups) ? allGroups : []);
 
-        // сама группа
-        const raw = groupResp?.data;
-        const grp =
-          raw?.group ||
-          raw?.item ||
-          raw?.result ||
-          raw?.data ||
-          (Array.isArray(raw) ? raw[0] : raw) ||
-          null;
-
+        const grp = groupResp?.data;
         if (grp) {
           setName(grp.name || "");
           setParentId(grp.parentId || null);
@@ -139,7 +120,8 @@ export default function AdminEditGroupPage() {
         imgPath = Array.isArray(data) ? data[0] : data?.[0] || data || null;
       }
 
-      await api.put(`/api/groups/${id}`, {
+      // 🔥 PATCH вместо PUT
+      await api.patch(`/api/groups/${id}`, {
         name,
         description,
         parentId: parentId || null,
@@ -154,7 +136,6 @@ export default function AdminEditGroupPage() {
     }
   };
 
-  // селект родителя
   const parentOptions = groups
     .filter((g) => g._id !== id && g.name !== "Родительская группа")
     .map((g) => ({ value: g._id, label: g.name }));
