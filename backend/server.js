@@ -28,10 +28,9 @@ const userRoutes         = require('./routes/users');
 const blogRoutes         = require('./routes/blog');
 const promosRoutes       = require('./routes/promos');
 const siteSettingsRoutes = require('./routes/siteSettings');
-const feedRoutes         = require('./routes/feed');      // 👈 фид
-const taxonomyRoutes     = require('./routes/taxonomy');  // 👈 таксономия Google категорий
+const feedRoutes         = require('./routes/feed');
+const taxonomyRoutes     = require('./routes/taxonomy');
 
-/* ===================== Email Service ===================== */
 const { sendMail } = require('./utils/emailService');
 
 /* ========================= Общие настройки ========================= */
@@ -42,7 +41,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 /* ============================= CORS ============================= */
 const allowlist = [
   /^https?:\/\/storo-shop\.com$/i,
-  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i,
+  /^https?:\/\/(?:.+\.)?storo-shop\.com$/i, // все поддомены
   /^https?:\/\/api\.storo-shop\.com$/i,
   /^https?:\/\/localhost(?::\d+)?$/i,
   /onrender\.com$/i,
@@ -67,18 +66,27 @@ const corsOptionsDelegate = (req, cb) => {
   cb(null, {
     origin: allowed ? origin : false,
     credentials: true,
-    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization','X-Tenant-Id','X-Tenant','X-Super-Key'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Tenant-Id',
+      'X-Tenant',
+      'X-Super-Key'
+    ],
     optionsSuccessStatus: 204,
   });
 };
 
+// 🔥 глобально включаем CORS и preflight
 app.use(cors(corsOptionsDelegate));
-app.options(/.*/, cors(corsOptionsDelegate));
+app.options('*', cors(corsOptionsDelegate));
 
 /* ============== Лог запросов ============== */
 app.use((req, _res, next) => {
-  console.log(`➡️ ${req.method} ${req.path} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`);
+  console.log(
+    `➡️ ${req.method} ${req.originalUrl} | origin=${req.headers.origin || '-'} | host=${req.headers.host}`
+  );
   next();
 });
 
@@ -86,7 +94,6 @@ app.use((req, _res, next) => {
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Render health-check
 app.get('/', (_req, res) => res.status(200).send('Backend is alive 🚀'));
 app.head('/', (_req, res) => res.status(204).end());
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
@@ -98,8 +105,8 @@ app.get('/api/cors-check', (req, res) => {
 app.use('/api/public', publicRoutes);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/webhooks', paymentsRoutes);
-app.use('/api/feed', feedRoutes);         // глобальный фид
-app.use('/api/taxonomy', taxonomyRoutes); // глобальная таксономия категорий
+app.use('/api/feed', feedRoutes);
+app.use('/api/taxonomy', taxonomyRoutes);
 
 /* ==================== Ниже всё в контексте арендатора ==================== */
 app.use(withTenant);
@@ -121,7 +128,7 @@ app.use('/api/site-settings', siteSettingsRoutes);
 app.get('/api/test-email', async (req, res) => {
   try {
     await sendMail(
-      "gluskodanil44@gmail.com",   // сюда придёт письмо
+      "gluskodanil44@gmail.com",
       "Проверка SMTP 🚀",
       "<h1>Почта работает!</h1><p>Это тестовое письмо от Storo.</p>"
     );
