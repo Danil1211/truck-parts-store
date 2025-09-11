@@ -9,20 +9,6 @@ import "../assets/AdminPanel.css";
 import "../assets/AdminCreateGroupPage.css"; // тот же стиль, что и страница создания
 
 const BASE_URL = (api.defaults.baseURL || "").replace(/\/+$/, "");
-
-// безопасно достаём объект группы из любого «обёрнутого» ответа
-function pickGroupShape(raw) {
-  if (!raw) return null;
-  // самые частые варианты
-  const g =
-    raw.item ||
-    raw.group ||
-    raw.result ||
-    raw.data ||
-    (Array.isArray(raw) ? raw[0] : null) ||
-    raw;
-  return g || null;
-}
 const toAbs = (p) => (!p ? null : String(p).startsWith("http") ? p : `${BASE_URL}${p}`);
 
 export default function AdminEditGroupPage() {
@@ -42,8 +28,8 @@ export default function AdminEditGroupPage() {
   const [saving, setSaving] = useState(false);
 
   // картинка
-  const [serverPath, setServerPath] = useState(null); // путь на сервере (если уже есть)
-  const [preview, setPreview] = useState(null);       // blob/url для предпросмотра
+  const [serverPath, setServerPath] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef(null);
@@ -55,7 +41,7 @@ export default function AdminEditGroupPage() {
     };
   }, [preview]);
 
-  // начальная загрузка: список групп + данные редактируемой
+  // начальная загрузка
   useEffect(() => {
     (async () => {
       setInitialLoading(true);
@@ -65,21 +51,36 @@ export default function AdminEditGroupPage() {
           api.get(`/api/groups/${id}`),
         ]);
 
-        const allGroupsData = allGroupsResp?.data;
-        const grp = pickGroupShape(groupResp?.data);
+        console.log("📂 Все группы:", allGroupsResp.data);
+        console.log("📂 Группа для редактирования:", groupResp.data);
 
-        setGroups(Array.isArray(allGroupsData) ? allGroupsData : []);
+        // список групп
+        const allGroups =
+          allGroupsResp?.data?.items ||
+          allGroupsResp?.data?.groups ||
+          allGroupsResp?.data ||
+          [];
+        setGroups(Array.isArray(allGroups) ? allGroups : []);
 
-        // если вдруг API вернул пусто — не падаем
-        setName(grp?.name || "");
-        setParentId(grp?.parentId || null);
-        setDescription(grp?.description || "");
+        // сама группа
+        const raw = groupResp?.data;
+        const grp =
+          raw?.group ||
+          raw?.item ||
+          raw?.result ||
+          raw?.data ||
+          (Array.isArray(raw) ? raw[0] : raw) ||
+          null;
 
-        const img = grp?.img || null;
-        setServerPath(img);
-        setPreview(toAbs(img));
+        if (grp) {
+          setName(grp.name || "");
+          setParentId(grp.parentId || null);
+          setDescription(grp.description || "");
+          setServerPath(grp.img || null);
+          setPreview(toAbs(grp.img));
+        }
       } catch (e) {
-        console.error("Ошибка загрузки группы:", e);
+        console.error("❌ Ошибка загрузки группы:", e);
       } finally {
         setInitialLoading(false);
       }
@@ -92,7 +93,7 @@ export default function AdminEditGroupPage() {
     if (preview && String(preview).startsWith("blob:")) URL.revokeObjectURL(preview);
     setFile(f);
     setPreview(URL.createObjectURL(f));
-    setServerPath(null); // при новом файле «обнуляем» старый путь
+    setServerPath(null);
   };
 
   const onFileInput = (e) => {
@@ -130,7 +131,6 @@ export default function AdminEditGroupPage() {
     try {
       setSaving(true);
 
-      // если выбран новый файл — загружаем
       let imgPath = serverPath;
       if (file) {
         const fd = new FormData();
@@ -154,7 +154,7 @@ export default function AdminEditGroupPage() {
     }
   };
 
-  // селект родителя: нельзя выбирать саму группу и «Родительскую группу»
+  // селект родителя
   const parentOptions = groups
     .filter((g) => g._id !== id && g.name !== "Родительская группа")
     .map((g) => ({ value: g._id, label: g.name }));
