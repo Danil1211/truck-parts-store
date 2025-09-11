@@ -78,9 +78,8 @@ const corsOptionsDelegate = (req, cb) => {
   });
 };
 
-// 🔥 глобально включаем CORS и preflight
+// ✅ Глобально включаем CORS (preflight будет обрабатываться автоматически)
 app.use(cors(corsOptionsDelegate));
-app.options('*', cors(corsOptionsDelegate));
 
 /* ============== Лог запросов ============== */
 app.use((req, _res, next) => {
