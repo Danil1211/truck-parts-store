@@ -2,7 +2,10 @@
   --sidebar-w: 72px; /* ширина левого меню */
 }
 
-/* корень страницы клиентов */
+/* ========================================================================== */
+/* СТРАНИЦА СПИСКА КЛИЕНТОВ */
+/* ========================================================================== */
+
 .clients-admin-root {
   padding: 20px;
   font-family: 'Inter', sans-serif;
@@ -165,4 +168,144 @@
 .clients-pagination button:disabled {
   background: #d6e4f9;
   cursor: not-allowed;
+}
+
+/* ========================================================================== */
+/* ДЕТАЛЬНАЯ СТРАНИЦА КЛИЕНТА */
+/* ========================================================================== */
+
+.client-detail-page {
+  font-family: 'Inter', sans-serif;
+  padding: 20px;
+  background: var(--bg, #f6f9fb);
+  color: var(--text-main, #111);
+}
+
+/* топбар */
+.client-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.client-topbar-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.client-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* карточка клиента */
+.client-main-card {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin-bottom: 20px;
+}
+.client-info h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.client-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #444;
+}
+.client-rating {
+  text-align: right;
+}
+.rating-title {
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #666;
+}
+.rating-score {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.rating-stars {
+  font-size: 16px;
+}
+.rating-stars .star {
+  color: #d0d7e2;
+}
+.rating-stars .star.filled {
+  color: #2291ff;
+}
+
+/* заказы */
+.client-orders-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 20px;
+}
+.client-orders-card h3 {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.order-card {
+  border-top: 1px solid #eee;
+  padding: 12px 0;
+}
+.order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.order-id {
+  font-weight: 500;
+  cursor: pointer;
+  color: #2291ff;
+}
+.order-id:hover {
+  text-decoration: underline;
+}
+.order-date {
+  font-size: 12px;
+  margin-left: 6px;
+  color: #777;
+}
+.order-sum {
+  font-weight: 600;
+  color: #111;
+}
+.btn-link {
+  border: none;
+  background: none;
+  color: #2291ff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.order-items {
+  margin-top: 10px;
+}
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.order-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.order-item-name {
+  flex: 1;
+  font-size: 14px;
+}
+.order-item-qty,
+.order-item-price {
+  font-size: 13px;
+  color: #444;
 }

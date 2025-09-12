@@ -153,22 +153,18 @@ export default function AdminClientDetailPage() {
         </div>
       </div>
 
-      {/* Основная карточка */}
+      {/* Карточка клиента */}
       <div className="card client-main-card">
         <div className="client-info">
           <h2>
             {client.firstName} {client.lastName}
           </h2>
-          <div>
-            <b>Телефон:</b> {client.phone || "—"}
-          </div>
-          <div>
-            <b>Email:</b> {client.email || "—"}
-          </div>
-          <div>
+          <p><b>Телефон:</b> {client.phone || "—"}</p>
+          <p><b>Email:</b> {client.email || "—"}</p>
+          <p>
             <b>Дата регистрации:</b>{" "}
             {client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}
-          </div>
+          </p>
         </div>
         <div className="client-rating">
           <div className="rating-title">Рейтинг клиента</div>
@@ -183,7 +179,7 @@ export default function AdminClientDetailPage() {
         </div>
       </div>
 
-      {/* Блок заказов */}
+      {/* Заказы клиента */}
       <div className="card client-orders-card">
         <h3>Заказы клиента</h3>
         {ordersLoading ? (
