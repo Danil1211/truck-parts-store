@@ -25,7 +25,7 @@
   color: #2291ff;
 }
 
-/* сабменю */
+/* сабменю (горизонтальное) */
 .admin-nav-menu {
   display: flex;
   gap: 20px;
@@ -63,13 +63,6 @@
   border-radius: 10px;
   min-width: 260px;
   font-size: 14px;
-}
-.clients-admin-filters select {
-  padding: 8px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 14px;
-  background: #fff;
 }
 
 /* таблица */
@@ -193,14 +186,11 @@
 .client-topbar-title {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-main);
 }
 .client-actions {
   display: flex;
   gap: 10px;
 }
-
-/* кнопки */
 .btn-ghost {
   border: none;
   background: transparent;
@@ -256,25 +246,6 @@
 .client-rating {
   text-align: right;
 }
-.rating-title {
-  font-size: 14px;
-  margin-bottom: 6px;
-  color: #666;
-}
-.rating-score {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.rating-stars {
-  font-size: 16px;
-}
-.rating-stars .star {
-  color: #d0d7e2;
-}
-.rating-stars .star.filled {
-  color: #2291ff;
-}
 
 /* заказы */
 .client-orders-card {
@@ -312,7 +283,6 @@
 }
 .order-sum {
   font-weight: 600;
-  color: #111;
 }
 .btn-link {
   border: none;
