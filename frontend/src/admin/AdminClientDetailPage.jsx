@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api.js";
-import AdminSubMenu from "./AdminSubMenu";
 
 import "../assets/AdminPanel.css";
 import "../assets/AdminClientPage.css";
@@ -126,19 +125,7 @@ export default function AdminClientDetailPage() {
   }
 
   return (
-    <div className="admin-content with-submenu client-detail-page">
-      <AdminSubMenu
-        type="clients"
-        activeKey="details"
-        items={[
-          { key: "profile", label: "Профиль" },
-          { key: "orders", label: "Заказы" },
-          { key: "reviews", label: "Отзывы" },
-          { key: "activity", label: "Активность" },
-          { key: "messages", label: "Сообщения" },
-        ]}
-      />
-
+    <div className="admin-content client-detail-page">
       {/* Топбар */}
       <div className="client-topbar">
         <button className="btn-ghost" onClick={() => navigate("/admin/clients")}>
