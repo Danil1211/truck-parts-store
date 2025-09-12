@@ -111,11 +111,11 @@ export default function AdminClientDetailPage() {
   const toggle = (orderId) => setOpened((s) => ({ ...s, [orderId]: !s[orderId] }));
 
   return (
-    <div className="client-detail-page with-submenu">
-      {/* Сабменю сверху */}
+    <div className="client-detail-page admin-content with-submenu">
+      {/* ФИКСИРОВАННОЕ ПРАВОЕ СУБМЕНЮ (готовое из AdminPanel.css) */}
       <AdminSubMenu type="clients" activeKey="registered" />
 
-      {/* Контент */}
+      {/* КОНТЕНТ СПРАВА ОТ СУБМЕНЮ */}
       <div className="client-detail-content">
         {/* Топбар */}
         <div className="client-topbar">
@@ -129,7 +129,7 @@ export default function AdminClientDetailPage() {
           </div>
         </div>
 
-        {/* Карточка */}
+        {/* Карточка клиента */}
         <div className="card client-main-card">
           <div className="client-info">
             <h2>{client.firstName} {client.lastName}</h2>
@@ -139,7 +139,9 @@ export default function AdminClientDetailPage() {
           </div>
           <div className="client-rating">
             <div className="rating-title">Рейтинг клиента</div>
-            <div className="rating-score">{client.rating ?? "—"}<span className="rating-max">/10</span></div>
+            <div className="rating-score">
+              {client.rating ?? "—"}<span className="rating-max">/10</span>
+            </div>
             <div className="rating-stars">
               {Array.from({ length: 10 }).map((_, i) => (
                 <span key={i} className={i < (client.rating ?? 0) ? "star on" : "star"}>★</span>
@@ -148,7 +150,7 @@ export default function AdminClientDetailPage() {
           </div>
         </div>
 
-        {/* Заказы */}
+        {/* Заказы клиента */}
         <div className="card client-orders-card">
           <h3>Заказы клиента</h3>
           {ordersLoading ? (

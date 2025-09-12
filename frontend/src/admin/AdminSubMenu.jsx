@@ -18,6 +18,10 @@ const MENUS = {
     { key: "main", label: "Основные настройки", link: "/admin/settings?tab=main" },
     { key: "site", label: "Управление сайтом",  link: "/admin/settings?tab=site" },
   ],
+  clients: [
+  { key: "registered", label: "Зарегистрированные", link: "/admin/clients?tab=registered" },
+  { key: "guests",     label: "Без регистрации",    link: "/admin/clients?tab=guests" },
+  ],
 };
 
 export default function AdminSubMenu({

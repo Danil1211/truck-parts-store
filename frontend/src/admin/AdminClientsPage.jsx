@@ -5,7 +5,7 @@ import AdminSubMenu from "./AdminSubMenu";
 
 import "../assets/AdminClientPage.css";
 
-/* ---------- endpoints ---------- */
+/** Роуты для вкладки "Зарегистрированные" */
 const REGISTERED_PATHS = [
   "/api/users/admin",
   "/api/admin/users",
@@ -13,14 +13,15 @@ const REGISTERED_PATHS = [
   "/api/clients",
 ];
 
+/** Роуты для вкладки "Без регистрации" (агрегируем по заказам гостей) */
 const GUESTS_PATHS = [
-  "/api/orders/guests",          // если есть спец-роут
+  "/api/orders/guests",
   "/api/admin/orders/guests",
-  "/api/orders?guest=1",         // fallback: обычные заказы c фильтром гостя
+  "/api/orders?guest=1",
   "/api/admin/orders?guest=1",
 ];
 
-/* ---------- normalizers ---------- */
+/** Нормализация зарегистрированных пользователей */
 function normalizeRegistered(raw) {
   const list = raw?.clients ?? raw?.items ?? raw?.data ?? (Array.isArray(raw) ? raw : []);
   return (Array.isArray(list) ? list : []).map((u) => ({
@@ -35,7 +36,7 @@ function normalizeRegistered(raw) {
   }));
 }
 
-// guests приходят как заказы; агрегируем по email/phone
+/** Нормализация гостей: приходят заказы ⇒ группируем по email/телефону */
 function normalizeGuests(raw) {
   const orders = raw?.orders ?? raw?.items ?? raw?.data ?? (Array.isArray(raw) ? raw : []);
   const map = new Map();
@@ -48,19 +49,18 @@ function normalizeGuests(raw) {
     const key = `${(email || "").toLowerCase()}|${phone}`;
     if (!map.has(key)) {
       map.set(key, {
-        id: key,
+        id: key, // нет id — используем составной ключ
         firstName: name || "",
         lastName: "",
         email,
         phone,
-        createdAt: o.createdAt || o.date || null,
+        createdAt: o.createdAt || o.date || null, // первая покупка
         ordersCount: 1,
         rating: null,
       });
     } else {
       const item = map.get(key);
       item.ordersCount += 1;
-      // берём самую раннюю дату как "первая покупка"
       const d1 = new Date(item.createdAt || 0).getTime() || Infinity;
       const d2 = new Date(o.createdAt || o.date || 0).getTime() || Infinity;
       if (d2 < d1) item.createdAt = o.createdAt || o.date || item.createdAt;
@@ -69,11 +69,9 @@ function normalizeGuests(raw) {
   return Array.from(map.values());
 }
 
-/* ---------- page ---------- */
 export default function AdminClientsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-
   const tab = new URLSearchParams(location.search).get("tab") || "registered"; // registered | guests
 
   const [rows, setRows] = useState([]);
@@ -92,66 +90,54 @@ export default function AdminClientsPage() {
       setError("");
 
       const params = { q, page: String(page), limit: String(pageSize) };
-
       const paths = tab === "registered" ? REGISTERED_PATHS : GUESTS_PATHS;
 
-      let success = false;
+      let ok = false;
       for (const p of paths) {
         try {
           const { data } = await api.get(p, { params, signal: controller.signal });
-          const list =
-            tab === "registered" ? normalizeRegistered(data) : normalizeGuests(data);
+          const list = tab === "registered" ? normalizeRegistered(data) : normalizeGuests(data);
           setRows(list);
-          // total: если бэк отдаёт — берём, иначе считаем по длине
-          const t =
-            data?.total ?? data?.count ?? data?.pagination?.total ?? list.length;
-          setTotal(Number.isFinite(t) ? Number(t) : list.length);
-          success = true;
+          const t = data?.total ?? data?.count ?? data?.pagination?.total ?? list.length;
+          setTotal(Number.isFinite(+t) ? +t : list.length);
+          ok = true;
           break;
         } catch (e) {
           if (e?.response?.status === 404) continue;
         }
       }
-      if (!success) {
+      if (!ok) {
         setRows([]);
         setTotal(0);
         setError("Не удалось загрузить список.");
       }
       setLoading(false);
     })();
-
     return () => controller.abort();
   }, [tab, q, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="clients-page with-submenu">
-      {/* СУБМЕНЮ (горизонтально, сверху) */}
+    <div className="clients-page admin-content with-submenu">
+      {/* ФИКСИРОВАННОЕ ПРАВОЕ СУБМЕНЮ (готовое из AdminPanel.css) */}
       <AdminSubMenu type="clients" activeKey={tab} />
 
-      {/* КОНТЕНТ (строго ПОСЛЕ сабменю) */}
-      <div className="clients-page-content">
-        {/* Заголовок + Поиск */}
+      {/* КОНТЕНТ СПРАВА ОТ СУБМЕНЮ */}
+      <div className="clients-content">
         <div className="clients-header">
           <h1>Клиенты</h1>
-          <div className="clients-actions">
-            <input
-              className="input"
-              type="text"
-              placeholder="Поиск (имя / email / телефон)…"
-              value={q}
-              onChange={(e) => {
-                setPage(1);
-                setQ(e.target.value);
-              }}
-            />
-          </div>
+          <input
+            className="clients-search"
+            type="text"
+            placeholder="Поиск (имя / email / телефон)…"
+            value={q}
+            onChange={(e) => { setPage(1); setQ(e.target.value); }}
+          />
         </div>
 
-        {/* Таблица */}
-        <div className="table-wrap">
-          <table className="table">
+        <div className="clients-table-wrap">
+          <table className="clients-table">
             <thead>
               <tr>
                 <th>Клиент</th>
@@ -164,11 +150,11 @@ export default function AdminClientsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="center">Загрузка…</td></tr>
+                <tr><td className="center" colSpan={6}>Загрузка…</td></tr>
               ) : error ? (
-                <tr><td colSpan={6} className="error">{error}</td></tr>
+                <tr><td className="error" colSpan={6}>{error}</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={6} className="center">Пусто</td></tr>
+                <tr><td className="center" colSpan={6}>Пусто</td></tr>
               ) : (
                 rows.map((c) => (
                   <tr
@@ -203,12 +189,23 @@ export default function AdminClientsPage() {
           </table>
         </div>
 
-        {/* Пагинация */}
         {totalPages > 1 && (
-          <div className="pager">
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Назад</button>
-            <span>{page} / {totalPages}</span>
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>Вперёд →</button>
+          <div className="clients-pager">
+            <button
+              className="page-btn"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              ← Назад
+            </button>
+            <span className="pager-info">{page} / {totalPages}</span>
+            <button
+              className="page-btn"
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Вперёд →
+            </button>
           </div>
         )}
       </div>
