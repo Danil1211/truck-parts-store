@@ -1,93 +1,123 @@
+// src/admin/AdminClientsPage.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../utils/api.js";
-import AdminSubMenu from "./AdminSubMenu";
 
-import "../assets/AdminPanel.css";
-import "../assets/AdminClientPage.css";
-
-const CLIENTS_PATHS = [
-  "/api/users/admin",
-  "/api/admin/users",
-  "/api/clients/admin",
-];
-
-const GUESTS_PATHS = [
-  "/api/orders/guests",
-  "/api/admin/orders/guests",
+/**
+ * Возможные пути для списка клиентов.
+ * Порядок важен. Если 404 — пробуем следующий.
+ * Первый успешно сработавший запоминаем в sessionStorage.
+ */
+const CANDIDATE_PATHS = [
+  "/api/users/admin",      // бэк из users.js (рекомендованный)
+  "/api/clients/admin",    // если у тебя есть отдельный роут clients
+  "/api/admin/clients",    // альтернативный вариант
+  "/api/clients"           // общий список
 ];
 
 function normalizePayload(raw) {
-  const items = raw?.clients ?? raw?.items ?? raw?.data ?? (Array.isArray(raw) ? raw : []);
+  // Унифицируем ответ разных бэков
+  const clients =
+    raw?.clients ??
+    raw?.items ??
+    raw?.data ??
+    (Array.isArray(raw) ? raw : []);
   const total =
-    raw?.total ?? raw?.count ?? raw?.pagination?.total ?? (Array.isArray(items) ? items.length : 0);
+    raw?.total ??
+    raw?.count ??
+    raw?.pagination?.total ??
+    (Array.isArray(clients) ? clients.length : 0);
 
   return {
-    items: Array.isArray(items) ? items : [],
+    clients: Array.isArray(clients) ? clients : [],
     total: Number.isFinite(total) ? total : 0,
   };
 }
 
 export default function AdminClientsPage() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const searchParams = new URLSearchParams(location.search);
-  const tab = searchParams.get("tab") || "registered";
-
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
   const pageSize = 20;
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const controller = new AbortController();
+
     async function load() {
       setLoading(true);
       setError("");
 
-      const params = { q, page: String(page), limit: String(pageSize) };
-      const paths = tab === "registered" ? CLIENTS_PATHS : GUESTS_PATHS;
+      const params = {
+        q,
+        status,
+        page: String(page),
+        limit: String(pageSize),
+      };
+
+      // Если уже находили рабочий путь — пробуем его первым
+      const remembered = sessionStorage.getItem("admin_clients_endpoint");
+      const paths = remembered
+        ? [remembered, ...CANDIDATE_PATHS.filter((p) => p !== remembered)]
+        : [...CANDIDATE_PATHS];
+
       let lastErr;
 
       for (const path of paths) {
         try {
           const { data } = await api.get(path, { params, signal: controller.signal });
           const normalized = normalizePayload(data);
-          setClients(normalized.items);
+
+          setClients(normalized.clients);
           setTotal(normalized.total);
+          sessionStorage.setItem("admin_clients_endpoint", path);
           setLoading(false);
           return;
         } catch (e) {
-          if (e?.response?.status === 404) continue;
+          // Если 404 — просто пробуем следующий маршрут
+          const statusCode = e?.response?.status;
+          if (statusCode === 404) continue;
           lastErr = e;
+          if (controller.signal.aborted) return; // тишина при анмаунте
         }
       }
 
+      // Если сюда дошли — ничего не сработало
       setClients([]);
       setTotal(0);
-      setError(lastErr?.response?.data?.error || lastErr?.message || "Ошибка загрузки");
+      const msg =
+        lastErr?.response?.data?.error ||
+        lastErr?.message ||
+        "Неизвестная ошибка";
+      setError(
+        `Не удалось загрузить клиентов (проверь актуальный маршрут, например /api/users/admin). ${msg}`
+      );
       setLoading(false);
     }
+
     load();
     return () => controller.abort();
-  }, [q, page, tab]);
+  }, [q, status, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="clients-admin-root">
       <div className="clients-admin-header">
-        <h1 className="clients-admin-title">Клиенты</h1>
+        {/* ФИКСИРУЕМ цвет заголовка — не зависит от темы сайта */}
+        <h1
+          className="clients-admin-title"
+          style={{ fontWeight: 400, fontSize: 20, margin: 0, color: "#2291ff" }}
+        >
+          Клиенты
+        </h1>
       </div>
 
-      {/* Сабменю */}
-      <AdminSubMenu type="clients" activeKey={tab} />
-
-      {/* Фильтры */}
       <div className="clients-admin-filters">
         <div className="search-wrap">
           <input
@@ -100,73 +130,72 @@ export default function AdminClientsPage() {
             }}
           />
         </div>
+
+        <select
+          value={status}
+          onChange={(e) => {
+            setPage(1);
+            setStatus(e.target.value);
+          }}
+        >
+          <option value="all">Все</option>
+          <option value="active">Активные</option>
+          <option value="blocked">Заблокированные</option>
+        </select>
       </div>
 
-      {/* Таблица */}
       <div className="clients-admin-table-wrap">
         <table className="clients-admin-table">
           <thead>
             <tr>
-              <th>Клиент</th>
+              <th>Имя</th>
               <th>Email</th>
               <th>Телефон</th>
-              <th>{tab === "registered" ? "Регистрация" : "Оформил заказ"}</th>
-              <th>Заказы</th>
-              <th>Рейтинг</th>
+              <th>Регистрация</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="center-cell">Загрузка…</td>
+                <td colSpan={4} style={{ textAlign: "center" }}>
+                  Загрузка…
+                </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={6} className="error-cell">{error}</td>
+                <td colSpan={4} style={{ color: "#e84242", textAlign: "center" }}>
+                  {error}
+                </td>
               </tr>
             ) : clients.length === 0 ? (
               <tr>
-                <td colSpan={6} className="center-cell">Нет данных</td>
+                <td colSpan={4} style={{ textAlign: "center" }}>
+                  Клиентов не найдено
+                </td>
               </tr>
             ) : (
               clients.map((client) => (
                 <tr
                   key={client._id || client.id}
-                  className="client-row"
+                  style={{ cursor: "pointer" }}
                   onClick={() =>
                     navigate(`/admin/clients/${client._id || client.id}`)
                   }
                 >
-                  <td className="client-name">
+                  <td>
                     <span className="client-avatar">
-                      {(client.firstName || client.name || "?").charAt(0)}
-                    </span>
-                    <span>
-                      {client.firstName && client.lastName
-                        ? `${client.firstName} ${client.lastName}`
-                        : client.name || ""}
-                    </span>
+                      {(client.firstName || client.name || "").charAt(0)}
+                    </span>{" "}
+                    {client.firstName && client.lastName
+                      ? `${client.firstName} ${client.lastName}`
+                      : client.name || ""}
                   </td>
-                  <td>{client.email || "—"}</td>
-                  <td>{client.phone || "—"}</td>
+                  <td>{client.email || ""}</td>
+                  <td>{client.phone || ""}</td>
                   <td>
                     {client.createdAt
                       ? new Date(client.createdAt).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td>{client.ordersCount ?? 0}</td>
-                  <td>
-                    <span className="rating-stars">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <span
-                          key={i}
-                          className={i < (client.rating ?? 0) ? "star filled" : "star"}
-                        >
-                          ★
-                        </span>
-                      ))}
-                    </span>
-                    <span className="rating-num">{client.rating ?? "—"}</span>
+                      : ""}
                   </td>
                 </tr>
               ))
@@ -177,9 +206,18 @@ export default function AdminClientsPage() {
 
       {totalPages > 1 && (
         <div className="clients-pagination">
-          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Назад</button>
-          <span>{page} / {totalPages}</span>
-          <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>Вперёд →</button>
+          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+            ← Назад
+          </button>
+          <span style={{ lineHeight: "32px" }}>
+            {page} / {totalPages}
+          </span>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Вперёд →
+          </button>
         </div>
       )}
     </div>
