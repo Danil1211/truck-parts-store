@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../utils/api.js";
 import AdminSubMenu from "./AdminSubMenu";
 
@@ -13,8 +13,8 @@ const CLIENTS_PATHS = [
 ];
 
 const GUESTS_PATHS = [
-  "/api/orders/guests",      // если у тебя есть спец. роут
-  "/api/admin/orders/guests" // либо можно фильтровать обычные заказы
+  "/api/orders/guests",
+  "/api/admin/orders/guests",
 ];
 
 function normalizePayload(raw) {
@@ -29,7 +29,12 @@ function normalizePayload(raw) {
 }
 
 export default function AdminClientsPage() {
-  const [tab, setTab] = useState("registered"); // registered | guests
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const searchParams = new URLSearchParams(location.search);
+  const tab = searchParams.get("tab") || "registered";
+
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -38,13 +43,12 @@ export default function AdminClientsPage() {
   const [error, setError] = useState("");
   const pageSize = 20;
 
-  const navigate = useNavigate();
-
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
       setLoading(true);
       setError("");
+
       const params = { q, page: String(page), limit: String(pageSize) };
       const paths = tab === "registered" ? CLIENTS_PATHS : GUESTS_PATHS;
       let lastErr;
@@ -62,6 +66,7 @@ export default function AdminClientsPage() {
           lastErr = e;
         }
       }
+
       setClients([]);
       setTotal(0);
       setError(lastErr?.response?.data?.error || lastErr?.message || "Ошибка загрузки");
@@ -79,20 +84,10 @@ export default function AdminClientsPage() {
         <h1 className="clients-admin-title">Клиенты</h1>
       </div>
 
-      {/* Субменю */}
-      <AdminSubMenu
-        type="clients"
-        activeKey={tab}
-        onChange={(key) => {
-          setTab(key);
-          setPage(1);
-        }}
-        items={[
-          { key: "registered", label: "Зарегистрированные" },
-          { key: "guests", label: "Без регистрации" },
-        ]}
-      />
+      {/* Сабменю */}
+      <AdminSubMenu type="clients" activeKey={tab} />
 
+      {/* Фильтры */}
       <div className="clients-admin-filters">
         <div className="search-wrap">
           <input
@@ -107,6 +102,7 @@ export default function AdminClientsPage() {
         </div>
       </div>
 
+      {/* Таблица */}
       <div className="clients-admin-table-wrap">
         <table className="clients-admin-table">
           <thead>
