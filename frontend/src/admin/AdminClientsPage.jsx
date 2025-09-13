@@ -6,7 +6,7 @@ import api from "../utils/api.js";
 import "../assets/AdminPanel.css";
 import "../assets/AdminClientsPage.css";
 
-/** Роуты для вкладки "Зарегистрированные" */
+/** API-роуты: Зарегистрированные */
 const REGISTERED_PATHS = [
   "/api/users/admin",
   "/api/admin/users",
@@ -14,7 +14,7 @@ const REGISTERED_PATHS = [
   "/api/clients",
 ];
 
-/** Роуты для вкладки "Без регистрации" */
+/** API-роуты: Без регистрации (агрегируем заказы гостей) */
 const GUESTS_PATHS = [
   "/api/orders/guests",
   "/api/admin/orders/guests",
@@ -49,7 +49,7 @@ function normalizeGuests(raw) {
     const key = `${(email || "").toLowerCase()}|${phone}`;
     if (!map.has(key)) {
       map.set(key, {
-        id: key,
+        id: key,               // у гостя нет id — используем составной ключ
         firstName: name || "",
         lastName: "",
         email,
@@ -118,11 +118,13 @@ export default function AdminClientsPage() {
 
   return (
     <div className="clients-page admin-content with-submenu">
+      {/* правое сабменю */}
       <AdminSubMenu type="clients" activeKey={tab} />
 
-      {/* fixed topbar — как в Groups */}
+      {/* фикс-топбар под главным */}
       <div className="clients-topbar">
         <div className="clients-h1">Клиенты</div>
+        <div className="flex-spacer" />
         <input
           className="clients-search"
           type="text"
@@ -133,7 +135,7 @@ export default function AdminClientsPage() {
         <button className="btn-outline" type="button">Фильтры</button>
       </div>
 
-      {/* body — ровно 14px под топбаром */}
+      {/* тело — ровно 14px отступ под топбаром */}
       <div className="clients-body">
         <div className="clients-table-wrap">
           <table className="clients-table">
@@ -196,9 +198,21 @@ export default function AdminClientsPage() {
 
         {totalPages > 1 && (
           <div className="clients-pager">
-            <button className="page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Назад</button>
+            <button
+              className="page-btn"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              ← Назад
+            </button>
             <span className="pager-info">{page} / {totalPages}</span>
-            <button className="page-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Вперёд →</button>
+            <button
+              className="page-btn"
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Вперёд →
+            </button>
           </div>
         )}
       </div>
