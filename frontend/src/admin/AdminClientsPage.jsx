@@ -4,7 +4,7 @@ import AdminSubMenu from "./AdminSubMenu";
 import api from "../utils/api.js";
 
 import "../assets/AdminPanel.css";
-import "../assets/AdminClientsPage.css";
+import "../assets/AdminClientPage.css";
 
 /** API-роуты: Зарегистрированные */
 const REGISTERED_PATHS = [
