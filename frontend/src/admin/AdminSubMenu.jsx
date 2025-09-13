@@ -35,7 +35,7 @@ export default function AdminSubMenu({
   const defaultTitle =
     type === "orders"   ? "Управление заказами" :
     type === "products" ? "Управление товарами" :
-    "Меню";
+    "Управление клиентами";
 
   return (
     <aside className="admin-nav-menu" style={style}>
