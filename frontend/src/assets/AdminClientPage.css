@@ -1,29 +1,21 @@
 /* ==========================================================================
-   Admin — Clients (list & detail)  |  full-bleed list + fixed header
+   Admin — Clients (list & detail)  |  sticky header + 14px gap + full-bleed
    ========================================================================== */
 
-/* ---------- Layout roots ---------- */
+/* корневые */
 .clients-page {}
-
-/* высота фикс-хедера списка клиентов (как у «Товары») */
 :root { --clients-header-h: 64px; }
 
-/* Контент под фикс-хедером: 64px + 14px зазор */
-.clients-content-wrap {
-  padding-top: calc(var(--clients-header-h) + 14px);
-}
+/* контент-обёртка: при sticky паддинг сверху не нужен */
+.clients-content-wrap { padding-top: 0; }
 
-/* full-bleed: убираем горизонтальные паддинги, чтобы тянуться от сабменю до правого края */
-.clients-content {
-  padding: 0 0 24px;
-}
+/* full-bleed: тянем контент от сабменю до правого края */
+.clients-content { padding: 0 0 24px; }
 
-/* ---------- Фиксированный хедер страницы «Клиенты» ---------- */
+/* ---------- STICKY-хедер страницы «Клиенты» (как у «Товары» визуально) ---------- */
 .clients-header{
-  position: fixed;
-  top: var(--topbar-h);
-  left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 0;
+  position: sticky;            /* ключевое отличие */
+  top: var(--topbar-h);        /* прилипает под главным топбаром */
   height: var(--clients-header-h);
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 0 20px;
@@ -31,15 +23,12 @@
   border-bottom: 1px solid rgba(0,0,0,.06);
   box-shadow: 0 1px 2px rgba(0,0,0,.04);
   z-index: 130;
+  margin-bottom: 14px;         /* ровно 14px до контента */
 }
-@media (max-width:1100px){ .clients-header{ left: var(--sidebar-w); } }
 
-.clients-header-left{
-  display: flex; align-items: center; gap: 12px; flex: 0 1 auto; min-width: 0;
-}
-.clients-header-right{
-  display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;
-}
+.clients-header-left{ display:flex; align-items:center; gap:12px; flex:0 1 auto; min-width:0; }
+.clients-header-right{ display:flex; align-items:center; gap:10px; margin-left:auto; flex-wrap:wrap; }
+
 .clients-h1{
   font-weight: 500; font-size: 17px; color: #0f172a; letter-spacing: .2px; white-space: nowrap;
 }
@@ -62,11 +51,11 @@
   font-size: 14px; font-weight: 500; cursor: pointer;
 }
 
-/* ---------- Таблица списка (full-bleed) ---------- */
+/* ---------- Таблица списка (full-bleed в край) ---------- */
 .clients-table-wrap{
   background: #fff;
-  border-radius: 0;   /* убрали скругления */
-  box-shadow: none;   /* без тени — в край */
+  border-radius: 0;     /* без скруглений */
+  box-shadow: none;     /* без тени — как в «Товары» */
   overflow: hidden;
 }
 .clients-table{ width: 100%; border-collapse: collapse; }
@@ -101,7 +90,7 @@
 .center{ text-align: center; padding: 18px; color: #6b7280; }
 .error { text-align: center; padding: 18px; color: #e84242; font-weight: 500; }
 
-/* Пагинация */
+/* пагинация */
 .clients-pager{
   margin-top: 14px;
   display: flex; gap: 10px; justify-content: center; align-items: center;
@@ -179,5 +168,3 @@
 }
 .loader-row{ text-align: center; padding: 36px 0; }
 .loader-standalone{ display: flex; justify-content: center; padding: 36px 0; }
-
-/* Никаких глобальных оверрайдов .admin-content — чтобы не ломать другие страницы */
