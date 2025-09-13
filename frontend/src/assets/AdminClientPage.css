@@ -2,196 +2,110 @@
    Clients (list & detail) — Apple minimal, compact spacing
    ========================================================================== */
 
-/* ---------- Контент справа от сабменю (сжатый верхний отступ) ---------- */
+/* Контент справа от сабменю */
 .clients-content,
-.client-detail-content {
-  padding: 12px 20px 20px;
-}
+.client-detail-content { padding: 12px 20px 20px; }
 
-/* ---------- Универсальный ТОПБАР (как на скрине) ---------- */
-.clients-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+/* --- ТОПБАР-КАРТОЧКА --- */
+.clients-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
   background: var(--surface, #fff);
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 8px 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04);
-  margin-bottom: 14px; /* важно: зазор под топбаром */
+  border:1px solid #e5e7eb; border-radius:14px; padding:8px 12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  margin-bottom:14px; /* ключевой отступ */
 }
-.clients-topbar-left {
-  display: flex; align-items: center; gap: 12px;
-}
-.clients-topbar-right {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-}
+.clients-topbar-left{ display:flex; align-items:center; gap:12px; }
+.clients-topbar-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.clients-topbar h1{ margin:0; line-height:1.25; font-size:20px; font-weight:600; color:var(--primary,#117fff); }
 
-.clients-topbar h1 {
-  margin: 0;
-  line-height: 1.25;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--primary, #117fff);
-}
-
-/* Поиск в топбаре */
-.clients-search {
+/* Поиск и кнопки в топбаре */
+.clients-search{
   height: var(--ctl-h, 36px);
-  padding: 0 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #f9fbfe;
-  font-size: 14px;
-  width: 280px;
-  outline: none;
+  padding: 0 12px; border:1px solid #e5e7eb; border-radius:10px;
+  background:#f9fbfe; font-size:14px; width:280px; outline:none;
 }
-.clients-search:focus { background: #fff; border-color: #cfd6e3; }
-
-/* Кнопки топбара (локальные, чтоб не ломать глобальные) */
-.btn-outline {
-  height: var(--ctl-h, 36px);
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #d0d7e2;
-  background: #fff;
-  color: var(--text-main, #0f172a);
-  font-size: 14px; font-weight: 500;
-  cursor: pointer;
+.clients-search:focus{ background:#fff; border-color:#cfd6e3; }
+.btn-outline{
+  height: var(--ctl-h, 36px); padding: 0 12px; border-radius:10px;
+  border:1px solid #d0d7e2; background:#fff; color:var(--text-main,#0f172a);
+  font-size:14px; font-weight:500; cursor:pointer;
 }
-.btn-ghost {
-  appearance: none; border: none; background: transparent;
-  color: var(--primary, #117fff); cursor: pointer;
-  height: var(--ctl-h, 36px); padding: 0 6px;
-  font-size: 14px; font-weight: 500;
+.btn-ghost{
+  appearance:none; border:none; background:transparent; color:var(--primary,#117fff);
+  cursor:pointer; height:var(--ctl-h,36px); padding:0 6px; font-size:14px; font-weight:500;
 }
-.btn-danger {
-  height: var(--ctl-h, 36px);
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #ef4444;
-  background: #fff5f5;
-  color: #b91c1c; cursor: pointer; font-size: 14px; font-weight: 500;
+.btn-danger{
+  height: var(--ctl-h, 36px); padding:0 12px; border-radius:10px;
+  border:1px solid #ef4444; background:#fff5f5; color:#b91c1c; cursor:pointer; font-size:14px; font-weight:500;
 }
 
-/* ---------- Таблица списка ---------- */
-.clients-table-wrap {
-  background: var(--surface, #fff);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,.04);
+/* --- Таблица списка --- */
+.clients-table-wrap{ background:var(--surface,#fff); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.04); }
+.clients-table{ width:100%; border-collapse:collapse; }
+.clients-table th{
+  text-align:left; font-weight:600; font-size:13px; padding:12px 16px;
+  background:#f9fafc; border-bottom:1px solid #e5e7eb; color:#475569;
 }
-.clients-table { width: 100%; border-collapse: collapse; }
+.clients-table td{ padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:14px; color:#111827; }
+.row:hover{ background:#f8fbff; } .row.clickable{ cursor:pointer; }
 
-.clients-table th {
-  text-align: left;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 12px 16px;
-  background: #f9fafc;
-  border-bottom: 1px solid #e5e7eb;
-  color: #475569;
-}
-.clients-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 14px;
-  color: #111827;
-}
+.name-cell{ display:flex; align-items:center; gap:10px; }
+.avatar{ width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--primary,#117fff); color:#fff; font-weight:600; }
 
-.row:hover { background: #f8fbff; }
-.row.clickable { cursor: pointer; }
+.rating-cell{ white-space:nowrap; }
+.stars{ display:inline-flex; gap:1px; margin-right:6px; }
+.star{ color:#d0d7e2; font-size:14px; }
+.star.on{ color:var(--primary,#117fff); }
+.rating-num{ color:#6b7280; font-size:13px; }
 
-.name-cell { display: flex; align-items: center; gap: 10px; }
-
-.avatar {
-  width: 30px; height: 30px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--primary, #117fff); color: #fff; font-weight: 600;
-}
-
-.rating-cell { white-space: nowrap; }
-.stars { display: inline-flex; gap: 1px; margin-right: 6px; }
-.star { color: #d0d7e2; font-size: 14px; }
-.star.on { color: var(--primary, #117fff); }
-.rating-num { color: #6b7280; font-size: 13px; }
-
-.center { text-align: center; padding: 18px; color: #6b7280; }
-.error  { text-align: center; padding: 18px; color: #e84242; font-weight: 500; }
+.center{ text-align:center; padding:18px; color:#6b7280; }
+.error { text-align:center; padding:18px; color:#e84242; font-weight:500; }
 
 /* Пагинация */
-.clients-pager {
-  margin-top: 14px;
-  display: flex; gap: 10px; justify-content: center; align-items: center;
+.clients-pager{ margin-top:14px; display:flex; gap:10px; justify-content:center; align-items:center; }
+.clients-pager .page-btn{
+  min-width:36px; height:36px; padding:0 12px; border-radius:10px; border:1px solid #d0d7e2; background:#fff;
+  color:var(--text-main,#0f172a); font-size:14px; font-weight:500; cursor:pointer;
 }
-.clients-pager .page-btn {
-  min-width: 36px; height: 36px; padding: 0 12px;
-  border-radius: 10px; border: 1px solid #d0d7e2; background: #fff;
-  color: var(--text-main, #0f172a); font-size: 14px; font-weight: 500; cursor: pointer;
+.clients-pager .page-btn:disabled{ opacity:.45; cursor:default; }
+.clients-pager .pager-info{ color:#334155; font-size:14px; }
+
+/* --- Детали клиента --- */
+.client-topbar-title{ font-size:18px; font-weight:600; }
+.card{ background:var(--surface,#fff); border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); padding:20px; margin-bottom:16px; }
+.client-main-card{ display:flex; justify-content:space-between; gap:24px; }
+.client-info h2{ margin:0 0 8px; font-size:18px; font-weight:600; }
+.client-info div{ margin:4px 0; color:#374151; font-size:14px; }
+.client-rating{ text-align:right; }
+.rating-title{ font-size:13px; color:#6b7280; margin-bottom:6px; }
+.rating-score{ font-size:18px; font-weight:600; }
+.rating-max{ font-size:14px; color:#9ca3af; margin-left:2px; }
+.rating-stars{ font-size:16px; }
+.rating-stars .star{ color:#d0d7e2; }
+.rating-stars .star.on{ color:var(--primary,#117fff); }
+.client-orders-card h3{ margin:0 0 12px; font-size:16px; font-weight:600; }
+.order-card{ border-top:1px solid #eef2f7; padding:12px 0; }
+.order-header{ display:flex; align-items:center; justify-content:space-between; }
+.order-id{ color:var(--primary,#117fff); font-weight:500; cursor:pointer; }
+.order-date{ font-size:12px; color:#8a94a6; margin-left:8px; }
+.order-sum{ font-weight:600; }
+.btn-link{ border:none; background:none; color:var(--primary,#117fff); cursor:pointer; font-size:13px; }
+.order-items{ margin-top:10px; }
+.order-item{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.order-item img{ width:42px; height:42px; border-radius:6px; object-fit:cover; }
+.order-item-name{ flex:1; font-size:14px; }
+.order-item-qty, .order-item-price{ font-size:13px; color:#475569; }
+
+.page-pad{ padding:12px 20px; } /* компактнее */
+.muted{ color:#6b7280; }
+
+/* --- Лоадер (кольцо) --- */
+@keyframes spin{ to{ transform: rotate(360deg); } }
+.loader{
+  display:inline-block; width:22px; height:22px; border-radius:50%;
+  border:3px solid #e5e7eb; border-top-color:var(--primary,#117fff); animation:spin .9s linear infinite;
 }
-.clients-pager .page-btn:disabled { opacity: .45; cursor: default; }
-.clients-pager .pager-info { color: #334155; font-size: 14px; }
+.loader-row{ text-align:center; padding:36px 0; }
+.loader-standalone{ display:flex; justify-content:center; padding:36px 0; }
 
-/* ---------- Детали клиента ---------- */
-.client-topbar-title { font-size: 18px; font-weight: 600; }
-
-.card {
-  background: var(--surface, #fff);
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04);
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.client-main-card {
-  display: flex; justify-content: space-between; gap: 24px;
-}
-.client-info h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
-.client-info div { margin: 4px 0; color: #374151; font-size: 14px; }
-
-.client-rating { text-align: right; }
-.rating-title { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
-.rating-score { font-size: 18px; font-weight: 600; }
-.rating-max { font-size: 14px; color: #9ca3af; margin-left: 2px; }
-.rating-stars { font-size: 16px; }
-.rating-stars .star { color: #d0d7e2; }
-.rating-stars .star.on { color: var(--primary, #117fff); }
-
-.client-orders-card h3 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
-.order-card { border-top: 1px solid #eef2f7; padding: 12px 0; }
-.order-header { display: flex; align-items: center; justify-content: space-between; }
-.order-id { color: var(--primary, #117fff); font-weight: 500; cursor: pointer; }
-.order-date { font-size: 12px; color: #8a94a6; margin-left: 8px; }
-.order-sum { font-weight: 600; }
-.btn-link { border: none; background: none; color: var(--primary, #117fff); cursor: pointer; font-size: 13px; }
-
-.order-items { margin-top: 10px; }
-.order-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.order-item img { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; }
-.order-item-name { flex: 1; font-size: 14px; }
-.order-item-qty, .order-item-price { font-size: 13px; color: #475569; }
-
-/* Сжатые вертикальные отступы */
-.page-pad { padding: 12px 20px; }
-.muted { color: #6b7280; }
-
-/* ---------- Лоадер (круг) ---------- */
-@keyframes spin { to { transform: rotate(360deg); } }
-.loader {
-  display: inline-block;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  border: 3px solid #e5e7eb;
-  border-top-color: var(--primary, #117fff);
-  animation: spin .9s linear infinite;
-}
-.loader-row { text-align: center; padding: 36px 0; }
-.loader-standalone { display: flex; justify-content: center; padding: 36px 0; }
-
-/* ---------- На случай завышенных глобальных паддингов ---------- */
-.admin-content,
-.content-area,
-.main-content {
-  padding-top: 8px;
-}
+/* ВАЖНО: никаких глобальных оверрайдов .admin-content здесь НЕТ */
