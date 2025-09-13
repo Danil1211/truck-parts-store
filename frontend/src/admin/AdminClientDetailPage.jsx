@@ -105,27 +105,47 @@ export default function AdminClientDetailPage() {
     })();
   }, [id]);
 
-  if (loading) return <div className="center page-pad">Загрузка…</div>;
-  if (!client) return <div className="center page-pad">Клиент не найден</div>;
+  if (loading) {
+    return (
+      <div className="client-detail-page admin-content with-submenu">
+        <AdminSubMenu type="clients" activeKey="registered" />
+        <div className="client-detail-content">
+          <div className="loader-standalone"><span className="loader" /></div>
+        </div>
+      </div>
+    );
+  }
+  if (!client) {
+    return (
+      <div className="client-detail-page admin-content with-submenu">
+        <AdminSubMenu type="clients" activeKey="registered" />
+        <div className="client-detail-content"><div className="center page-pad">Клиент не найден</div></div>
+      </div>
+    );
+  }
 
   const toggle = (orderId) => setOpened((s) => ({ ...s, [orderId]: !s[orderId] }));
 
   return (
     <div className="client-detail-page admin-content with-submenu">
-      {/* ФИКСИРОВАННОЕ ПРАВОЕ СУБМЕНЮ (готовое из AdminPanel.css) */}
+      {/* Сабменю справа */}
       <AdminSubMenu type="clients" activeKey="registered" />
 
-      {/* КОНТЕНТ СПРАВА ОТ СУБМЕНЮ */}
+      {/* Контент */}
       <div className="client-detail-content">
-        {/* Топбар */}
-        <div className="client-topbar">
-          <button className="btn-ghost" onClick={() => navigate("/admin/clients")}>← Назад</button>
-          <div className="client-topbar-title">
-            {client.firstName} {client.lastName}
+        {/* ТОПБАР деталей */}
+        <div className="clients-topbar">
+          <div className="clients-topbar-left">
+            <button className="btn-ghost" onClick={() => navigate("/admin/clients")}>← Назад</button>
+            <div className="client-topbar-title">{client.firstName} {client.lastName}</div>
           </div>
-          <div className="client-actions">
-            <button className="btn-primary">Создать заказ</button>
-            <button className="btn-danger">Удалить клиента</button>
+          <div className="clients-topbar-right">
+            <button className="btn-outline" onClick={() => alert('Черновик заказа')}>
+              Создать заказ
+            </button>
+            <button className="btn-danger" onClick={() => alert('Удаление клиента')}>
+              Удалить клиента
+            </button>
           </div>
         </div>
 
@@ -154,14 +174,15 @@ export default function AdminClientDetailPage() {
         <div className="card client-orders-card">
           <h3>Заказы клиента</h3>
           {ordersLoading ? (
-            <div className="center">Загрузка заказов…</div>
+            <div className="loader-standalone"><span className="loader" /></div>
           ) : orders.length === 0 ? (
             <div className="center muted">У клиента нет заказов</div>
           ) : (
             orders.map((o) => {
               const items = Array.isArray(o.items) ? o.items : [];
-              const sum = o.totalPrice || items.reduce((s, it) =>
-                s + (Number(it.product?.price) || 0) * (Number(it.quantity) || 1), 0);
+              const sum = o.totalPrice || items.reduce(
+                (s, it) => s + (Number(it.product?.price) || 0) * (Number(it.quantity) || 1), 0
+              );
               const isOpen = opened[o.id];
 
               return (

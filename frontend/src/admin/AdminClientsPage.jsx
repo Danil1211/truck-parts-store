@@ -49,12 +49,12 @@ function normalizeGuests(raw) {
     const key = `${(email || "").toLowerCase()}|${phone}`;
     if (!map.has(key)) {
       map.set(key, {
-        id: key, // нет id — используем составной ключ
+        id: key,
         firstName: name || "",
         lastName: "",
         email,
         phone,
-        createdAt: o.createdAt || o.date || null, // первая покупка
+        createdAt: o.createdAt || o.date || null,
         ordersCount: 1,
         rating: null,
       });
@@ -120,22 +120,31 @@ export default function AdminClientsPage() {
 
   return (
     <div className="clients-page admin-content with-submenu">
-      {/* ФИКСИРОВАННОЕ ПРАВОЕ СУБМЕНЮ (готовое из AdminPanel.css) */}
+      {/* Правое сабменю */}
       <AdminSubMenu type="clients" activeKey={tab} />
 
-      {/* КОНТЕНТ СПРАВА ОТ СУБМЕНЮ */}
+      {/* Контент справа от сабменю */}
       <div className="clients-content">
-        <div className="clients-header">
-          <h1>Клиенты</h1>
-          <input
-            className="clients-search"
-            type="text"
-            placeholder="Поиск (имя / email / телефон)…"
-            value={q}
-            onChange={(e) => { setPage(1); setQ(e.target.value); }}
-          />
+        {/* ТОПБАР (поиск, кнопки) */}
+        <div className="clients-topbar">
+          <div className="clients-topbar-left">
+            <h1>Клиенты</h1>
+          </div>
+          <div className="clients-topbar-right">
+            <input
+              className="clients-search"
+              type="text"
+              placeholder="Поиск (имя / email / телефон)…"
+              value={q}
+              onChange={(e) => { setPage(1); setQ(e.target.value); }}
+            />
+            <button className="btn-outline" type="button" onClick={() => alert("Фильтры скоро :)")}>
+              Фильтры
+            </button>
+          </div>
         </div>
 
+        {/* Таблица */}
         <div className="clients-table-wrap">
           <table className="clients-table">
             <thead>
@@ -150,7 +159,11 @@ export default function AdminClientsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="center" colSpan={6}>Загрузка…</td></tr>
+                <tr>
+                  <td colSpan={6} className="loader-row">
+                    <span className="loader" aria-label="Загрузка" />
+                  </td>
+                </tr>
               ) : error ? (
                 <tr><td className="error" colSpan={6}>{error}</td></tr>
               ) : rows.length === 0 ? (
@@ -189,7 +202,7 @@ export default function AdminClientsPage() {
           </table>
         </div>
 
-        {totalPages > 1 && (
+        {totalPages > 1 && !loading && (
           <div className="clients-pager">
             <button
               className="page-btn"
