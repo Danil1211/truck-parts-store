@@ -1,153 +1,91 @@
 /* ==========================================================================
-   Admin — Clients (list & detail) | fixed header + exact 14px gap + full-bleed
+   Admin — Clients | same layout as Groups: fixed topbar + 14px gap + full-bleed
    ========================================================================== */
 
-/* высота локального хедера */
 :root { --clients-header-h: 64px; }
 
-/* ---- ОБЁРТКА КОНТЕНТА ----
-   Ровно 14px под фикс-хедером страницы */
-.clients-content-wrap {
-  padding-top: calc(var(--clients-header-h) + 14px) !important;
-}
+/* page container */
+.clients-page { padding-bottom: 16px; }
 
-/* full-bleed: без боковых паддингов */
-.clients-content {
-  padding: 0 0 24px;
-}
-
-/* ---------- ФИКСИРОВАННЫЙ ХЕДЕР «Клиенты» ---------- */
-/* Жёстко гасим любые старые sticky/маргины */
-.clients-header {
-  position: fixed !important;
-  top: var(--topbar-h) !important;
-  left: calc(var(--sidebar-w) + var(--submenu-w));
-  right: 0;
-  height: var(--clients-header-h);
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
-  z-index: 130;
-  margin: 0 !important;   /* чтобы не добавлялся лишний зазор */
-}
-@media (max-width:1100px){ .clients-header{ left: var(--sidebar-w); } }
-
-.clients-header-left{ display:flex; align-items:center; gap:12px; flex:0 1 auto; min-width:0; }
-.clients-header-right{ display:flex; align-items:center; gap:10px; margin-left:auto; flex-wrap:wrap; }
-.clients-h1{ font-weight:500; font-size:17px; color:#0f172a; letter-spacing:.2px; white-space:nowrap; }
-
-/* поиск и кнопки в хедере */
-.clients-search{
-  height: var(--ctl-h, 36px);
-  padding: 0 12px;
-  border: 1px solid #d0d7e2; border-radius: 10px;
-  background: #f9fbfd; font-size: 14px; width: 280px; outline: none;
-}
-.clients-search:focus{ border-color:#007aff; background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.15); }
-.btn-outline{
-  height: var(--ctl-h, 36px); padding: 0 12px;
-  border-radius: 10px; border: 1px solid #d0d7e2; background: #fff;
-  color: var(--text-main, #0f172a); font-size: 14px; font-weight: 500; cursor: pointer;
-}
-
-/* ---------- Таблица (full-bleed) ---------- */
-.clients-table-wrap{
+/* ---------- FIXED TOPBAR (как groups-topbar) ---------- */
+.clients-topbar{
+  position:fixed;
+  top:var(--topbar-h);
+  left:calc(var(--sidebar-w) + var(--submenu-w));
+  right:0;
+  height:var(--clients-header-h);
+  display:flex; align-items:center; gap:12px;
+  padding:0 16px;
   background:#fff;
-  border-radius:0;     /* без скруглений */
-  box-shadow:none;     /* без тени */
-  overflow:hidden;
-  margin: 0 !important;     /* страхуемся от случайных margin-top */
+  border-bottom:1px solid rgba(0,0,0,.06);
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+  z-index:130;
 }
-.clients-table{ width:100%; border-collapse:collapse; margin:0; }
+@media (max-width:1100px){ .clients-topbar{ left:var(--sidebar-w) } }
 
+.clients-h1{ font-weight:400; font-size:17px; color:#0f172a; letter-spacing:.2px; white-space:nowrap }
+.clients-search{
+  flex:0 1 320px; width:320px; max-width:42vw;
+  height:36px; line-height:36px; padding:0 14px 0 34px; border-radius:10px; border:1px solid #d0d7e2;
+  background:#f9fbfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2364758b' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='16.5' y1='16.5' x2='21' y2='21'/%3E%3C/svg%3E") 10px 50% no-repeat;
+  background-size:14px; font-size:14px; color:#0f172a; box-shadow:inset 0 1px 2px rgba(0,0,0,.05); transition:all .2s ease;
+}
+.clients-search:focus{ border-color:#007aff; background-color:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.15); outline:none }
+
+.btn-outline{
+  height:36px; padding:0 14px; border-radius:10px; font-size:14px; margin-left:8px;
+  border:1px solid #d0d7e2; background:#fff; color:#0f172a; cursor:pointer;
+}
+
+/* ---------- BODY: ровно 14px под топбаром ---------- */
+.clients-body{ padding:14px 0 12px; }
+
+/* ---------- TABLE (full-bleed как у Products/Groups) ---------- */
+.clients-table-wrap{
+  width:100%;
+  background:#fff;
+  border-radius:0;
+  box-shadow:none;
+  overflow:hidden;
+}
+.clients-table{ width:100%; border-collapse:collapse; }
 .clients-table th{
   text-align:left; font-weight:600; font-size:13px;
-  padding:12px 16px; background:#f9fafc;
-  border-bottom:1px solid #e5e7eb; color:#475569;
+  padding:12px 16px; background:#f9fafc; border-bottom:1px solid #e5e7eb; color:#475569;
 }
 .clients-table td{
-  padding:12px 16px; border-bottom:1px solid #f1f5f9;
-  font-size:14px; color:#111827;
+  padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:14px; color:#111827;
 }
-
-.row:hover{ background:#f8fbff; } .row.clickable{ cursor:pointer; }
-
-.name-cell{ display:flex; align-items:center; gap:10px; }
+.row:hover{ background:#f8fbff } .row.clickable{ cursor:pointer }
+.name-cell{ display:flex; align-items:center; gap:10px }
 .avatar{
   width:30px; height:30px; border-radius:50%;
   display:inline-flex; align-items:center; justify-content:center;
-  background:var(--primary, #117fff); color:#fff; font-weight:600;
+  background:var(--primary,#117fff); color:#fff; font-weight:600;
 }
 
-.rating-cell{ white-space:nowrap; }
-.stars{ display:inline-flex; gap:1px; margin-right:6px; }
-.star{ color:#d0d7e2; font-size:14px; }
-.star.on{ color:var(--primary, #117fff); }
-.rating-num{ color:#6b7280; font-size:13px; }
+.rating-cell{ white-space:nowrap }
+.stars{ display:inline-flex; gap:1px; margin-right:6px }
+.star{ color:#d0d7e2; font-size:14px }
+.star.on{ color:var(--primary,#117fff) }
+.rating-num{ color:#6b7280; font-size:13px }
 
-.center{ text-align:center; padding:18px; color:#6b7280; }
-.error { text-align:center; padding:18px; color:#e84242; font-weight:500; }
+.center{ text-align:center; padding:18px; color:#6b7280 }
+.error { text-align:center; padding:18px; color:#e84242; font-weight:500 }
 
-/* пагинация */
 .clients-pager{
   margin-top:14px; display:flex; gap:10px; justify-content:center; align-items:center;
 }
 .clients-pager .page-btn{
-  min-width:36px; height:36px; padding:0 12px;
-  border-radius:10px; border:1px solid #d0d7e2; background:#fff;
-  color:#0f172a; font-size:14px; font-weight:500; cursor:pointer;
+  min-width:36px; height:36px; padding:0 12px; border-radius:10px;
+  border:1px solid #d0d7e2; background:#fff; color:#0f172a; font-size:14px; font-weight:500; cursor:pointer;
 }
-.clients-pager .page-btn:disabled{ opacity:.45; cursor:default; }
-.clients-pager .pager-info{ color:#334155; font-size:14px; }
+.clients-pager .page-btn:disabled{ opacity:.45; cursor:default }
+.clients-pager .pager-info{ color:#334155; font-size:14px }
 
-/* ---------- Детали клиента ---------- */
-.client-detail-content { padding: 12px 20px 20px; }
-
-.clients-topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:8px 12px;
-  box-shadow:0 2px 8px rgba(0,0,0,.04); margin-bottom:14px;
-}
-.client-topbar-title{ font-size:18px; font-weight:600; }
-
-.btn-ghost{ appearance:none; border:none; background:transparent; color:var(--primary,#117fff); cursor:pointer; height:36px; padding:0 6px; font-size:14px; font-weight:500; }
-.btn-danger{ height:36px; padding:0 12px; border-radius:10px; border:1px solid #ef4444; background:#fff5f5; color:#b91c1c; cursor:pointer; font-size:14px; font-weight:500; }
-
-.card{ background:#fff; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); padding:20px; margin-bottom:16px; }
-.client-main-card{ display:flex; justify-content:space-between; gap:24px; }
-.client-info h2{ margin:0 0 8px; font-size:18px; font-weight:600; }
-.client-info div{ margin:4px 0; color:#374151; font-size:14px; }
-
-.client-rating{ text-align:right; }
-.rating-title{ font-size:13px; color:#6b7280; margin-bottom:6px; }
-.rating-score{ font-size:18px; font-weight:600; }
-.rating-max{ font-size:14px; color:#9ca3af; margin-left:2px; }
-.rating-stars{ font-size:16px; }
-.rating-stars .star{ color:#d0d7e2; }
-.rating-stars .star.on{ color:var(--primary, #117fff); }
-
-.client-orders-card h3{ margin:0 0 12px; font-size:16px; font-weight:600; }
-.order-card{ border-top:1px solid #eef2f7; padding:12px 0; }
-.order-header{ display:flex; align-items:center; justify-content:space-between; }
-.order-id{ color:var(--primary,#117fff); font-weight:500; cursor:pointer; }
-.order-date{ font-size:12px; color:#8a94a6; margin-left:8px; }
-.order-sum{ font-weight:600; }
-.btn-link{ border:none; background:none; color:var(--primary,#117fff); cursor:pointer; font-size:13px; }
-
-.order-items{ margin-top:10px; }
-.order-item{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-.order-item img{ width:42px; height:42px; border-radius:6px; object-fit:cover; }
-.order-item-name{ flex:1; font-size:14px; }
-.order-item-qty, .order-item-price{ font-size:13px; color:#475569; }
-
-/* Лоадер */
-@keyframes spin{ to{ transform: rotate(360deg); } }
+/* ---------- Loader (кольцо) ---------- */
+@keyframes spin{ to{ transform:rotate(360deg) } }
 .loader{
-  display:inline-block; width:22px; height:22px; border-radius:50%;
-  border:3px solid #e5e7eb; border-top-color:var(--primary, #117fff);
-  animation:spin .9s linear infinite;
+  width:22px; height:22px; border:3px solid #e5e7eb; border-top-color:#117fff;
+  border-radius:50%; display:inline-block; animation:spin .9s linear infinite;
 }
-.loader-row{ text-align:center; padding:36px 0; }
-.loader-standalone{ display:flex; justify-content:center; padding:36px 0; }
