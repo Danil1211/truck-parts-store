@@ -84,78 +84,84 @@ export default function AdminClientsPage(){
 
   return (
     <div className="clients-page admin-content with-submenu">
+      {/* правое сабменю */}
       <AdminSubMenu type="clients" activeKey={tab} />
 
-      <div className="clients-content">
-        {/* ТОПБАР-карточка, под ним 14px */}
-        <div className="clients-topbar">
-          <div className="clients-topbar-left"><h1>Клиенты</h1></div>
-          <div className="clients-topbar-right">
-            <input
-              className="clients-search"
-              type="text"
-              placeholder="Поиск (имя / email / телефон)…"
-              value={q}
-              onChange={(e)=>{ setPage(1); setQ(e.target.value); }}
-            />
-            <button className="btn-outline" type="button">Фильтры</button>
-          </div>
+      {/* фиксированный хедер страницы (как в товарах) */}
+      <div className="clients-header">
+        <div className="clients-header-left">
+          <h1 className="clients-h1">Клиенты</h1>
         </div>
+        <div className="clients-header-right">
+          <input
+            className="clients-search"
+            type="text"
+            placeholder="Поиск (имя / email / телефон)…"
+            value={q}
+            onChange={(e)=>{ setPage(1); setQ(e.target.value); }}
+          />
+          <button className="btn-outline" type="button">Фильтры</button>
+        </div>
+      </div>
 
-        <div className="clients-table-wrap">
-          <table className="clients-table">
-            <thead>
-              <tr>
-                <th>Клиент</th>
-                <th>Email</th>
-                <th>Телефон</th>
-                <th>{tab==="registered"?"Регистрация":"Первая покупка"}</th>
-                <th>Заказы</th>
-                <th>Рейтинг</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} className="loader-row"><span className="loader" /></td></tr>
-              ) : error ? (
-                <tr><td className="error" colSpan={6}>{error}</td></tr>
-              ) : rows.length===0 ? (
-                <tr><td className="center" colSpan={6}>Пусто</td></tr>
-              ) : rows.map(c=>(
-                <tr
-                  key={c.id}
-                  className={tab==="registered"?"row clickable":"row"}
-                  onClick={tab==="registered"?()=>navigate(`/admin/clients/${c.id}`):undefined}
-                >
-                  <td className="name-cell">
-                    <span className="avatar">{(c.firstName||c.lastName||"?").charAt(0)}</span>
-                    <span>{[c.firstName,c.lastName].filter(Boolean).join(" ")||"—"}</span>
-                  </td>
-                  <td>{c.email||"—"}</td>
-                  <td>{c.phone||"—"}</td>
-                  <td>{c.createdAt?new Date(c.createdAt).toLocaleDateString():"—"}</td>
-                  <td>{c.ordersCount??0}</td>
-                  <td className="rating-cell">
-                    <span className="stars">
-                      {Array.from({length:5}).map((_,i)=>(
-                        <span key={i} className={i<(c.rating??0)?"star on":"star"}>★</span>
-                      ))}
-                    </span>
-                    <span className="rating-num">{c.rating??"—"}</span>
-                  </td>
+      {/* контент под фикс-хедером */}
+      <div className="clients-content-wrap">
+        <div className="clients-content">
+          <div className="clients-table-wrap">
+            <table className="clients-table">
+              <thead>
+                <tr>
+                  <th>Клиент</th>
+                  <th>Email</th>
+                  <th>Телефон</th>
+                  <th>{tab==="registered"?"Регистрация":"Первая покупка"}</th>
+                  <th>Заказы</th>
+                  <th>Рейтинг</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages>1 && !loading && (
-          <div className="clients-pager">
-            <button className="page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>← Назад</button>
-            <span className="pager-info">{page} / {totalPages}</span>
-            <button className="page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}>Вперёд →</button>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={6} className="loader-row"><span className="loader" /></td></tr>
+                ) : error ? (
+                  <tr><td className="error" colSpan={6}>{error}</td></tr>
+                ) : rows.length===0 ? (
+                  <tr><td className="center" colSpan={6}>Пусто</td></tr>
+                ) : rows.map(c=>(
+                  <tr
+                    key={c.id}
+                    className={tab==="registered"?"row clickable":"row"}
+                    onClick={tab==="registered"?()=>navigate(`/admin/clients/${c.id}`):undefined}
+                  >
+                    <td className="name-cell">
+                      <span className="avatar">{(c.firstName||c.lastName||"?").charAt(0)}</span>
+                      <span>{[c.firstName,c.lastName].filter(Boolean).join(" ")||"—"}</span>
+                    </td>
+                    <td>{c.email||"—"}</td>
+                    <td>{c.phone||"—"}</td>
+                    <td>{c.createdAt?new Date(c.createdAt).toLocaleDateString():"—"}</td>
+                    <td>{c.ordersCount??0}</td>
+                    <td className="rating-cell">
+                      <span className="stars">
+                        {Array.from({length:5}).map((_,i)=>(
+                          <span key={i} className={i<(c.rating??0)?"star on":"star"}>★</span>
+                        ))}
+                      </span>
+                      <span className="rating-num">{c.rating??"—"}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {totalPages>1 && !loading && (
+            <div className="clients-pager">
+              <button className="page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}>← Назад</button>
+              <span className="pager-info">{page} / {totalPages}</span>
+              <button className="page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}>Вперёд →</button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

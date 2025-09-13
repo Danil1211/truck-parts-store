@@ -1,46 +1,56 @@
 /* ==========================================================================
-   Clients (list & detail) — Apple minimal, compact spacing
+   Clients pages
    ========================================================================== */
 
-/* Контент справа от сабменю */
-.clients-content,
-.client-detail-content { padding: 12px 20px 20px; }
+/* корневые контейнеры */
+.clients-page {}
+.clients-content-wrap{ padding-top:70px; } /* высота фикс-хедера (64) + запас как у товаров */
+.clients-content{ padding: 0 20px 24px; }
 
-/* --- ТОПБАР-КАРТОЧКА --- */
-.clients-topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  background: var(--surface, #fff);
-  border:1px solid #e5e7eb; border-radius:14px; padding:8px 12px;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
-  margin-bottom:14px; /* ключевой отступ */
+/* ---------- фиксированный хедер (точно как у товаров) ---------- */
+.clients-header{
+  position:fixed;
+  top:var(--topbar-h);
+  left:calc(var(--sidebar-w) + var(--submenu-w));
+  right:0;
+  height:64px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:0 20px; background:#fff;
+  border-bottom:1px solid rgba(0,0,0,.06);
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+  z-index:130;
 }
-.clients-topbar-left{ display:flex; align-items:center; gap:12px; }
-.clients-topbar-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.clients-topbar h1{ margin:0; line-height:1.25; font-size:20px; font-weight:600; color:var(--primary,#117fff); }
+@media (max-width:1100px){ .clients-header{ left:var(--sidebar-w); } }
+.clients-header-left{ display:flex; align-items:center; gap:12px; flex:0 1 auto; min-width:0 }
+.clients-header-right{ display:flex; align-items:center; gap:10px; margin-left:auto; flex-wrap:wrap }
+.clients-h1{ font-weight:500; font-size:17px; color:#0f172a; letter-spacing:.2px; white-space:nowrap }
 
-/* Поиск и кнопки в топбаре */
+/* поиск/кнопки в хедере */
 .clients-search{
   height: var(--ctl-h, 36px);
-  padding: 0 12px; border:1px solid #e5e7eb; border-radius:10px;
-  background:#f9fbfe; font-size:14px; width:280px; outline:none;
+  padding: 0 12px;
+  border: 1px solid #d0d7e2;
+  border-radius: 10px;
+  background: #f9fbfd;
+  font-size: 14px;
+  width: 280px;
+  outline: none;
 }
-.clients-search:focus{ background:#fff; border-color:#cfd6e3; }
+.clients-search:focus{ border-color:#007aff; background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,.15) }
 .btn-outline{
-  height: var(--ctl-h, 36px); padding: 0 12px; border-radius:10px;
-  border:1px solid #d0d7e2; background:#fff; color:var(--text-main,#0f172a);
-  font-size:14px; font-weight:500; cursor:pointer;
-}
-.btn-ghost{
-  appearance:none; border:none; background:transparent; color:var(--primary,#117fff);
-  cursor:pointer; height:var(--ctl-h,36px); padding:0 6px; font-size:14px; font-weight:500;
-}
-.btn-danger{
-  height: var(--ctl-h, 36px); padding:0 12px; border-radius:10px;
-  border:1px solid #ef4444; background:#fff5f5; color:#b91c1c; cursor:pointer; font-size:14px; font-weight:500;
+  height: var(--ctl-h, 36px);
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #d0d7e2;
+  background: #fff;
+  color: var(--text-main,#0f172a);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-/* --- Таблица списка --- */
-.clients-table-wrap{ background:var(--surface,#fff); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.04); }
+/* ---------- таблица ---------- */
+.clients-table-wrap{ background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.04); }
 .clients-table{ width:100%; border-collapse:collapse; }
 .clients-table th{
   text-align:left; font-weight:600; font-size:13px; padding:12px 16px;
@@ -61,18 +71,27 @@
 .center{ text-align:center; padding:18px; color:#6b7280; }
 .error { text-align:center; padding:18px; color:#e84242; font-weight:500; }
 
-/* Пагинация */
+/* пагинация */
 .clients-pager{ margin-top:14px; display:flex; gap:10px; justify-content:center; align-items:center; }
 .clients-pager .page-btn{
   min-width:36px; height:36px; padding:0 12px; border-radius:10px; border:1px solid #d0d7e2; background:#fff;
-  color:var(--text-main,#0f172a); font-size:14px; font-weight:500; cursor:pointer;
+  color:#0f172a; font-size:14px; font-weight:500; cursor:pointer;
 }
 .clients-pager .page-btn:disabled{ opacity:.45; cursor:default; }
 .clients-pager .pager-info{ color:#334155; font-size:14px; }
 
-/* --- Детали клиента --- */
+/* ---------- детальная страница (оставил прежний неблокирующий топбар-карточку) ---------- */
+.client-detail-content{ padding: 12px 20px 20px; }
+.clients-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background: #fff; border:1px solid #e5e7eb; border-radius:14px; padding:8px 12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.04); margin-bottom:14px;
+}
 .client-topbar-title{ font-size:18px; font-weight:600; }
-.card{ background:var(--surface,#fff); border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); padding:20px; margin-bottom:16px; }
+.btn-ghost{ appearance:none; border:none; background:transparent; color:var(--primary,#117fff); cursor:pointer; height:36px; padding:0 6px; font-size:14px; font-weight:500; }
+.btn-danger{ height:36px; padding:0 12px; border-radius:10px; border:1px solid #ef4444; background:#fff5f5; color:#b91c1c; cursor:pointer; font-size:14px; font-weight:500; }
+
+.card{ background:#fff; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); padding:20px; margin-bottom:16px; }
 .client-main-card{ display:flex; justify-content:space-between; gap:24px; }
 .client-info h2{ margin:0 0 8px; font-size:18px; font-weight:600; }
 .client-info div{ margin:4px 0; color:#374151; font-size:14px; }
@@ -96,16 +115,8 @@
 .order-item-name{ flex:1; font-size:14px; }
 .order-item-qty, .order-item-price{ font-size:13px; color:#475569; }
 
-.page-pad{ padding:12px 20px; } /* компактнее */
-.muted{ color:#6b7280; }
-
-/* --- Лоадер (кольцо) --- */
+/* лоадер */
 @keyframes spin{ to{ transform: rotate(360deg); } }
-.loader{
-  display:inline-block; width:22px; height:22px; border-radius:50%;
-  border:3px solid #e5e7eb; border-top-color:var(--primary,#117fff); animation:spin .9s linear infinite;
-}
+.loader{ display:inline-block; width:22px; height:22px; border-radius:50%; border:3px solid #e5e7eb; border-top-color:var(--primary,#117fff); animation:spin .9s linear infinite; }
 .loader-row{ text-align:center; padding:36px 0; }
 .loader-standalone{ display:flex; justify-content:center; padding:36px 0; }
-
-/* ВАЖНО: никаких глобальных оверрайдов .admin-content здесь НЕТ */
