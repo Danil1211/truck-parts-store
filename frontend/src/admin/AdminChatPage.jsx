@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
 import api from "../utils/api.js";
 import "../assets/admin-chat.css";
 
-// BASE for media
 const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
@@ -156,30 +155,26 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
+  // <<<<<<<< КЛЮЧ: жёстко считаем высоту области под чат >>>>>>>>
+  const [containerH, setContainerH] = useState("70vh");
+  useLayoutEffect(() => {
+    const calc = () => {
+      const top = document.querySelector(".admin-topbar");
+      const topH = top ? top.getBoundingClientRect().height : 0;
+      const h = Math.max(320, window.innerHeight - topH - 24); // 24 — безопасный запас под тени/границы
+      setContainerH(`${h}px`);
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+  // <<<<<<<< /КЛЮЧ >>>>>>>>
+
   const endRef = useRef(null);
   const messagesRef = useRef(null);
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
   const recordingTimer = useRef();
-
-  // ---- MAIN AREA lock: no page scroll, correct height ----
-  useEffect(() => {
-    const main = document.querySelector(".admin-content");
-    if (!main) return;
-    const prev = {
-      overflow: main.style.overflow,
-      height: main.style.height,
-      padding: main.style.padding,
-    };
-    main.style.overflow = "hidden";
-    main.style.height = "calc(100vh - 88px)"; // под вашу шапку
-    main.style.padding = "0"; // чтоб ничего не «упиралось» в левую панель
-    return () => {
-      main.style.overflow = prev.overflow;
-      main.style.height = prev.height;
-      main.style.padding = prev.padding;
-    };
-  }, []);
 
   // ================== CHATS LIST ==================
   const normalizeChatsResponse = (res) => {
@@ -446,7 +441,7 @@ export default function AdminChatPage() {
   const chatList = Array.isArray(chats) ? chats : [];
 
   return (
-    <div className="admin-chat-page">
+    <div className="admin-chat-page" style={{ height: containerH }}>
       <div className="admin-chat-root">
         {/* LEFT */}
         <aside className="chat-sidebar">
@@ -528,7 +523,7 @@ export default function AdminChatPage() {
                   <div className="quick">
                     <button className="btn-outline">Быстрый ответ</button>
                     <div className="quick-menu">
-                      {quickReplies.map((q, i) => (
+                      {["Ожидайте, пожалуйста. Проверяю информацию ✅","Уже спешу на помощь! 🙌"].map((q, i) => (
                         <button key={i} onClick={() => handleQuickReply(q)}>{q}</button>
                       ))}
                     </div>
