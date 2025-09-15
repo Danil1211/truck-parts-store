@@ -1,117 +1,111 @@
-:root {
-  --tg-blue: #2291ff;
-  --bg: #f6f8fb;
-  --card: #ffffff;
-  --line: #e6eaf2;
-  --text: #0f172a;
-  --muted: #667085;
-  --bubble-in: var(--tg-blue);   /* админ */
-  --bubble-out: #eef5ff;         /* пользователь */
-  --radius: 0;                   /* убрали скругления */
-  --shadow-sm: 0 1px 6px rgba(16,24,40,.06);
-
-  --sidebar-w: 72px;   /* ширина левого меню */
-  --topbar-h: 64px;    /* высота верхнего бара */
+:root{
+  --tg-blue:#2291ff;
+  --bg:#f6f8fb;
+  --card:#ffffff;
+  --line:#e6eaf2;
+  --text:#0f172a;
+  --muted:#667085;
+  --bubble-in:var(--tg-blue);
+  --bubble-out:#eef5ff;
+  --shadow-sm:0 1px 6px rgba(16,24,40,.06);
 }
 
-/* корневой контейнер чата */
-.admin-chat-page {
-  position: fixed;
-  top: var(--topbar-h);
-  left: var(--sidebar-w);
-  width: calc(100% - var(--sidebar-w));
-  height: calc(100vh - var(--topbar-h));
-  display: flex;
-  background: var(--card);
-  overflow: hidden; /* убираем скролл страницы */
+/* ====== ГЛАВНЫЙ КОНТЕЙНЕР ЧАТА ====== */
+.admin-chat-page{
+  width:100%;                 /* НИКАКОГО 100vw */
+  height:100dvh;              /* занимаем видимую высоту окна */
+  overflow:hidden;            /* запрет скролла у страницы чата */
+  background:transparent;
+  box-sizing:border-box;
 }
 
-/* ====== ЛЕВАЯ ПАНЕЛЬ (список чатов) ====== */
-.chat-sidebar {
-  width: 280px;
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
+/* Внутренняя раскладка (3 колонки) */
+.admin-chat-root{
+  display:grid;
+  grid-template-columns: 280px 1fr 360px;
+  gap:16px;
+  height:100%;                /* растянули на всю высоту страницы чата */
+  overflow:hidden;            /* колонкам отдаём свои скроллы */
+  padding:0 16px 16px;        /* лёгкие внутренние отступы */
+  box-sizing:border-box;
 }
 
-.chat-sidebar__head {
-  padding: 12px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* ====== ЛЕВАЯ КОЛОНКА (список чатов) ====== */
+.chat-sidebar{
+  background:var(--card);
+  border:1px solid var(--line);
+  /* без скруглений */
+  border-radius:0;
+  overflow:auto;              /* СКРОЛЛ только внутри */
+  min-height:0;               /* важный фикс для grid */
 }
 
-.chat-search {
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 14px;
-  width: 100%;
+.chat-sidebar__head{
+  position:sticky; top:0; z-index:1;
+  background:#fff; border-bottom:1px solid var(--line);
+  padding:12px 12px;
 }
 
-/* ====== ЦЕНТРАЛЬНЫЙ БЛОК (чат) ====== */
-.chat-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--line);
+/* ====== ЦЕНТР (диалог) ====== */
+.chat-main{
+  display:flex;
+  flex-direction:column;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:0;
+  overflow:hidden;            /* убрали скролл у блока */
+  min-height:0;
 }
 
-/* верх */
-.chat-topbar {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.chat-topbar{
+  flex:0 0 auto;
+  border-bottom:1px solid var(--line);
+  padding:12px 16px;
+  background:#fff;
 }
 
-.chat-topbar__title {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--text);
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.thread{
+  flex:1 1 auto;              /* занимает всё свободное */
+  overflow:auto;              /* СКРОЛЛ ТОЛЬКО ТУТ */
+  padding:16px;
+  min-height:0;               /* чтобы overflow работал в grid/flex */
 }
 
-.chat-actions {
-  display: flex;
-  gap: 10px;
+/* пузыри/медиа */
+.bubble{max-width:72%; padding:10px 14px; box-shadow:var(--shadow-sm);}
+.bubble.in{background:var(--bubble-in); color:#fff;}
+.bubble.out{background:var(--bubble-out); color:#0f172a;}
+.bubble-img{max-width:220px; display:block}
+
+/* поле ввода закреплено внутри чата (не вызывает скролл body) */
+.composer{
+  flex:0 0 auto;
+  border-top:1px solid var(--line);
+  padding:10px 12px;
+  background:#fff;
+  display:flex; align-items:center; gap:10px;
 }
 
-.chat-actions button {
-  padding: 6px 12px;
-  font-size: 13px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  cursor: pointer;
-  background: #fff;
-  transition: background .2s;
-}
-.chat-actions button:hover {
-  background: #f3f6fb;
+/* ====== ПРАВАЯ КОЛОНКА (карточка) ====== */
+.user-panel{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:0;
+  overflow:auto;              /* свой скролл */
+  min-height:0;
+  padding:12px;
 }
 
-/* поток сообщений */
-.thread {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+/* карточка сверху закрепляем */
+.user-card{position:sticky; top:0; background:#fff; padding-bottom:8px;}
 
-/* ====== ПРАВЫЙ БЛОК ====== */
-.user-panel {
-  width: 260px;
-  background: var(--bg);
-  border-left: 1px solid var(--line);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* Мелкие утилиты */
+.chat-empty, .chat-empty-left{padding:16px; color:#667085}
+.muted{opacity:.7}
+
+/* иконки у поля ввода — базовая сетка, свои svg подставляй */
+.icon-btn{border:0;background:#f4f6f9;width:36px;height:36px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.icon-btn:hover{background:#eef2f7}
+.send-btn{width:38px;height:38px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--tg-blue),#5bb6ff);color:#fff;cursor:pointer}
+.composer__input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;padding:10px 14px;outline:none}
+.composer__input:focus{border-color:#bfdcff;box-shadow:0 0 0 4px rgba(34,145,255,.08)}
