@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import Picker from "emoji-picker-react";
-import "../assets/AdminPanel.css";
 import { useAdminNotify } from "../context/AdminNotifyContext";
 import api from "../utils/api.js";
+import "../assets/admin-chat.css"; // 👈 новый файл со стилями
 
-// База для медиа-URL: берём из api.defaults.baseURL, хвостовые слэши убираем.
-// Если сервер уже прислал абсолютный URL (http/https), оставляем как есть.
+// База для медиа-URL
 const BASE_URL = String(api.defaults.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
@@ -20,32 +19,26 @@ function TypingAnimation() {
   useEffect(() => {
     const arr = ["...", "..", ".", ""];
     let i = 0;
-    const timer = setInterval(() => {
-      setDots(arr[i % arr.length]);
-      i++;
-    }, 320);
-    return () => clearInterval(timer);
+    const t = setInterval(() => (setDots(arr[i++ % arr.length])), 320);
+    return () => clearInterval(t);
   }, []);
-  return <span style={{ marginLeft: 3 }}>{dots}</span>;
+  return <span className="typing-dots">{dots}</span>;
 }
 
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef();
   const [playing, setPlaying] = useState(false);
-  const handlePlay = () => {
+  const toggle = () => {
     if (!audioRef.current) return;
-    if (playing) audioRef.current.pause();
-    else audioRef.current.play();
+    playing ? audioRef.current.pause() : audioRef.current.play();
   };
   return (
-    <div className="voice-message-bubble">
-      <button className="voice-play-btn" onClick={handlePlay}>
+    <div className="voice-bubble">
+      <button className={`voice-btn ${playing ? "pause" : "play"}`} onClick={toggle}>
         {playing ? "⏸" : "▶️"}
       </button>
-      <div className="voice-dots">
-        <div className="voice-dot" />
-        <div className="voice-dot" />
-        <div className="voice-dot" />
+      <div className="voice-bar">
+        <div className="voice-bar-bg" />
       </div>
       <span className="voice-time">
         {new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -69,93 +62,38 @@ function AudioPreview({ audioPreview, onRemove }) {
 
   useEffect(() => {
     if (!audioPreview) return;
-    const objectUrl = URL.createObjectURL(audioPreview);
-    setUrl(objectUrl);
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-      setUrl(null);
-    };
+    const u = URL.createObjectURL(audioPreview);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
   }, [audioPreview]);
 
-  const handlePlayPause = () => {
+  const toggle = () => {
     if (!audioRef.current) return;
-    if (!playing) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
-    } else {
-      audioRef.current.pause();
-    }
+    playing ? audioRef.current.pause() : (audioRef.current.currentTime = 0, audioRef.current.play());
   };
 
   useEffect(() => {
     if (!audioRef.current) return;
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    const audio = audioRef.current;
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onPause);
+    const a = audioRef.current;
+    const on = () => setPlaying(true);
+    const off = () => setPlaying(false);
+    a.addEventListener("play", on);
+    a.addEventListener("pause", off);
+    a.addEventListener("ended", off);
     return () => {
-      if (audio) {
-        audio.removeEventListener("play", onPlay);
-        audio.removeEventListener("pause", onPause);
-        audio.removeEventListener("ended", onPause);
-      }
+      a.removeEventListener("play", on);
+      a.removeEventListener("pause", off);
+      a.removeEventListener("ended", off);
     };
   }, [url]);
 
   if (!audioPreview) return null;
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        background: "#eaf8ff",
-        borderRadius: 16,
-        padding: "10px 18px",
-        marginRight: 12,
-        boxShadow: "0 1px 6px #0d99ff11",
-        minWidth: 200,
-      }}
-    >
-      <button
-        onClick={handlePlayPause}
-        style={{
-          background: "#17aaff",
-          border: "none",
-          borderRadius: 10,
-          color: "#fff",
-          width: 40,
-          height: 40,
-          fontSize: 22,
-          marginRight: 10,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        type="button"
-      >
-        {playing ? "⏸" : "▶️"}
-      </button>
-      <span style={{ fontSize: 15, color: "#3c4f67", fontWeight: 500, marginRight: 7 }}>
-        Предпрослушка
-      </span>
-      <button
-        onClick={onRemove}
-        style={{
-          background: "none",
-          border: "none",
-          color: "#aaa",
-          fontSize: 20,
-          marginLeft: 2,
-          cursor: "pointer",
-        }}
-        type="button"
-      >
-        ×
-      </button>
+    <div className="audio-preview">
+      <button className="audio-preview__btn" onClick={toggle}>{playing ? "⏸" : "▶️"}</button>
+      <span className="audio-preview__label">Предпрослушка</span>
+      <button className="audio-preview__close" onClick={onRemove}>×</button>
       {url && <audio ref={audioRef} src={url} preload="auto" style={{ display: "none" }} />}
     </div>
   );
@@ -190,37 +128,31 @@ export default function AdminChatPage() {
   const audioChunks = useRef([]);
   const recordingTimer = useRef();
 
-  /** загрузка списка чатов */
+  // ===== data =====
   const loadChats = async () => {
     setError("");
     try {
-      // анти-кэш, чтобы не ловить 304 без тела
       const data = await api(`/api/chat/admin?_=${Date.now()}`);
       const arr = Array.isArray(data) ? data : [];
       setChats(
         arr.map((c) => ({
           ...c,
-          lastMessage:
-            c.lastMessage?.text ||
-            (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "—"),
+          lastMessage: c.lastMessage?.text || (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "—"),
           lastMessageObj: c.lastMessage,
         }))
       );
     } catch (e) {
-      console.error("loadChats error:", e);
       setChats([]);
       setError("Ошибка получения чатов: " + (e?.message || "unknown"));
     }
   };
 
-  /** автообновление чатов */
   useEffect(() => {
     loadChats();
     const iv = setInterval(loadChats, 4000);
     return () => clearInterval(iv);
   }, []);
 
-  /** загрузка сообщений */
   const loadMessages = async () => {
     if (!selected) return;
     try {
@@ -231,7 +163,6 @@ export default function AdminChatPage() {
     }
   };
 
-  /** загрузка юзера + сообщений */
   useEffect(() => {
     if (!selected) return;
     const load = async () => {
@@ -266,10 +197,8 @@ export default function AdminChatPage() {
   const handleDeleteChat = async () => {
     if (!selected) return;
     if (!window.confirm("Удалить чат безвозвратно?")) return;
-
     const uid = selected.userId;
     await api(`/api/chat/admin/${uid}`, { method: "DELETE" });
-
     resetUnread(uid);
     setSelected(null);
     setMessages([]);
@@ -277,11 +206,10 @@ export default function AdminChatPage() {
     loadChats();
   };
 
-  /** подготовка MediaRecorder для голосовых */
+  // ===== voice =====
   useEffect(() => {
     if (!navigator.mediaDevices) return;
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
+    navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
         try {
           mediaRecorder.current = new window.MediaRecorder(stream);
@@ -303,7 +231,6 @@ export default function AdminChatPage() {
       body: { userId: selected.userId, isTyping: true, name: "Менеджер", fromAdmin: true },
     });
   };
-
   const typingOff = async () => {
     if (!selected) return;
     await api(`/api/chat/typing`, {
@@ -347,10 +274,7 @@ export default function AdminChatPage() {
 
   const sendText = async () => {
     if (!input.trim() || !selected) return;
-    await api(`/api/chat/admin/${selected.userId}`, {
-      method: "POST",
-      body: { text: input.trim() },
-    });
+    await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: { text: input.trim() } });
     setInput("");
     await typingOff();
     await loadMessages();
@@ -406,595 +330,222 @@ export default function AdminChatPage() {
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
-  if (error) {
-    return <div style={{ color: "red", padding: 30, fontSize: 18 }}>{error}</div>;
-  }
-
+  if (error) return <div className="admin-chat-error">{error}</div>;
   const chatList = Array.isArray(chats) ? chats : [];
 
   return (
-    <div className="admin-chat-root" style={{ display: "flex", height: "100vh" }}>
-      {/* левая панель чатов */}
-      <aside className="admin-chat-list">
-        <h2 style={{ fontSize: 20, marginBottom: 20 }}>💬 Чаты</h2>
-        {chatList.map((c) => {
-          const isSelected = selected?.userId === c.userId;
-          const unreadExists = hasUnread(c);
-          return (
-            <div
-              key={c.userId}
-              onClick={() => handleSelectChat(c)}
-              style={{
-                display: "flex",
-                gap: 12,
-                padding: 12,
-                borderRadius: 10,
-                background: isSelected ? "#0d99ff" : unreadExists ? "#ffeaea" : "#f9fafb",
-                color: isSelected ? "#fff" : "#000",
-                cursor: "pointer",
-                alignItems: "center",
-                marginBottom: 8,
-                transition: "0.2s",
-                position: "relative",
-                boxShadow: unreadExists ? "0 0 8px 2px rgba(244, 67, 54, 0.3)" : "none",
-              }}
-            >
+    <div className="admin-chat-page"> {/* отступ от левого меню лэйаута */}
+      <div className="admin-chat-root">
+        {/* left */}
+        <aside className="chat-sidebar">
+          <div className="chat-sidebar__head">
+            <h2>Чаты</h2>
+            <span className="hint">в стиле Telegram</span>
+          </div>
+
+          {chatList.map((c) => {
+            const isSelected = selected?.userId === c.userId;
+            const unreadExists = hasUnread(c);
+            return (
               <div
-                style={{
-                  background: "#0d99ff",
-                  color: "#fff",
-                  borderRadius: "50%",
-                  width: 36,
-                  height: 36,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: "bold",
-                  fontSize: 16,
-                  position: "relative",
-                }}
+                key={c.userId}
+                className={`chat-item ${isSelected ? "selected" : ""} ${unreadExists ? "unread" : ""}`}
+                onClick={() => handleSelectChat(c)}
               >
-                {c.name?.[0] || "?"}
-                {unreadExists && (
-                  <span
-                    style={{
-                      display: "block",
-                      position: "absolute",
-                      top: 2,
-                      right: 2,
-                      width: 16,
-                      height: 16,
-                      background: "#f44336",
-                      borderRadius: "50%",
-                      border: "3px solid #fff",
-                      boxShadow: "0 0 8px 3px #f4433688",
-                      animation: "pulseRed 1.5s infinite",
-                    }}
-                  />
-                )}
-              </div>
-              <div style={{ flex: 1, overflow: "hidden" }}>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 14,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {c.name}
-                  {unreadExists && (
-                    <span
-                      style={{
-                        marginLeft: 6,
-                        background: "#f44336",
-                        color: "#fff",
-                        borderRadius: 4,
-                        padding: "2px 6px",
-                        fontSize: 10,
-                        fontWeight: "bold",
-                        verticalAlign: "middle",
-                        userSelect: "none",
-                      }}
-                    >
-                      NEW
-                    </span>
-                  )}
+                <div className="chat-avatar">
+                  {c.name?.[0] || "?"}
+                  {unreadExists && <span className="chat-unread-dot" />}
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>{c.phone}</div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    opacity: 0.6,
-                    marginTop: 4,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {c.lastMessage?.slice(0, 30)}
+                <div className="chat-meta">
+                  <div className="chat-title">
+                    <span className="chat-name">{c.name}</span>
+                    {unreadExists && <span className="chat-new">NEW</span>}
+                  </div>
+                  <div className="chat-phone">{c.phone}</div>
+                  <div className="chat-last">{c.lastMessage?.slice(0, 40)}</div>
                 </div>
+                <button
+                  className="chat-delete"
+                  title="Удалить чат"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteChat(); }}
+                >
+                  ×
+                </button>
               </div>
-              <button
-                className="chat-header-btn"
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#888",
-                  borderRadius: "50%",
-                  width: 36,
-                  height: 36,
-                  fontSize: 24,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginLeft: 2,
-                  padding: 0,
-                  transition: "color 0.2s ease",
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteChat();
-                }}
-                title="Удалить чат"
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#f44336")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
-              >
-                ×
-              </button>
-            </div>
-          );
-        })}
-      </aside>
+            );
+          })}
+        </aside>
 
-      {/* центр: сообщения */}
-      <section
-        className="admin-chat-messages-block"
-        style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}
-      >
-        {!selected ? (
-          <div className="empty">Выберите чат слева</div>
-        ) : (
-          <>
-            <header
-              className="chat-header"
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-            >
-              <div>
-                <strong>{selected.name}</strong>{" "}
-                <span style={{ fontSize: 13, opacity: 0.8 }}>{selected.phone}</span>
-              </div>
-            </header>
+        {/* center */}
+        <section className="chat-main">
+          {!selected ? (
+            <div className="chat-empty">Выберите чат слева</div>
+          ) : (
+            <>
+              <header className="chat-topbar">
+                <div className="chat-topbar__title">
+                  <strong>{selected.name}</strong>
+                  <span className="muted">{selected.phone}</span>
+                </div>
+              </header>
 
-            <div
-              className="admin-chat-messages"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                padding: 20,
-                overflowY: "auto",
-                flex: 1,
-              }}
-              ref={messagesRef}
-              onScroll={handleScroll}
-            >
-              {Array.isArray(messages) &&
-                messages.map((m, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      alignSelf: m.fromAdmin ? "flex-start" : "flex-end",
-                      background: m.fromAdmin ? "#0d99ff" : "#e5f1ff",
-                      color: m.fromAdmin ? "#fff" : "#1e293b",
-                      borderRadius: 16,
-                      padding: "10px 14px",
-                      maxWidth: "70%",
-                      marginBottom: "10px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "6px",
-                      wordBreak: "break-word",
-                      position: "relative",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, opacity: 0.8 }}>
+              <div className="thread" ref={messagesRef} onScroll={handleScroll}>
+                {Array.isArray(messages) && messages.map((m, i) => (
+                  <div key={i} className={`bubble ${m.fromAdmin ? "in" : "out"}`}>
+                    <div className="bubble-author">
                       {m.fromAdmin ? "Менеджер" : selected.name}
                     </div>
-                    {m.text && <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{m.text}</div>}
+                    {m.text && <div className="bubble-text">{m.text}</div>}
                     {m.imageUrls?.map((u, idx) => (
-                      <img
-                        key={idx}
-                        src={withBase(u)}
-                        alt="img"
-                        style={{ maxWidth: "200px", borderRadius: "8px" }}
-                      />
+                      <img key={idx} src={withBase(u)} alt="img" className="bubble-img" />
                     ))}
                     {m.audioUrl && (
                       <VoiceMessage audioUrl={withBase(m.audioUrl)} createdAt={m.createdAt} />
                     )}
                     {!m.audioUrl && (
-                      <div style={{ fontSize: 12, textAlign: "right", opacity: 0.6 }}>
-                        {new Date(m.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <div className="bubble-time">
+                        {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     )}
                   </div>
                 ))}
 
-              {typingMap[selected?.userId]?.isTyping && !typingMap[selected?.userId]?.fromAdmin && (
-                <div className="typing-indicator">
-                  <div
-                    style={{
-                      color: "#1976d2",
-                      background: "#eaf4ff",
-                      borderRadius: 16,
-                      padding: "9px 20px",
-                      maxWidth: "70%",
-                      fontWeight: 500,
-                      fontSize: 16,
-                      marginLeft: "auto",
-                      boxShadow: "0 1px 8px #0d99ff18",
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ color: "#1976d2", fontWeight: 600 }}>
-                      {decodeHtml(typingMap[selected.userId].name)}
-                    </span>
-                    <span style={{ color: "#1976d2", marginLeft: 6 }}>печатает</span>
-                    <TypingAnimation />
+                {typingMap[selected?.userId]?.isTyping && !typingMap[selected?.userId]?.fromAdmin && (
+                  <div className="typing">
+                    <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
+                    <span> печатает</span><TypingAnimation />
                   </div>
+                )}
+                <div ref={endRef} />
+              </div>
+
+              {files.length > 0 && (
+                <div className="previews">
+                  {files.map((file, i) => (
+                    <div className="preview" key={i}>
+                      <img src={URL.createObjectURL(file)} alt="preview" />
+                      <button className="preview__close" onClick={() => removeFile(i)}>×</button>
+                    </div>
+                  ))}
                 </div>
               )}
-              <div ref={endRef} />
-            </div>
 
-            {files.length > 0 && (
-              <div className="image-preview-list">
-                {files.map((file, i) => (
-                  <div className="image-preview-item" key={i}>
-                    <img src={URL.createObjectURL(file)} alt="preview" />
-                    <button className="image-preview-remove" onClick={() => removeFile(i)}>
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px 16px",
-                borderTop: "1px solid #e2e8f0",
-                background: "#fff",
-                gap: "10px",
-              }}
-            >
-              <button
-                onClick={() => setShowEmoji((v) => !v)}
-                style={{ fontSize: 20, background: "none", border: "none", cursor: "pointer" }}
-                tabIndex={-1}
-                disabled={!!audioPreview}
-              >
-                😊
-              </button>
-
-              {!audioPreview && (
-                <input
-                  type="text"
-                  placeholder="Написать…"
-                  value={input}
-                  onChange={handleInput}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: "20px",
-                    border: "1px solid #e2e8f0",
-                    fontSize: 14,
-                    outline: "none",
-                  }}
-                />
-              )}
-
-              {audioPreview && <AudioPreview audioPreview={audioPreview} onRemove={handleAudioRemove} />}
-
-              <label
-                style={{
-                  fontSize: 20,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: audioPreview ? 0.5 : 1,
-                  pointerEvents: audioPreview ? "none" : "auto",
-                }}
-                tabIndex={-1}
-              >
-                📷
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setFiles(Array.from(e.target.files))}
-                  style={{ display: "none" }}
+              <div className="composer">
+                <button
+                  className="icon-btn"
+                  onClick={() => setShowEmoji((v) => !v)}
                   disabled={!!audioPreview}
-                />
-              </label>
+                  title="Эмодзи"
+                >😊</button>
 
-              <button
-                onClick={startOrStopRecording}
-                style={{
-                  background: "none",
-                  border: "none",
-                  outline: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                  margin: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "relative",
-                  width: 36,
-                  height: 36,
-                }}
-                tabIndex={-1}
-                disabled={!!audioPreview}
-                title={recording ? "Остановить запись" : "Записать голосовое"}
-              >
-                {recording ? (
-                  <span
-                    style={{
-                      fontSize: 24,
-                      color: "#fa2222",
-                      animation: "pulseMic 1s infinite",
-                      transition: "color 0.2s",
-                      display: "inline-block",
-                      position: "relative",
-                    }}
-                  >
-                    🎤
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: -4,
-                        right: -10,
-                        background: "#fa2222",
-                        color: "#fff",
-                        borderRadius: 10,
-                        minWidth: 18,
-                        height: 18,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "0 5px",
-                        boxShadow: "0 1px 4px #fa222244",
-                        border: "2px solid #fff",
-                        zIndex: 1,
-                      }}
-                    >
-                      {recordingTime}
-                    </span>
-                    <style>
-                      {`
-                        @keyframes pulseMic {
-                          0%   { transform: scale(1);}
-                          50%  { transform: scale(1.12);}
-                          100% { transform: scale(1);}
-                        }
-                      `}
-                    </style>
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: 20,
-                      color: "#3c4f67",
-                      borderRadius: "50%",
-                      width: 30,
-                      height: 30,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    🎤
-                  </span>
+                {!audioPreview && (
+                  <input
+                    type="text"
+                    className="composer__input"
+                    placeholder="Написать…"
+                    value={input}
+                    onChange={handleInput}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  />
                 )}
-              </button>
 
-              <button
-                onClick={handleSend}
-                style={{
-                  fontSize: 20,
-                  background: "#17aaff",
-                  borderRadius: "50%",
-                  width: 38,
-                  height: 38,
-                  color: "#fff",
-                  border: "none",
-                  cursor: "pointer",
-                  marginLeft: 2,
-                  boxShadow: "0 1px 4px #17aaff22",
-                }}
-                tabIndex={-1}
-                disabled={!!recording}
-                title={audioPreview ? "Отправить голосовое" : "Отправить"}
-              >
-                ➤
-              </button>
+                {audioPreview && <AudioPreview audioPreview={audioPreview} onRemove={handleAudioRemove} />}
+
+                <label className={`icon-btn ${audioPreview ? "icon-btn--disabled" : ""}`} title="Прикрепить фото">
+                  📷
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setFiles(Array.from(e.target.files))}
+                    style={{ display: "none" }}
+                    disabled={!!audioPreview}
+                  />
+                </label>
+
+                <button
+                  className={`icon-btn mic ${recording ? "mic--rec" : ""}`}
+                  onClick={startOrStopRecording}
+                  disabled={!!audioPreview}
+                  title={recording ? `Остановить запись (${recordingTime}s)` : "Записать голосовое"}
+                >
+                  🎤
+                  {recording && <span className="mic__badge">{recordingTime}</span>}
+                </button>
+
+                <button
+                  className="send-btn"
+                  onClick={handleSend}
+                  disabled={!!recording}
+                  title={audioPreview ? "Отправить голосовое" : "Отправить"}
+                >
+                  ➤
+                </button>
+              </div>
+
+              {showEmoji && (
+                <div className="emoji-popover">
+                  <Picker
+                    onEmojiClick={(emojiData) => {
+                      setInput((v) => v + emojiData.emoji);
+                      setShowEmoji(false);
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* right */}
+        {selected && selectedUserInfo && (
+          <aside className="user-panel">
+            <div className="user-card">
+              <div className="user-avatar">{selectedUserInfo.name?.[0] || "?"}</div>
+              <div className="user-id">
+                <div className="user-name">{selectedUserInfo.name}</div>
+                <div className="user-phone">{selectedUserInfo.phone}</div>
+              </div>
             </div>
 
-            {showEmoji && (
-              <div style={{ position: "absolute", bottom: 70, left: 320, zIndex: 10 }}>
-                <Picker
-                  onEmojiClick={(emojiData) => {
-                    setInput((v) => v + emojiData.emoji);
-                    setShowEmoji(false);
-                  }}
-                />
+            <div className="user-props">
+              <div><b>IP:</b> <span>{selectedUserInfo.ip || "—"}</span></div>
+              <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
+              <div>
+                <b>Статус:</b>{" "}
+                <span className={`pill ${isUserOnline(selectedUserInfo) ? "pill--ok" : "pill--bad"}`}>
+                  {isUserOnline(selectedUserInfo) ? "Онлайн" : "Оффлайн"}
+                </span>
               </div>
-            )}
-          </>
-        )}
-      </section>
+              <div>
+                <b>Блок:</b>{" "}
+                <span className={`pill ${selectedUserInfo.isBlocked ? "pill--bad" : "pill--ok"}`}>
+                  {selectedUserInfo.isBlocked ? "Заблокирован" : "Активный"}
+                </span>
+              </div>
+            </div>
 
-      {/* правая инфопанель */}
-      {selected && selectedUserInfo && (
-        <aside
-          className="user-info-block"
-          style={{
-            minWidth: 290,
-            maxWidth: 320,
-            background: "#f8fafb",
-            padding: "24px 20px 20px 20px",
-            borderLeft: "1px solid #e3e5ee",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            borderRadius: "0 0 15px 0",
-            height: "100%",
-            boxSizing: "border-box",
-            position: "relative",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: 20,
-              gap: 13,
-              width: "100%",
-            }}
-          >
-            <div
-              style={{
-                background: "#0d99ff",
-                color: "#fff",
-                borderRadius: "50%",
-                width: 54,
-                height: 54,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 700,
-                fontSize: 24,
-                boxShadow: "0 2px 18px #0d99ff11",
+            <button
+              className={`block-btn ${selectedUserInfo.isBlocked ? "block-btn--green" : "block-btn--red"}`}
+              disabled={blocking}
+              onClick={async () => {
+                if (!selected) return;
+                setBlocking(true);
+                await api(`/api/chat/admin/user/${selected.userId}/block`, {
+                  method: "POST",
+                  body: { block: !selectedUserInfo.isBlocked },
+                });
+                setBlocking(false);
+                const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
+                setSelectedUserInfo(info);
+                await loadChats();
               }}
             >
-              {selectedUserInfo.name?.[0] || "?"}
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 2 }}>
-                {selectedUserInfo.name}
-              </div>
-              <div style={{ fontSize: 13, color: "#64748b" }}>{selectedUserInfo.phone}</div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 14, width: "100%" }}>
-            <div style={{ fontSize: 14, marginBottom: 5 }}>
-              <b>IP:</b> <span style={{ color: "#2d3748" }}>{selectedUserInfo.ip || "—"}</span>
-            </div>
-            <div style={{ fontSize: 14, marginBottom: 5 }}>
-              <b>Город:</b> <span style={{ color: "#2d3748" }}>{selectedUserInfo.city || "—"}</span>
-            </div>
-            <div style={{ fontSize: 14, marginBottom: 5 }}>
-              <b>Статус:</b>{" "}
-              <span
-                style={{
-                  color: isUserOnline(selectedUserInfo) ? "#21c087" : "#d43838",
-                  fontWeight: 600,
-                }}
-              >
-                {isUserOnline(selectedUserInfo) ? "Онлайн" : "Оффлайн"}
-              </span>
-            </div>
-            <div style={{ fontSize: 14, marginBottom: 5 }}>
-              <b>Блок:</b>{" "}
-              <span
-                style={{
-                  color: selectedUserInfo.isBlocked ? "#d43838" : "#3eac4c",
-                  fontWeight: 600,
-                }}
-              >
-                {selectedUserInfo.isBlocked ? "Заблокирован" : "Активный"}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          <button
-            disabled={blocking}
-            onClick={async () => {
-              if (!selected) return;
-              setBlocking(true);
-
-              await api(`/api/chat/admin/user/${selected.userId}/block`, {
-                method: "POST",
-                body: { block: !selectedUserInfo.isBlocked },
-              });
-
-              setBlocking(false);
-
-              const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
-              setSelectedUserInfo(info);
-              await loadChats();
-            }}
-            style={{
-              width: "100%",
-              padding: "10px 0",
-              fontSize: 16,
-              fontWeight: 600,
-              letterSpacing: 0.2,
-              border: "none",
-              borderRadius: 14,
-              background: selectedUserInfo.isBlocked
-                ? "linear-gradient(90deg,#21c087 0%,#1fa463 100%)"
-                : "linear-gradient(90deg,#fd4447 0%,#e54d2e 100%)",
-              color: "#fff",
-              boxShadow: selectedUserInfo.isBlocked
-                ? "0 3px 16px #21c08733"
-                : "0 3px 16px #fd444733",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              cursor: blocking ? "not-allowed" : "pointer",
-              outline: "none",
-              marginTop: 18,
-              transition: "background 0.18s,box-shadow 0.18s,transform 0.18s",
-              position: "relative",
-            }}
-            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <span style={{ display: "flex", alignItems: "center" }}>
               {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
-            </span>
-          </button>
-
-        </aside>
-      )}
-
-      <style>{`
-        @keyframes pulseRed {
-          0% { box-shadow: 0 0 6px 2px #f44336cc; }
-          50% { box-shadow: 0 0 12px 6px #f4433666; }
-          100% { box-shadow: 0 0 6px 2px #f44336cc; }
-        }
-      `}</style>
+            </button>
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
