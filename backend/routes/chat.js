@@ -1,3 +1,4 @@
+// backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -25,7 +26,7 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname || '');
     cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
   }
 });
@@ -168,7 +169,6 @@ router.get('/my', authAny, async (req, res) => {
       await user.save();
     }
 
-    // берём все сообщения пользователя (даже если у сообщения tenantId когда-то записался криво)
     const messages = await Message.find({ user: userId }).sort({ createdAt: 1 });
     return res.json(Array.isArray(messages) ? messages : []);
   } catch (e) {
@@ -195,6 +195,12 @@ router.post(
       });
       if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
+
+      // опционально сохраняем pageUrl (если пришлют из фронта)
+      if (req.body?.pageUrl || req.body?.referrer) {
+        user.lastPageUrl = req.body.pageUrl || req.body.referrer;
+        await user.save();
+      }
 
       const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
@@ -272,6 +278,10 @@ router.post('/ping', authAny, async (req, res) => {
     if (user) {
       user.isOnline = true;
       user.lastOnlineAt = new Date();
+      // примем и сохраним ссылку страницы, если фронт её прислал
+      if (req.body?.pageUrl || req.body?.referrer) {
+        user.lastPageUrl = req.body.pageUrl || req.body.referrer;
+      }
       await user.save();
     }
     res.json({ ok: true });
@@ -339,6 +349,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
     await updateMissedChats(tStr);
 
     const chats = await Message.aggregate([
+      // НЕ фильтруем по Message.tenantId, берём по пользователю
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$user", lastMessage: { $first: "$$ROOT" } } },
 
@@ -359,7 +370,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
             },
             { $project: {
               name: 1, phone: 1, email: 1, status: 1, isBlocked: 1,
-              ip: 1, city: 1, isOnline: 1, lastOnlineAt: 1
+              ip: 1, city: 1, isOnline: 1, lastOnlineAt: 1, lastPageUrl: 1
             } }
           ],
           as: "userInfo"
@@ -378,6 +389,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
           city: "$userInfo.city",
           isOnline: "$userInfo.isOnline",
           lastOnlineAt: "$userInfo.lastOnlineAt",
+          lastPageUrl: "$userInfo.lastPageUrl",
           lastMessage: 1
         }
       },
@@ -399,6 +411,7 @@ router.get('/admin/:userId', requireAdmin, async (req, res) => {
     const tStr = String(req.tenantId);
     const uId = new mongoose.Types.ObjectId(userId);
 
+    // Валидация тенанта пользователя
     const user = await User.findOne({
       _id: uId,
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
@@ -473,39 +486,6 @@ router.post(
   }
 );
 
-/* ------- УДАЛЕНИЕ ЧАТА (все сообщения пользователя в этом тенанте) ------- */
-router.delete('/admin/:userId', requireAdmin, async (req, res) => {
-  try {
-    const tStr = String(req.tenantId);
-    const { userId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(404).json({ error: 'not found' });
-    }
-
-    // Валидируем, что это наш пользователь
-    const user = await User.findOne({
-      _id: new mongoose.Types.ObjectId(userId),
-      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
-    });
-    if (!user) return res.status(404).json({ error: 'not found' });
-
-    // Удаляем все сообщения диалога (без фильтра по Message.tenantId — как и в остальных местах)
-    const del = await Message.deleteMany({ user: user._id });
-
-    // Чистим typing-статус, немного приводим карточку пользователя в порядок
-    if (typingStatus[tStr]) delete typingStatus[tStr][String(user._id)];
-    user.status = 'done';
-    user.adminLastReadAt = null;
-    user.lastMessageAt = null;
-    await user.save();
-
-    return res.json({ ok: true, deleted: del?.deletedCount || 0 });
-  } catch (e) {
-    console.error('chat.admin delete error:', e);
-    return res.status(500).json({ error: 'server error' });
-  }
-});
-
 /* ------- инфо по пользователю для правой панели ------- */
 router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
   try {
@@ -547,7 +527,7 @@ router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
   }
 });
 
-/* ------- пометить прочитанным ------- */
+/* ------- пометить прочитанным (входящие) ------- */
 router.post('/read/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -573,6 +553,75 @@ router.post('/read/:userId', requireAdmin, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.json({ ok: true });
+  }
+});
+
+/* ------- пометить НЕпрочитанным (входящие) ------- */
+router.post('/unread/:userId', requireAdmin, async (req, res) => {
+  try {
+    const tStr = String(req.tenantId);
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
+
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
+    if (!user) return res.json({ ok: true });
+
+    await Message.updateMany(
+      { user: user._id, fromAdmin: false, read: true },
+      { $set: { read: false } }
+    );
+
+    user.status = 'new';
+    await user.save();
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: true });
+  }
+});
+
+/* ------- удалить чат целиком ------- */
+router.delete('/admin/:userId', requireAdmin, async (req, res) => {
+  try {
+    const tStr = String(req.tenantId);
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: 'bad userId' });
+
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
+    if (!user) return res.status(404).json({ error: 'not found' });
+
+    // удалить файлы (best-effort)
+    const msgs = await Message.find({ user: user._id });
+    for (const m of msgs) {
+      const files = [];
+      if (Array.isArray(m.imageUrls)) files.push(...m.imageUrls);
+      if (m.audioUrl) files.push(m.audioUrl);
+      for (const rel of files) {
+        try {
+          // rel вида /uploads/<tenant>/<filename>
+          const abs = path.join(__dirname, '..', rel);
+          if (fs.existsSync(abs)) fs.unlinkSync(abs);
+        } catch {}
+      }
+    }
+
+    await Message.deleteMany({ user: user._id });
+
+    // опционально можно сбросить статусы пользователя
+    user.status = 'waiting';
+    user.adminLastReadAt = new Date();
+    await user.save();
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('chat.admin delete error:', e);
+    res.status(500).json({ error: 'server error' });
   }
 });
 
