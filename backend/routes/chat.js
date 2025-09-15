@@ -288,12 +288,13 @@ router.post('/offline', authAny, async (req, res) => {
 /* =========================================================
    АДМИН: список чатов, сообщения, отправка
 ========================================================= */
-async function updateMissedChats(tenantId) {
+const TWO_MIN = 2 * 60 * 1000;
+async function updateMissedChats(tenantIdStr) {
   const now = Date.now();
-  const users = await User.find({ tenantId, status: { $in: ['new', 'waiting', 'active'] } });
+  const users = await User.find({ tenantId: tenantIdStr, status: { $in: ['new', 'waiting', 'active'] } });
   for (let user of users) {
     if (user.lastMessageAt && (!user.adminLastReadAt || user.lastMessageAt > user.adminLastReadAt)) {
-      if (now - new Date(user.lastMessageAt).getTime() > 2 * 60 * 1000) {
+      if (now - new Date(user.lastMessageAt).getTime() > TWO_MIN) {
         user.status = 'missed';
         await user.save();
       }
@@ -307,7 +308,8 @@ async function updateMissedChats(tenantId) {
 
 router.get('/admin', requireAdmin, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
+    const tenantIdStr = String(req.tenantId);
+    const tenantId = new mongoose.Types.ObjectId(tenantIdStr);
 
     // anti-cache
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -315,10 +317,10 @@ router.get('/admin', requireAdmin, async (req, res) => {
     res.set('Expires', '0');
     res.set('Surrogate-Control', 'no-store');
 
-    await updateMissedChats(tenantId);
+    await updateMissedChats(tenantIdStr);
 
     const chats = await Message.aggregate([
-      { $match: { tenantId } },
+      { $match: { tenantId } }, // ObjectId!
       { $sort: { createdAt: -1 } },
       { $group: { _id: '$user', lastMessage: { $first: '$$ROOT' } } },
       {
@@ -331,7 +333,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ['$_id', '$$userId'] },
-                    { $eq: ['$tenantId', tenantId] }
+                    { $eq: ['$tenantId', tenantId] } // сравнение ObjectId с ObjectId
                   ]
                 }
               }
@@ -431,6 +433,22 @@ router.post(
     }
   }
 );
+
+/* ------- удалить чат (все сообщения пользователя для этого тенанта) ------- */
+router.delete('/admin/:userId', requireAdmin, async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
+    await Message.deleteMany({ tenantId, user: userId });
+    // Не удаляем пользователя. Можно сбросить статус, если надо:
+    // await User.updateOne({ _id: userId, tenantId }, { $set: { status: 'done' } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('chat.admin delete error:', e);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
 
 /* ------- инфо по пользователю для правой панели ------- */
 router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
