@@ -92,10 +92,6 @@ let typingStatus = {}; // { tenantId: { userId: { isTyping, name, fromAdmin } } 
 
 /* =========================================================
    КЛИЕНТСКАЯ РЕГИСТРАЦИЯ В ЧАТЕ (если не залогинен на сайте)
-   POST /api/chat/register
-   body: { name, phone }
-   OK -> { token }
-   Уже есть -> 409 + { error, code:'ALREADY_REGISTERED' }
 ========================================================= */
 router.post('/register', async (req, res) => {
   try {
@@ -156,7 +152,6 @@ router.post('/register', async (req, res) => {
 
 /* =========================================================
    МОИ СООБЩЕНИЯ
-   GET /api/chat/my   (принимает и сайт-токен, и chatToken)
 ========================================================= */
 router.get('/my', authAny, async (req, res) => {
   try {
@@ -174,11 +169,8 @@ router.get('/my', authAny, async (req, res) => {
       await user.save();
     }
 
-    const messages = await Message.find({
-      user: userId,
-      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
-    }).sort({ createdAt: 1 });
-
+    // берём все сообщения пользователя (даже если у сообщения tenantId когда-то записался криво)
+    const messages = await Message.find({ user: userId }).sort({ createdAt: 1 });
     return res.json(Array.isArray(messages) ? messages : []);
   } catch (e) {
     console.error('chat.my error:', e);
@@ -188,9 +180,6 @@ router.get('/my', authAny, async (req, res) => {
 
 /* =========================================================
    ОТПРАВИТЬ СООБЩЕНИЕ ОТ КЛИЕНТА/АДМИНА
-   POST /api/chat
-   headers: Authorization: Bearer <siteToken | chatToken>
-   form-data: text?, images[]?, audio?
 ========================================================= */
 router.post(
   '/',
@@ -212,7 +201,7 @@ router.post(
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
 
       const message = await Message.create({
-        tenantId: req.tenantId,
+        tenantId: req.tenantId, // пусть пишется правильно на будущее
         user: user._id,
         text: req.body.text || '',
         imageUrls,
@@ -222,7 +211,6 @@ router.post(
         createdAt: new Date(),
       });
 
-      // сброс "печатает"
       if (typingStatus[tStr]?.[String(user._id)]) {
         typingStatus[tStr][String(user._id)] = {
           isTyping: false,
@@ -231,7 +219,6 @@ router.post(
         };
       }
 
-      // обновляем статус клиента (если пишет клиент)
       if (!req.user.isAdmin) {
         user.status = 'new';
         user.lastMessageAt = new Date();
@@ -350,12 +337,10 @@ router.get('/admin', requireAdmin, async (req, res) => {
     res.set('Surrogate-Control', 'no-store');
 
     const tStr = String(req.tenantId);
-
     await updateMissedChats(tStr);
 
     const chats = await Message.aggregate([
-      // tenantId может быть ObjectId или строка — сравниваем строками
-      { $match: { $expr: { $eq: [{ $toString: "$tenantId" }, tStr] } } },
+      // Важно: НЕ фильтруем по Message.tenantId
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$user", lastMessage: { $first: "$$ROOT" } } },
 
@@ -369,7 +354,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ["$_id", "$$uid"] },
-                    { $eq: [{ $toString: "$tenantId" }, tStr] }
+                    { $eq: [{ $toString: "$tenantId" }, tStr] } // фильтр по тенанту пользователя
                   ]
                 }
               }
@@ -382,7 +367,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
           as: "userInfo"
         }
       },
-      { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: false } },
+      { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: false } }, // отсеиваем чужие тенанты
       {
         $project: {
           userId: "$_id",
@@ -416,25 +401,17 @@ router.get('/admin/:userId', requireAdmin, async (req, res) => {
     const tStr = String(req.tenantId);
     const uId = new mongoose.Types.ObjectId(userId);
 
-    const messages = await Message.aggregate([
-      { $match: {
-          $expr: {
-            $and: [
-              { $eq: [{ $toString: "$tenantId" }, tStr] },
-              { $eq: ["$user", uId] }
-            ]
-          }
-        }
-      },
-      { $sort: { createdAt: 1 } }
-    ]);
-
+    // 1) Валидируем, что это наш пользователь (по тенанту)
     const user = await User.findOne({
       _id: uId,
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
+    if (!user) return res.status(404).json([]);
 
-    if (user && messages.length) {
+    // 2) Берём ВСЕ его сообщения, без фильтра по Message.tenantId
+    const messages = await Message.find({ user: uId }).sort({ createdAt: 1 });
+
+    if (messages.length) {
       const last = messages[messages.length - 1];
       if (last && !last.fromAdmin) {
         user.adminLastReadAt = new Date();
@@ -548,25 +525,22 @@ router.post('/read/:userId', requireAdmin, async (req, res) => {
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
 
-    await Message.updateMany(
-      {
-        user: new mongoose.Types.ObjectId(userId),
-        fromAdmin: false,
-        read: false,
-        $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
-      },
-      { $set: { read: true } }
-    );
-
+    // валидируем, что это наш пользователь
     const user = await User.findOne({
       _id: new mongoose.Types.ObjectId(userId),
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
-    if (user) {
-      user.adminLastReadAt = new Date();
-      user.status = 'waiting';
-      await user.save();
-    }
+    if (!user) return res.json({ ok: true });
+
+    await Message.updateMany(
+      { user: user._id, fromAdmin: false, read: false },
+      { $set: { read: true } }
+    );
+
+    user.adminLastReadAt = new Date();
+    user.status = 'waiting';
+    await user.save();
+
     res.json({ ok: true });
   } catch (e) {
     res.json({ ok: true });
