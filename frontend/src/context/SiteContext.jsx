@@ -264,16 +264,18 @@ function mergeContacts(incoming) {
 =========================== */
 
 export function SiteProvider({ children }) {
-  const [loading, setLoading] = useState(true);
+  // status: loading | ready | notfound | error
+  const [status, setStatus] = useState("loading");
+
   const [siteName, setSiteName] = useState("");
   const [contacts, setContacts] = useState(CONTACTS_DEFAULT);
   const [display, setDisplay] = useState(DISPLAY_DEFAULT);
   const [siteLogo, setSiteLogo] = useState(LOGO_DEFAULT);
   const [favicon, setFavicon] = useState(FAVICON_DEFAULT);
 
-  // Загрузка с бэка (через axios-инстанс с x-tenant-id)
+  // Загрузка с бэка
   async function fetchSettings() {
-    setLoading(true);
+    setStatus("loading");
     try {
       const { data } = await api.get(`/api/site-settings`);
       const mergedDisplay = mergeDisplay(data.display);
@@ -286,31 +288,31 @@ export function SiteProvider({ children }) {
       setFavicon(data.favicon || null);
 
       applySitePaletteToCSSVars(mergedDisplay.palette);
+      setStatus("ready");
     } catch (err) {
-      console.error("Ошибка загрузки настроек:", err);
-      setSiteName("SteelTruck");
+      if (err?.response?.status === 404) {
+        // неизвестный субдомен/домен → магазин не найден
+        setStatus("notfound");
+      } else {
+        console.error("Ошибка загрузки настроек:", err);
+        setStatus("error");
+      }
+
+      // сброс значений
+      setSiteName("");
       setContacts(CONTACTS_DEFAULT);
       setDisplay(DISPLAY_DEFAULT);
       setSiteLogo(LOGO_DEFAULT);
       setFavicon(FAVICON_DEFAULT);
       applySitePaletteToCSSVars(DISPLAY_DEFAULT.palette);
-    } finally {
-      setLoading(false);
     }
   }
 
-  // Сохранение (через axios-инстанс с токеном и x-tenant-id)
+  // Сохранение (через axios-инстанс с токеном)
   async function saveSettings({ siteName, contacts, display, siteLogo, favicon }) {
     const safeDisplay = mergeDisplay(display);
     const safeContacts = mergeContacts(contacts);
-
-    const body = {
-      siteName,
-      contacts: safeContacts,
-      display: safeDisplay,
-      siteLogo,
-      favicon,
-    };
+    const body = { siteName, contacts: safeContacts, display: safeDisplay, siteLogo, favicon };
 
     const { data } = await api.put(`/api/site-settings`, body);
 
@@ -337,7 +339,11 @@ export function SiteProvider({ children }) {
   return (
     <SiteContext.Provider
       value={{
-        loading,
+        // статус
+        status,
+        loading: status === "loading",
+
+        // данные
         siteName,
         setSiteName,
 
@@ -353,9 +359,11 @@ export function SiteProvider({ children }) {
         favicon,
         setFavicon,
 
+        // api
         fetchSettings,
         saveSettings,
 
+        // чат-настройки
         chatSettings: contacts.chatSettings || CHAT_SETTINGS_DEFAULT,
         setChatSettings: (newChatSettings) =>
           setContacts((prev) => ({

@@ -1,4 +1,3 @@
-// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
@@ -23,6 +22,7 @@ import AddToCartAnimation from "./components/AddToCartAnimation";
 import ChatWidgetWrapper from "./components/ChatWidgetWrapper";
 import ThemeSync from "./components/ThemeSync";
 import TokenCatcher from "./components/TokenCatcher"; // ⬅️ ГЛОБАЛЬНЫЙ перехватчик ?token=&tid=
+import StoreNotFound from "./components/StoreNotFound"; // ⬅️ НОВОЕ
 
 // Context
 import { CartProvider } from "./context/CartContext";
@@ -47,8 +47,31 @@ import AdminLoginPage from "./admin/AdminLoginPage";
 
 // ===== Обёртки =====
 function SiteReady({ children }) {
-  const { display, loading } = useSite();
-  if (loading || !display || !display.palette) return <div />;
+  const { status, display } = useSite();
+
+  // можно показать глобальный лоадер
+  if (status === "loading") return <div />;
+
+  if (status === "notfound") {
+    return <StoreNotFound />;
+  }
+
+  if (status === "error") {
+    return (
+      <div style={{ padding: "40px", textAlign: "center" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: "#b91c1c" }}>
+          Ошибка загрузки сайта
+        </h1>
+        <p style={{ marginTop: 8, color: "#555" }}>
+          Попробуйте обновить страницу позже.
+        </p>
+      </div>
+    );
+  }
+
+  // ready — палитра уже есть (display.palette)
+  if (!display || !display.palette) return <div />;
+
   return (
     <>
       <ThemeSync />
