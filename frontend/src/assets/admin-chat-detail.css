@@ -1,111 +1,130 @@
 :root{
-  --tg-blue:#2291ff;
-  --bg:#f6f8fb;
-  --card:#ffffff;
-  --line:#e6eaf2;
-  --text:#0f172a;
-  --muted:#667085;
-  --bubble-in:var(--tg-blue);
-  --bubble-out:#eef5ff;
-  --shadow-sm:0 1px 6px rgba(16,24,40,.06);
+  --tg-blue: #2291ff;
+  --bg: #f6f8fb;
+  --card: #ffffff;
+  --line: #e6eaf2;
+  --text: #0f172a;
+  --muted: #667085;
+  --bubble-in: var(--tg-blue);   /* админ */
+  --bubble-out: #eef5ff;         /* пользователь */
+  --radius: 14px;
+  --shadow-sm: 0 1px 6px rgba(16,24,40,.06);
+  --shadow-md: 0 8px 30px rgba(15,23,42,.06);
 }
 
-/* ====== ГЛАВНЫЙ КОНТЕЙНЕР ЧАТА ====== */
-.admin-chat-page{
-  width:100%;                 /* НИКАКОГО 100vw */
-  height:100dvh;              /* занимаем видимую высоту окна */
-  overflow:hidden;            /* запрет скролла у страницы чата */
-  background:transparent;
-  box-sizing:border-box;
-}
-
-/* Внутренняя раскладка (3 колонки) */
-.admin-chat-root{
-  display:grid;
-  grid-template-columns: 280px 1fr 360px;
-  gap:16px;
-  height:100%;                /* растянули на всю высоту страницы чата */
-  overflow:hidden;            /* колонкам отдаём свои скроллы */
-  padding:0 16px 16px;        /* лёгкие внутренние отступы */
-  box-sizing:border-box;
-}
-
-/* ====== ЛЕВАЯ КОЛОНКА (список чатов) ====== */
-.chat-sidebar{
-  background:var(--card);
-  border:1px solid var(--line);
-  /* без скруглений */
-  border-radius:0;
-  overflow:auto;              /* СКРОЛЛ только внутри */
-  min-height:0;               /* важный фикс для grid */
-}
-
-.chat-sidebar__head{
-  position:sticky; top:0; z-index:1;
-  background:#fff; border-bottom:1px solid var(--line);
-  padding:12px 12px;
-}
-
-/* ====== ЦЕНТР (диалог) ====== */
-.chat-main{
+/* ===== Карточка «детального» чата ===== */
+.admin-chat-detail{
   display:flex;
   flex-direction:column;
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:0;
-  overflow:hidden;            /* убрали скролл у блока */
-  min-height:0;
+  height:100%;          /* ВАЖНО: только % — без vh */
+  min-height:0;         /* чтобы внутренний скролл работал корректно */
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 0;     /* без скруглений */
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;     /* скролл только у ленты */
 }
 
-.chat-topbar{
-  flex:0 0 auto;
+/* Заголовок */
+.admin-chat-detail__header{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  padding: 14px 16px;
   border-bottom:1px solid var(--line);
-  padding:12px 16px;
   background:#fff;
 }
+.detail-title{ margin:0; font-size:16px; font-weight:700; color:var(--text); }
+.detail-subtitle{ font-size:12px; color:var(--muted); }
+.detail-error{ color:#d43838; margin:6px 16px 0; font-size:14px; }
 
-.thread{
-  flex:1 1 auto;              /* занимает всё свободное */
-  overflow:auto;              /* СКРОЛЛ ТОЛЬКО ТУТ */
-  padding:16px;
-  min-height:0;               /* чтобы overflow работал в grid/flex */
+/* Лента сообщений */
+.admin-chat-messages{
+  flex:1;
+  min-height:0;     /* ключ к корректному внутреннему скроллу */
+  overflow:auto;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  background:
+    radial-gradient(40% 40% at 100% 0%, #f9fbff 0%, transparent 60%),
+    radial-gradient(40% 40% at 0% 100%, #f9fbff 0%, transparent 60%),
+    #fff;
 }
 
-/* пузыри/медиа */
-.bubble{max-width:72%; padding:10px 14px; box-shadow:var(--shadow-sm);}
-.bubble.in{background:var(--bubble-in); color:#fff;}
-.bubble.out{background:var(--bubble-out); color:#0f172a;}
-.bubble-img{max-width:220px; display:block}
+/* Баблы */
+.chat-message{
+  max-width:70%;
+  border-radius: var(--radius);
+  padding:10px 14px;
+  box-shadow: var(--shadow-sm);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  word-break: break-word;
+}
+.chat-message.admin{ align-self:flex-start; background:var(--bubble-in); color:#fff; }
+.chat-message.user{  align-self:flex-end;   background:var(--bubble-out); color:#1e293b; }
 
-/* поле ввода закреплено внутри чата (не вызывает скролл body) */
-.composer{
-  flex:0 0 auto;
-  border-top:1px solid var(--line);
-  padding:10px 12px;
-  background:#fff;
+.chat-text{ font-size:14px; white-space:pre-wrap; }
+.chat-image-wrapper{ width:100%; }
+.chat-image{ max-width:220px; border-radius:10px; display:block; }
+.chat-time{ font-size:12px; opacity:.75; text-align:right; }
+
+/* Голосовые */
+.voice-message-bubble{ display:flex; align-items:center; gap:10px; }
+.voice-play-btn{
+  border:none; background:#fff; color:#111827; width:34px; height:34px;
+  border-radius:8px; box-shadow: var(--shadow-sm); cursor:pointer;
+}
+.voice-wave{ width:140px; height:6px; border-radius:999px; background:linear-gradient(90deg, #dbeafe, #bfdbfe); }
+.voice-time{ font-size:12px; opacity:.85; }
+
+/* Превью перед отправкой */
+.chat-preview{
+  display:flex; gap:10px; padding:8px 16px 0; flex-wrap:wrap;
+}
+.chat-preview-item{
+  position:relative; width:92px; height:92px; border-radius:10px; overflow:hidden;
+  box-shadow: var(--shadow-sm); background:#eef2f7;
+}
+.chat-preview-img{ width:100%; height:100%; object-fit:cover; }
+.image-preview-remove{
+  position:absolute; top:6px; right:6px; border:none; background:rgba(0,0,0,.45);
+  color:#fff; width:22px; height:22px; border-radius:50%; cursor:pointer;
+}
+
+/* Нижняя панель ввода */
+.chat-input{
   display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-top:1px solid var(--line); background:#fff;
+}
+.chat-input__field{
+  flex:1; padding:10px 14px; border-radius:999px; border:1px solid var(--line);
+  outline:none; font-size:14px; transition: border-color .15s ease, box-shadow .15s ease;
+}
+.chat-input__field:focus{
+  border-color:#bfdcff; box-shadow:0 0 0 4px rgba(34,145,255,.08);
 }
 
-/* ====== ПРАВАЯ КОЛОНКА (карточка) ====== */
-.user-panel{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:0;
-  overflow:auto;              /* свой скролл */
-  min-height:0;
-  padding:12px;
+.chat-attach-btn{
+  display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:8px;
+  border:1px solid var(--line); background:#fff; box-shadow:var(--shadow-sm); cursor:pointer;
+  font-size:18px; line-height:1; user-select:none;
+}
+.chat-attach-btn:hover{ background:#f6f8fb; }
+
+.chat-send-btn{
+  width:38px; height:38px; border:none; color:#fff; cursor:pointer;
+  border-radius:50%;
+  background: linear-gradient(135deg, var(--tg-blue), #5bb6ff);
+  box-shadow: 0 6px 18px rgba(34,145,255,.35);
+  font-size:18px;
 }
 
-/* карточка сверху закрепляем */
-.user-card{position:sticky; top:0; background:#fff; padding-bottom:8px;}
-
-/* Мелкие утилиты */
-.chat-empty, .chat-empty-left{padding:16px; color:#667085}
-.muted{opacity:.7}
-
-/* иконки у поля ввода — базовая сетка, свои svg подставляй */
-.icon-btn{border:0;background:#f4f6f9;width:36px;height:36px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
-.icon-btn:hover{background:#eef2f7}
-.send-btn{width:38px;height:38px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--tg-blue),#5bb6ff);color:#fff;cursor:pointer}
-.composer__input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;padding:10px 14px;outline:none}
-.composer__input:focus{border-color:#bfdcff;box-shadow:0 0 0 4px rgba(34,145,255,.08)}
+/* Адаптив */
+@media (max-width: 900px){
+  .chat-message{ max-width:82%; }
+}
