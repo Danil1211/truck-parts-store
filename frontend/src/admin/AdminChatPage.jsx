@@ -133,12 +133,10 @@ export default function AdminChatPage() {
 
   // ================== CHATS LIST ==================
   const normalizeChatsResponse = (res) => {
-    // Поддержим разные формы ответа
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.chats)) return res.chats;
     if (Array.isArray(res?.data)) return res.data;
     if (Array.isArray(res?.items)) return res.items;
-    // Бывает, что axios-обёртка кладёт полезную нагрузку в res.data
     if (res && typeof res === "object" && Array.isArray(res.data?.chats)) return res.data.chats;
     if (res && typeof res === "object" && Array.isArray(res.data)) return res.data;
     return [];
@@ -190,9 +188,7 @@ export default function AdminChatPage() {
       try {
         const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
         setSelectedUserInfo(info?.data || info);
-      } catch (e) {
-        // не критично
-      }
+      } catch {}
     };
     load();
     const iv = setInterval(load, 2500);
@@ -218,24 +214,6 @@ export default function AdminChatPage() {
       await api(`/api/chat/read/${c.userId}`, { method: "POST" });
     } catch {}
     setTimeout(loadChats, 180);
-  };
-
-  // (На бэке у тебя нет DELETE /api/chat/admin/:userId — поэтому кнопку «Удалить» лучше прятать или
-  // тихо игнорить ошибку. Оставлю, но с try/catch.)
-  const handleDeleteChat = async () => {
-    if (!selected) return;
-    if (!window.confirm("Удалить чат безвозвратно?")) return;
-    const uid = selected.userId;
-    try {
-      await api(`/api/chat/admin/${uid}`, { method: "DELETE" });
-    } catch (e) {
-      console.warn("DELETE /api/chat/admin/:userId пока не реализован на сервере");
-    }
-    resetUnread(uid);
-    setSelected(null);
-    setMessages([]);
-    setSelectedUserInfo(null);
-    loadChats();
   };
 
   // ================== VOICE ==================
@@ -311,7 +289,14 @@ export default function AdminChatPage() {
   const sendText = async () => {
     if (!input.trim() || !selected) return;
     try {
-      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: { text: input.trim() } });
+      const form = new FormData();
+      form.append("text", input.trim());
+
+      await api(`/api/chat/admin/${selected.userId}`, {
+        method: "POST",
+        body: form,
+      });
+
       setInput("");
       await typingOff();
       await loadMessages();
@@ -374,13 +359,12 @@ export default function AdminChatPage() {
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
-  // ================== TYPING POLL (реально используем typingMap) ==================
+  // ================== TYPING POLL ==================
   useEffect(() => {
     let iv;
     const pollTyping = async () => {
       try {
         const res = await api(`/api/chat/typing/statuses?_=${Date.now()}`);
-        // res — объект: { [userId]: { isTyping, name, fromAdmin } }
         if (res && typeof res === "object") setTypingMap(res);
       } catch {}
     };
@@ -437,11 +421,11 @@ export default function AdminChatPage() {
                     <div className="chat-last">{c.lastMessage?.slice(0, 64)}</div>
                   </div>
 
-                  {/* Кнопку удаления оставил, но сервер может не поддерживать DELETE */}
+                  {/* Сервер может не поддерживать DELETE; оставим кнопку для вида */}
                   <button
                     className="chat-delete"
                     title="Удалить чат"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteChat(); }}
+                    onClick={(e) => { e.stopPropagation(); /* no-op or implement */ }}
                   >
                     ×
                   </button>
