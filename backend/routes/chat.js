@@ -308,19 +308,19 @@ async function updateMissedChats(tenantIdStr) {
 
 router.get('/admin', requireAdmin, async (req, res) => {
   try {
-    const tenantIdStr = String(req.tenantId);
-    const tenantId = new mongoose.Types.ObjectId(tenantIdStr);
-
-    // anti-cache
+    // anti-cache (оставляем как было)
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     res.set('Surrogate-Control', 'no-store');
 
-    await updateMissedChats(tenantIdStr);
+    // 👇 важное: приводим к ObjectId
+    const tId = new mongoose.Types.ObjectId(String(req.tenantId));
+
+    await updateMissedChats(tId);
 
     const chats = await Message.aggregate([
-      { $match: { tenantId } }, // ObjectId!
+      { $match: { tenantId: tId } },                // <-- ObjectId, не строка
       { $sort: { createdAt: -1 } },
       { $group: { _id: '$user', lastMessage: { $first: '$$ROOT' } } },
       {
@@ -333,16 +333,21 @@ router.get('/admin', requireAdmin, async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ['$_id', '$$userId'] },
-                    { $eq: ['$tenantId', tenantId] } // сравнение ObjectId с ObjectId
+                    { $eq: ['$tenantId', tId] }   // <-- тоже ObjectId
                   ]
                 }
               }
-            }
+            },
+            // опционально: берём только нужные поля
+            { $project: {
+                name: 1, phone: 1, email: 1, status: 1,
+                isBlocked: 1, ip: 1, city: 1, isOnline: 1, lastOnlineAt: 1
+            }}
           ],
           as: 'userInfo'
         }
       },
-      { $unwind: '$userInfo' },
+      { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: false } },
       {
         $project: {
           userId: '$_id',
@@ -364,7 +369,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
     res.json(Array.isArray(chats) ? chats : []);
   } catch (e) {
     console.error('chat.admin list error:', e);
-    res.json([]);
+    res.json([]); // не валим фронт
   }
 });
 
