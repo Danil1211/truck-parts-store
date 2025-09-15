@@ -1,14 +1,15 @@
 /* ==========================================================================
-   Admin — Clients | fixed topbar + exact 14px gap + full-bleed
+   Admin — Clients (list + detail) | Apple-minimal
    ========================================================================== */
 
 :root { --clients-header-h: 64px; }
 
-/* страница */
+/* ====== LIST PAGE ====== */
+
 .clients-page { padding-bottom: 16px; }
 
-/* ---------- FIXED TOPBAR (как в Groups) ---------- */
-.clients-topbar{
+/* фикс-бар ТОЛЬКО для списка клиентов */
+.clients-page .clients-topbar{
   position:fixed;
   top:var(--topbar-h);
   left:calc(var(--sidebar-w) + var(--submenu-w));
@@ -21,7 +22,7 @@
   box-shadow:0 1px 2px rgba(0,0,0,.04);
   z-index:130;
 }
-@media (max-width:1100px){ .clients-topbar{ left:var(--sidebar-w) } }
+@media (max-width:1100px){ .clients-page .clients-topbar{ left:var(--sidebar-w) } }
 
 .clients-h1{
   font-weight:400; font-size:17px; color:#0f172a; letter-spacing:.2px; white-space:nowrap;
@@ -41,16 +42,13 @@
   border:1px solid #d0d7e2; background:#fff; color:#0f172a; cursor:pointer;
 }
 
-/* ---------- BODY: ровно 14px под топбаром ---------- */
+/* тело списка — отступ ровно 14px под фикс-баром */
 .clients-body{ padding:14px 0 12px; }
 
-/* ---------- TABLE (full-bleed) ---------- */
 .clients-table-wrap{
   width:100%;
   background:#fff;
-  border-radius:0;             /* без скруглений */
-  box-shadow:none;             /* без тени */
-  overflow:hidden;
+  border-radius:0; box-shadow:none; overflow:hidden;
 }
 .clients-table{ width:100%; border-collapse:collapse; margin:0; }
 .clients-table th{
@@ -91,52 +89,87 @@
 .clients-pager .page-btn:disabled{ opacity:.45; cursor:default; }
 .clients-pager .pager-info{ color:#334155; font-size:14px; }
 
-/* ---------- Loader (кольцо) ---------- */
+/* Loader */
 @keyframes spin{ to{ transform:rotate(360deg) } }
 .loader{
   width:22px; height:22px; border:3px solid #e5e7eb; border-top-color:#117fff;
   border-radius:50%; display:inline-block; animation:spin .9s linear infinite;
 }
+.loader-standalone{ display:flex; justify-content:center; padding:20px; }
 
-/* ---------- Детальная страница клиента (если используется) ---------- */
-.client-detail-content { padding: 12px 20px 20px; }
+/* ====== DETAIL PAGE ====== */
 
+.client-detail-content{ padding: 12px 20px 20px; }
+
+/* новый НЕ fixed topbar на детальной странице */
+.client-topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:10px 16px; background:#fff;
+  border:1px solid #eef2f7; border-radius:14px; margin-bottom:14px;
+}
+.client-topbar-left{ display:flex; align-items:center; gap:10px; }
+.client-topbar-title{ font-size:16px; font-weight:600; color:#0f172a; }
+
+.client-actions{ display:flex; align-items:center; gap:10px; }
+
+/* кнопки (в духе проекта) */
 .btn-ghost{
   appearance:none; border:none; background:transparent; color:var(--primary,#117fff);
   cursor:pointer; height:36px; padding:0 6px; font-size:14px; font-weight:500;
+}
+.btn-primary{
+  height:36px; padding:0 14px; border-radius:10px; border:1px solid var(--primary,#117fff);
+  background:var(--primary,#117fff); color:#fff; font-size:14px; font-weight:600; cursor:pointer;
 }
 .btn-danger{
   height:36px; padding:0 12px; border-radius:10px; border:1px solid #ef4444;
   background:#fff5f5; color:#b91c1c; cursor:pointer; font-size:14px; font-weight:500;
 }
+.btn-link{ border:none; background:none; color:var(--primary,#117fff); cursor:pointer; font-size:13px; }
 
+/* карточки */
 .card{
   background:#fff; border-radius:16px;
   box-shadow:0 2px 8px rgba(0,0,0,.04);
   padding:20px; margin-bottom:16px;
 }
-.client-main-card{ display:flex; justify-content:space-between; gap:24px; }
+
+/* инфо-карточка клиента — чистая сетка */
+.client-main-card{
+  display:grid; grid-template-columns: 1fr min(320px, 36%);
+  gap:24px; align-items:center;
+}
 .client-info h2{ margin:0 0 8px; font-size:18px; font-weight:600; }
 .client-info div{ margin:4px 0; color:#374151; font-size:14px; }
 
+/* рейтинг — компактнее и ровнее */
 .client-rating{ text-align:right; }
 .rating-title{ font-size:13px; color:#6b7280; margin-bottom:6px; }
-.rating-score{ font-size:18px; font-weight:600; }
-.rating-max{ font-size:14px; color:#9ca3af; margin-left:2px; }
-.rating-stars{ font-size:16px; }
+.rating-row{ display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+.rating-stars{ font-size:16px; letter-spacing:1px; }
 .rating-stars .star{ color:#d0d7e2; }
 .rating-stars .star.on{ color:var(--primary,#117fff); }
+.rating-badge{
+  min-width:56px; text-align:center; padding:4px 8px; border-radius:10px;
+  background:#f5f8ff; color:#0f172a; font-weight:600; font-size:14px; border:1px solid #e5edff;
+}
+.rating-max{ font-size:13px; color:#9ca3af; margin-left:2px; }
 
+/* заказы */
 .client-orders-card h3{ margin:0 0 12px; font-size:16px; font-weight:600; }
 .order-card{ border-top:1px solid #eef2f7; padding:12px 0; }
-.order-header{ display:flex; align-items:center; justify-content:space-between; }
+.order-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .order-id{ color:var(--primary,#117fff); font-weight:500; cursor:pointer; }
 .order-date{ font-size:12px; color:#8a94a6; margin-left:8px; }
+.order-right{ display:flex; align-items:center; gap:10px; }
 .order-sum{ font-weight:600; }
-.btn-link{ border:none; background:none; color:var(--primary,#117fff); cursor:pointer; font-size:13px; }
 
 .order-items{ margin-top:10px; }
 .order-item{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
 .order-item img{ width:42px; height:42px; border-radius:6px; object-fit:cover; }
 .order-item-name{ flex:1; font-size:14px; }
 .order-item-qty, .order-item-price{ font-size:13px; color:#475569; }
+
+/* утил */
+.muted{ color:#6b7280; }
+.page-pad{ padding:24px; }
