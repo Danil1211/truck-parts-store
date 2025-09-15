@@ -1,4 +1,3 @@
-// backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -201,7 +200,7 @@ router.post(
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
 
       const message = await Message.create({
-        tenantId: req.tenantId, // пусть пишется правильно на будущее
+        tenantId: req.tenantId,
         user: user._id,
         text: req.body.text || '',
         imageUrls,
@@ -340,7 +339,6 @@ router.get('/admin', requireAdmin, async (req, res) => {
     await updateMissedChats(tStr);
 
     const chats = await Message.aggregate([
-      // Важно: НЕ фильтруем по Message.tenantId
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$user", lastMessage: { $first: "$$ROOT" } } },
 
@@ -354,7 +352,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ["$_id", "$$uid"] },
-                    { $eq: [{ $toString: "$tenantId" }, tStr] } // фильтр по тенанту пользователя
+                    { $eq: [{ $toString: "$tenantId" }, tStr] }
                   ]
                 }
               }
@@ -367,7 +365,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
           as: "userInfo"
         }
       },
-      { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: false } }, // отсеиваем чужие тенанты
+      { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: false } },
       {
         $project: {
           userId: "$_id",
@@ -401,14 +399,12 @@ router.get('/admin/:userId', requireAdmin, async (req, res) => {
     const tStr = String(req.tenantId);
     const uId = new mongoose.Types.ObjectId(userId);
 
-    // 1) Валидируем, что это наш пользователь (по тенанту)
     const user = await User.findOne({
       _id: uId,
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
     if (!user) return res.status(404).json([]);
 
-    // 2) Берём ВСЕ его сообщения, без фильтра по Message.tenantId
     const messages = await Message.find({ user: uId }).sort({ createdAt: 1 });
 
     if (messages.length) {
@@ -476,6 +472,39 @@ router.post(
     }
   }
 );
+
+/* ------- УДАЛЕНИЕ ЧАТА (все сообщения пользователя в этом тенанте) ------- */
+router.delete('/admin/:userId', requireAdmin, async (req, res) => {
+  try {
+    const tStr = String(req.tenantId);
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(404).json({ error: 'not found' });
+    }
+
+    // Валидируем, что это наш пользователь
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
+    if (!user) return res.status(404).json({ error: 'not found' });
+
+    // Удаляем все сообщения диалога (без фильтра по Message.tenantId — как и в остальных местах)
+    const del = await Message.deleteMany({ user: user._id });
+
+    // Чистим typing-статус, немного приводим карточку пользователя в порядок
+    if (typingStatus[tStr]) delete typingStatus[tStr][String(user._id)];
+    user.status = 'done';
+    user.adminLastReadAt = null;
+    user.lastMessageAt = null;
+    await user.save();
+
+    return res.json({ ok: true, deleted: del?.deletedCount || 0 });
+  } catch (e) {
+    console.error('chat.admin delete error:', e);
+    return res.status(500).json({ error: 'server error' });
+  }
+});
 
 /* ------- инфо по пользователю для правой панели ------- */
 router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
