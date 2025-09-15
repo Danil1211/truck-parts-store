@@ -1,11 +1,12 @@
+// src/admin/AdminChatPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
 import api from "../utils/api.js";
-import "../assets/admin-chat.css"; // 👈 новый файл со стилями
+import "../assets/admin-chat.css";
 
-// База для медиа-URL
-const BASE_URL = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+// База для медиа-URL (аккуратный prepend)
+const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
 function decodeHtml(html) {
@@ -19,7 +20,7 @@ function TypingAnimation() {
   useEffect(() => {
     const arr = ["...", "..", ".", ""];
     let i = 0;
-    const t = setInterval(() => (setDots(arr[i++ % arr.length])), 320);
+    const t = setInterval(() => setDots(arr[i++ % arr.length]), 320);
     return () => clearInterval(t);
   }, []);
   return <span className="typing-dots">{dots}</span>;
@@ -37,11 +38,11 @@ function VoiceMessage({ audioUrl, createdAt }) {
       <button className={`voice-btn ${playing ? "pause" : "play"}`} onClick={toggle}>
         {playing ? "⏸" : "▶️"}
       </button>
-      <div className="voice-bar">
-        <div className="voice-bar-bg" />
-      </div>
+      <div className="voice-bar"><div className="voice-bar-bg" /></div>
       <span className="voice-time">
-        {new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        {createdAt
+          ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : ""}
       </span>
       <audio
         ref={audioRef}
@@ -50,6 +51,7 @@ function VoiceMessage({ audioUrl, createdAt }) {
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
         style={{ display: "none" }}
+        preload="auto"
       />
     </div>
   );
@@ -121,6 +123,7 @@ export default function AdminChatPage() {
   const [blocking, setBlocking] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
+  const [diag, setDiag] = useState({ lastChatsCount: 0, lastFetchOk: null });
 
   const endRef = useRef(null);
   const messagesRef = useRef(null);
@@ -128,12 +131,24 @@ export default function AdminChatPage() {
   const audioChunks = useRef([]);
   const recordingTimer = useRef();
 
-  // ===== data =====
+  // ================== CHATS LIST ==================
+  const normalizeChatsResponse = (res) => {
+    // Поддержим разные формы ответа
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.chats)) return res.chats;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.items)) return res.items;
+    // Бывает, что axios-обёртка кладёт полезную нагрузку в res.data
+    if (res && typeof res === "object" && Array.isArray(res.data?.chats)) return res.data.chats;
+    if (res && typeof res === "object" && Array.isArray(res.data)) return res.data;
+    return [];
+  };
+
   const loadChats = async () => {
     setError("");
     try {
-      const data = await api(`/api/chat/admin?_=${Date.now()}`);
-      const arr = Array.isArray(data) ? data : [];
+      const res = await api(`/api/chat/admin?_=${Date.now()}`);
+      const arr = normalizeChatsResponse(res);
       setChats(
         arr.map((c) => ({
           ...c,
@@ -141,9 +156,12 @@ export default function AdminChatPage() {
           lastMessageObj: c.lastMessage,
         }))
       );
+      setDiag({ lastChatsCount: arr.length, lastFetchOk: true });
     } catch (e) {
+      console.error("loadChats error:", e);
       setChats([]);
-      setError("Ошибка получения чатов: " + (e?.message || "unknown"));
+      setError("Ошибка получения чатов");
+      setDiag({ lastChatsCount: 0, lastFetchOk: false });
     }
   };
 
@@ -153,12 +171,14 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []);
 
+  // ================== MESSAGES ==================
   const loadMessages = async () => {
     if (!selected) return;
     try {
       const data = await api(`/api/chat/admin/${selected.userId}?_=${Date.now()}`);
-      setMessages(Array.isArray(data) ? data : []);
-    } catch {
+      setMessages(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []);
+    } catch (e) {
+      console.error("loadMessages error:", e);
       setMessages([]);
     }
   };
@@ -169,8 +189,10 @@ export default function AdminChatPage() {
       await loadMessages();
       try {
         const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
-        setSelectedUserInfo(info);
-      } catch {}
+        setSelectedUserInfo(info?.data || info);
+      } catch (e) {
+        // не критично
+      }
     };
     load();
     const iv = setInterval(load, 2500);
@@ -187,18 +209,28 @@ export default function AdminChatPage() {
     setAudioPreview(null);
     resetUnread(c.userId);
 
-    const info = await api(`/api/chat/admin/user/${c.userId}?_=${Date.now()}`);
-    setSelectedUserInfo(info);
+    try {
+      const info = await api(`/api/chat/admin/user/${c.userId}?_=${Date.now()}`);
+      setSelectedUserInfo(info?.data || info);
+    } catch {}
 
-    await api(`/api/chat/read/${c.userId}`, { method: "POST" });
+    try {
+      await api(`/api/chat/read/${c.userId}`, { method: "POST" });
+    } catch {}
     setTimeout(loadChats, 180);
   };
 
+  // (На бэке у тебя нет DELETE /api/chat/admin/:userId — поэтому кнопку «Удалить» лучше прятать или
+  // тихо игнорить ошибку. Оставлю, но с try/catch.)
   const handleDeleteChat = async () => {
     if (!selected) return;
     if (!window.confirm("Удалить чат безвозвратно?")) return;
     const uid = selected.userId;
-    await api(`/api/chat/admin/${uid}`, { method: "DELETE" });
+    try {
+      await api(`/api/chat/admin/${uid}`, { method: "DELETE" });
+    } catch (e) {
+      console.warn("DELETE /api/chat/admin/:userId пока не реализован на сервере");
+    }
     resetUnread(uid);
     setSelected(null);
     setMessages([]);
@@ -206,7 +238,7 @@ export default function AdminChatPage() {
     loadChats();
   };
 
-  // ===== voice =====
+  // ================== VOICE ==================
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -265,20 +297,28 @@ export default function AdminChatPage() {
     files.forEach((f) => form.append("images", f));
     setFiles([]);
     setAudioPreview(null);
-
-    await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
-    await typingOff();
-    await loadMessages();
-    await loadChats();
+    try {
+      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("audio send error:", e);
+    }
   };
 
+  // ================== SEND ==================
   const sendText = async () => {
     if (!input.trim() || !selected) return;
-    await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: { text: input.trim() } });
-    setInput("");
-    await typingOff();
-    await loadMessages();
-    await loadChats();
+    try {
+      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: { text: input.trim() } });
+      setInput("");
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("sendText error:", e);
+    }
   };
 
   const sendMedia = async ({ audio, images }) => {
@@ -289,11 +329,14 @@ export default function AdminChatPage() {
     images.forEach((f) => form.append("images", f));
     setFiles([]);
     setInput("");
-
-    await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
-    await typingOff();
-    await loadMessages();
-    await loadChats();
+    try {
+      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("sendMedia error:", e);
+    }
   };
 
   const handleSend = () => {
@@ -320,6 +363,7 @@ export default function AdminChatPage() {
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
+  // авто-скролл
   useEffect(() => {
     if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAutoScroll]);
@@ -330,53 +374,84 @@ export default function AdminChatPage() {
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
-  if (error) return <div className="admin-chat-error">{error}</div>;
+  // ================== TYPING POLL (реально используем typingMap) ==================
+  useEffect(() => {
+    let iv;
+    const pollTyping = async () => {
+      try {
+        const res = await api(`/api/chat/typing/statuses?_=${Date.now()}`);
+        // res — объект: { [userId]: { isTyping, name, fromAdmin } }
+        if (res && typeof res === "object") setTypingMap(res);
+      } catch {}
+    };
+    pollTyping();
+    iv = setInterval(pollTyping, 1200);
+    return () => clearInterval(iv);
+  }, []);
+
+  if (error) {
+    return (
+      <div className="admin-chat-error">
+        {error}
+        <div style={{ marginTop: 8, fontSize: 13, opacity: 0.7 }}>
+          Диагностика: lastFetchOk={String(diag.lastFetchOk)}; chats={diag.lastChatsCount}
+        </div>
+      </div>
+    );
+  }
+
   const chatList = Array.isArray(chats) ? chats : [];
 
   return (
-    <div className="admin-chat-page"> {/* отступ от левого меню лэйаута */}
+    <div className="admin-chat-page">
       <div className="admin-chat-root">
-        {/* left */}
+        {/* ===== LEFT: список чатов ===== */}
         <aside className="chat-sidebar">
           <div className="chat-sidebar__head">
             <h2>Чаты</h2>
             <span className="hint">в стиле Telegram</span>
           </div>
 
-          {chatList.map((c) => {
-            const isSelected = selected?.userId === c.userId;
-            const unreadExists = hasUnread(c);
-            return (
-              <div
-                key={c.userId}
-                className={`chat-item ${isSelected ? "selected" : ""} ${unreadExists ? "unread" : ""}`}
-                onClick={() => handleSelectChat(c)}
-              >
-                <div className="chat-avatar">
-                  {c.name?.[0] || "?"}
-                  {unreadExists && <span className="chat-unread-dot" />}
-                </div>
-                <div className="chat-meta">
-                  <div className="chat-title">
-                    <span className="chat-name">{c.name}</span>
-                    {unreadExists && <span className="chat-new">NEW</span>}
-                  </div>
-                  <div className="chat-phone">{c.phone}</div>
-                  <div className="chat-last">{c.lastMessage?.slice(0, 40)}</div>
-                </div>
-                <button
-                  className="chat-delete"
-                  title="Удалить чат"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteChat(); }}
+          {chatList.length === 0 ? (
+            <div className="chat-empty-left">Пока нет диалогов</div>
+          ) : (
+            chatList.map((c) => {
+              const isSelected = selected?.userId === c.userId;
+              const unreadExists = hasUnread(c);
+              return (
+                <div
+                  key={c.userId}
+                  className={`chat-item ${isSelected ? "selected" : ""} ${unreadExists ? "unread" : ""}`}
+                  onClick={() => handleSelectChat(c)}
                 >
-                  ×
-                </button>
-              </div>
-            );
-          })}
+                  <div className="chat-avatar">
+                    {c.name?.[0] || "?"}
+                    {unreadExists && <span className="chat-unread-dot" />}
+                  </div>
+                  <div className="chat-meta">
+                    <div className="chat-title">
+                      <span className="chat-name">{c.name}</span>
+                      {unreadExists && <span className="chat-new">NEW</span>}
+                    </div>
+                    <div className="chat-phone">{c.phone}</div>
+                    <div className="chat-last">{c.lastMessage?.slice(0, 64)}</div>
+                  </div>
+
+                  {/* Кнопку удаления оставил, но сервер может не поддерживать DELETE */}
+                  <button
+                    className="chat-delete"
+                    title="Удалить чат"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteChat(); }}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })
+          )}
         </aside>
 
-        {/* center */}
+        {/* ===== CENTER: поток сообщений ===== */}
         <section className="chat-main">
           {!selected ? (
             <div className="chat-empty">Выберите чат слева</div>
@@ -391,7 +466,7 @@ export default function AdminChatPage() {
 
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
                 {Array.isArray(messages) && messages.map((m, i) => (
-                  <div key={i} className={`bubble ${m.fromAdmin ? "in" : "out"}`}>
+                  <div key={m._id || i} className={`bubble ${m.fromAdmin ? "in" : "out"}`}>
                     <div className="bubble-author">
                       {m.fromAdmin ? "Менеджер" : selected.name}
                     </div>
@@ -410,12 +485,15 @@ export default function AdminChatPage() {
                   </div>
                 ))}
 
-                {typingMap[selected?.userId]?.isTyping && !typingMap[selected?.userId]?.fromAdmin && (
-                  <div className="typing">
-                    <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
-                    <span> печатает</span><TypingAnimation />
-                  </div>
-                )}
+                {/* пользователь печатает (видно администратору) */}
+                {selected?.userId &&
+                  typingMap[selected.userId]?.isTyping &&
+                  !typingMap[selected.userId]?.fromAdmin && (
+                    <div className="typing">
+                      <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
+                      <span> печатает</span><TypingAnimation />
+                    </div>
+                  )}
                 <div ref={endRef} />
               </div>
 
@@ -449,7 +527,9 @@ export default function AdminChatPage() {
                   />
                 )}
 
-                {audioPreview && <AudioPreview audioPreview={audioPreview} onRemove={handleAudioRemove} />}
+                {audioPreview && (
+                  <AudioPreview audioPreview={audioPreview} onRemove={() => setAudioPreview(null)} />
+                )}
 
                 <label className={`icon-btn ${audioPreview ? "icon-btn--disabled" : ""}`} title="Прикрепить фото">
                   📷
@@ -457,7 +537,7 @@ export default function AdminChatPage() {
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => setFiles(Array.from(e.target.files))}
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
                     style={{ display: "none" }}
                     disabled={!!audioPreview}
                   />
@@ -497,7 +577,7 @@ export default function AdminChatPage() {
           )}
         </section>
 
-        {/* right */}
+        {/* ===== RIGHT: карточка пользователя ===== */}
         {selected && selectedUserInfo && (
           <aside className="user-panel">
             <div className="user-card">
@@ -531,14 +611,17 @@ export default function AdminChatPage() {
               onClick={async () => {
                 if (!selected) return;
                 setBlocking(true);
-                await api(`/api/chat/admin/user/${selected.userId}/block`, {
-                  method: "POST",
-                  body: { block: !selectedUserInfo.isBlocked },
-                });
-                setBlocking(false);
-                const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
-                setSelectedUserInfo(info);
-                await loadChats();
+                try {
+                  await api(`/api/chat/admin/user/${selected.userId}/block`, {
+                    method: "POST",
+                    body: { block: !selectedUserInfo.isBlocked },
+                  });
+                  const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
+                  setSelectedUserInfo(info?.data || info);
+                  await loadChats();
+                } finally {
+                  setBlocking(false);
+                }
               }}
             >
               {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
