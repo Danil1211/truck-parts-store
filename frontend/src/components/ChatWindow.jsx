@@ -1,11 +1,12 @@
+// src/components/ChatWindow.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import { useSite } from "../context/SiteContext";
 import '../assets/ChatWindow.css';
 
-const apiUrl = import.meta.env.VITE_API_URL || '';
+const apiUrl = import.meta.env.VITE_API_URL || "";
 
-// ====================== Вспомогательные функции цвета =========================
+/* ====================== helpers (цвет) ====================== */
 function lightenColor(hex, percent) {
   let r = parseInt(hex.substr(1,2),16), g = parseInt(hex.substr(3,2),16), b = parseInt(hex.substr(5,2),16);
   r = Math.round(r + (255 - r) * percent/100);
@@ -17,23 +18,23 @@ function hexToRgba(hex, alpha) {
   let r = parseInt(hex.substr(1,2),16), g = parseInt(hex.substr(3,2),16), b = parseInt(hex.substr(5,2),16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+function safeParseJwt(token) {
+  try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+}
 
-// ======================= Анимация "печатает..." ========================
+/* ===================== анимация "печатает" ================== */
 function TypingAnimation() {
   const [dots, setDots] = useState("...");
   useEffect(() => {
     const arr = ["...", "..", ".", ""];
     let i = 0;
-    const timer = setInterval(() => {
-      setDots(arr[i % arr.length]);
-      i++;
-    }, 350);
-    return () => clearInterval(timer);
+    const t = setInterval(() => { setDots(arr[i % arr.length]); i++; }, 350);
+    return () => clearInterval(t);
   }, []);
   return <span style={{ marginLeft: 3 }}>{dots}</span>;
 }
 
-// ======================= Компонент голосового ==========================
+/* ===================== голосовые ============================ */
 const VoiceMessage = ({ url }) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -59,13 +60,8 @@ const VoiceMessage = ({ url }) => {
   const handlePlayPause = () => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (playing) {
-      audio.pause();
-      setPlaying(false);
-    } else {
-      audio.play();
-      setPlaying(true);
-    }
+    if (playing) { audio.pause(); setPlaying(false); }
+    else { audio.play(); setPlaying(true); }
   };
 
   const handleSeek = (e) => {
@@ -74,15 +70,15 @@ const VoiceMessage = ({ url }) => {
     const rect = bar.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const audio = audioRef.current;
-    if (audio) audio.currentTime = percent * duration;
+    if (audio) audio.currentTime = Math.min(Math.max(percent, 0), 1) * duration;
   };
 
-  function formatTime(sec) {
+  const fmt = (sec) => {
     if (!isFinite(sec)) return "0:00";
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
-  }
+  };
 
   return (
     <div className="voice-modern-container">
@@ -98,56 +94,60 @@ const VoiceMessage = ({ url }) => {
         <div className="voice-bar2-progress" style={{ width: duration ? `${(current / duration) * 100}%` : 0 }} />
       </div>
       <span className="voice-modern-time">
-        {formatTime(current)}<span style={{ opacity: 0.7, fontWeight: 400 }}> / {formatTime(duration)}</span>
+        {fmt(current)}<span style={{ opacity: 0.7, fontWeight: 400 }}> / {fmt(duration)}</span>
       </span>
     </div>
   );
 };
 
-// ========================= Основной компонент ========================
+/* ======================== основной компонент ======================= */
 const ChatWindow = ({ onClose }) => {
+  // форма регистрации (для НЕ залогиненных на сайте)
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+
+  // чат
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [token, setToken] = useState(localStorage.getItem('chatToken'));
+
+  // токены
+  const [chatToken, setChatToken] = useState(localStorage.getItem('chatToken') || null);
+  const siteToken = localStorage.getItem('token') || localStorage.getItem('authToken') || null;
+  const effectiveToken = chatToken || siteToken;
+
+  // вложения/голосовые
   const [images, setImages] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
   const [audioChunks, setAudioChunks] = useState([]);
   const [recordTime, setRecordTime] = useState(0);
+
+  // прочее
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [adminTyping, setAdminTyping] = useState(false);
 
   const messagesEndRef = useRef(null);
-  const chatRef = useRef(null);
   const mediaRecorder = useRef(null);
   const shouldScrollToBottom = useRef(true);
   const recordTimer = useRef(null);
-  const chatWindowRef = useRef(null);
 
-  // Цветовая тема из chatSettings
+  // цветовая тема
   const { chatSettings } = useSite();
   const chatColor = chatSettings?.color || "#2291ff";
   const chatGradient = `linear-gradient(135deg, ${chatColor}, ${lightenColor(chatColor, 30)})`;
   const shadowColor = hexToRgba(chatColor, 0.5);
   const shadowColor2 = hexToRgba(chatColor, 0);
 
-  // Достаем userId и userName из токена
+  // userId/userName из JWT (любой из двух токенов)
   let userId = null, userName = null;
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      userId = payload.id;
-      userName = payload.name;
-    } catch (e) {
-      // пусто
-    }
+  if (effectiveToken) {
+    const payload = safeParseJwt(effectiveToken);
+    userId = payload?.id || null;
+    userName = payload?.name || null;
   }
 
-  // ======== ВСЕ твои useEffect и функции из прошлого кода ===========
-
-  // Функция для начала записи
+  /* ======================== запись голоса ======================== */
   const startRecording = async () => {
     if (!navigator.mediaDevices) {
       setError('Браузер не поддерживает запись');
@@ -165,16 +165,12 @@ const ChatWindow = ({ onClose }) => {
       setIsRecording(true);
       setRecordTime(0);
 
-      recordTimer.current = setInterval(() => {
-        setRecordTime((prev) => prev + 1);
-      }, 1000);
-    } catch (e) {
+      recordTimer.current = setInterval(() => setRecordTime((prev) => prev + 1), 1000);
+    } catch {
       setError('Не удалось начать запись');
       setTimeout(() => setError(''), 2000);
     }
   };
-
-  // Функция для остановки записи
   const stopRecording = () => {
     if (mediaRecorder.current) {
       mediaRecorder.current.stop();
@@ -188,57 +184,58 @@ const ChatWindow = ({ onClose }) => {
     shouldScrollToBottom.current = (scrollTop + clientHeight >= scrollHeight - 10);
   };
 
-  // --- PING онлайн-статуса каждые 25 сек ---
+  /* ======================== онлайн-пинг ========================= */
   useEffect(() => {
-    if (!token) return;
+    if (!effectiveToken) return;
     const ping = () => {
       fetch(`${apiUrl}/api/chat/ping`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        headers: { Authorization: `Bearer ${effectiveToken}` }
+      }).catch(() => {});
     };
     ping();
     const interval = setInterval(ping, 25000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [effectiveToken]);
 
-  // --- При закрытии вкладки — offline ---
   useEffect(() => {
-    if (!token) return;
+    if (!effectiveToken) return;
     const handleBeforeUnload = () => {
       fetch(`${apiUrl}/api/chat/offline`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        headers: { Authorization: `Bearer ${effectiveToken}` }
+      }).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [token]);
+  }, [effectiveToken]);
 
-  // Получение сообщений
+  /* ======================== загрузка сообщений =================== */
   const fetchMessages = async () => {
-    if (!token) return;
+    if (!effectiveToken) return;
     try {
       const res = await fetch(`${apiUrl}/api/chat/my`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${effectiveToken}` },
       });
       if (res.status === 401) {
-        localStorage.removeItem('chatToken');
-        setToken(null);
+        // если сайт-токен протух — не трогаем chatToken, наоборот
+        if (effectiveToken === chatToken) {
+          localStorage.removeItem('chatToken');
+          setChatToken(null);
+        }
         setMessages([]);
         return;
       }
       const data = await res.json();
       setMessages(Array.isArray(data) ? data : []);
-    } catch (err) {}
+    } catch {/* noop */}
   };
-
-  useEffect(() => { fetchMessages(); }, [token]);
+  useEffect(() => { fetchMessages(); }, [effectiveToken]);
   useEffect(() => {
-    if (!token) return;
+    if (!effectiveToken) return;
     const interval = setInterval(fetchMessages, 2000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [effectiveToken]);
 
   useEffect(() => {
     if (shouldScrollToBottom.current && messagesEndRef.current) {
@@ -252,66 +249,66 @@ const ChatWindow = ({ onClose }) => {
     }
   }, []);
 
-  // Получение статуса "печатает"
+  /* ======================== статусы "печатает" =================== */
   useEffect(() => {
-    if (!token || !userId) return;
+    if (!effectiveToken || !userId) return;
     let interval;
     const fetchTyping = async () => {
       try {
         const res = await fetch(`${apiUrl}/api/chat/typing/statuses`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${effectiveToken}` }
         });
-        if (res.status === 401) {
-          localStorage.removeItem('chatToken');
-          setToken(null);
-          setAdminTyping(false);
-          return;
-        }
+        if (res.status === 401) return;
         const map = await res.json();
         if (map && map[userId] && map[userId].fromAdmin && map[userId].isTyping) {
           setAdminTyping(true);
         } else {
           setAdminTyping(false);
         }
-      } catch {}
+      } catch {/* noop */}
     };
     fetchTyping();
     interval = setInterval(fetchTyping, 1200);
     return () => clearInterval(interval);
-  }, [token, userId]);
+  }, [effectiveToken, userId]);
 
-  // Авторизация клиента
-  const handleStart = async () => {
+  /* ======================== регистрация в чате =================== */
+  const handleRegister = async () => {
     if (!name.trim() || !phone.trim()) {
       setError('Введите имя и телефон!');
       setTimeout(() => setError(''), 2000);
       return;
     }
     try {
-      const res = await fetch(`${apiUrl}/api/chat`, {
+      const res = await fetch(`${apiUrl}/api/chat/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, phone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка авторизации');
+      if (res.status === 409 && data?.code === 'ALREADY_REGISTERED') {
+        setInfo('Этот телефон уже зарегистрирован. Пожалуйста, войдите в кабинет.');
+        return;
+      }
+      if (!res.ok) throw new Error(data?.error || 'Ошибка регистрации');
       localStorage.setItem('chatToken', data.token);
-      setToken(data.token);
+      setChatToken(data.token);
+      setInfo('');
     } catch (err) {
-      setError('Ошибка входа в чат');
+      setError('Ошибка регистрации');
       setTimeout(() => setError(''), 2000);
     }
   };
 
-  // === ОТПРАВКА СТАТУСА "ПЕЧАТАЕТ" ===
+  /* ======================== input/typing ========================= */
   function handleInput(e) {
     setMessage(e.target.value);
-    if (!userId || !userName) return;
+    if (!effectiveToken || !userId || !userName) return;
     fetch(`${apiUrl}/api/chat/typing`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${effectiveToken}`,
       },
       body: JSON.stringify({
         userId,
@@ -319,66 +316,56 @@ const ChatWindow = ({ onClose }) => {
         name: userName,
         fromAdmin: false
       }),
-    });
+    }).catch(() => {});
   }
 
-  // Отправка сообщения
+  /* ======================== отправка сообщения =================== */
   const handleSend = async () => {
+    if (!effectiveToken) return; // без токена не отправляем
     if (!message.trim() && images.length === 0 && audioChunks.length === 0) return;
 
     const formData = new FormData();
-    formData.append('text', message);
-
+    if (message.trim()) formData.append('text', message.trim());
     images.forEach((img) => formData.append('images', img));
     if (audioChunks.length > 0) {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      formData.append('audio', audioBlob);
-    }
-
-    if (!token) {
-      formData.append('name', name);
-      formData.append('phone', phone);
+      formData.append('audio', audioBlob, 'voice.webm');
     }
 
     try {
       const res = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${effectiveToken}` },
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка отправки сообщения');
+      if (!res.ok) throw new Error(data?.error || 'Ошибка отправки сообщения');
+
       setMessage('');
       setImages([]);
       setAudioChunks([]);
       setShowEmoji(false);
-      fetchMessages();
-      if (token) {
-        fetch(`${apiUrl}/api/chat/ping`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
-    } catch (err) {
+      await fetchMessages();
+
+      fetch(`${apiUrl}/api/chat/ping`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${effectiveToken}` }
+      }).catch(() => {});
+    } catch {
       setError('Ошибка отправки сообщения');
       setTimeout(() => setError(''), 2000);
     }
 
-    // Сбросить "печатает"
-    if (userId && userName) {
+    // сбросить тайпинг
+    if (effectiveToken && userId && userName) {
       fetch(`${apiUrl}/api/chat/typing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${effectiveToken}`,
         },
-        body: JSON.stringify({
-          userId,
-          isTyping: false,
-          name: userName,
-          fromAdmin: false
-        }),
-      });
+        body: JSON.stringify({ userId, isTyping: false, name: userName, fromAdmin: false }),
+      }).catch(() => {});
     }
   };
 
@@ -397,7 +384,10 @@ const ChatWindow = ({ onClose }) => {
     setShowEmoji(false);
   };
 
-  // ============= РЕНДЕР ==============
+  /* ======================== render =============================== */
+  const payload = effectiveToken ? safeParseJwt(effectiveToken) : null;
+  const greetingName = payload?.name || name || 'друг';
+
   return (
     <div
       className="chat-overlay"
@@ -408,27 +398,24 @@ const ChatWindow = ({ onClose }) => {
         "--chat-main-shadow2": shadowColor2,
       }}
     >
-      <div className="chat-window" ref={chatWindowRef}>
+      <div className="chat-window">
         <div className="chat-header" style={{ background: chatColor }}>
           <div className="chat-header-info">
-            <img
-              src="/images/iconAdmin.png"
-              alt="Admin"
-              className="chat-admin-avatar"
-            />
+            <img src="/images/iconAdmin.png" alt="Admin" className="chat-admin-avatar" />
           </div>
           <div className="chat-status online">Данило • Онлайн</div>
           <button className="chat-close" onClick={onClose}>×</button>
         </div>
 
-        {!token ? (
+        {/* если есть токен (сайт или чат) — показываем чат; иначе форму регистрации */}
+        {!effectiveToken ? (
           <div style={{ padding: 16 }}>
             <p>
               {chatSettings?.greeting?.trim()
                 ? chatSettings.greeting
-                : "Добро пожаловать в чат."
-              }
+                : "Добро пожаловать в чат."}
             </p>
+
             <input
               type="text"
               placeholder="Ваше имя"
@@ -441,66 +428,66 @@ const ChatWindow = ({ onClose }) => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
-            <button className="chat-start-button" style={{ background: chatColor }} onClick={handleStart}>Начать</button>
+            <button
+              className="chat-start-button"
+              style={{ background: chatColor }}
+              onClick={handleRegister}
+            >
+              Начать
+            </button>
+
+            {info && (
+              <div className="chat-info" style={{ marginTop: 10 }}>
+                {info} <a href="/login" style={{ color: chatColor, fontWeight: 600 }}>Войти</a>
+              </div>
+            )}
             {error && <div className="chat-error">{error}</div>}
           </div>
         ) : (
           <>
             <div className="chat-messages" onScroll={handleScroll}>
-              {/* Автоответ после регистрации */}
+              {/* авто-привет */}
               <div className="chat-message admin">
                 <div className="chat-bubble">
-                  <div style={{
-                    fontSize: 13,
-                    marginBottom: 2,
-                    color: '#888',
-                    fontWeight: 500
-                  }}>
+                  <div style={{ fontSize: 13, marginBottom: 2, color: '#888', fontWeight: 500 }}>
                     Admin
                   </div>
-                  <div>{`Здравствуйте ${name}! Чем можем помочь?`}</div>
+                  <div>{`Здравствуйте, ${greetingName}! Чем можем помочь?`}</div>
                 </div>
-                <div className="chat-time">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div className="chat-time">
+                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </div>
-              {messages.length === 0
-                ? <p className="no-messages">Нет сообщений</p>
-                : messages.map((msg) => (
+
+              {messages.length === 0 ? (
+                <p className="no-messages">Нет сообщений</p>
+              ) : (
+                messages.map((msg) => (
                   <div
                     key={msg._id}
                     className={`chat-message ${msg.fromAdmin ? 'admin' : 'you'}`}
                   >
                     <div className="chat-bubble">
-                      <div style={{
-                        fontSize: 13,
-                        marginBottom: 2,
-                        color: '#888',
-                        fontWeight: 500
-                      }}>
+                      <div style={{ fontSize: 13, marginBottom: 2, color: '#888', fontWeight: 500 }}>
                         {msg.fromAdmin ? 'Данило' : 'Вы'}
                       </div>
                       {msg.text && <div>{msg.text}</div>}
                       {msg.imageUrls?.length > 0 && msg.imageUrls.map((url, i) => (
                         <div className="chat-image-wrapper" key={i}>
-                          <img
-                            src={`${apiUrl}${url}`}
-                            alt="attachment"
-                            className="chat-image"
-                          />
+                          <img src={`${apiUrl}${url}`} alt="attachment" className="chat-image" />
                         </div>
                       ))}
-                      {msg.audioUrl &&
-                        <VoiceMessage url={`${apiUrl}${msg.audioUrl}`} />
-                      }
+                      {msg.audioUrl && <VoiceMessage url={`${apiUrl}${msg.audioUrl}`} />}
                     </div>
                     <div className="chat-time">
                       {msg.createdAt &&
-                        new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      }
                     </div>
                   </div>
-                ))}
+                ))
+              )}
+
               {adminTyping && (
                 <div
                   style={{
@@ -522,6 +509,7 @@ const ChatWindow = ({ onClose }) => {
               )}
               <div ref={messagesEndRef} />
             </div>
+
             <div className="chat-input">
               <div className="chat-input-top">
                 <input
@@ -534,26 +522,21 @@ const ChatWindow = ({ onClose }) => {
                 />
                 <button className="chat-send-button" onClick={handleSend}>➤</button>
               </div>
+
               {images.length > 0 && (
                 <div className="chat-images-preview">
                   {images.map((img, idx) => (
                     <div key={idx} className="chat-preview-wrapper">
-                      <img
-                        src={URL.createObjectURL(img)}
-                        alt={`preview-${idx}`}
-                        className="chat-preview-image"
-                      />
+                      <img src={URL.createObjectURL(img)} alt={`preview-${idx}`} className="chat-preview-image" />
                     </div>
                   ))}
                 </div>
               )}
+
               {error && <div className="chat-error">{error}</div>}
+
               <div className="chat-input-icons">
-                <span
-                  className="chat-icon"
-                  title="Эмодзи"
-                  onClick={() => setShowEmoji(!showEmoji)}
-                >😊</span>
+                <span className="chat-icon" title="Эмодзи" onClick={() => setShowEmoji(!showEmoji)}>😊</span>
                 <label className="chat-icon" title="Прикрепить файл">
                   📎
                   <input
@@ -570,6 +553,7 @@ const ChatWindow = ({ onClose }) => {
                   onClick={isRecording ? stopRecording : startRecording}
                 >🎤</span>
               </div>
+
               {showEmoji && (
                 <div className="emoji-picker-wrapper">
                   <EmojiPicker

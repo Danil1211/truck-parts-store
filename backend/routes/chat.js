@@ -1,3 +1,4 @@
+// backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -6,16 +7,18 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const axios = require('axios');
+
+const withTenant = require('../middleware/withTenant');
 const getRealIp = require('../utils/getIp');
 const { Message, User } = require('../models/models');
-const { authMiddleware } = require('./protected');
-const withTenant = require('../middleware/withTenant');
+
+const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
 router.use(withTenant);
 
-let typingStatus = {}; // { tenantId: { userId: {...} } }
-
-// --- Multer storage ---
+/* =========================================================
+   Multer storage (по тенанту)
+========================================================= */
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = path.join(__dirname, '../uploads', String(req.tenantId || 'common'));
@@ -36,51 +39,286 @@ const fileFilter = (req, file, cb) => {
 };
 const upload = multer({ storage, fileFilter, limits: { files: 4 } });
 
-/* ======================
-   CLIENT/ADMIN ROUTES
-====================== */
+/* =========================================================
+   Helpers
+========================================================= */
+function signChatToken(user) {
+  return jwt.sign(
+    {
+      id: user._id.toString(),
+      tenantId: user.tenantId.toString(),
+      name: user.name,
+      phone: user.phone,
+      isAdmin: false,
+      role: user.role || 'customer',
+    },
+    SECRET,
+    { expiresIn: '30d' }
+  );
+}
 
-/** POST /api/chat/typing */
-router.post('/typing', authMiddleware, async (req, res) => {
-  const tenantId = String(req.tenantId);
-  const { userId, isTyping, name, fromAdmin } = req.body;
-  let realName = name;
-  if (!fromAdmin) {
-    try {
-      const user = await User.findOne({ _id: userId, tenantId }).lean();
-      if (user?.name) realName = user.name;
-    } catch (e) {
-      console.error('Ошибка получения имени:', e);
-    }
+function getPayload(req) {
+  const auth = (req.headers.authorization || '').trim();
+  if (!auth.toLowerCase().startsWith('bearer ')) return null;
+  const token = auth.slice(7).trim();
+  try {
+    const payload = jwt.verify(token, SECRET);
+    if (String(payload.tenantId) !== String(req.tenantId)) return null;
+    return payload;
+  } catch {
+    return null;
   }
-  if (!typingStatus[tenantId]) typingStatus[tenantId] = {};
-  typingStatus[tenantId][userId] = {
-    isTyping: !!isTyping,
-    name: fromAdmin ? 'Менеджер' : realName,
-    fromAdmin: !!fromAdmin
-  };
-  res.json({ ok: true });
+}
+
+function authAny(req, res, next) {
+  const payload = getPayload(req);
+  if (!payload) return res.status(401).json({ error: 'Auth required' });
+  req.user = payload;
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  const payload = getPayload(req);
+  if (!payload) return res.status(401).json({ error: 'Auth required' });
+  if (!payload.isAdmin && payload.role !== 'owner' && payload.role !== 'admin')
+    return res.status(403).json({ error: 'Admin only' });
+  req.user = payload;
+  next();
+}
+
+/* ======================= typing statuses ======================= */
+let typingStatus = {}; // { tenantId: { userId: { isTyping, name, fromAdmin } } }
+
+/* =========================================================
+   КЛИЕНТСКАЯ РЕГИСТРАЦИЯ В ЧАТЕ (если не залогинен на сайте)
+   POST /api/chat/register
+   body: { name, phone }
+   OK -> { token }
+   Уже есть -> 409 + { error, code:'ALREADY_REGISTERED' }
+========================================================= */
+router.post('/register', async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+    const { name, phone } = req.body || {};
+    const sName = String(name || '').trim();
+    const sPhone = String(phone || '').trim();
+
+    if (!sName || !sPhone) {
+      return res.status(400).json({ error: 'Имя и телефон обязательны' });
+    }
+
+    let user = await User.findOne({ tenantId, phone: sPhone });
+    if (user) {
+      return res.status(409).json({
+        error: 'Этот телефон уже зарегистрирован. Войдите в кабинет.',
+        code: 'ALREADY_REGISTERED'
+      });
+    }
+
+    // гео по IP (best effort)
+    let ip = getRealIp(req);
+    let city = '';
+    try {
+      const geo = await axios.get(`http://ip-api.com/json/${ip}`);
+      city = geo.data?.city || '';
+    } catch { city = ''; }
+
+    user = await User.create({
+      tenantId,
+      email: `${sPhone}@example.com`,
+      passwordHash: 'chat',
+      name: sName,
+      phone: sPhone,
+      role: 'customer',
+      isAdmin: false,
+      isOnline: true,
+      lastOnlineAt: new Date(),
+      ip,
+      city
+    });
+
+    const token = signChatToken(user);
+    return res.json({ token });
+  } catch (e) {
+    console.error('chat.register error:', e);
+    return res.status(500).json({ error: 'Ошибка сервера' });
+  }
 });
 
-router.get('/typing/statuses', authMiddleware, (req, res) => {
+/* =========================================================
+   МОИ СООБЩЕНИЯ
+   GET /api/chat/my   (принимает и сайт-токен, и chatToken)
+========================================================= */
+router.get('/my', authAny, async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+    const userId = req.user.id;
+
+    const user = await User.findOne({ _id: userId, tenantId });
+    if (user) {
+      user.isOnline = true;
+      user.lastOnlineAt = new Date();
+      await user.save();
+    }
+
+    const messages = await Message.find({ user: userId, tenantId }).sort({ createdAt: 1 });
+    return res.json(Array.isArray(messages) ? messages : []);
+  } catch (e) {
+    console.error('chat.my error:', e);
+    return res.json([]);
+  }
+});
+
+/* =========================================================
+   ОТПРАВИТЬ СООБЩЕНИЕ ОТ КЛИЕНТА
+   POST /api/chat
+   headers: Authorization: Bearer <siteToken | chatToken>
+   form-data: text?, images[]?, audio?
+========================================================= */
+router.post(
+  '/',
+  authAny,
+  upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const tenantId = String(req.tenantId);
+      const userId = req.user.id;
+
+      const user = await User.findOne({ _id: userId, tenantId });
+      if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
+      if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
+
+      const imageUrls = req.files?.images?.map(f => `/uploads/${tenantId}/${f.filename}`) || [];
+      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tenantId}/${req.files.audio[0].filename}` : '';
+
+      const message = await Message.create({
+        tenantId,
+        user: user._id,
+        text: req.body.text || '',
+        imageUrls,
+        audioUrl,
+        fromAdmin: !!req.user.isAdmin,
+        read: false,
+        createdAt: new Date(),
+      });
+
+      // сброс "печатает"
+      if (typingStatus[tenantId]?.[String(user._id)]) {
+        typingStatus[tenantId][String(user._id)] = {
+          isTyping: false,
+          name: user.name,
+          fromAdmin: !!req.user.isAdmin
+        };
+      }
+
+      // обновляем статус клиента (если пишет клиент)
+      if (!req.user.isAdmin) {
+        user.status = 'new';
+        user.lastMessageAt = new Date();
+        user.isOnline = true;
+        user.lastOnlineAt = new Date();
+        await user.save();
+      }
+
+      return res.status(201).json(message);
+    } catch (e) {
+      console.error('chat.send error:', e);
+      return res.status(500).json({ error: 'Ошибка сервера' });
+    }
+  }
+);
+
+/* =========================================================
+   ТАЙПИНГ
+========================================================= */
+router.post('/typing', authAny, async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+    const { userId, isTyping, name, fromAdmin } = req.body || {};
+    if (!userId) return res.json({ ok: true });
+
+    if (!typingStatus[tenantId]) typingStatus[tenantId] = {};
+    typingStatus[tenantId][String(userId)] = {
+      isTyping: !!isTyping,
+      name: fromAdmin ? 'Менеджер' : (name || 'Пользователь'),
+      fromAdmin: !!fromAdmin,
+    };
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.json({ ok: true });
+  }
+});
+
+router.get('/typing/statuses', authAny, (req, res) => {
   res.json(typingStatus[String(req.tenantId)] || {});
 });
 
-/** ADMIN: список чатов */
-router.get('/admin', authMiddleware, async (req, res) => {
-  // всегда отдаём массив и отключаем кэш (избавляемся от 304 без тела)
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
-  res.set('Surrogate-Control', 'no-store');
-
-  if (!req.user || !req.user.isAdmin) {
-    return res.status(403).json([]); // ← массив
-  }
+/* =========================================================
+   PING / OFFLINE (онлайн-статус)
+========================================================= */
+router.post('/ping', authAny, async (req, res) => {
   try {
-    await updateMissedChats(String(req.tenantId));
+    const tenantId = String(req.tenantId);
+    const user = await User.findOne({ _id: req.user.id, tenantId });
+    if (user) {
+      user.isOnline = true;
+      user.lastOnlineAt = new Date();
+      await user.save();
+    }
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
+  }
+});
+
+router.post('/offline', authAny, async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+    const user = await User.findOne({ _id: req.user.id, tenantId });
+    if (user) {
+      user.isOnline = false;
+      await user.save();
+    }
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
+  }
+});
+
+/* =========================================================
+   АДМИН: список чатов, сообщения, отправка
+========================================================= */
+async function updateMissedChats(tenantId) {
+  const now = Date.now();
+  const users = await User.find({ tenantId, status: { $in: ['new', 'waiting', 'active'] } });
+  for (let user of users) {
+    if (user.lastMessageAt && (!user.adminLastReadAt || user.lastMessageAt > user.adminLastReadAt)) {
+      if (now - new Date(user.lastMessageAt).getTime() > 2 * 60 * 1000) {
+        user.status = 'missed';
+        await user.save();
+      }
+    }
+    if (user.isOnline && user.lastOnlineAt && (now - new Date(user.lastOnlineAt).getTime() > 70000)) {
+      user.isOnline = false;
+      await user.save();
+    }
+  }
+}
+
+router.get('/admin', requireAdmin, async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+
+    // anti-cache
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+
+    await updateMissedChats(tenantId);
+
     const chats = await Message.aggregate([
-      { $match: { tenantId: String(req.tenantId) } },
+      { $match: { tenantId } },
       { $sort: { createdAt: -1 } },
       { $group: { _id: '$user', lastMessage: { $first: '$$ROOT' } } },
       {
@@ -93,7 +331,7 @@ router.get('/admin', authMiddleware, async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ['$_id', '$$userId'] },
-                    { $eq: ['$tenantId', String(req.tenantId)] }
+                    { $eq: ['$tenantId', tenantId] }
                   ]
                 }
               }
@@ -122,20 +360,20 @@ router.get('/admin', authMiddleware, async (req, res) => {
     ]);
 
     res.json(Array.isArray(chats) ? chats : []);
-  } catch (err) {
-    console.error('Ошибка /admin:', err);
-    res.json([]); // ← не валим фронт
+  } catch (e) {
+    console.error('chat.admin list error:', e);
+    res.json([]);
   }
 });
 
-/** ADMIN: сообщения юзера */
-router.get('/admin/:userId', authMiddleware, async (req, res) => {
-  if (!req.user || !req.user.isAdmin) return res.status(403).json([]);
-  if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json([]);
+router.get('/admin/:userId', requireAdmin, async (req, res) => {
   try {
     const tenantId = String(req.tenantId);
-    const messages = await Message.find({ user: req.params.userId, tenantId }).sort({ createdAt: 1 });
-    const user = await User.findOne({ _id: req.params.userId, tenantId });
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json([]);
+
+    const messages = await Message.find({ user: userId, tenantId }).sort({ createdAt: 1 });
+    const user = await User.findOne({ _id: userId, tenantId });
     if (user) {
       const last = messages[messages.length - 1];
       if (last && !last.fromAdmin) {
@@ -145,23 +383,22 @@ router.get('/admin/:userId', authMiddleware, async (req, res) => {
       }
     }
     res.json(Array.isArray(messages) ? messages : []);
-  } catch (err) {
+  } catch {
     res.json([]);
   }
 });
 
-/** ADMIN: отправить сообщение */
 router.post(
   '/admin/:userId',
-  authMiddleware,
+  requireAdmin,
   upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
   async (req, res) => {
-    if (!req.user || !req.user.isAdmin) return res.status(403).json({ error: 'Нет доступа' });
-    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ error: 'Некорректный userId' });
-
     try {
       const tenantId = String(req.tenantId);
-      const user = await User.findOne({ _id: req.params.userId, tenantId });
+      const { userId } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: 'Некорректный userId' });
+
+      const user = await User.findOne({ _id: userId, tenantId });
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
@@ -179,8 +416,8 @@ router.post(
         audioUrl
       });
 
-      if (typingStatus[tenantId]?.[user._id]) {
-        typingStatus[tenantId][user._id] = { isTyping: false, name: 'Менеджер', fromAdmin: true };
+      if (typingStatus[tenantId]?.[String(user._id)]) {
+        typingStatus[tenantId][String(user._id)] = { isTyping: false, name: 'Менеджер', fromAdmin: true };
       }
 
       user.status = 'waiting';
@@ -188,147 +425,60 @@ router.post(
       await user.save();
 
       res.status(201).json(message);
-    } catch (err) {
-      console.error('Ошибка при отправке админом:', err);
+    } catch (e) {
+      console.error('chat.admin send error:', e);
       res.status(500).json({ error: 'Ошибка сервера' });
     }
   }
 );
 
-/** CLIENT: мои сообщения */
-router.get('/my', authMiddleware, async (req, res) => {
+/* ------- инфо по пользователю для правой панели ------- */
+router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
   try {
     const tenantId = String(req.tenantId);
-    const user = await User.findOne({ _id: req.user.id, tenantId });
-    if (user) {
-      user.isOnline = true;
-      user.lastOnlineAt = new Date();
-      await user.save();
-    }
-    const messages = await Message.find({ user: req.user.id, tenantId }).sort({ createdAt: 1 });
-    res.json(Array.isArray(messages) ? messages : []);
-  } catch (err) {
-    res.json([]);
+    const user = await User.findOne({ _id: req.params.userId, tenantId }).lean();
+    if (!user) return res.status(404).json({ error: 'not found' });
+    res.json(user);
+  } catch {
+    res.status(404).json({ error: 'not found' });
   }
 });
 
-/** CLIENT: отправить сообщение/регистрация */
-router.post(
-  '/',
-  upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
-  async (req, res) => {
+/* ------- блокировка/разблокировка ------- */
+router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
+  try {
     const tenantId = String(req.tenantId);
-    const imageUrls = req.files?.images?.map(f => `/uploads/${tenantId}/${f.filename}`) || [];
-    const audioUrl = req.files?.audio?.[0] ? `/uploads/${tenantId}/${req.files.audio[0].filename}` : null;
-    const auth = req.headers.authorization;
-
-    // с токеном
-    if (auth?.startsWith('Bearer ')) {
-      try {
-        const token = auth.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (String(decoded.tenantId) !== String(tenantId)) {
-          return res.status(403).json({ error: 'Cross-tenant forbidden' });
-        }
-        const user = await User.findOne({ _id: decoded.id, tenantId });
-        if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
-        if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
-
-        user.isOnline = true;
-        user.lastOnlineAt = new Date();
-        await user.save();
-
-        const savedMessage = await Message.create({
-          tenantId,
-          user: user._id,
-          text: req.body.text || '',
-          imageUrls,
-          audioUrl,
-          fromAdmin: decoded.isAdmin || false,
-          read: false
-        });
-
-        if (typingStatus[tenantId]?.[user._id]) {
-          typingStatus[tenantId][user._id] = { isTyping: false, name: user.name, fromAdmin: false };
-        }
-
-        if (!decoded.isAdmin) {
-          user.status = 'new';
-          user.lastMessageAt = new Date();
-          await user.save();
-        }
-
-        return res.status(201).json(savedMessage);
-      } catch {
-        return res.status(401).json({ error: 'Недействительный токен' });
-      }
-    }
-
-    // регистрация нового
-    if (!req.body.name || !req.body.phone) {
-      return res.status(400).json({ error: 'Имя и телефон обязательны' });
-    }
-
-    try {
-      let user = await User.findOne({ phone: req.body.phone, tenantId });
-      if (!user) {
-        let ip = getRealIp(req);
-        let city = '';
-        try {
-          const geo = await axios.get(`http://ip-api.com/json/${ip}`);
-          city = geo.data?.city || '';
-        } catch { city = ''; }
-
-        user = await User.create({
-          tenantId,
-          name: req.body.name,
-          phone: req.body.phone,
-          email: `${req.body.phone}@example.com`,
-          passwordHash: 'chat',
-          ip,
-          city,
-          isBlocked: false,
-          isOnline: true,
-          lastOnlineAt: new Date()
-        });
-      } else {
-        user.isOnline = true;
-        user.lastOnlineAt = new Date();
-        await user.save();
-      }
-
-      const token = jwt.sign(
-        { id: user._id, name: user.name, phone: user.phone, isAdmin: false, tenantId },
-        process.env.JWT_SECRET,
-        { expiresIn: '30d' }
-      );
-
-      return res.json({ token });
-    } catch (err) {
-      console.error('Ошибка регистрации клиента:', err);
-      return res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    const { block } = req.body || {};
+    const user = await User.findOne({ _id: req.params.userId, tenantId });
+    if (!user) return res.status(404).json({ error: 'not found' });
+    user.isBlocked = !!block;
+    await user.save();
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'server error' });
   }
-);
+});
 
-// --- Авто-перевод чатов в missed
-const TWO_MIN = 2 * 60 * 1000;
-async function updateMissedChats(tenantId) {
-  if (!tenantId) return;
-  const now = Date.now();
-  const users = await User.find({ tenantId, status: { $in: ['new', 'waiting', 'active'] } });
-  for (let user of users) {
-    if (user.lastMessageAt && (!user.adminLastReadAt || user.lastMessageAt > user.adminLastReadAt)) {
-      if (now - user.lastMessageAt.getTime() > TWO_MIN) {
-        user.status = 'missed';
-        await user.save();
-      }
-    }
-    if (user.isOnline && user.lastOnlineAt && (now - new Date(user.lastOnlineAt).getTime() > 70000)) {
-      user.isOnline = false;
+/* ------- пометить прочитанным ------- */
+router.post('/read/:userId', requireAdmin, async (req, res) => {
+  try {
+    const tenantId = String(req.tenantId);
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
+    await Message.updateMany(
+      { tenantId, user: userId, fromAdmin: false, read: false },
+      { $set: { read: true } }
+    );
+    const user = await User.findOne({ _id: userId, tenantId });
+    if (user) {
+      user.adminLastReadAt = new Date();
+      user.status = 'waiting';
       await user.save();
     }
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
   }
-}
+});
 
 module.exports = router;
