@@ -80,8 +80,9 @@ function authAny(req, res, next) {
 function requireAdmin(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
-  if (!payload.isAdmin && payload.role !== 'owner' && payload.role !== 'admin')
+  if (!payload.isAdmin && payload.role !== 'owner' && payload.role !== 'admin') {
     return res.status(403).json({ error: 'Admin only' });
+  }
   req.user = payload;
   next();
 }
@@ -107,7 +108,15 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Имя и телефон обязательны' });
     }
 
-    let user = await User.findOne({ tenantId, phone: sPhone });
+    let user = await User.findOne({
+      $expr: {
+        $and: [
+          { $eq: [{ $toString: '$tenantId' }, tenantId] },
+          { $eq: ['$phone', sPhone] }
+        ]
+      }
+    });
+
     if (user) {
       return res.status(409).json({
         error: 'Этот телефон уже зарегистрирован. Войдите в кабинет.',
@@ -124,7 +133,7 @@ router.post('/register', async (req, res) => {
     } catch { city = ''; }
 
     user = await User.create({
-      tenantId,
+      tenantId: req.tenantId,
       email: `${sPhone}@example.com`,
       passwordHash: 'chat',
       name: sName,
@@ -151,17 +160,25 @@ router.post('/register', async (req, res) => {
 ========================================================= */
 router.get('/my', authAny, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
+    const tStr = String(req.tenantId);
     const userId = req.user.id;
 
-    const user = await User.findOne({ _id: userId, tenantId });
+    const user = await User.findOne({
+      _id: userId,
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
+
     if (user) {
       user.isOnline = true;
       user.lastOnlineAt = new Date();
       await user.save();
     }
 
-    const messages = await Message.find({ user: userId, tenantId }).sort({ createdAt: 1 });
+    const messages = await Message.find({
+      user: userId,
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    }).sort({ createdAt: 1 });
+
     return res.json(Array.isArray(messages) ? messages : []);
   } catch (e) {
     console.error('chat.my error:', e);
@@ -170,7 +187,7 @@ router.get('/my', authAny, async (req, res) => {
 });
 
 /* =========================================================
-   ОТПРАВИТЬ СООБЩЕНИЕ ОТ КЛИЕНТА
+   ОТПРАВИТЬ СООБЩЕНИЕ ОТ КЛИЕНТА/АДМИНА
    POST /api/chat
    headers: Authorization: Bearer <siteToken | chatToken>
    form-data: text?, images[]?, audio?
@@ -181,18 +198,21 @@ router.post(
   upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
   async (req, res) => {
     try {
-      const tenantId = String(req.tenantId);
+      const tStr = String(req.tenantId);
       const userId = req.user.id;
 
-      const user = await User.findOne({ _id: userId, tenantId });
+      const user = await User.findOne({
+        _id: userId,
+        $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+      });
       if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
 
-      const imageUrls = req.files?.images?.map(f => `/uploads/${tenantId}/${f.filename}`) || [];
-      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tenantId}/${req.files.audio[0].filename}` : '';
+      const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
+      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
 
       const message = await Message.create({
-        tenantId,
+        tenantId: req.tenantId,
         user: user._id,
         text: req.body.text || '',
         imageUrls,
@@ -203,8 +223,8 @@ router.post(
       });
 
       // сброс "печатает"
-      if (typingStatus[tenantId]?.[String(user._id)]) {
-        typingStatus[tenantId][String(user._id)] = {
+      if (typingStatus[tStr]?.[String(user._id)]) {
+        typingStatus[tStr][String(user._id)] = {
           isTyping: false,
           name: user.name,
           fromAdmin: !!req.user.isAdmin
@@ -233,12 +253,12 @@ router.post(
 ========================================================= */
 router.post('/typing', authAny, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
+    const tStr = String(req.tenantId);
     const { userId, isTyping, name, fromAdmin } = req.body || {};
     if (!userId) return res.json({ ok: true });
 
-    if (!typingStatus[tenantId]) typingStatus[tenantId] = {};
-    typingStatus[tenantId][String(userId)] = {
+    if (!typingStatus[tStr]) typingStatus[tStr] = {};
+    typingStatus[tStr][String(userId)] = {
       isTyping: !!isTyping,
       name: fromAdmin ? 'Менеджер' : (name || 'Пользователь'),
       fromAdmin: !!fromAdmin,
@@ -258,8 +278,11 @@ router.get('/typing/statuses', authAny, (req, res) => {
 ========================================================= */
 router.post('/ping', authAny, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
-    const user = await User.findOne({ _id: req.user.id, tenantId });
+    const tStr = String(req.tenantId);
+    const user = await User.findOne({
+      _id: req.user.id,
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
     if (user) {
       user.isOnline = true;
       user.lastOnlineAt = new Date();
@@ -273,8 +296,11 @@ router.post('/ping', authAny, async (req, res) => {
 
 router.post('/offline', authAny, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
-    const user = await User.findOne({ _id: req.user.id, tenantId });
+    const tStr = String(req.tenantId);
+    const user = await User.findOne({
+      _id: req.user.id,
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
     if (user) {
       user.isOnline = false;
       await user.save();
@@ -288,13 +314,22 @@ router.post('/offline', authAny, async (req, res) => {
 /* =========================================================
    АДМИН: список чатов, сообщения, отправка
 ========================================================= */
-const TWO_MIN = 2 * 60 * 1000;
 async function updateMissedChats(tenantIdStr) {
+  const tStr = String(tenantIdStr);
   const now = Date.now();
-  const users = await User.find({ tenantId: tenantIdStr, status: { $in: ['new', 'waiting', 'active'] } });
+
+  const users = await User.find({
+    $expr: {
+      $and: [
+        { $eq: [{ $toString: '$tenantId' }, tStr] },
+        { $in: ['$status', ['new', 'waiting', 'active']] }
+      ]
+    }
+  });
+
   for (let user of users) {
     if (user.lastMessageAt && (!user.adminLastReadAt || user.lastMessageAt > user.adminLastReadAt)) {
-      if (now - new Date(user.lastMessageAt).getTime() > TWO_MIN) {
+      if (now - new Date(user.lastMessageAt).getTime() > 2 * 60 * 1000) {
         user.status = 'missed';
         await user.save();
       }
@@ -308,80 +343,98 @@ async function updateMissedChats(tenantIdStr) {
 
 router.get('/admin', requireAdmin, async (req, res) => {
   try {
-    // anti-cache (оставляем как было)
+    // anti-cache
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     res.set('Surrogate-Control', 'no-store');
 
-    // 👇 важное: приводим к ObjectId
-    const tId = new mongoose.Types.ObjectId(String(req.tenantId));
+    const tStr = String(req.tenantId);
 
-    await updateMissedChats(tId);
+    await updateMissedChats(tStr);
 
     const chats = await Message.aggregate([
-      { $match: { tenantId: tId } },                // <-- ObjectId, не строка
+      // tenantId может быть ObjectId или строка — сравниваем строками
+      { $match: { $expr: { $eq: [{ $toString: "$tenantId" }, tStr] } } },
       { $sort: { createdAt: -1 } },
-      { $group: { _id: '$user', lastMessage: { $first: '$$ROOT' } } },
+      { $group: { _id: "$user", lastMessage: { $first: "$$ROOT" } } },
+
       {
         $lookup: {
-          from: 'users',
-          let: { userId: '$_id' },
+          from: "users",
+          let: { uid: "$_id" },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ['$_id', '$$userId'] },
-                    { $eq: ['$tenantId', tId] }   // <-- тоже ObjectId
+                    { $eq: ["$_id", "$$uid"] },
+                    { $eq: [{ $toString: "$tenantId" }, tStr] }
                   ]
                 }
               }
             },
-            // опционально: берём только нужные поля
             { $project: {
-                name: 1, phone: 1, email: 1, status: 1,
-                isBlocked: 1, ip: 1, city: 1, isOnline: 1, lastOnlineAt: 1
-            }}
+              name: 1, phone: 1, email: 1, status: 1, isBlocked: 1,
+              ip: 1, city: 1, isOnline: 1, lastOnlineAt: 1
+            } }
           ],
-          as: 'userInfo'
+          as: "userInfo"
         }
       },
-      { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: false } },
+      { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: false } },
       {
         $project: {
-          userId: '$_id',
-          name: '$userInfo.name',
-          phone: '$userInfo.phone',
-          email: '$userInfo.email',
-          status: '$userInfo.status',
-          isBlocked: '$userInfo.isBlocked',
-          ip: '$userInfo.ip',
-          city: '$userInfo.city',
-          isOnline: '$userInfo.isOnline',
-          lastOnlineAt: '$userInfo.lastOnlineAt',
+          userId: "$_id",
+          name: "$userInfo.name",
+          phone: "$userInfo.phone",
+          email: "$userInfo.email",
+          status: "$userInfo.status",
+          isBlocked: "$userInfo.isBlocked",
+          ip: "$userInfo.ip",
+          city: "$userInfo.city",
+          isOnline: "$userInfo.isOnline",
+          lastOnlineAt: "$userInfo.lastOnlineAt",
           lastMessage: 1
         }
       },
-      { $sort: { 'lastMessage.createdAt': -1 } }
+      { $sort: { "lastMessage.createdAt": -1 } }
     ]);
 
     res.json(Array.isArray(chats) ? chats : []);
   } catch (e) {
     console.error('chat.admin list error:', e);
-    res.json([]); // не валим фронт
+    res.json([]);
   }
 });
 
 router.get('/admin/:userId', requireAdmin, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json([]);
 
-    const messages = await Message.find({ user: userId, tenantId }).sort({ createdAt: 1 });
-    const user = await User.findOne({ _id: userId, tenantId });
-    if (user) {
+    const tStr = String(req.tenantId);
+    const uId = new mongoose.Types.ObjectId(userId);
+
+    const messages = await Message.aggregate([
+      { $match: {
+          $expr: {
+            $and: [
+              { $eq: [{ $toString: "$tenantId" }, tStr] },
+              { $eq: ["$user", uId] }
+            ]
+          }
+        }
+      },
+      { $sort: { createdAt: 1 } }
+    ]);
+
+    const user = await User.findOne({
+      _id: uId,
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
+
+    if (user && messages.length) {
       const last = messages[messages.length - 1];
       if (last && !last.fromAdmin) {
         user.adminLastReadAt = new Date();
@@ -389,8 +442,10 @@ router.get('/admin/:userId', requireAdmin, async (req, res) => {
         await user.save();
       }
     }
+
     res.json(Array.isArray(messages) ? messages : []);
-  } catch {
+  } catch (e) {
+    console.error('chat.admin user messages error:', e);
     res.json([]);
   }
 });
@@ -401,19 +456,25 @@ router.post(
   upload.fields([{ name: 'images', maxCount: 3 }, { name: 'audio', maxCount: 1 }]),
   async (req, res) => {
     try {
-      const tenantId = String(req.tenantId);
+      const tStr = String(req.tenantId);
       const { userId } = req.params;
-      if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: 'Некорректный userId' });
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: 'Некорректный userId' });
+      }
 
-      const user = await User.findOne({ _id: userId, tenantId });
+      const uId = new mongoose.Types.ObjectId(userId);
+      const user = await User.findOne({
+        _id: uId,
+        $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+      });
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
-      const imageUrls = req.files?.images?.map(f => `/uploads/${tenantId}/${f.filename}`) || [];
-      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tenantId}/${req.files.audio[0].filename}` : '';
+      const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
+      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
 
       const message = await Message.create({
-        tenantId,
+        tenantId: req.tenantId,
         user: user._id,
         text: req.body.text || '',
         fromAdmin: true,
@@ -423,8 +484,8 @@ router.post(
         audioUrl
       });
 
-      if (typingStatus[tenantId]?.[String(user._id)]) {
-        typingStatus[tenantId][String(user._id)] = { isTyping: false, name: 'Менеджер', fromAdmin: true };
+      if (typingStatus[tStr]?.[String(user._id)]) {
+        typingStatus[tStr][String(user._id)] = { isTyping: false, name: 'Менеджер', fromAdmin: true };
       }
 
       user.status = 'waiting';
@@ -439,30 +500,21 @@ router.post(
   }
 );
 
-/* ------- удалить чат (все сообщения пользователя для этого тенанта) ------- */
-router.delete('/admin/:userId', requireAdmin, async (req, res) => {
-  try {
-    const tenantId = String(req.tenantId);
-    const { userId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
-    await Message.deleteMany({ tenantId, user: userId });
-    // Не удаляем пользователя. Можно сбросить статус, если надо:
-    // await User.updateOne({ _id: userId, tenantId }, { $set: { status: 'done' } });
-    res.json({ ok: true });
-  } catch (e) {
-    console.error('chat.admin delete error:', e);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
-
 /* ------- инфо по пользователю для правой панели ------- */
 router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
-    const user = await User.findOne({ _id: req.params.userId, tenantId }).lean();
+    const tStr = String(req.tenantId);
+    const { userId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(404).json({ error: 'not found' });
+
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    }).lean();
+
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json(user);
-  } catch {
+  } catch (e) {
     res.status(404).json({ error: 'not found' });
   }
 });
@@ -470,14 +522,21 @@ router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
 /* ------- блокировка/разблокировка ------- */
 router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
+    const tStr = String(req.tenantId);
+    const { userId } = req.params;
     const { block } = req.body || {};
-    const user = await User.findOne({ _id: req.params.userId, tenantId });
+    if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(404).json({ error: 'not found' });
+
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
     if (!user) return res.status(404).json({ error: 'not found' });
+
     user.isBlocked = !!block;
     await user.save();
     res.json({ ok: true });
-  } catch {
+  } catch (e) {
     res.status(500).json({ error: 'server error' });
   }
 });
@@ -485,21 +544,31 @@ router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
 /* ------- пометить прочитанным ------- */
 router.post('/read/:userId', requireAdmin, async (req, res) => {
   try {
-    const tenantId = String(req.tenantId);
+    const tStr = String(req.tenantId);
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
+
     await Message.updateMany(
-      { tenantId, user: userId, fromAdmin: false, read: false },
+      {
+        user: new mongoose.Types.ObjectId(userId),
+        fromAdmin: false,
+        read: false,
+        $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+      },
       { $set: { read: true } }
     );
-    const user = await User.findOne({ _id: userId, tenantId });
+
+    const user = await User.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+      $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
+    });
     if (user) {
       user.adminLastReadAt = new Date();
       user.status = 'waiting';
       await user.save();
     }
     res.json({ ok: true });
-  } catch {
+  } catch (e) {
     res.json({ ok: true });
   }
 });
