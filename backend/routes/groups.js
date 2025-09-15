@@ -83,7 +83,7 @@ router.get("/tree", async (req, res) => {
   }
 });
 
-/* ========================== get one ========================== */
+/* ========================== get one (короткий) ========================== */
 router.get("/:id", async (req, res) => {
   try {
     const group = await Group.findOne({
@@ -95,6 +95,66 @@ router.get("/:id", async (req, res) => {
     res.json(group);
   } catch (err) {
     console.error("get group error:", err);
+    res.status(500).json({ error: "Ошибка при загрузке группы" });
+  }
+});
+
+/* ========================== get one (полный) ========================== */
+/**
+ * Возвращает:
+ * {
+ *   group,           // сама группа
+ *   subgroups,       // дочерние группы
+ *   products,        // товары в группе
+ *   ancestors        // цепочка родителей для хлебных крошек (от корня к текущей)
+ * }
+ */
+router.get("/:id/full", async (req, res) => {
+  try {
+    const group = await Group.findOne({
+      _id: req.params.id,
+      tenantId: req.tenantId,
+    }).lean();
+
+    if (!group) return res.status(404).json({ error: "Группа не найдена" });
+
+    // дочерние группы
+    const subgroups = await Group.find({
+      tenantId: req.tenantId,
+      parentId: group._id,
+    })
+      .sort({ order: 1, name: 1 })
+      .lean();
+
+    // товары в группе (публичная витрина – берём только по текущему tenantId)
+    const products = await Product.find({
+      tenantId: req.tenantId,
+      group: group._id,
+    })
+      .sort({ name: 1 })
+      .lean()
+      .limit(500);
+
+    // хлебные крошки — цепочка родителей
+    let ancestors = [];
+    let parentId = group.parentId;
+    while (parentId) {
+      const parent = await Group.findOne({
+        _id: parentId,
+        tenantId: req.tenantId,
+      }).lean();
+      if (!parent) break;
+      ancestors.unshift({
+        _id: parent._id,
+        name: parent.name,
+        parentId: parent.parentId,
+      });
+      parentId = parent.parentId;
+    }
+
+    res.json({ group, subgroups, products, ancestors });
+  } catch (err) {
+    console.error("get group full error:", err);
     res.status(500).json({ error: "Ошибка при загрузке группы" });
   }
 });
