@@ -36,7 +36,8 @@ function normalizeClient(raw) {
 }
 function normalizeOrders(raw) {
   const arr =
-    firstDefined(raw?.orders, raw?.items, raw?.data, Array.isArray(raw) ? raw : []) || [];
+    firstDefined(raw?.orders, raw?.items, raw?.data, Array.isArray(raw) ? raw : []) ||
+    [];
   return arr.map((o) => ({
     id: o._id || o.id,
     createdAt: o.createdAt || o.date || null,
