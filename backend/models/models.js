@@ -45,14 +45,24 @@ const UserSchema = new Schema({
   phone:        { type: String, default: '' },
   isAdmin:      { type: Boolean, default: false },
   role:         { type: String, enum: ['owner','admin','manager','viewer','customer'], default: 'customer' },
-  status:       { type: String, enum: ['new','waiting','done','missed'], default: 'waiting' },
+
+  status:          { type: String, enum: ['new','waiting','done','missed'], default: 'waiting' },
   lastMessageAt:   { type: Date, default: Date.now },
   adminLastReadAt: { type: Date, default: null },
+
+  /* presence */
   lastOnlineAt:    { type: Date, default: Date.now },
-  ip:           { type: String, default: '' },
-  city:         { type: String, default: '' },
-  isOnline:     { type: Boolean, default: false },
-  isBlocked:    { type: Boolean, default: false },
+  isOnline:        { type: Boolean, default: false },
+  ip:              { type: String, default: '' },
+  city:            { type: String, default: '' },
+
+  isBlocked:       { type: Boolean, default: false },
+
+  /* 🔥 откуда пишет клиент */
+  lastPageUrl:     { type: String, default: '' },  // относительный или абсолютный URL
+  lastPageHref:    { type: String, default: '' },  // полный href (если хочешь хранить)
+  lastReferrer:    { type: String, default: '' },
+  lastPageTitle:   { type: String, default: '' },
 }, { timestamps: true });
 touchUpdatedAt(UserSchema);
 if (tenantScope) UserSchema.plugin(tenantScope);
@@ -87,11 +97,9 @@ const ProductSchema = new Schema({
 
   group:       { type: Schema.Types.ObjectId, ref: 'Group', required: true },
 
-  // Медиа
   images:      [String],
   videoUrl:    { type: String, default: "" },
 
-  // Цены
   priceMode:   { type: String, enum: ["retail","wholesale","both","service"], default: "retail" },
   retailPrice: { type: Number, default: 0 },
   retailCurrency: { type: String, default: "UAH" },
@@ -106,28 +114,20 @@ const ProductSchema = new Schema({
   unit:        { type: String, default: "шт" },
   stockState:  { type: String, enum: ["in_stock","preorder","out"], default: "in_stock" },
   stock:       { type: Number, default: 0 },
-  regions:     [String],   // массив выбранных регионов
+  regions:     [String],
 
-  // Видимость
   availability:{ type: String, enum: ['published','hidden','draft'], default: 'published' },
 
-  // Характеристики
-  attrs: [{
-    key:   { type: String },
-    value: { type: String }
-  }],
+  attrs: [ { key: String, value: String } ],
 
-  // Поисковые запросы
   queries:     [String],
   googleCategory: { type: String, default: "" },
 
-  // Габариты
   width:       { type: Number, default: 0 },
   height:      { type: Number, default: 0 },
   length:      { type: Number, default: 0 },
   weight:      { type: Number, default: 0 },
 
-  // SEO
   seoTitle:   { type: String, default: "" },
   seoDesc:    { type: String, default: "" },
   seoKeys:    { type: String, default: "" },
@@ -136,7 +136,6 @@ const ProductSchema = new Schema({
 
   deleted:     { type: Boolean, default: false },
 }, { timestamps: true });
-
 touchUpdatedAt(ProductSchema);
 if (tenantScope) ProductSchema.plugin(tenantScope);
 
@@ -215,16 +214,6 @@ const SiteSettingsSchema = new Schema({
 touchUpdatedAt(SiteSettingsSchema);
 if (tenantScope) SiteSettingsSchema.plugin(tenantScope);
 
-/* ====================== Blog ====================== */
-const BlogSchema = new Schema({
-  tenantId:   { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-  title:      { type: String, required: true },
-  slug:       { type: String, required: true },
-  published:  { type: Boolean, default: false },
-}, { timestamps: true });
-touchUpdatedAt(BlogSchema);
-if (tenantScope) BlogSchema.plugin(tenantScope);
-
 /* ====================== JWT ====================== */
 function generateToken(user) {
   return jwt.sign(
@@ -239,8 +228,7 @@ function generateToken(user) {
       role: user.role,
     },
     SECRET,
--   { expiresIn: '7d' }
-+   { expiresIn: '365d' }   // 🔥 живёт целый год
+    { expiresIn: '365d' } // живёт год
   );
 }
 

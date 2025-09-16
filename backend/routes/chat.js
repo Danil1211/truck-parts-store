@@ -1,3 +1,4 @@
+// backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -15,25 +16,7 @@ const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
 router.use(withTenant);
 
-/* =========================================================
-   ДОБАВЛЯЕМ ПОЛЯ ДЛЯ СТРАНИЦЫ, ЕСЛИ ИХ НЕТ В СХЕМЕ
-========================================================= */
-try {
-  if (!User.schema.path('lastPageUrl')) {
-    User.schema.add({
-      lastPageUrl:   { type: String, default: '' }, // относительный или абсолютный URL
-      lastPageHref:  { type: String, default: '' }, // полный href, если нужен
-      lastReferrer:  { type: String, default: '' },
-      lastPageTitle: { type: String, default: '' },
-    });
-  }
-} catch (e) {
-  console.warn('User.schema add page fields failed (ok to ignore if already present):', e?.message);
-}
-
-/* =========================================================
-   Multer storage (по тенанту)
-========================================================= */
+/* ======================== Multer ======================== */
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = path.join(__dirname, '../uploads', String(req.tenantId || 'common'));
@@ -54,9 +37,7 @@ const fileFilter = (req, file, cb) => {
 };
 const upload = multer({ storage, fileFilter, limits: { files: 4 } });
 
-/* =========================================================
-   Helpers
-========================================================= */
+/* ======================== helpers ======================== */
 function signChatToken(user) {
   return jwt.sign(
     {
@@ -71,7 +52,6 @@ function signChatToken(user) {
     { expiresIn: '30d' }
   );
 }
-
 function getPayload(req) {
   const auth = (req.headers.authorization || '').trim();
   if (!auth.toLowerCase().startsWith('bearer ')) return null;
@@ -84,14 +64,12 @@ function getPayload(req) {
     return null;
   }
 }
-
 function authAny(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
   req.user = payload;
   next();
 }
-
 function requireAdmin(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
@@ -102,71 +80,52 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-/* ---------- Вытаскиваем ссылку страницы из запроса ---------- */
-function pickPageUrl(req) {
+/* — где брать адрес страницы — */
+function pickPageMeta(req) {
   const b = req.body || {};
-  const q = req.query || {};
-  // при JSON body — из body; при multipart — Multer положит текстовые поля тоже в body
-  const fromBody = b.pageUrl || b.pageHref || b.referrer || b.title;
-  // можно прокидывать заголовком
-  const fromHeader = req.get('x-page-url') || req.get('referer');
-  return (fromBody || fromHeader) || null;
+  const meta = {
+    pageUrl:   b.pageUrl   || b.pageHref || req.get('x-page-url') || req.get('referer') || '',
+    pageHref:  b.pageHref  || '',
+    referrer:  b.referrer  || '',
+    title:     b.title     || '',
+  };
+  return meta;
 }
-
-/* ---------- Безопасное удаление файла по относительному пути ---------- */
 function safeUnlink(rel) {
   try {
     if (!rel) return;
     const cleaned = String(rel).replace(/^\/+/, '');
     const abs = path.resolve(__dirname, '..', cleaned);
-    if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) {
-      fs.unlinkSync(abs);
-    }
+    if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) fs.unlinkSync(abs);
   } catch {}
 }
 
-/* ======================= typing statuses ======================= */
+/* ======================= typing cache ======================= */
 let typingStatus = {}; // { tenantId: { userId: { isTyping, name, fromAdmin } } }
 
-/* =========================================================
-   КЛИЕНТСКАЯ РЕГИСТРАЦИЯ В ЧАТЕ (если не залогинен на сайте)
-========================================================= */
+/* ======================== register ======================== */
 router.post('/register', async (req, res) => {
   try {
     const tenantId = String(req.tenantId);
     const { name, phone } = req.body || {};
     const sName = String(name || '').trim();
     const sPhone = String(phone || '').trim();
-
-    if (!sName || !sPhone) {
-      return res.status(400).json({ error: 'Имя и телефон обязательны' });
-    }
+    if (!sName || !sPhone) return res.status(400).json({ error: 'Имя и телефон обязательны' });
 
     let user = await User.findOne({
-      $expr: {
-        $and: [
-          { $eq: [{ $toString: '$tenantId' }, tenantId] },
-          { $eq: ['$phone', sPhone] }
-        ]
-      }
+      $expr: { $and: [
+        { $eq: [{ $toString: '$tenantId' }, tenantId] },
+        { $eq: ['$phone', sPhone] }
+      ] }
     });
-
     if (user) {
-      return res.status(409).json({
-        error: 'Этот телефон уже зарегистрирован. Войдите в кабинет.',
-        code: 'ALREADY_REGISTERED'
-      });
+      return res.status(409).json({ error: 'Этот телефон уже зарегистрирован. Войдите в кабинет.', code: 'ALREADY_REGISTERED' });
     }
 
-    // гео по IP (best effort)
-    let ip = getRealIp(req);
-    let city = '';
-    try {
-      const geo = await axios.get(`http://ip-api.com/json/${ip}`);
-      city = geo.data?.city || '';
-    } catch { city = ''; }
+    let ip = getRealIp(req); let city = '';
+    try { const geo = await axios.get(`http://ip-api.com/json/${ip}`); city = geo.data?.city || ''; } catch {}
 
-    const pageUrl = pickPageUrl(req);
+    const meta = pickPageMeta(req);
 
     user = await User.create({
       tenantId: req.tenantId,
@@ -178,22 +137,21 @@ router.post('/register', async (req, res) => {
       isAdmin: false,
       isOnline: true,
       lastOnlineAt: new Date(),
-      ip,
-      city,
-      ...(pageUrl ? { lastPageUrl: pageUrl } : {})
+      ip, city,
+      lastPageUrl: meta.pageUrl || '',
+      lastPageHref: meta.pageHref || '',
+      lastReferrer: meta.referrer || '',
+      lastPageTitle: meta.title || '',
     });
 
-    const token = signChatToken(user);
-    return res.json({ token });
+    res.json({ token: signChatToken(user) });
   } catch (e) {
     console.error('chat.register error:', e);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-/* =========================================================
-   МОИ СООБЩЕНИЯ
-========================================================= */
+/* ======================== my messages ======================== */
 router.get('/my', authAny, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -203,7 +161,6 @@ router.get('/my', authAny, async (req, res) => {
       _id: userId,
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
-
     if (user) {
       user.isOnline = true;
       user.lastOnlineAt = new Date();
@@ -211,16 +168,14 @@ router.get('/my', authAny, async (req, res) => {
     }
 
     const messages = await Message.find({ user: userId }).sort({ createdAt: 1 });
-    return res.json(Array.isArray(messages) ? messages : []);
+    res.json(Array.isArray(messages) ? messages : []);
   } catch (e) {
     console.error('chat.my error:', e);
-    return res.json([]);
+    res.json([]);
   }
 });
 
-/* =========================================================
-   ОТПРАВИТЬ СООБЩЕНИЕ ОТ КЛИЕНТА/АДМИНА
-========================================================= */
+/* ======================== send message ======================== */
 router.post(
   '/',
   authAny,
@@ -237,10 +192,13 @@ router.post(
       if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
 
-      // сохраняем последнюю страницу, если прилетела
-      const pageUrl = pickPageUrl(req);
-      if (pageUrl) {
-        user.lastPageUrl = pageUrl;
+      /* страница */
+      const meta = pickPageMeta(req);
+      if (meta.pageUrl) {
+        user.lastPageUrl = meta.pageUrl;
+        user.lastPageHref = meta.pageHref || user.lastPageHref;
+        user.lastReferrer = meta.referrer || user.lastReferrer;
+        user.lastPageTitle = meta.title || user.lastPageTitle;
         await user.save();
       }
 
@@ -259,11 +217,7 @@ router.post(
       });
 
       if (typingStatus[tStr]?.[String(user._id)]) {
-        typingStatus[tStr][String(user._id)] = {
-          isTyping: false,
-          name: user.name,
-          fromAdmin: !!req.user.isAdmin
-        };
+        typingStatus[tStr][String(user._id)] = { isTyping: false, name: user.name, fromAdmin: !!req.user.isAdmin };
       }
 
       if (!req.user.isAdmin) {
@@ -274,17 +228,15 @@ router.post(
         await user.save();
       }
 
-      return res.status(201).json(message);
+      res.status(201).json(message);
     } catch (e) {
       console.error('chat.send error:', e);
-      return res.status(500).json({ error: 'Ошибка сервера' });
+      res.status(500).json({ error: 'Ошибка сервера' });
     }
   }
 );
 
-/* =========================================================
-   ТАЙПИНГ
-========================================================= */
+/* ======================== typing ======================== */
 router.post('/typing', authAny, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -297,19 +249,16 @@ router.post('/typing', authAny, async (req, res) => {
       name: fromAdmin ? 'Менеджер' : (name || 'Пользователь'),
       fromAdmin: !!fromAdmin,
     };
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.json({ ok: true });
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
   }
 });
-
 router.get('/typing/statuses', authAny, (req, res) => {
   res.json(typingStatus[String(req.tenantId)] || {});
 });
 
-/* =========================================================
-   PING / OFFLINE (онлайн-статус)
-========================================================= */
+/* ======================== presence (ping/offline) ======================== */
 router.post('/ping', authAny, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -318,10 +267,15 @@ router.post('/ping', authAny, async (req, res) => {
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
     if (user) {
+      const meta = pickPageMeta(req);
       user.isOnline = true;
       user.lastOnlineAt = new Date();
-      const pageUrl = pickPageUrl(req);
-      if (pageUrl) user.lastPageUrl = pageUrl;
+      if (meta.pageUrl) {
+        user.lastPageUrl = meta.pageUrl;
+        user.lastPageHref = meta.pageHref || user.lastPageHref;
+        user.lastReferrer = meta.referrer || user.lastReferrer;
+        user.lastPageTitle = meta.title || user.lastPageTitle;
+      }
       await user.save();
     }
     res.json({ ok: true });
@@ -338,9 +292,9 @@ router.post('/offline', authAny, async (req, res) => {
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
     if (user) {
+      const meta = pickPageMeta(req);
       user.isOnline = false;
-      const pageUrl = pickPageUrl(req);
-      if (pageUrl) user.lastPageUrl = pageUrl;
+      if (meta.pageUrl) user.lastPageUrl = meta.pageUrl;
       await user.save();
     }
     res.json({ ok: true });
@@ -349,20 +303,16 @@ router.post('/offline', authAny, async (req, res) => {
   }
 });
 
-/* =========================================================
-   АДМИН: список чатов, сообщения, отправка
-========================================================= */
+/* ======================== admin list / read / send ======================== */
 async function updateMissedChats(tenantIdStr) {
   const tStr = String(tenantIdStr);
   const now = Date.now();
 
   const users = await User.find({
-    $expr: {
-      $and: [
-        { $eq: [{ $toString: '$tenantId' }, tStr] },
-        { $in: ['$status', ['new', 'waiting', 'active']] }
-      ]
-    }
+    $expr: { $and: [
+      { $eq: [{ $toString: '$tenantId' }, tStr] },
+      { $in: ['$status', ['new','waiting','active']] }
+    ] }
   });
 
   for (let user of users) {
@@ -381,11 +331,8 @@ async function updateMissedChats(tenantIdStr) {
 
 router.get('/admin', requireAdmin, async (req, res) => {
   try {
-    // anti-cache
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.set('Surrogate-Control', 'no-store');
+    res.set('Pragma', 'no-cache'); res.set('Expires', '0'); res.set('Surrogate-Control', 'no-store');
 
     const tStr = String(req.tenantId);
     await updateMissedChats(tStr);
@@ -393,7 +340,6 @@ router.get('/admin', requireAdmin, async (req, res) => {
     const chats = await Message.aggregate([
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$user", lastMessage: { $first: "$$ROOT" } } },
-
       {
         $lookup: {
           from: "users",
@@ -401,12 +347,10 @@ router.get('/admin', requireAdmin, async (req, res) => {
           pipeline: [
             {
               $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$_id", "$$uid"] },
-                    { $eq: [{ $toString: "$tenantId" }, tStr] }
-                  ]
-                }
+                $expr: { $and: [
+                  { $eq: ["$_id", "$$uid"] },
+                  { $eq: [{ $toString: "$tenantId" }, tStr] }
+                ] }
               }
             },
             { $project: {
@@ -452,7 +396,6 @@ router.get('/admin/:userId', requireAdmin, async (req, res) => {
     const tStr = String(req.tenantId);
     const uId = new mongoose.Types.ObjectId(userId);
 
-    // Валидация тенанта пользователя
     const user = await User.findOne({
       _id: uId,
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
@@ -485,9 +428,7 @@ router.post(
     try {
       const tStr = String(req.tenantId);
       const { userId } = req.params;
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ error: 'Некорректный userId' });
-      }
+      if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: 'Некорректный userId' });
 
       const uId = new mongoose.Types.ObjectId(userId);
       const user = await User.findOne({
@@ -496,8 +437,6 @@ router.post(
       });
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
-
-      // при необходимости можно тоже обновлять
 
       const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
@@ -529,7 +468,7 @@ router.post(
   }
 );
 
-/* ------- инфо по пользователю для правой панели ------- */
+/* ------- user for right panel ------- */
 router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -543,12 +482,12 @@ router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json(user);
-  } catch (e) {
+  } catch {
     res.status(404).json({ error: 'not found' });
   }
 });
 
-/* ------- блокировка/разблокировка ------- */
+/* ------- block/unblock ------- */
 router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -565,19 +504,18 @@ router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
     user.isBlocked = !!block;
     await user.save();
     res.json({ ok: true });
-  } catch (e) {
+  } catch {
     res.status(500).json({ error: 'server error' });
   }
 });
 
-/* ------- пометить прочитанным (входящие) ------- */
+/* ------- mark read/unread ------- */
 router.post('/read/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
     const { userId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(userId)) return res.json({ ok: true });
 
-    // валидируем, что это наш пользователь
     const user = await User.findOne({
       _id: new mongoose.Types.ObjectId(userId),
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
@@ -594,12 +532,11 @@ router.post('/read/:userId', requireAdmin, async (req, res) => {
     await user.save();
 
     res.json({ ok: true });
-  } catch (e) {
+  } catch {
     res.json({ ok: true });
   }
 });
 
-/* ------- пометить НЕпрочитанным (входящие) ------- */
 router.post('/unread/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -621,12 +558,12 @@ router.post('/unread/:userId', requireAdmin, async (req, res) => {
     await user.save();
 
     res.json({ ok: true });
-  } catch (e) {
+  } catch {
     res.json({ ok: true });
   }
 });
 
-/* ------- удалить чат целиком ------- */
+/* ------- delete chat ------- */
 router.delete('/admin/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -639,7 +576,6 @@ router.delete('/admin/:userId', requireAdmin, async (req, res) => {
     });
     if (!user) return res.status(404).json({ error: 'not found' });
 
-    // удалить файлы (best-effort)
     const msgs = await Message.find({ user: user._id });
     for (const m of msgs) {
       const files = [];
@@ -647,7 +583,6 @@ router.delete('/admin/:userId', requireAdmin, async (req, res) => {
       if (m.audioUrl) files.push(m.audioUrl);
       for (const rel of files) safeUnlink(rel);
     }
-
     await Message.deleteMany({ user: user._id });
 
     user.status = 'waiting';
