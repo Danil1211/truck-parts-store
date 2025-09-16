@@ -7,13 +7,14 @@ import "../assets/admin-chat.css";
 const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
-/* ---------- НОРМАЛИЗАЦИЯ USER INFO (фикс "Страница: —") ---------- */
+/* ---------- НОРМАЛИЗАЦИЯ USER INFO (фикс «Страница: —») ---------- */
 const normalizeUserInfo = (raw) => {
   const d = raw?.data ?? raw ?? {};
-  const u = d.user ?? d.profile ?? d; // частые варианты обёрток
+  const u = d.user ?? d.profile ?? d;
 
   const lastPageUrl =
-    u.lastPageUrl || u.lastPage || u.lastUrl || u.pageUrl || u.path || u.url || null;
+    u.lastPageUrl || u.lastPage || u.lastUrl || u.pageUrl || u.currentUrl ||
+    u.path || u.href || u.url || u.referrer || u.referer || u.last_page || null;
 
   return {
     name: u.name || d.name || "",
@@ -22,7 +23,7 @@ const normalizeUserInfo = (raw) => {
     city: u.city || u.location?.city || "",
     isBlocked: Boolean(u.isBlocked ?? u.blocked),
     lastOnlineAt: u.lastOnlineAt || u.lastSeenAt || u.last_seen || null,
-    lastPageUrl, // относительный или абсолютный — при рендере прогоняем через withBase
+    lastPageUrl,
   };
 };
 
@@ -73,6 +74,7 @@ function TypingAnimation() {
   return <span className="typing-dots">{dots}</span>;
 }
 
+/* === Голосовое в месседже === */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -83,7 +85,8 @@ function VoiceMessage({ audioUrl, createdAt }) {
   };
   return (
     <div className="voice-bubble">
-      <button className={`icon-btn voice ${playing ? "pause" : "play"}`} onClick={toggle}>
+      {/* уникальный класс, чтобы не конфликтовать с чужим .voice */}
+      <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
         {playing ? "⏸" : "▶️"}
       </button>
       <div className="voice-bar"><div className="voice-bar-bg" /></div>
@@ -453,6 +456,12 @@ export default function AdminChatPage() {
   if (error) return <div className="admin-chat-error">{error}</div>;
   const chatList = Array.isArray(chats) ? chats : [];
 
+  // для ссылки на страницу
+  const pageHref = selectedUserInfo?.lastPageUrl ? withBase(selectedUserInfo.lastPageUrl) : null;
+  const pageText = selectedUserInfo?.lastPageUrl
+    ? (String(selectedUserInfo.lastPageUrl).replace(/^https?:\/\/[^/]+/i, "") || "/")
+    : null;
+
   return (
     <div className="admin-chat-page">
       <div className="admin-chat-root">
@@ -661,11 +670,13 @@ export default function AdminChatPage() {
             <div className="user-props">
               <div><b>IP:</b> <span>{selectedUserInfo.ip || "—"}</span></div>
               <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
-              <div>
+              <div className="user-link-row">
                 <b>Страница:</b>{" "}
-                {selectedUserInfo?.lastPageUrl
-                  ? (<a href={withBase(selectedUserInfo.lastPageUrl)} target="_blank" rel="noreferrer">Открыть</a>)
-                  : "—"}
+                {pageHref ? (
+                  <a className="user-link" href={pageHref} target="_blank" rel="noreferrer">
+                    {pageText}
+                  </a>
+                ) : ("—")}
               </div>
               <div>
                 <b>Статус:</b>{" "}
