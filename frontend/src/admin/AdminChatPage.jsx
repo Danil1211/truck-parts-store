@@ -140,7 +140,7 @@ function isUserOnline(info) {
 export default function AdminChatPage() {
   const { resetUnread, unread } = useAdminNotify();
 
-  // ---- точно измеряем высоту верхнего топбара и пробрасываем в CSS-переменную
+  // точный topbar
   useLayoutEffect(() => {
     const el = document.querySelector(".admin-topbar");
     const h = el ? Math.round(el.getBoundingClientRect().height) : 56;
@@ -152,6 +152,7 @@ export default function AdminChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showQuick, setShowQuick] = useState(false);
   const [files, setFiles] = useState([]);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -208,7 +209,7 @@ export default function AdminChatPage() {
   const loadMessages = async () => {
     if (!selected) return;
     try {
-      const data = await api(`/api/chat/admin/${selected.userId}?_=${Date.now()}`);
+      const { data } = await api.get(`/api/chat/admin/${selected.userId}`, { params: { _: Date.now() } });
       setMessages(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []);
     } catch (e) {
       console.error("loadMessages error:", e);
@@ -221,8 +222,8 @@ export default function AdminChatPage() {
     const load = async () => {
       await loadMessages();
       try {
-        const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
-        setSelectedUserInfo(info?.data || info);
+        const res = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
+        setSelectedUserInfo(res?.data || res);
       } catch {}
     };
     load();
@@ -236,18 +237,17 @@ export default function AdminChatPage() {
     setSelected(c);
     setFiles([]);
     setInput("");
+    setShowQuick(false);
     setIsAutoScroll(true);
     setAudioPreview(null);
     resetUnread(c.userId);
 
     try {
-      const info = await api(`/api/chat/admin/user/${c.userId}?_=${Date.now()}`);
+      const info = await api.get(`/api/chat/admin/user/${c.userId}`, { params: { _: Date.now() } });
       setSelectedUserInfo(info?.data || info);
     } catch {}
 
-    try {
-      await api(`/api/chat/read/${c.userId}`, { method: "POST" });
-    } catch {}
+    try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
     setTimeout(loadChats, 180);
   };
 
@@ -255,9 +255,7 @@ export default function AdminChatPage() {
     const uid = chat?.userId || selected?.userId;
     if (!uid) return;
     if (!window.confirm("Удалить чат безвозвратно?")) return;
-    try {
-      await api(`/api/chat/admin/${uid}`, { method: "DELETE" });
-    } catch {}
+    try { await api.delete(`/api/chat/admin/${uid}`); } catch {}
     if (selected?.userId === uid) {
       setSelected(null);
       setMessages([]);
@@ -286,17 +284,11 @@ export default function AdminChatPage() {
 
   const typingOn = async () => {
     if (!selected) return;
-    await api(`/api/chat/typing`, {
-      method: "POST",
-      body: { userId: selected.userId, isTyping: true, name: "Менеджер", fromAdmin: true },
-    });
+    try { await api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: true, name: "Менеджер", fromAdmin: true }); } catch {}
   };
   const typingOff = async () => {
     if (!selected) return;
-    await api(`/api/chat/typing`, {
-      method: "POST",
-      body: { userId: selected.userId, isTyping: false, name: "Менеджер", fromAdmin: true },
-    });
+    try { await api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: false, name: "Менеджер", fromAdmin: true }); } catch {}
   };
 
   const startOrStopRecording = () => {
@@ -323,10 +315,11 @@ export default function AdminChatPage() {
   const handleQuickReply = async (text) => {
     if (!selected) return;
     try {
-      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: { text } });
+      await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
       await loadMessages();
       await loadChats();
+      setShowQuick(false);
     } catch (e) {
       console.error("quick reply error:", e);
     }
@@ -340,7 +333,7 @@ export default function AdminChatPage() {
     setFiles([]);
     setAudioPreview(null);
     try {
-      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
+      await api.post(`/api/chat/admin/${selected.userId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
       await typingOff();
       await loadMessages();
       await loadChats();
@@ -353,7 +346,7 @@ export default function AdminChatPage() {
   const sendText = async () => {
     if (!input.trim() || !selected) return;
     try {
-      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: { text: input.trim() } });
+      await api.post(`/api/chat/admin/${selected.userId}`, { text: input.trim() });
       setInput("");
       await typingOff();
       await loadMessages();
@@ -372,7 +365,7 @@ export default function AdminChatPage() {
     setFiles([]);
     setInput("");
     try {
-      await api(`/api/chat/admin/${selected.userId}`, { method: "POST", body: form });
+      await api.post(`/api/chat/admin/${selected.userId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
       await typingOff();
       await loadMessages();
       await loadChats();
@@ -390,10 +383,12 @@ export default function AdminChatPage() {
   const handleInput = (e) => {
     setInput(e.target.value);
     if (!selected) return;
-    api(`/api/chat/typing`, {
-      method: "POST",
-      body: { userId: selected.userId, isTyping: !!e.target.value, name: "Менеджер", fromAdmin: true },
-    });
+    api.post(`/api/chat/typing`, {
+      userId: selected.userId,
+      isTyping: !!e.target.value,
+      name: "Менеджер",
+      fromAdmin: true,
+    }).catch(()=>{});
   };
 
   const removeFile = (idx) => setFiles((arr) => arr.filter((_, i) => i !== idx));
@@ -420,14 +415,21 @@ export default function AdminChatPage() {
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await api(`/api/chat/typing/statuses?_=${Date.now()}`);
-        if (res && typeof res === "object") setTypingMap(res);
+        const res = await api.get(`/api/chat/typing/statuses`, { params: { _: Date.now() } });
+        if (res && typeof res === "object") setTypingMap(res.data || res);
       } catch {}
     };
     poll();
     const iv = setInterval(poll, 1200);
     return () => clearInterval(iv);
   }, []);
+
+  // универсальная пометка "Непрочитано" (3 варианта бэка, по очереди)
+  const markUnread = async (uid) => {
+    try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
+    try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
+    try { await api.post(`/api/chat/read/${uid}`, { unread: true }); } catch {}
+  };
 
   if (error) return <div className="admin-chat-error">{error}</div>;
   const chatList = Array.isArray(chats) ? chats : [];
@@ -505,20 +507,24 @@ export default function AdminChatPage() {
                     className="btn-outline"
                     onClick={async () => {
                       if (!selected) return;
-                      await api(`/api/chat/read/${selected.userId}`, { method: "POST", body: { unread: true } });
+                      await markUnread(selected.userId);
                       await loadChats();
                     }}
                   >
                     Непрочитано
                   </button>
 
-                  <div className="quick">
-                    <button className="btn-outline">Быстрый ответ</button>
-                    <div className="quick-menu">
-                      {["Ожидайте, пожалуйста. Проверяю информацию ✅","Уже спешу на помощь! 🙌"].map((q, i) => (
-                        <button key={i} onClick={() => handleQuickReply(q)}>{q}</button>
-                      ))}
-                    </div>
+                  <div className={`quick ${showQuick ? "open" : ""}`}>
+                    <button className="btn-outline" onClick={() => setShowQuick((v) => !v)}>
+                      Быстрый ответ
+                    </button>
+                    {showQuick && (
+                      <div className="quick-menu" onMouseLeave={() => setShowQuick(false)}>
+                        {quickReplies.map((q, i) => (
+                          <button key={i} onClick={() => handleQuickReply(q)}>{q}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </header>
@@ -655,27 +661,28 @@ export default function AdminChatPage() {
               </div>
             </div>
 
-            <button
-              className={`block-btn ${selectedUserInfo.isBlocked ? "block-btn--green" : "block-btn--red"}`}
-              disabled={blocking}
-              onClick={async () => {
-                if (!selected) return;
-                setBlocking(true);
-                try {
-                  await api(`/api/chat/admin/user/${selected.userId}/block`, {
-                    method: "POST",
-                    body: { block: !selectedUserInfo.isBlocked },
-                  });
-                  const info = await api(`/api/chat/admin/user/${selected.userId}?_=${Date.now()}`);
-                  setSelectedUserInfo(info?.data || info);
-                  await loadChats();
-                } finally {
-                  setBlocking(false);
-                }
-              }}
-            >
-              {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
-            </button>
+            <div className="block-row">
+              <button
+                className={`block-btn ${selectedUserInfo.isBlocked ? "unblock" : "block"}`}
+                disabled={blocking}
+                onClick={async () => {
+                  if (!selected) return;
+                  setBlocking(true);
+                  try {
+                    await api.post(`/api/chat/admin/user/${selected.userId}/block`, {
+                      block: !selectedUserInfo.isBlocked,
+                    });
+                    const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
+                    setSelectedUserInfo(info?.data || info);
+                    await loadChats();
+                  } finally {
+                    setBlocking(false);
+                  }
+                }}
+              >
+                {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
+              </button>
+            </div>
           </aside>
         )}
       </div>
