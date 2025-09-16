@@ -1,27 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+// src/components/ChatWindow.jsx
+import React, { useEffect, useRef, useState } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import { useSite } from "../context/SiteContext";
 import '../assets/ChatWindow.css';
 
 const apiUrl = import.meta.env.VITE_API_URL || "";
 
-/* ====================== helpers (цвет) ====================== */
+/* ---------- colors ---------- */
 function lightenColor(hex, percent) {
-  let r = parseInt(hex.substr(1,2),16), g = parseInt(hex.substr(3,2),16), b = parseInt(hex.substr(5,2),16);
-  r = Math.round(r + (255 - r) * percent/100);
-  g = Math.round(g + (255 - g) * percent/100);
-  b = Math.round(b + (255 - b) * percent/100);
-  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  let r = parseInt(hex.substr(1, 2), 16),
+    g = parseInt(hex.substr(3, 2), 16),
+    b = parseInt(hex.substr(5, 2), 16);
+  r = Math.round(r + (255 - r) * percent / 100);
+  g = Math.round(g + (255 - g) * percent / 100);
+  b = Math.round(b + (255 - b) * percent / 100);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
-function hexToRgba(hex, alpha) {
-  let r = parseInt(hex.substr(1,2),16), g = parseInt(hex.substr(3,2),16), b = parseInt(hex.substr(5,2),16);
-  return `rgba(${r},${g},${b},${alpha})`;
+function hexToRgba(hex, a) {
+  let r = parseInt(hex.substr(1, 2), 16),
+    g = parseInt(hex.substr(3, 2), 16),
+    b = parseInt(hex.substr(5, 2), 16);
+  return `rgba(${r},${g},${b},${a})`;
 }
-function safeParseJwt(token) {
-  try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+function safeParseJwt(t) {
+  try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; }
 }
 
-/* ====================== helpers (страница) =================== */
+/* ---------- page meta ---------- */
 function getPageMeta() {
   const { href, pathname, search, hash } = window.location;
   const pagePath = `${pathname}${search}${hash}`;
@@ -29,27 +34,26 @@ function getPageMeta() {
     pageUrl: pagePath || "/",
     pageHref: href,
     referrer: document.referrer || null,
-    title: document.title || null,
+    title: document.title || null
   };
 }
-/** Патчим pushState/replaceState, чтобы ловить SPA-навигацию */
+/** Ловим SPA-навигацию */
 function patchHistory(onChange) {
-  const origPush = history.pushState;
-  const origReplace = history.replaceState;
+  const origPush = history.pushState, origReplace = history.replaceState;
   history.pushState = function (...args) {
     const ret = origPush.apply(this, args);
-    try { onChange(); } catch {}
+    try { onChange(); } catch { }
     return ret;
   };
   history.replaceState = function (...args) {
     const ret = origReplace.apply(this, args);
-    try { onChange(); } catch {}
+    try { onChange(); } catch { }
     return ret;
   };
   return () => { history.pushState = origPush; history.replaceState = origReplace; };
 }
 
-/* ===================== анимация "печатает" ================== */
+/* ---------- typing animation ---------- */
 function TypingAnimation() {
   const [dots, setDots] = useState("...");
   useEffect(() => {
@@ -61,7 +65,7 @@ function TypingAnimation() {
   return <span style={{ marginLeft: 3 }}>{dots}</span>;
 }
 
-/* ===================== голосовые ============================ */
+/* ---------- voice bubble (client) ---------- */
 const VoiceMessage = ({ url }) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -69,42 +73,41 @@ const VoiceMessage = ({ url }) => {
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const update = () => setCurrent(audio.currentTime);
-    const loaded = () => setDuration(audio.duration || 0);
+    const a = audioRef.current;
+    if (!a) return;
+    const update = () => setCurrent(a.currentTime);
+    const loaded = () => setDuration(a.duration || 0);
     const end = () => setPlaying(false);
-    audio.addEventListener('timeupdate', update);
-    audio.addEventListener('loadedmetadata', loaded);
-    audio.addEventListener('ended', end);
+    a.addEventListener('timeupdate', update);
+    a.addEventListener('loadedmetadata', loaded);
+    a.addEventListener('ended', end);
     return () => {
-      audio.removeEventListener('timeupdate', update);
-      audio.removeEventListener('loadedmetadata', loaded);
-      audio.removeEventListener('ended', end);
+      a.removeEventListener('timeupdate', update);
+      a.removeEventListener('loadedmetadata', loaded);
+      a.removeEventListener('ended', end);
     };
   }, []);
 
   const handlePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) { audio.pause(); setPlaying(false); }
-    else { audio.play(); setPlaying(true); }
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play(); setPlaying(true); }
   };
 
   const handleSeek = (e) => {
     const bar = e.target.closest('.voice-bar2');
     if (!bar || !duration) return;
-    const rect = bar.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    const audio = audioRef.current;
-    if (audio) audio.currentTime = Math.min(Math.max(percent, 0), 1) * duration;
+    const r = bar.getBoundingClientRect();
+    const p = (e.clientX - r.left) / r.width;
+    const a = audioRef.current;
+    if (a) a.currentTime = Math.min(Math.max(p, 0), 1) * duration;
   };
 
-  const fmt = (sec) => {
-    if (!isFinite(sec)) return "0:00";
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  const fmt = (s) => {
+    if (!isFinite(s)) return "0:00";
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
   };
 
   return (
@@ -112,24 +115,23 @@ const VoiceMessage = ({ url }) => {
       <audio ref={audioRef} src={url} preload="auto" style={{ display: 'none' }} />
       <button className={`voice-modern-btn ${playing ? 'pause' : 'play'}`} onClick={handlePlayPause}>
         {playing
-          ? (<svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="4" height="12" rx="2"/><rect x="12" y="4" width="4" height="12" rx="2"/></svg>)
-          : (<svg width="20" height="20" viewBox="0 0 20 20"><polygon points="5,3 17,10 5,17" /></svg>)
-        }
+          ? (<svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="4" height="12" rx="2" /><rect x="12" y="4" width="4" height="12" rx="2" /></svg>)
+          : (<svg width="20" height="20" viewBox="0 0 20 20"><polygon points="5,3 17,10 5,17" /></svg>)}
       </button>
       <div className="voice-bar2" onClick={handleSeek}>
         <div className="voice-bar-bg" />
         <div className="voice-bar2-progress" style={{ width: duration ? `${(current / duration) * 100}%` : 0 }} />
       </div>
       <span className="voice-modern-time">
-        {fmt(current)}<span style={{ opacity: 0.7, fontWeight: 400 }}> / {fmt(duration)}</span>
+        {fmt(current)}<span style={{ opacity: .7, fontWeight: 400 }}> / {fmt(duration)}</span>
       </span>
     </div>
   );
 };
 
-/* ======================== основной компонент ======================= */
-const ChatWindow = ({ onClose }) => {
-  // форма регистрации (для НЕ залогиненных на сайте)
+/* ---------- component ---------- */
+export default function ChatWindow({ onClose }) {
+  // регистрация (для гостей)
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -159,14 +161,14 @@ const ChatWindow = ({ onClose }) => {
   const shouldScrollToBottom = useRef(true);
   const recordTimer = useRef(null);
 
-  // цветовая тема
+  // тема
   const { chatSettings } = useSite();
   const chatColor = chatSettings?.color || "#2291ff";
   const chatGradient = `linear-gradient(135deg, ${chatColor}, ${lightenColor(chatColor, 30)})`;
   const shadowColor = hexToRgba(chatColor, 0.5);
   const shadowColor2 = hexToRgba(chatColor, 0);
 
-  // userId/userName из JWT (любой из двух токенов)
+  // user id/name из JWT
   let userId = null, userName = null;
   if (effectiveToken) {
     const payload = safeParseJwt(effectiveToken);
@@ -174,7 +176,7 @@ const ChatWindow = ({ onClose }) => {
     userName = payload?.name || null;
   }
 
-  /* ======================== запись голоса ======================== */
+  /* --- запись голоса --- */
   const startRecording = async () => {
     if (!navigator.mediaDevices) {
       setError('Браузер не поддерживает запись');
@@ -186,12 +188,11 @@ const ChatWindow = ({ onClose }) => {
       const recorder = new window.MediaRecorder(stream);
       setAudioChunks([]);
       mediaRecorder.current = recorder;
-      recorder.ondataavailable = (e) => setAudioChunks((prev) => [...prev, e.data]);
-      recorder.onstop = () => {};
+      recorder.ondataavailable = (e) => setAudioChunks((p) => [...p, e.data]);
       recorder.start();
       setIsRecording(true);
       setRecordTime(0);
-      recordTimer.current = setInterval(() => setRecordTime((prev) => prev + 1), 1000);
+      recordTimer.current = setInterval(() => setRecordTime((p) => p + 1), 1000);
     } catch {
       setError('Не удалось начать запись');
       setTimeout(() => setError(''), 2000);
@@ -210,25 +211,21 @@ const ChatWindow = ({ onClose }) => {
     shouldScrollToBottom.current = (scrollTop + clientHeight >= scrollHeight - 10);
   };
 
-  /* ======================== presence/страница ==================== */
+  /* --- presence + SPA навигация --- */
   const sendPresence = async () => {
     if (!effectiveToken) return;
     const meta = getPageMeta();
     try {
       await fetch(`${apiUrl}/api/chat/ping`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${effectiveToken}`
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveToken}` },
         body: JSON.stringify(meta),
       });
-    } catch {}
+    } catch { }
   };
-
   useEffect(() => {
     if (!effectiveToken) return;
-    sendPresence(); // при монтировании
+    sendPresence();
     const onNav = () => sendPresence();
     const unpatch = patchHistory(onNav);
     window.addEventListener('popstate', onNav);
@@ -242,37 +239,30 @@ const ChatWindow = ({ onClose }) => {
       document.removeEventListener('visibilitychange', vis);
     };
   }, [effectiveToken]);
-
-  /* ======================== онлайн-пинг ========================= */
   useEffect(() => {
     if (!effectiveToken) return;
-    const ping = () => sendPresence();
-    ping();
-    const interval = setInterval(ping, 25000);
-    return () => clearInterval(interval);
+    const iv = setInterval(sendPresence, 25000);
+    return () => clearInterval(iv);
   }, [effectiveToken]);
-
   useEffect(() => {
     if (!effectiveToken) return;
-    const handleBeforeUnload = () => {
+    const before = () => {
       const meta = getPageMeta();
       fetch(`${apiUrl}/api/chat/offline`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveToken}` },
-        body: JSON.stringify(meta),
-      }).catch(() => {});
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${effectiveToken}` },
+        body: JSON.stringify(meta)
+      }).catch(() => { });
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', before);
+    return () => window.removeEventListener('beforeunload', before);
   }, [effectiveToken]);
 
-  /* ======================== загрузка сообщений =================== */
+  /* --- загрузка сообщений --- */
   const fetchMessages = async () => {
     if (!effectiveToken) return;
     try {
-      const res = await fetch(`${apiUrl}/api/chat/my`, {
-        headers: { Authorization: `Bearer ${effectiveToken}` },
-      });
+      const res = await fetch(`${apiUrl}/api/chat/my`, { headers: { Authorization: `Bearer ${effectiveToken}` } });
       if (res.status === 401) {
         if (effectiveToken === chatToken) {
           localStorage.removeItem('chatToken');
@@ -283,51 +273,42 @@ const ChatWindow = ({ onClose }) => {
       }
       const data = await res.json();
       setMessages(Array.isArray(data) ? data : []);
-    } catch {/* noop */}
+    } catch { }
   };
   useEffect(() => { fetchMessages(); }, [effectiveToken]);
   useEffect(() => {
     if (!effectiveToken) return;
-    const interval = setInterval(fetchMessages, 2000);
-    return () => clearInterval(interval);
+    const iv = setInterval(fetchMessages, 2000);
+    return () => clearInterval(iv);
   }, [effectiveToken]);
-
   useEffect(() => {
     if (shouldScrollToBottom.current && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
-
   useEffect(() => {
     if (messagesEndRef.current) {
       setTimeout(() => messagesEndRef.current.scrollIntoView({ behavior: 'smooth' }), 100);
     }
   }, []);
 
-  /* ======================== статусы "печатает" =================== */
+  /* --- статусы "печатает" --- */
   useEffect(() => {
     if (!effectiveToken || !userId) return;
-    let interval;
-    const fetchTyping = async () => {
+    const tick = async () => {
       try {
-        const res = await fetch(`${apiUrl}/api/chat/typing/statuses`, {
-          headers: { Authorization: `Bearer ${effectiveToken}` }
-        });
+        const res = await fetch(`${apiUrl}/api/chat/typing/statuses`, { headers: { Authorization: `Bearer ${effectiveToken}` } });
         if (res.status === 401) return;
         const map = await res.json();
-        if (map && map[userId] && map[userId].fromAdmin && map[userId].isTyping) {
-          setAdminTyping(true);
-        } else {
-          setAdminTyping(false);
-        }
-      } catch {/* noop */}
+        setAdminTyping(Boolean(map && map[userId] && map[userId].fromAdmin && map[userId].isTyping));
+      } catch { }
     };
-    fetchTyping();
-    interval = setInterval(fetchTyping, 1200);
-    return () => clearInterval(interval);
+    tick();
+    const iv = setInterval(tick, 1200);
+    return () => clearInterval(iv);
   }, [effectiveToken, userId]);
 
-  /* ======================== регистрация в чате =================== */
+  /* --- регистрация (гость) --- */
   const handleRegister = async () => {
     if (!name.trim() || !phone.trim()) {
       setError('Введите имя и телефон!');
@@ -350,58 +331,44 @@ const ChatWindow = ({ onClose }) => {
       localStorage.setItem('chatToken', data.token);
       setChatToken(data.token);
       setInfo('');
-    } catch (err) {
+    } catch {
       setError('Ошибка регистрации');
       setTimeout(() => setError(''), 2000);
     }
   };
 
-  /* ======================== input/typing ========================= */
+  /* --- ввод/typing --- */
   function handleInput(e) {
     setMessage(e.target.value);
     if (!effectiveToken || !userId || !userName) return;
     const meta = getPageMeta();
     fetch(`${apiUrl}/api/chat/typing`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${effectiveToken}`,
-      },
-      body: JSON.stringify({
-        userId,
-        isTyping: !!e.target.value,
-        name: userName,
-        fromAdmin: false,
-        ...meta,
-      }),
-    }).catch(() => {});
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${effectiveToken}` },
+      body: JSON.stringify({ userId, isTyping: !!e.target.value, name: userName, fromAdmin: false, ...meta })
+    }).catch(() => { });
   }
 
-  /* ======================== отправка сообщения =================== */
+  /* --- отправка --- */
   const handleSend = async () => {
     if (!effectiveToken) return;
     if (!message.trim() && images.length === 0 && audioChunks.length === 0) return;
 
-    const formData = new FormData();
-    if (message.trim()) formData.append('text', message.trim());
-    images.forEach((img) => formData.append('images', img));
+    const form = new FormData();
+    if (message.trim()) form.append('text', message.trim());
+    images.forEach((img) => form.append('images', img));
     if (audioChunks.length > 0) {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      formData.append('audio', audioBlob, 'voice.webm');
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      form.append('audio', blob, 'voice.webm');
     }
-    // >>> добавляем страницу
     const meta = getPageMeta();
-    formData.append('pageUrl', meta.pageUrl);
-    formData.append('pageHref', meta.pageHref);
-    if (meta.referrer) formData.append('referrer', meta.referrer);
-    if (meta.title) formData.append('title', meta.title);
+    form.append('pageUrl', meta.pageUrl);
+    form.append('pageHref', meta.pageHref);
+    if (meta.referrer) form.append('referrer', meta.referrer);
+    if (meta.title) form.append('title', meta.title);
 
     try {
-      const res = await fetch(`${apiUrl}/api/chat`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${effectiveToken}` },
-        body: formData,
-      });
+      const res = await fetch(`${apiUrl}/api/chat`, { method: 'POST', headers: { Authorization: `Bearer ${effectiveToken}` }, body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Ошибка отправки сообщения');
 
@@ -410,23 +377,19 @@ const ChatWindow = ({ onClose }) => {
       setAudioChunks([]);
       setShowEmoji(false);
       await fetchMessages();
-      sendPresence(); // обновим lastPageUrl сразу после отправки
+      sendPresence();
     } catch {
       setError('Ошибка отправки сообщения');
       setTimeout(() => setError(''), 2000);
     }
 
-    // сбросить тайпинг
     if (effectiveToken && userId && userName) {
       const meta2 = getPageMeta();
       fetch(`${apiUrl}/api/chat/typing`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${effectiveToken}`,
-        },
-        body: JSON.stringify({ userId, isTyping: false, name: userName, fromAdmin: false, ...meta2 }),
-      }).catch(() => {});
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${effectiveToken}` },
+        body: JSON.stringify({ userId, isTyping: false, name: userName, fromAdmin: false, ...meta2 })
+      }).catch(() => { });
     }
   };
 
@@ -440,12 +403,11 @@ const ChatWindow = ({ onClose }) => {
     setImages([...images, ...files]);
   };
 
-  const handleEmojiClick = (emojiData) => {
-    setMessage((prev) => prev + emojiData.emoji);
+  const handleEmojiClick = (emoji) => {
+    setMessage((p) => p + emoji.emoji);
     setShowEmoji(false);
   };
 
-  /* ======================== render =============================== */
   const payload = effectiveToken ? safeParseJwt(effectiveToken) : null;
   const greetingName = payload?.name || name || 'друг';
 
@@ -456,7 +418,7 @@ const ChatWindow = ({ onClose }) => {
         "--chat-main-color": chatColor,
         "--chat-main-gradient": chatGradient,
         "--chat-main-shadow": shadowColor,
-        "--chat-main-shadow2": shadowColor2,
+        "--chat-main-shadow2": shadowColor2
       }}
     >
       <div className="chat-window">
@@ -470,37 +432,11 @@ const ChatWindow = ({ onClose }) => {
 
         {!effectiveToken ? (
           <div style={{ padding: 16 }}>
-            <p>
-              {chatSettings?.greeting?.trim()
-                ? chatSettings.greeting
-                : "Добро пожаловать в чат."}
-            </p>
-
-            <input
-              type="text"
-              placeholder="Ваше имя"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              type="tel"
-              placeholder="Телефон"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-            <button
-              className="chat-start-button"
-              style={{ background: chatColor }}
-              onClick={handleRegister}
-            >
-              Начать
-            </button>
-
-            {info && (
-              <div className="chat-info" style={{ marginTop: 10 }}>
-                {info} <a href="/login" style={{ color: chatColor, fontWeight: 600 }}>Войти</a>
-              </div>
-            )}
+            <p>{chatSettings?.greeting?.trim() ? chatSettings.greeting : "Добро пожаловать в чат."}</p>
+            <input type="text" placeholder="Ваше имя" value={name} onChange={(e) => setName(e.target.value)} />
+            <input type="tel" placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <button className="chat-start-button" style={{ background: chatColor }} onClick={handleRegister}>Начать</button>
+            {info && <div className="chat-info" style={{ marginTop: 10 }}>{info} <a href="/login" style={{ color: chatColor, fontWeight: 600 }}>Войти</a></div>}
             {error && <div className="chat-error">{error}</div>}
           </div>
         ) : (
@@ -509,9 +445,7 @@ const ChatWindow = ({ onClose }) => {
               {/* авто-привет */}
               <div className="chat-message admin">
                 <div className="chat-bubble">
-                  <div style={{ fontSize: 13, marginBottom: 2, color: '#888', fontWeight: 500 }}>
-                    Admin
-                  </div>
+                  <div style={{ fontSize: 13, marginBottom: 2, color: '#888', fontWeight: 500 }}>Admin</div>
                   <div>{`Здравствуйте, ${greetingName}! Чем можем помочь?`}</div>
                 </div>
                 <div className="chat-time">
@@ -523,10 +457,7 @@ const ChatWindow = ({ onClose }) => {
                 <p className="no-messages">Нет сообщений</p>
               ) : (
                 messages.map((msg) => (
-                  <div
-                    key={msg._id}
-                    className={`chat-message ${msg.fromAdmin ? 'admin' : 'you'}`}
-                  >
+                  <div key={msg._id} className={`chat-message ${msg.fromAdmin ? 'admin' : 'you'}`}>
                     <div className="chat-bubble">
                       <div style={{ fontSize: 13, marginBottom: 2, color: '#888', fontWeight: 500 }}>
                         {msg.fromAdmin ? 'Данило' : 'Вы'}
@@ -540,9 +471,7 @@ const ChatWindow = ({ onClose }) => {
                       {msg.audioUrl && <VoiceMessage url={`${apiUrl}${msg.audioUrl}`} />}
                     </div>
                     <div className="chat-time">
-                      {msg.createdAt &&
-                        new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      }
+                      {msg.createdAt && new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 ))
@@ -560,11 +489,10 @@ const ChatWindow = ({ onClose }) => {
                     fontWeight: 500,
                     fontSize: 15,
                     boxShadow: '0 1px 6px #189eff12',
-                    maxWidth: 220,
+                    maxWidth: 220
                   }}
                 >
-                  Менеджер печатает
-                  <TypingAnimation />
+                  Менеджер печатает <TypingAnimation />
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -578,7 +506,7 @@ const ChatWindow = ({ onClose }) => {
                   placeholder="Напишите свое сообщение..."
                   value={message}
                   onChange={handleInput}
-                  onKeyDown={e => e.key === 'Enter' && handleSend()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 />
                 <button className="chat-send-button" onClick={handleSend}>➤</button>
               </div>
@@ -597,6 +525,7 @@ const ChatWindow = ({ onClose }) => {
 
               <div className="chat-input-icons">
                 <span className="chat-icon" title="Эмодзи" onClick={() => setShowEmoji(!showEmoji)}>😊</span>
+
                 <label className="chat-icon" title="Прикрепить файл">
                   📎
                   <input
@@ -607,11 +536,14 @@ const ChatWindow = ({ onClose }) => {
                     className="chat-file"
                   />
                 </label>
+
                 <span
                   className={`chat-icon ${isRecording ? 'recording' : ''}`}
                   title={isRecording ? 'Остановить запись' : 'Начать запись'}
                   onClick={isRecording ? stopRecording : startRecording}
-                >🎤</span>
+                >
+                  🎤 {isRecording ? `${recordTime}s` : ''}
+                </span>
               </div>
 
               {showEmoji && (
@@ -621,9 +553,9 @@ const ChatWindow = ({ onClose }) => {
                     onEmojiClick={handleEmojiClick}
                     height={300}
                     width={280}
-                    searchDisabled={true}
+                    searchDisabled
                     previewConfig={{ showPreview: false }}
-                    skinTonesDisabled={true}
+                    skinTonesDisabled
                   />
                 </div>
               )}
@@ -633,6 +565,4 @@ const ChatWindow = ({ onClose }) => {
       </div>
     </div>
   );
-};
-
-export default ChatWindow;
+}

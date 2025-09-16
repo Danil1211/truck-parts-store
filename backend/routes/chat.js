@@ -16,7 +16,7 @@ const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
 router.use(withTenant);
 
-/* ======================== Multer ======================== */
+/* =============== Multer (пер-арендаторно) =============== */
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = path.join(__dirname, '../uploads', String(req.tenantId || 'common'));
@@ -37,7 +37,7 @@ const fileFilter = (req, file, cb) => {
 };
 const upload = multer({ storage, fileFilter, limits: { files: 4 } });
 
-/* ======================== helpers ======================== */
+/* =============== helpers auth =============== */
 function signChatToken(user) {
   return jwt.sign(
     {
@@ -52,6 +52,7 @@ function signChatToken(user) {
     { expiresIn: '30d' }
   );
 }
+
 function getPayload(req) {
   const auth = (req.headers.authorization || '').trim();
   if (!auth.toLowerCase().startsWith('bearer ')) return null;
@@ -60,16 +61,16 @@ function getPayload(req) {
     const payload = jwt.verify(token, SECRET);
     if (String(payload.tenantId) !== String(req.tenantId)) return null;
     return payload;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
+
 function authAny(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
   req.user = payload;
   next();
 }
+
 function requireAdmin(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
@@ -80,52 +81,72 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-/* — где брать адрес страницы — */
-function pickPageMeta(req) {
+/* =============== helpers page meta & files =============== */
+function pickPageFields(req) {
   const b = req.body || {};
-  const meta = {
-    pageUrl:   b.pageUrl   || b.pageHref || req.get('x-page-url') || req.get('referer') || '',
-    pageHref:  b.pageHref  || '',
-    referrer:  b.referrer  || '',
-    title:     b.title     || '',
-  };
-  return meta;
+  const headersHref = req.get('x-page-href') || req.get('referer') || null;
+  const pageUrl  = b.pageUrl  || null;
+  const pageHref = b.pageHref || headersHref || null;
+  const referrer = b.referrer || null;
+  const title    = b.title    || null;
+  return { pageUrl, pageHref, referrer, title };
+}
+async function updateUserPageFields(user, req) {
+  const { pageUrl, pageHref, referrer, title } = pickPageFields(req);
+  let changed = false;
+  if (pageUrl  && user.lastPageUrl !== pageUrl)     { user.lastPageUrl = pageUrl; changed = true; }
+  if (pageHref && user.lastPageHref !== pageHref)   { user.lastPageHref = pageHref; changed = true; }
+  if (referrer && user.lastReferrer !== referrer)   { user.lastReferrer = referrer; changed = true; }
+  if (title    && user.lastPageTitle !== title)     { user.lastPageTitle = title; changed = true; }
+  if (changed) await user.save();
 }
 function safeUnlink(rel) {
   try {
     if (!rel) return;
     const cleaned = String(rel).replace(/^\/+/, '');
     const abs = path.resolve(__dirname, '..', cleaned);
-    if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) fs.unlinkSync(abs);
+    if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) {
+      fs.unlinkSync(abs);
+    }
   } catch {}
 }
 
-/* ======================= typing cache ======================= */
-let typingStatus = {}; // { tenantId: { userId: { isTyping, name, fromAdmin } } }
+/* typing map per tenant */
+let typingStatus = {}; // { [tenantId]: { [userId]: { isTyping, name, fromAdmin } } }
 
-/* ======================== register ======================== */
+/* =============== CLIENT: register =============== */
 router.post('/register', async (req, res) => {
   try {
     const tenantId = String(req.tenantId);
     const { name, phone } = req.body || {};
     const sName = String(name || '').trim();
     const sPhone = String(phone || '').trim();
-    if (!sName || !sPhone) return res.status(400).json({ error: 'Имя и телефон обязательны' });
+    if (!sName || !sPhone) {
+      return res.status(400).json({ error: 'Имя и телефон обязательны' });
+    }
 
     let user = await User.findOne({
       $expr: { $and: [
         { $eq: [{ $toString: '$tenantId' }, tenantId] },
         { $eq: ['$phone', sPhone] }
-      ] }
+      ]}
     });
     if (user) {
-      return res.status(409).json({ error: 'Этот телефон уже зарегистрирован. Войдите в кабинет.', code: 'ALREADY_REGISTERED' });
+      return res.status(409).json({
+        error: 'Этот телефон уже зарегистрирован. Войдите в кабинет.',
+        code: 'ALREADY_REGISTERED'
+      });
     }
 
-    let ip = getRealIp(req); let city = '';
-    try { const geo = await axios.get(`http://ip-api.com/json/${ip}`); city = geo.data?.city || ''; } catch {}
+    // Geo by IP
+    let ip = getRealIp(req);
+    let city = '';
+    try {
+      const geo = await axios.get(`http://ip-api.com/json/${ip}`);
+      city = geo.data?.city || '';
+    } catch { city = ''; }
 
-    const meta = pickPageMeta(req);
+    const { pageUrl, pageHref, referrer, title } = pickPageFields(req);
 
     user = await User.create({
       tenantId: req.tenantId,
@@ -138,25 +159,25 @@ router.post('/register', async (req, res) => {
       isOnline: true,
       lastOnlineAt: new Date(),
       ip, city,
-      lastPageUrl: meta.pageUrl || '',
-      lastPageHref: meta.pageHref || '',
-      lastReferrer: meta.referrer || '',
-      lastPageTitle: meta.title || '',
+      ...(pageUrl  ? { lastPageUrl: pageUrl } : {}),
+      ...(pageHref ? { lastPageHref: pageHref } : {}),
+      ...(referrer ? { lastReferrer: referrer } : {}),
+      ...(title    ? { lastPageTitle: title } : {}),
     });
 
-    res.json({ token: signChatToken(user) });
+    const token = signChatToken(user);
+    return res.json({ token });
   } catch (e) {
     console.error('chat.register error:', e);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-/* ======================== my messages ======================== */
+/* =============== CLIENT: my messages =============== */
 router.get('/my', authAny, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
     const userId = req.user.id;
-
     const user = await User.findOne({
       _id: userId,
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
@@ -166,16 +187,15 @@ router.get('/my', authAny, async (req, res) => {
       user.lastOnlineAt = new Date();
       await user.save();
     }
-
     const messages = await Message.find({ user: userId }).sort({ createdAt: 1 });
-    res.json(Array.isArray(messages) ? messages : []);
+    return res.json(Array.isArray(messages) ? messages : []);
   } catch (e) {
     console.error('chat.my error:', e);
-    res.json([]);
+    return res.json([]);
   }
 });
 
-/* ======================== send message ======================== */
+/* =============== CLIENT/ADMIN: send message =============== */
 router.post(
   '/',
   authAny,
@@ -192,15 +212,7 @@ router.post(
       if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
 
-      /* страница */
-      const meta = pickPageMeta(req);
-      if (meta.pageUrl) {
-        user.lastPageUrl = meta.pageUrl;
-        user.lastPageHref = meta.pageHref || user.lastPageHref;
-        user.lastReferrer = meta.referrer || user.lastReferrer;
-        user.lastPageTitle = meta.title || user.lastPageTitle;
-        await user.save();
-      }
+      await updateUserPageFields(user, req);
 
       const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
@@ -217,7 +229,11 @@ router.post(
       });
 
       if (typingStatus[tStr]?.[String(user._id)]) {
-        typingStatus[tStr][String(user._id)] = { isTyping: false, name: user.name, fromAdmin: !!req.user.isAdmin };
+        typingStatus[tStr][String(user._id)] = {
+          isTyping: false,
+          name: user.name,
+          fromAdmin: !!req.user.isAdmin
+        };
       }
 
       if (!req.user.isAdmin) {
@@ -228,15 +244,15 @@ router.post(
         await user.save();
       }
 
-      res.status(201).json(message);
+      return res.status(201).json(message);
     } catch (e) {
       console.error('chat.send error:', e);
-      res.status(500).json({ error: 'Ошибка сервера' });
+      return res.status(500).json({ error: 'Ошибка сервера' });
     }
   }
 );
 
-/* ======================== typing ======================== */
+/* =============== typing =============== */
 router.post('/typing', authAny, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -249,16 +265,15 @@ router.post('/typing', authAny, async (req, res) => {
       name: fromAdmin ? 'Менеджер' : (name || 'Пользователь'),
       fromAdmin: !!fromAdmin,
     };
-    res.json({ ok: true });
-  } catch {
-    res.json({ ok: true });
-  }
+    return res.json({ ok: true });
+  } catch (e) { return res.json({ ok: true }); }
 });
+
 router.get('/typing/statuses', authAny, (req, res) => {
   res.json(typingStatus[String(req.tenantId)] || {});
 });
 
-/* ======================== presence (ping/offline) ======================== */
+/* =============== presence (ping/offline) =============== */
 router.post('/ping', authAny, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -267,21 +282,13 @@ router.post('/ping', authAny, async (req, res) => {
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
     if (user) {
-      const meta = pickPageMeta(req);
       user.isOnline = true;
       user.lastOnlineAt = new Date();
-      if (meta.pageUrl) {
-        user.lastPageUrl = meta.pageUrl;
-        user.lastPageHref = meta.pageHref || user.lastPageHref;
-        user.lastReferrer = meta.referrer || user.lastReferrer;
-        user.lastPageTitle = meta.title || user.lastPageTitle;
-      }
+      await updateUserPageFields(user, req);
       await user.save();
     }
     res.json({ ok: true });
-  } catch {
-    res.json({ ok: true });
-  }
+  } catch { res.json({ ok: true }); }
 });
 
 router.post('/offline', authAny, async (req, res) => {
@@ -292,27 +299,23 @@ router.post('/offline', authAny, async (req, res) => {
       $expr: { $eq: [{ $toString: '$tenantId' }, tStr] }
     });
     if (user) {
-      const meta = pickPageMeta(req);
       user.isOnline = false;
-      if (meta.pageUrl) user.lastPageUrl = meta.pageUrl;
+      await updateUserPageFields(user, req);
       await user.save();
     }
     res.json({ ok: true });
-  } catch {
-    res.json({ ok: true });
-  }
+  } catch { res.json({ ok: true }); }
 });
 
-/* ======================== admin list / read / send ======================== */
+/* =============== ADMIN: list / messages / send =============== */
 async function updateMissedChats(tenantIdStr) {
   const tStr = String(tenantIdStr);
   const now = Date.now();
-
   const users = await User.find({
     $expr: { $and: [
       { $eq: [{ $toString: '$tenantId' }, tStr] },
       { $in: ['$status', ['new','waiting','active']] }
-    ] }
+    ]}
   });
 
   for (let user of users) {
@@ -345,39 +348,35 @@ router.get('/admin', requireAdmin, async (req, res) => {
           from: "users",
           let: { uid: "$_id" },
           pipeline: [
-            {
-              $match: {
-                $expr: { $and: [
-                  { $eq: ["$_id", "$$uid"] },
-                  { $eq: [{ $toString: "$tenantId" }, tStr] }
-                ] }
-              }
-            },
+            { $match: { $expr: { $and: [
+              { $eq: ["$_id", "$$uid"] },
+              { $eq: [{ $toString: "$tenantId" }, tStr] }
+            ]}}},
             { $project: {
-              name: 1, phone: 1, email: 1, status: 1, isBlocked: 1,
-              ip: 1, city: 1, isOnline: 1, lastOnlineAt: 1, lastPageUrl: 1
-            } }
+              name:1, phone:1, email:1, status:1, isBlocked:1,
+              ip:1, city:1, isOnline:1, lastOnlineAt:1,
+              lastPageUrl:1, lastPageHref:1
+            }}
           ],
           as: "userInfo"
         }
       },
       { $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: false } },
-      {
-        $project: {
-          userId: "$_id",
-          name: "$userInfo.name",
-          phone: "$userInfo.phone",
-          email: "$userInfo.email",
-          status: "$userInfo.status",
-          isBlocked: "$userInfo.isBlocked",
-          ip: "$userInfo.ip",
-          city: "$userInfo.city",
-          isOnline: "$userInfo.isOnline",
-          lastOnlineAt: "$userInfo.lastOnlineAt",
-          lastPageUrl: "$userInfo.lastPageUrl",
-          lastMessage: 1
-        }
-      },
+      { $project: {
+        userId: "$_id",
+        name: "$userInfo.name",
+        phone: "$userInfo.phone",
+        email: "$userInfo.email",
+        status: "$userInfo.status",
+        isBlocked: "$userInfo.isBlocked",
+        ip: "$userInfo.ip",
+        city: "$userInfo.city",
+        isOnline: "$userInfo.isOnline",
+        lastOnlineAt: "$userInfo.lastOnlineAt",
+        lastPageUrl: "$userInfo.lastPageUrl",
+        lastPageHref:"$userInfo.lastPageHref",
+        lastMessage: 1
+      }},
       { $sort: { "lastMessage.createdAt": -1 } }
     ]);
 
@@ -428,7 +427,9 @@ router.post(
     try {
       const tStr = String(req.tenantId);
       const { userId } = req.params;
-      if (!mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ error: 'Некорректный userId' });
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: 'Некорректный userId' });
+      }
 
       const uId = new mongoose.Types.ObjectId(userId);
       const user = await User.findOne({
@@ -468,7 +469,7 @@ router.post(
   }
 );
 
-/* ------- user for right panel ------- */
+/* =============== ADMIN: right panel info =============== */
 router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -482,12 +483,12 @@ router.get('/admin/user/:userId', requireAdmin, async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'not found' });
     res.json(user);
-  } catch {
+  } catch (e) {
     res.status(404).json({ error: 'not found' });
   }
 });
 
-/* ------- block/unblock ------- */
+/* =============== ADMIN: block/unblock =============== */
 router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -504,12 +505,12 @@ router.post('/admin/user/:userId/block', requireAdmin, async (req, res) => {
     user.isBlocked = !!block;
     await user.save();
     res.json({ ok: true });
-  } catch {
+  } catch (e) {
     res.status(500).json({ error: 'server error' });
   }
 });
 
-/* ------- mark read/unread ------- */
+/* =============== ADMIN: read/unread =============== */
 router.post('/read/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -532,9 +533,7 @@ router.post('/read/:userId', requireAdmin, async (req, res) => {
     await user.save();
 
     res.json({ ok: true });
-  } catch {
-    res.json({ ok: true });
-  }
+  } catch (e) { res.json({ ok: true }); }
 });
 
 router.post('/unread/:userId', requireAdmin, async (req, res) => {
@@ -558,12 +557,10 @@ router.post('/unread/:userId', requireAdmin, async (req, res) => {
     await user.save();
 
     res.json({ ok: true });
-  } catch {
-    res.json({ ok: true });
-  }
+  } catch (e) { res.json({ ok: true }); }
 });
 
-/* ------- delete chat ------- */
+/* =============== ADMIN: delete chat =============== */
 router.delete('/admin/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -581,7 +578,7 @@ router.delete('/admin/:userId', requireAdmin, async (req, res) => {
       const files = [];
       if (Array.isArray(m.imageUrls)) files.push(...m.imageUrls);
       if (m.audioUrl) files.push(m.audioUrl);
-      for (const rel of files) safeUnlink(rel);
+      files.forEach(safeUnlink);
     }
     await Message.deleteMany({ user: user._id });
 
