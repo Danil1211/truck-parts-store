@@ -4,10 +4,17 @@ import { useAdminNotify } from "../context/AdminNotifyContext";
 import api from "../utils/api";
 import "../assets/admin-chat.css";
 
-const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
-const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
+/* --- базовые урлы --- */
+const API_BASE = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
+const SITE_ORIGIN =
+  typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
 
-/** нормализация user info (+ lastPageUrl) */
+/* медиа из API */
+const withApi = (u) => (u && /^https?:\/\//i.test(u) ? u : `${API_BASE}${u || ""}`);
+/* ссылки на страницы сайта (relative -> текущий origin) */
+const withSite = (u) => (u && /^https?:\/\//i.test(u) ? u : `${SITE_ORIGIN}${u || ""}`);
+
+/* ---------- нормализация user info ---------- */
 const normalizeUserInfo = (raw) => {
   const d = raw?.data ?? raw ?? {};
   const u = d.user ?? d.profile ?? d;
@@ -32,8 +39,8 @@ const QUOTES = [
   "Каждый отказ приближает меня к успеху. — Эдгар Кейси",
   "Успех — это идти от одной неудачи к другой без потери энтузиазма. — У. Черчилль",
   "Падение — часть жизни. Вставание — часть жизни успешного человека. — Зиг Зиглар",
-  "Самый большой риск — никогда не рисковать. — М. Цукерберг",
-  "Тот, кто не ошибается, обычно ничего не делает. — У. К. Магги",
+  "Самый большой риск — не рисковать вовсе. — М. Цукерберг",
+  "Кто не ошибается, обычно ничего не делает. — У. К. Магги",
   "Неудача — это просто смена курса. — Опра Уинфри",
   "Отказы перенаправляют энергию туда, где работает. — Брайан Трейси",
   "Самый верный путь к успеху — попробовать ещё раз. — Т. Эдисон",
@@ -42,7 +49,7 @@ const QUOTES = [
   "Сегодня «нет» — завтра кто-то скажет «да». — Джек Кэнфилд",
   "Победители ищут способы, проигравшие — оправдания. — Ф. Д. Рузвельт",
   "Неудачи учат нас больше, чем успехи. — Тони Роббинс",
-  "Неудача — не провал, а шанс начать заново. — Ричард Брэнсон",
+  "Неудача — не провал, а шанс начать заново. — Р. Брэнсон",
 ];
 
 const Svg = {
@@ -75,12 +82,16 @@ const Svg = {
   ),
 };
 
+const isUserOnline = (info) =>
+  info?.lastOnlineAt ? Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000 : false;
+
 function decodeHtml(html) {
   const txt = document.createElement("textarea");
   txt.innerHTML = html;
   return txt.value;
 }
 
+/* --- голосовая «пузырь» --- */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -111,6 +122,7 @@ function VoiceMessage({ audioUrl, createdAt }) {
   );
 }
 
+/* --- предпрослушка записи --- */
 function AudioPreview({ blob, onRemove }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -162,20 +174,18 @@ function AudioPreview({ blob, onRemove }) {
 const QUICK = [
   "Ожидайте, пожалуйста. Проверяю информацию ✅",
   "Уже спешу на помощь! 🙌",
-  "Спасибо за обращение! Подключаюсь к задаче 👨‍💻",
-  "Можем перейти на звонок, если удобно 📞",
+  "Спасибо за обращение! Подключаюсь 👨‍💻",
+  "Можем перейти на звонок? 📞",
   "Супер, сейчас пришлю детали 📩",
   "Понимаю. Предлагаю такой вариант 👇",
   "Готово! Проверьте, пожалуйста ✅",
   "Принял, держу в курсе ⏳",
 ];
 
-const isUserOnline = (info) =>
-  info?.lastOnlineAt ? Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000 : false;
-
 export default function AdminChatPage() {
   const { resetUnread, unread } = useAdminNotify();
 
+  /* корректная высота topbar */
   useLayoutEffect(() => {
     const el = document.querySelector(".admin-topbar");
     const h = el ? Math.round(el.getBoundingClientRect().height) : 56;
@@ -208,14 +218,13 @@ export default function AdminChatPage() {
   const emojiRef = useRef(null);
   const composerRef = useRef(null);
 
-  // пустой экран — стабильная случайная цитата
+  /* красивый пустой экран: фиксируем цитату один раз */
   const emptyQuote = useMemo(
     () => QUOTES[Math.floor(Math.random() * QUOTES.length)],
-    // обновлять только при первом открытии страницы
     []
   );
 
-  // ====== данные
+  /* ================== загрузка чатов ================== */
   const normalizeChatsResponse = (res) => {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.chats)) return res.chats;
@@ -238,7 +247,6 @@ export default function AdminChatPage() {
           lastMessageObj: c.lastMessage,
         }))
       );
-      // если открыт чат — сбрасываем непрочитанные по нему (не показываем уведомления в открытом)
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
@@ -253,6 +261,7 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []); // eslint-disable-line
 
+  /* ================== загрузка сообщений ================== */
   const loadMessages = async () => {
     if (!selected) return;
     try {
@@ -312,7 +321,7 @@ export default function AdminChatPage() {
     await loadChats();
   };
 
-  // ====== голосовые
+  /* ================== голосовые ================== */
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -356,65 +365,110 @@ export default function AdminChatPage() {
     }
   };
 
+  /* ================== быстрые ответы ================== */
   const handleQuickReply = async (text) => {
     if (!selected) return;
+    // оптимистично
+    const optimistic = {
+      _id: `tmp-${Date.now()}`,
+      text,
+      fromAdmin: true,
+      createdAt: new Date().toISOString(),
+      imageUrls: [],
+      audioUrl: "",
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, { text });
+      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
-      await loadMessages();
+      // заменим временное на реальное
+      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id).concat(data));
       await loadChats();
-      setShowQuick(false);
     } catch (e) {
       console.error("quick reply error:", e);
+      // откат
+      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
+    } finally {
+      setShowQuick(false);
+    }
+  };
+
+  /* ================== отправка ================== */
+  const pushOptimistic = (payload) => {
+    const m = {
+      _id: `tmp-${Date.now()}`,
+      fromAdmin: true,
+      createdAt: new Date().toISOString(),
+      imageUrls: payload.imageUrls || [],
+      audioUrl: payload.audioUrl || "",
+      text: payload.text || "",
+    };
+    setMessages((prev) => [...prev, m]);
+    return m;
+  };
+
+  const sendText = async () => {
+    if (!input.trim() || !selected) return;
+    const optimistic = pushOptimistic({ text: input.trim() });
+    setInput("");
+    try {
+      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, { text: optimistic.text });
+      await typingOff();
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id).concat(data));
+      await loadChats();
+    } catch (e) {
+      console.error("sendText error:", e);
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     }
   };
 
   const handleAudioSend = async () => {
     if (!audioPreview || !selected) return;
+    const optimistic = pushOptimistic({ audioUrl: "" }); // просто появится «пузырь»
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
     setFiles([]);
     setAudioPreview(null);
+
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
+      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       await typingOff();
-      await loadMessages();
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id).concat(data));
       await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
-    }
-  };
-
-  // ====== send
-  const sendText = async () => {
-    if (!input.trim() || !selected) return;
-    try {
-      await api.post(`/api/chat/admin/${selected.userId}`, { text: input.trim() });
-      setInput("");
-      await typingOff();
-      await loadMessages();
-      await loadChats();
-    } catch (e) {
-      console.error("sendText error:", e);
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     }
   };
 
   const sendMedia = async ({ audio, images }) => {
     if (!selected) return;
+    const optimistic = pushOptimistic({
+      text: input.trim() || "",
+      imageUrls: images.length ? ["__local_preview__"] : [],
+      audioUrl: audio ? "__local_audio__" : "",
+    });
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
     if (audio) form.append("audio", audio, "voice.webm");
     images.forEach((f) => form.append("images", f));
     setFiles([]);
     setInput("");
+
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
+      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       await typingOff();
-      await loadMessages();
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id).concat(data));
       await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     }
   };
 
@@ -439,12 +493,12 @@ export default function AdminChatPage() {
 
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
-    if (selected?.userId === chat.userId) return false; // открыт — не подсвечиваем
+    if (selected?.userId === chat.userId) return false; // открытый чат — не уведомляем
     if (unread[chat.userId]) return true;
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
-  // автоскролл
+  /* автоскролл */
   useEffect(() => {
     if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAutoScroll]);
@@ -455,7 +509,7 @@ export default function AdminChatPage() {
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
-  // typing poll
+  /* typing poll */
   useEffect(() => {
     const poll = async () => {
       try {
@@ -468,14 +522,14 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []);
 
-  // пометить как непрочитанное: пробуем несколько эндпоинтов
+  /* пометить как непрочитанное (надежно) */
   const markUnread = async (uid) => {
     try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
     try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
     try { await api.post(`/api/chat/read/${uid}`, { unread: true }); } catch {}
   };
 
-  // ====== клик снаружи — закрыть меню и смайлики
+  /* закрытие меню/эмодзи по клику вне */
   useEffect(() => {
     const onDoc = (e) => {
       const t = e.target;
@@ -493,11 +547,7 @@ export default function AdminChatPage() {
   if (error) return <div className="admin-chat-error">{error}</div>;
 
   const chatList = Array.isArray(chats) ? chats : [];
-  const pageHref = selectedUserInfo?.lastPageUrl
-    ? (selectedUserInfo.lastPageUrl.startsWith("http")
-        ? selectedUserInfo.lastPageUrl
-        : `${BASE_URL}${selectedUserInfo.lastPageUrl}`)
-    : null;
+  const pageHref = selectedUserInfo?.lastPageUrl ? withSite(selectedUserInfo.lastPageUrl) : null;
 
   return (
     <div className="admin-chat-page">
@@ -603,14 +653,15 @@ export default function AdminChatPage() {
                 {Array.isArray(messages) && messages.map((m, i) => (
                   <div
                     key={m._id || i}
-                    className={`bubble ${m.fromAdmin ? "out" : "in"}`} // admin -> right(Out), user -> left(In)
+                    className={`bubble ${m.fromAdmin ? "out" : "in"}`} // admin -> right, user -> left
                   >
                     <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
                     {m.text && <div className="bubble-text">{m.text}</div>}
                     {m.imageUrls?.map((u, idx) => (
-                      <img key={idx} src={withBase(u)} alt="img" className="bubble-img" />
+                      <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                     ))}
-                    {m.audioUrl && <VoiceMessage audioUrl={withBase(m.audioUrl)} createdAt={m.createdAt} />}
+                    {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
+
                     {!m.audioUrl && (
                       <div className="bubble-time">
                         {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
