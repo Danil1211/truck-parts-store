@@ -140,6 +140,13 @@ function isUserOnline(info) {
 export default function AdminChatPage() {
   const { resetUnread, unread } = useAdminNotify();
 
+  // ---- точно измеряем высоту верхнего топбара и пробрасываем в CSS-переменную
+  useLayoutEffect(() => {
+    const el = document.querySelector(".admin-topbar");
+    const h = el ? Math.round(el.getBoundingClientRect().height) : 56;
+    document.documentElement.style.setProperty("--topbar-h", `${h}px`);
+  }, []);
+
   const [chats, setChats] = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -154,21 +161,6 @@ export default function AdminChatPage() {
   const [blocking, setBlocking] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
-
-  // <<<<<<<< КЛЮЧ: жёстко считаем высоту области под чат >>>>>>>>
-  const [containerH, setContainerH] = useState("70vh");
-  useLayoutEffect(() => {
-    const calc = () => {
-      const top = document.querySelector(".admin-topbar");
-      const topH = top ? top.getBoundingClientRect().height : 0;
-      const h = Math.max(320, window.innerHeight - topH - 24); // 24 — безопасный запас под тени/границы
-      setContainerH(`${h}px`);
-    };
-    calc();
-    window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
-  }, []);
-  // <<<<<<<< /КЛЮЧ >>>>>>>>
 
   const endRef = useRef(null);
   const messagesRef = useRef(null);
@@ -441,7 +433,7 @@ export default function AdminChatPage() {
   const chatList = Array.isArray(chats) ? chats : [];
 
   return (
-    <div className="admin-chat-page" style={{ height: containerH }}>
+    <div className="admin-chat-page">
       <div className="admin-chat-root">
         {/* LEFT */}
         <aside className="chat-sidebar">

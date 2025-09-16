@@ -1,31 +1,32 @@
 :root{
-  /* базовые токены */
   --tg-blue:#2291ff; --bg:#f6f8fb; --card:#fff; --line:#e6eaf2; --text:#0f172a; --muted:#667085;
   --bubble-in:var(--tg-blue); --bubble-out:#eef5ff;
   --radius:14px; --shadow-sm:0 1px 6px rgba(16,24,40,.06); --shadow-md:0 8px 30px rgba(15,23,42,.06);
 
-  /* размеры лэйаута */
-  --sidebar-w:72px;   /* ширина левого фикс-меню */
-  --topbar-h:64px;    /* высота верхнего топбара (подгони при необходимости) */
-  --pad:8px;          /* внешний отступ от меню/краёв */
-  --gap:6px;          /* расстояние между 3 колонками (0 — вообще без зазора) */
+  /* Лэйаут */
+  --sidebar-w:72px;     /* ширина фикс-меню слева */
+  --topbar-h:56px;      /* высота верхнего топбара (уточняется из JS) */
+  --gap:0px;            /* расстояние между колонками */
 }
 
-/* корень страницы чата — прижат к меню и правому краю, высота = видимая область минус топбар */
+/* ====== КОНТЕЙНЕР СТРАНИЦЫ (на всю область экрана) ====== */
 .admin-chat-page{
-  position:fixed;
-  top:var(--topbar-h);
-  left:var(--sidebar-w);
-  right:0;
-  bottom:0;
-  padding: var(--pad);
+  position: fixed;
+  left: var(--sidebar-w);
+  right: 0;
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  padding: 0 6px;                 /* без вертикальных паддингов чтобы ничего не выпадало вниз */
   background: var(--bg);
-  overflow:hidden;          /* внешних скроллов нет */
-  box-sizing:border-box;
-  z-index:0;                /* ниже топбара */
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 0;
+}
+@supports (height: 100dvh){
+  .admin-chat-page{ height: calc(100dvh - var(--topbar-h)); }
 }
 
-/* сетка на всю доступную высоту */
+/* ====== СЕТКА 3 КОЛОНКИ ====== */
 .admin-chat-root{
   height:100%;
   min-height:0;
@@ -36,14 +37,8 @@
 
 /* ===== LEFT ===== */
 .chat-sidebar{
-  background:#fff;
-  border:1px solid var(--line);
-  box-shadow:var(--shadow-sm);
-  height:100%;
-  min-width:0;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
+  background:#fff; border:1px solid var(--line); box-shadow:var(--shadow-sm);
+  height:100%; min-width:0; overflow:hidden; display:flex; flex-direction:column;
 }
 .chat-sidebar__search{ padding:8px; border-bottom:1px solid var(--line); }
 .chat-sidebar__search input{
@@ -59,8 +54,8 @@
 .chat-item:hover{ background:#f9fbff; }
 .chat-item.selected{ background:#eef5ff; }
 .chat-avatar{
-  flex:0 0 auto; width:36px; height:36px; border-radius:50%;
-  display:grid; place-items:center; background:#eaf2ff; color:#1d4ed8; font-weight:700; position:relative;
+  flex:0 0 auto; width:36px; height:36px; border-radius:50%; display:grid; place-items:center;
+  background:#eaf2ff; color:#1d4ed8; font-weight:700; position:relative;
 }
 .chat-unread-dot{ position:absolute; right:-2px; top:-2px; width:10px; height:10px; border-radius:50%; background:#ef4444; box-shadow:0 0 0 2px #fff; }
 .chat-meta{ min-width:0; flex:1; }
@@ -74,15 +69,8 @@
 
 /* ===== CENTER ===== */
 .chat-main{
-  background:#fff;
-  border:1px solid var(--line);
-  box-shadow:var(--shadow-sm);
-  height:100%;
-  min-width:0;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-height:0;             /* ключ для корректного внутреннего скролла */
+  background:#fff; border:1px solid var(--line); box-shadow:var(--shadow-sm);
+  height:100%; min-width:0; overflow:hidden; display:flex; flex-direction:column; min-height:0;
 }
 .chat-topbar{
   flex:0 0 auto; padding:10px 12px; border-bottom:1px solid var(--line);
@@ -90,26 +78,16 @@
 }
 .chat-topbar__title{ font-weight:700; color:#0f172a; }
 .chat-actions{ display:flex; gap:8px; align-items:center; }
-.btn-outline{
-  padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer;
-}
+.btn-outline{ padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
 .quick{ position:relative; }
-.quick-menu{
-  position:absolute; right:0; top:100%;
-  background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow-md); display:none;
-}
+.quick-menu{ position:absolute; right:0; top:100%; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow-md); display:none; }
 .quick:hover .quick-menu{ display:block; }
-.quick-menu button{
-  display:block; padding:8px 12px; width:100%; border:none; background:#fff; cursor:pointer; text-align:left;
-}
+.quick-menu button{ display:block; padding:8px 12px; width:100%; border:none; background:#fff; cursor:pointer; text-align:left; }
 .quick-menu button:hover{ background:#f5f7fb; }
 
-/* лента сообщений — только она скроллится в центре */
+/* Лента сообщений (скролл только здесь) */
 .thread{
-  flex:1 1 auto;
-  min-height:0;
-  overflow:auto;
-  padding:14px;
+  flex:1 1 auto; min-height:0; overflow:auto; padding:14px;
   display:flex; flex-direction:column; gap:10px;
   background:
     radial-gradient(40% 40% at 100% 0%, #f9fbff 0%, transparent 60%),
@@ -117,68 +95,39 @@
     #fff;
 }
 
-/* сообщения */
-.bubble{
-  max-width:72%; border-radius:12px; padding:10px 12px; box-shadow:var(--shadow-sm);
-  display:flex; flex-direction:column; gap:8px; word-break:break-word;
-}
+/* Сообщения */
+.bubble{ max-width:72%; border-radius:12px; padding:10px 12px; box-shadow:var(--shadow-sm);
+  display:flex; flex-direction:column; gap:8px; word-break:break-word; }
 .bubble.in{  align-self:flex-start; background:var(--bubble-in); color:#fff; }
 .bubble.out{ align-self:flex-end;   background:var(--bubble-out); color:#0f172a; }
-.bubble-author{ font-size:12px; opacity:.85; }
-.bubble-text{ font-size:14px; white-space:pre-wrap; }
+.bubble-author{ font-size:12px; opacity:.85; } .bubble-text{ font-size:14px; white-space:pre-wrap; }
 .bubble-img{ max-width:260px; border-radius:10px; display:block; }
 .bubble-time{ font-size:12px; opacity:.75; text-align:right; }
 
-/* кто печатает */
-.typing{
-  align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:10px; padding:8px 10px;
-  font-size:13px; color:#334155;
-}
-.typing-dots{ display:inline-block; width:18px; text-align:left; }
+/* Кто печатает */
+.typing{ align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:10px; padding:8px 10px;
+  font-size:13px; color:#334155; } .typing-dots{ display:inline-block; width:18px; text-align:left; }
 
-/* превью изображений под лентой */
-.previews{
-  flex:0 0 auto; display:flex; gap:10px; flex-wrap:wrap;
-  padding:8px 12px 0; border-top:1px solid var(--line); background:#fff;
-}
-.preview{
-  position:relative; width:92px; height:92px; border-radius:10px; overflow:hidden; background:#eef2f7;
-}
+/* Превью изображений */
+.previews{ flex:0 0 auto; display:flex; gap:10px; flex-wrap:wrap; padding:8px 12px 0; border-top:1px solid var(--line); background:#fff; }
+.preview{ position:relative; width:92px; height:92px; border-radius:10px; overflow:hidden; background:#eef2f7; }
 .preview img{ width:100%; height:100%; object-fit:cover; display:block; }
-.preview__close{
-  position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; border-radius:50%;
-  background:rgba(0,0,0,.48); color:#fff; cursor:pointer;
-}
+.preview__close{ position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; border-radius:50%;
+  background:rgba(0,0,0,.48); color:#fff; cursor:pointer; }
 
-/* панель ввода — всегда видна (без «выпадания» вниз) */
-.composer{
-  flex:0 0 auto;             /* не схлопывается */
-  display:flex; align-items:center; gap:10px;
-  padding:10px 12px; border-top:1px solid var(--line); background:#fff;
-}
-.icon-btn{
-  width:36px; height:36px; border:none; border-radius:10px; display:grid; place-items:center;
-  background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer; font-size:18px;
-}
-.icon-btn:hover{ background:#eef2f7; }
-.icon-btn--disabled{ opacity:.55; cursor:not-allowed; }
-.composer__input{
-  flex:1; min-width:0; padding:10px 14px; border-radius:999px; border:1px solid var(--line); outline:none; font-size:14px;
-}
+/* Панель ввода — всегда в зоне видимости */
+.composer{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid var(--line); background:#fff; }
+.icon-btn{ width:36px; height:36px; border:none; border-radius:10px; display:grid; place-items:center;
+  background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer; font-size:18px; }
+.icon-btn:hover{ background:#eef2f7; } .icon-btn--disabled{ opacity:.55; cursor:not-allowed; }
+.composer__input{ flex:1; min-width:0; padding:10px 14px; border-radius:999px; border:1px solid var(--line); outline:none; font-size:14px; }
 .composer__input:focus{ border-color:#bfdcff; box-shadow:0 0 0 4px rgba(34,145,255,.08); }
+.mic{ position:relative; } .mic--rec{ background:#fee2e2; }
+.mic__badge{ position:absolute; right:-6px; top:-6px; font-size:11px; background:#ef4444; color:#fff; border-radius:999px; padding:2px 6px; }
+.send-btn{ width:38px; height:38px; border:none; color:#fff; cursor:pointer; border-radius:50%;
+  background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 6px 18px rgba(34,145,255,.35); font-size:18px; }
 
-.mic{ position:relative; }
-.mic--rec{ background:#fee2e2; }
-.mic__badge{
-  position:absolute; right:-6px; top:-6px; font-size:11px; background:#ef4444; color:#fff;
-  border-radius:999px; padding:2px 6px;
-}
-.send-btn{
-  width:38px; height:38px; border:none; color:#fff; cursor:pointer; border-radius:50%;
-  background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 6px 18px rgba(34,145,255,.35); font-size:18px;
-}
-
-/* аудио в сообщениях */
+/* Аудио */
 .voice-bubble{ display:flex; align-items:center; gap:10px; }
 .voice-bar{ width:160px; height:6px; border-radius:999px; background:#e5edff; overflow:hidden; }
 .voice-bar-bg{ width:60%; height:100%; background:#bfdcff; }
@@ -190,32 +139,26 @@
   height:100%; min-width:0; overflow:auto; padding:16px 14px;
 }
 .user-card{ display:flex; gap:10px; align-items:center; margin-bottom:10px; }
-.user-avatar{ width:42px; height:42px; border-radius:50%; display:grid; place-items:center; background:#eaf2ff; color:#1d4ed8; font-weight:700; }
-.user-name{ font-weight:700; }
-.user-phone{ font-size:12px; color:#64748b; }
+.user-avatar{ width:42px; height:42px; border-radius:50%; display:grid; place-items:center;
+  background:#eaf2ff; color:#1d4ed8; font-weight:700; }
+.user-name{ font-weight:700; } .user-phone{ font-size:12px; color:#64748b; }
 .user-props{ display:grid; gap:8px; margin:12px 0 14px; }
 .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#e2e8f0; color:#0f172a; }
-.pill--ok{ background:#d1fae5; color:#065f46; }
-.pill--bad{ background:#fee2e2; color:#991b1b; }
-.block-btn{
-  width:100%; padding:10px 12px; border:none; border-radius:10px; color:#fff; cursor:pointer; font-weight:700;
-  background:#ef4444; box-shadow:var(--shadow-sm);
-}
+.pill--ok{ background:#d1fae5; color:#065f46; } .pill--bad{ background:#fee2e2; color:#991b1b; }
+.block-btn{ width:100%; padding:10px 12px; border:none; border-radius:10px; color:#fff; cursor:pointer; font-weight:700; background:#ef4444; box-shadow:var(--shadow-sm); }
 .block-btn--green{ background:#16a34a; }
 
-/* всплывашка эмодзи */
-.emoji-popover{
-  position:absolute; bottom:64px; left:12px; z-index:5; background:#fff;
-  border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow-md);
-}
+/* Эмодзи */
+.emoji-popover{ position:absolute; bottom:64px; left:12px; z-index:5; background:#fff; border:1px solid var(--line);
+  border-radius:10px; box-shadow:var(--shadow-md); }
 
-/* адаптив — когда левое меню прячется, растягиваемся на всю ширину */
+/* Адаптив */
 @media (max-width:1200px){
   .admin-chat-root{ grid-template-columns: 260px minmax(0,1fr); }
   .user-panel{ display:none; }
 }
 @media (max-width:900px){
-  .admin-chat-page{ left:0; }                  /* без отступа под меню */
+  .admin-chat-page{ left:0; }
   .admin-chat-root{ grid-template-columns: 1fr; }
   .chat-sidebar{ display:none; }
   .bubble{ max-width:85%; }
