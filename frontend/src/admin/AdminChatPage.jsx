@@ -1,5 +1,4 @@
-// src/pages/AdminChatPage.jsx
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
 import api from "../utils/api.js";
@@ -8,10 +7,23 @@ import "../assets/admin-chat.css";
 const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
-/* ---------- normalize user info ---------- */
+// База для клиентских страниц — домен сайта, а не API
+const SITE_ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
+const withSite = (u) => {
+  if (!u) return null;
+  if (/^https?:\/\//i.test(u)) return u; // уже абсолютный
+  return `${SITE_ORIGIN}${u.startsWith("/") ? u : `/${u}`}`;
+};
+
+/* ---------- НОРМАЛИЗАЦИЯ USER INFO ---------- */
 const normalizeUserInfo = (raw) => {
   const d = raw?.data ?? raw ?? {};
   const u = d.user ?? d.profile ?? d;
+
+  const lastPageUrl =
+    u.lastPageUrl || u.lastPage || u.lastUrl || u.pageUrl || u.currentUrl ||
+    u.path || u.href || u.url || u.referrer || u.referer || u.last_page || null;
+
   return {
     name: u.name || d.name || "",
     phone: u.phone || u.tel || "",
@@ -19,62 +31,145 @@ const normalizeUserInfo = (raw) => {
     city: u.city || u.location?.city || "",
     isBlocked: Boolean(u.isBlocked ?? u.blocked),
     lastOnlineAt: u.lastOnlineAt || u.lastSeenAt || u.last_seen || null,
-    lastPageUrl:  u.lastPageUrl || u.pageUrl || u.url || u.path || "",
-    lastPageHref: u.lastPageHref || u.href || u.fullUrl || "",
+    lastPageUrl,
   };
 };
 
 const Svg = {
-  smile: (<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor"/><path d="M8 15c1.333 1.333 2.667 2 4 2s2.667-.667 4-2" fill="none" stroke="currentColor"/><circle cx="9" cy="10" r="1" fill="currentColor"/><circle cx="15" cy="10" r="1" fill="currentColor"/></svg>),
-  camera:(<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><rect x="3" y="7" width="18" height="14" rx="3" fill="none" stroke="currentColor"/><path d="M7 7l2-3h6l2 3" fill="none" stroke="currentColor"/><circle cx="12" cy="14" r="3.5" fill="none" stroke="currentColor"/></svg>),
-  mic:   (<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor"/><path d="M5 12a7 7 0 0014 0M12 19v2" fill="none" stroke="currentColor"/></svg>),
-  send:  (<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path d="M22 2L11 13" fill="none" stroke="currentColor"/><path d="M22 2l-7 20-4-9-9-4 20-7z" fill="none" stroke="currentColor"/></svg>),
+  smile: (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" />
+      <path d="M8 15c1.333 1.333 2.667 2 4 2s2.667-.667 4-2" fill="none" stroke="currentColor" />
+      <circle cx="9" cy="10" r="1" fill="currentColor" />
+      <circle cx="15" cy="10" r="1" fill="currentColor" />
+    </svg>
+  ),
+  camera: (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+      <rect x="3" y="7" width="18" height="14" rx="3" fill="none" stroke="currentColor" />
+      <path d="M7 7l2-3h6l2 3" fill="none" stroke="currentColor" />
+      <circle cx="12" cy="14" r="3.5" fill="none" stroke="currentColor" />
+    </svg>
+  ),
+  mic: (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+      <rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" />
+      <path d="M5 12a7 7 0 0014 0M12 19v2" fill="none" stroke="currentColor" />
+    </svg>
+  ),
+  send: (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+      <path d="M22 2L11 13" fill="none" stroke="currentColor" />
+      <path d="M22 2l-7 20-4-9-9-4 20-7z" fill="none" stroke="currentColor" />
+    </svg>
+  ),
 };
 
-function decodeHtml(html) { const t = document.createElement("textarea"); t.innerHTML = html; return t.value; }
-function isUserOnline(info) { if (!info?.lastOnlineAt) return false; return Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000; }
+function decodeHtml(html) {
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+}
+
 function TypingAnimation() {
   const [dots, setDots] = useState("...");
-  useEffect(() => { const arr=["...","..",".",""]; let i=0; const iv=setInterval(()=>setDots(arr[i++%arr.length]),320); return ()=>clearInterval(iv); },[]);
+  useEffect(() => {
+    const arr = ["...", "..", ".", ""];
+    let i = 0;
+    const t = setInterval(() => setDots(arr[i++ % arr.length]), 320);
+    return () => clearInterval(t);
+  }, []);
   return <span className="typing-dots">{dots}</span>;
 }
 
+/* === Голосовое в месседже === */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
-  const toggle = () => { const a = audioRef.current; if (!a) return; playing ? a.pause() : a.play(); };
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    playing ? a.pause() : a.play();
+  };
   return (
     <div className="voice-bubble">
       <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
         {playing ? "⏸" : "▶️"}
       </button>
       <div className="voice-bar"><div className="voice-bar-bg" /></div>
-      <span className="voice-time">{createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
-      <audio ref={audioRef} src={audioUrl} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>setPlaying(false)} style={{display:"none"}} preload="auto" />
+      <span className="voice-time">
+        {createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+      </span>
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        style={{ display: "none" }}
+        preload="auto"
+      />
     </div>
   );
 }
+
 function AudioPreview({ blob, onRemove }) {
-  const [url,setUrl]=useState(null); const [playing,setPlaying]=useState(false); const ref=useRef(null);
-  useEffect(()=>{ if(!blob) return; const u=URL.createObjectURL(blob); setUrl(u); return ()=>URL.revokeObjectURL(u); },[blob]);
-  useEffect(()=>{ if(!ref.current) return; const a=ref.current; const on=()=>setPlaying(true), off=()=>setPlaying(false);
-    a.addEventListener("play",on); a.addEventListener("pause",off); a.addEventListener("ended",off);
-    return ()=>{ a.removeEventListener("play",on); a.removeEventListener("pause",off); a.removeEventListener("ended",off); };
-  },[url]);
-  if(!blob) return null;
+  const [url, setUrl] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (!blob) return;
+    const u = URL.createObjectURL(blob);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [blob]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    const a = audioRef.current;
+    const on = () => setPlaying(true);
+    const off = () => setPlaying(false);
+    a.addEventListener("play", on);
+    a.addEventListener("pause", off);
+    a.addEventListener("ended", off);
+    return () => {
+      a.removeEventListener("play", on);
+      a.removeEventListener("pause", off);
+      a.removeEventListener("ended", off);
+    };
+  }, [url]);
+
+  if (!blob) return null;
+
   return (
     <div className="audio-preview">
-      <button className="audio-preview__btn" onClick={()=>{ const a=ref.current; if(!a) return; playing?a.pause():(a.currentTime=0,a.play()); }}>{playing?"⏸":"▶️"}</button>
+      <button
+        className="audio-preview__btn"
+        onClick={() => {
+          const a = audioRef.current;
+          if (!a) return;
+          playing ? a.pause() : (a.currentTime = 0, a.play());
+        }}
+      >
+        {playing ? "⏸" : "▶️"}
+      </button>
       <span className="audio-preview__label">Предпрослушка</span>
       <button className="audio-preview__close" onClick={onRemove}>×</button>
-      {url && <audio ref={ref} src={url} preload="auto" style={{display:"none"}}/>}
+      {url && <audio ref={audioRef} src={url} preload="auto" style={{ display: "none" }} />}
     </div>
   );
+}
+
+function isUserOnline(info) {
+  if (!info?.lastOnlineAt) return false;
+  return Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000;
 }
 
 export default function AdminChatPage() {
   const { resetUnread, unread } = useAdminNotify();
 
+  // точный topbar
   useLayoutEffect(() => {
     const el = document.querySelector(".admin-topbar");
     const h = el ? Math.round(el.getBoundingClientRect().height) : 56;
@@ -103,6 +198,7 @@ export default function AdminChatPage() {
   const audioChunks = useRef([]);
   const recordingTimer = useRef();
 
+  // ================== CHATS LIST ==================
   const normalizeChatsResponse = (res) => {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.chats)) return res.chats;
@@ -118,11 +214,13 @@ export default function AdminChatPage() {
     try {
       const res = await api(`/api/chat/admin?_=${Date.now()}`);
       const arr = normalizeChatsResponse(res);
-      setChats(arr.map((c) => ({
-        ...c,
-        lastMessage: c.lastMessage?.text || (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "—"),
-        lastMessageObj: c.lastMessage,
-      })));
+      setChats(
+        arr.map((c) => ({
+          ...c,
+          lastMessage: c.lastMessage?.text || (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "—"),
+          lastMessageObj: c.lastMessage,
+        }))
+      );
     } catch (e) {
       console.error("loadChats error:", e);
       setChats([]);
@@ -130,14 +228,22 @@ export default function AdminChatPage() {
     }
   };
 
-  useEffect(() => { loadChats(); const iv=setInterval(loadChats,4000); return ()=>clearInterval(iv); }, []);
+  useEffect(() => {
+    loadChats();
+    const iv = setInterval(loadChats, 4000);
+    return () => clearInterval(iv);
+  }, []);
 
+  // ================== MESSAGES ==================
   const loadMessages = async () => {
     if (!selected) return;
     try {
       const { data } = await api.get(`/api/chat/admin/${selected.userId}`, { params: { _: Date.now() } });
       setMessages(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []);
-    } catch { setMessages([]); }
+    } catch (e) {
+      console.error("loadMessages error:", e);
+      setMessages([]);
+    }
   };
 
   useEffect(() => {
@@ -158,24 +264,36 @@ export default function AdminChatPage() {
 
   const handleSelectChat = async (c) => {
     setSelected(c);
-    setFiles([]); setInput(""); setShowQuick(false); setIsAutoScroll(true); setAudioPreview(null);
+    setFiles([]);
+    setInput("");
+    setShowQuick(false);
+    setIsAutoScroll(true);
+    setAudioPreview(null);
     resetUnread(c.userId);
+
     try {
       const info = await api.get(`/api/chat/admin/user/${c.userId}`, { params: { _: Date.now() } });
       setSelectedUserInfo(normalizeUserInfo(info));
     } catch {}
+
     try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
     setTimeout(loadChats, 180);
   };
 
   const handleDeleteChat = async (chat) => {
-    const uid = chat?.userId || selected?.userId; if (!uid) return;
+    const uid = chat?.userId || selected?.userId;
+    if (!uid) return;
     if (!window.confirm("Удалить чат безвозвратно?")) return;
     try { await api.delete(`/api/chat/admin/${uid}`); } catch {}
-    if (selected?.userId === uid) { setSelected(null); setMessages([]); setSelectedUserInfo(null); }
+    if (selected?.userId === uid) {
+      setSelected(null);
+      setMessages([]);
+      setSelectedUserInfo(null);
+    }
     await loadChats();
   };
 
+  // ================== VOICE ==================
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -183,32 +301,57 @@ export default function AdminChatPage() {
         try {
           mediaRecorder.current = new window.MediaRecorder(stream);
           mediaRecorder.current.ondataavailable = (e) => audioChunks.current.push(e.data);
-          mediaRecorder.current.onstop = () => { const blob = new Blob(audioChunks.current, { type: "audio/webm" }); audioChunks.current = []; setAudioPreview(blob); };
+          mediaRecorder.current.onstop = () => {
+            const blob = new Blob(audioChunks.current, { type: "audio/webm" });
+            audioChunks.current = [];
+            setAudioPreview(blob);
+          };
         } catch {}
       })
       .catch(() => {});
   }, []);
 
-  const typingOn = async () => { if (!selected) return; try { await api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: true, name: "Менеджер", fromAdmin: true }); } catch {} };
-  const typingOff= async () => { if (!selected) return; try { await api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: false, name: "Менеджер", fromAdmin: true }); } catch {} };
+  const typingOn = async () => {
+    if (!selected) return;
+    try { await api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: true, name: "Менеджер", fromAdmin: true }); } catch {}
+  };
+  const typingOff = async () => {
+    if (!selected) return;
+    try { await api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: false, name: "Менеджер", fromAdmin: true }); } catch {}
+  };
 
   const startOrStopRecording = () => {
     if (!mediaRecorder.current || !selected) return;
     if (recording) {
-      mediaRecorder.current.stop(); setRecording(false); clearInterval(recordingTimer.current); typingOff();
+      mediaRecorder.current.stop();
+      setRecording(false);
+      clearInterval(recordingTimer.current);
+      typingOff();
     } else {
-      audioChunks.current = []; mediaRecorder.current.start(); setRecording(true); setRecordingTime(0);
-      recordingTimer.current = setInterval(() => setRecordingTime((t) => t + 1), 1000); typingOn();
+      audioChunks.current = [];
+      mediaRecorder.current.start();
+      setRecording(true);
+      setRecordingTime(0);
+      recordingTimer.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+      typingOn();
     }
   };
 
-  const quickReplies = ["Ожидайте, пожалуйста. Проверяю информацию ✅","Уже спешу на помощь! 🙌"];
+  const quickReplies = [
+    "Ожидайте, пожалуйста. Проверяю информацию ✅",
+    "Уже спешу на помощь! 🙌",
+  ];
   const handleQuickReply = async (text) => {
     if (!selected) return;
     try {
       await api.post(`/api/chat/admin/${selected.userId}`, { text });
-      await typingOff(); await loadMessages(); await loadChats(); setShowQuick(false);
-    } catch (e) { console.error("quick reply error:", e); }
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+      setShowQuick(false);
+    } catch (e) {
+      console.error("quick reply error:", e);
+    }
   };
 
   const handleAudioSend = async () => {
@@ -216,19 +359,30 @@ export default function AdminChatPage() {
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
-    setFiles([]); setAudioPreview(null);
+    setFiles([]);
+    setAudioPreview(null);
     try {
       await api.post(`/api/chat/admin/${selected.userId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
-      await typingOff(); await loadMessages(); await loadChats();
-    } catch (e) { console.error("audio send error:", e); }
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("audio send error:", e);
+    }
   };
 
+  // ================== SEND ==================
   const sendText = async () => {
     if (!input.trim() || !selected) return;
     try {
       await api.post(`/api/chat/admin/${selected.userId}`, { text: input.trim() });
-      setInput(""); await typingOff(); await loadMessages(); await loadChats();
-    } catch (e) { console.error("sendText error:", e); }
+      setInput("");
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("sendText error:", e);
+    }
   };
 
   const sendMedia = async ({ audio, images }) => {
@@ -237,22 +391,37 @@ export default function AdminChatPage() {
     if (input.trim()) form.append("text", input.trim());
     if (audio) form.append("audio", audio, "voice.webm");
     images.forEach((f) => form.append("images", f));
-    setFiles([]); setInput("");
+    setFiles([]);
+    setInput("");
     try {
       await api.post(`/api/chat/admin/${selected.userId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
-      await typingOff(); await loadMessages(); await loadChats();
-    } catch (e) { console.error("sendMedia error:", e); }
+      await typingOff();
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("sendMedia error:", e);
+    }
   };
 
-  const handleSend = () => { if (audioPreview) handleAudioSend(); else if (files.length) sendMedia({ audio: null, images: files }); else sendText(); };
+  const handleSend = () => {
+    if (audioPreview) handleAudioSend();
+    else if (files.length) sendMedia({ audio: null, images: files });
+    else sendText();
+  };
 
   const handleInput = (e) => {
     setInput(e.target.value);
     if (!selected) return;
-    api.post(`/api/chat/typing`, { userId: selected.userId, isTyping: !!e.target.value, name: "Менеджер", fromAdmin: true }).catch(()=>{});
+    api.post(`/api/chat/typing`, {
+      userId: selected.userId,
+      isTyping: !!e.target.value,
+      name: "Менеджер",
+      fromAdmin: true,
+    }).catch(()=>{});
   };
 
   const removeFile = (idx) => setFiles((arr) => arr.filter((_, i) => i !== idx));
+
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
     if (selected?.userId === chat.userId) return false;
@@ -260,12 +429,18 @@ export default function AdminChatPage() {
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
-  useEffect(() => { if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isAutoScroll]);
+  // авто-скролл
+  useEffect(() => {
+    if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isAutoScroll]);
+
   const handleScroll = () => {
-    const el = messagesRef.current; if (!el) return;
+    const el = messagesRef.current;
+    if (!el) return;
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
+  // typing poll
   useEffect(() => {
     const poll = async () => {
       try {
@@ -273,9 +448,12 @@ export default function AdminChatPage() {
         if (res && typeof res === "object") setTypingMap(res.data || res);
       } catch {}
     };
-    poll(); const iv = setInterval(poll, 1200); return () => clearInterval(iv);
+    poll();
+    const iv = setInterval(poll, 1200);
+    return () => clearInterval(iv);
   }, []);
 
+  // Универсальная пометка "Непрочитано"
   const markUnread = async (uid) => {
     try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
     try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
@@ -285,15 +463,8 @@ export default function AdminChatPage() {
   if (error) return <div className="admin-chat-error">{error}</div>;
   const chatList = Array.isArray(chats) ? chats : [];
 
-  // строим ссылку без withBase (без префикса API)
-  const pageHrefAbs =
-    selectedUserInfo?.lastPageHref && /^https?:\/\//i.test(selectedUserInfo.lastPageHref)
-      ? selectedUserInfo.lastPageHref
-      : null;
-
-  const pageText =
-    (selectedUserInfo?.lastPageUrl && String(selectedUserInfo.lastPageUrl)) ||
-    (pageHrefAbs ? new URL(pageHrefAbs).pathname : null);
+  // ссылка «Перейти» — всегда на домене сайта
+  const pageHref = selectedUserInfo?.lastPageUrl ? withSite(selectedUserInfo.lastPageUrl) : null;
 
   return (
     <div className="admin-chat-page">
@@ -342,7 +513,9 @@ export default function AdminChatPage() {
                       className="chat-delete"
                       title="Удалить чат"
                       onClick={(e) => { e.stopPropagation(); handleDeleteChat(c); }}
-                    >×</button>
+                    >
+                      ×
+                    </button>
                   </div>
                 );
               })
@@ -357,16 +530,31 @@ export default function AdminChatPage() {
           ) : (
             <>
               <header className="chat-topbar">
-                <div className="chat-topbar__title"><strong>{selected.name}</strong></div>
+                <div className="chat-topbar__title">
+                  <strong>{selected.name}</strong>
+                </div>
+
                 <div className="chat-actions">
-                  <button className="btn-outline" onClick={async () => { if (!selected) return; await markUnread(selected.userId); await loadChats(); }}>
+                  <button
+                    className="btn-outline"
+                    onClick={async () => {
+                      if (!selected) return;
+                      await markUnread(selected.userId);
+                      await loadChats();
+                    }}
+                  >
                     Непрочитано
                   </button>
+
                   <div className={`quick ${showQuick ? "open" : ""}`}>
-                    <button className="btn-outline" onClick={() => setShowQuick((v) => !v)}>Быстрый ответ</button>
+                    <button className="btn-outline" onClick={() => setShowQuick((v) => !v)}>
+                      Быстрый ответ
+                    </button>
                     {showQuick && (
                       <div className="quick-menu" onMouseLeave={() => setShowQuick(false)}>
-                        {quickReplies.map((q, i) => (<button key={i} onClick={() => handleQuickReply(q)}>{q}</button>))}
+                        {["Ожидайте, пожалуйста. Проверяю информацию ✅","Уже спешу на помощь! 🙌"].map((q, i) => (
+                          <button key={i} onClick={() => handleQuickReply(q)}>{q}</button>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -378,8 +566,11 @@ export default function AdminChatPage() {
                   <div key={m._id || i} className={`bubble ${m.fromAdmin ? "in" : "out"}`}>
                     <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
                     {m.text && <div className="bubble-text">{m.text}</div>}
-                    {m.imageUrls?.map((u, idx) => (<img key={idx} src={withBase(u)} alt="img" className="bubble-img" />))}
+                    {m.imageUrls?.map((u, idx) => (
+                      <img key={idx} src={withBase(u)} alt="img" className="bubble-img" />
+                    ))}
                     {m.audioUrl && <VoiceMessage audioUrl={withBase(m.audioUrl)} createdAt={m.createdAt} />}
+
                     {!m.audioUrl && (
                       <div className="bubble-time">
                         {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -387,12 +578,15 @@ export default function AdminChatPage() {
                     )}
                   </div>
                 ))}
-                {selected?.userId && typingMap[selected.userId]?.isTyping && !typingMap[selected.userId]?.fromAdmin && (
-                  <div className="typing">
-                    <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
-                    <span> печатает</span><TypingAnimation />
-                  </div>
-                )}
+
+                {selected?.userId &&
+                  typingMap[selected.userId]?.isTyping &&
+                  !typingMap[selected.userId]?.fromAdmin && (
+                    <div className="typing">
+                      <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
+                      <span> печатает</span><TypingAnimation />
+                    </div>
+                  )}
                 <div ref={endRef} />
               </div>
 
@@ -408,7 +602,9 @@ export default function AdminChatPage() {
               )}
 
               <div className="composer">
-                <button className="icon-btn" onClick={() => setShowEmoji((v) => !v)} title="Эмодзи">{Svg.smile}</button>
+                <button className="icon-btn" onClick={() => setShowEmoji((v) => !v)} title="Эмодзи">
+                  {Svg.smile}
+                </button>
 
                 {!audioPreview && (
                   <input
@@ -425,19 +621,39 @@ export default function AdminChatPage() {
 
                 <label className={`icon-btn ${audioPreview ? "icon-btn--disabled" : ""}`} title="Прикрепить фото">
                   {Svg.camera}
-                  <input type="file" accept="image/*" multiple onChange={(e)=>setFiles(Array.from(e.target.files || []))} style={{display:"none"}} disabled={!!audioPreview}/>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                    style={{ display: "none" }}
+                    disabled={!!audioPreview}
+                  />
                 </label>
 
-                <button className={`icon-btn mic ${recording ? "mic--rec" : ""}`} onClick={startOrStopRecording} disabled={!!audioPreview} title={recording ? `Остановить запись (${recordingTime}s)` : "Записать голосовое"}>
-                  {Svg.mic}{recording && <span className="mic__badge">{recordingTime}</span>}
+                <button
+                  className={`icon-btn mic ${recording ? "mic--rec" : ""}`}
+                  onClick={startOrStopRecording}
+                  disabled={!!audioPreview}
+                  title={recording ? `Остановить запись (${recordingTime}s)` : "Записать голосовое"}
+                >
+                  {Svg.mic}
+                  {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                <button className="send-btn" onClick={handleSend} disabled={!!recording} title="Отправить">{Svg.send}</button>
+                <button className="send-btn" onClick={handleSend} disabled={!!recording} title="Отправить">
+                  {Svg.send}
+                </button>
               </div>
 
               {showEmoji && (
                 <div className="emoji-popover">
-                  <Picker onEmojiClick={(emojiData) => { setInput((v) => v + emojiData.emoji); setShowEmoji(false); }}/>
+                  <Picker
+                    onEmojiClick={(emojiData) => {
+                      setInput((v) => v + emojiData.emoji);
+                      setShowEmoji(false);
+                    }}
+                  />
                 </div>
               )}
             </>
@@ -461,11 +677,16 @@ export default function AdminChatPage() {
 
               <div className="user-link-row">
                 <b>Страница:</b>{" "}
-                {pageHrefAbs ? (
-                  <a className="user-link" href={pageHrefAbs} target="_blank" rel="noreferrer">
-                    {pageText || pageHrefAbs}
+                {pageHref ? (
+                  <a className="user-link-btn" href={pageHref} target="_blank" rel="noreferrer">
+                    Перейти
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden style={{ marginLeft: 6 }}>
+                      <path d="M14 3h7v7" fill="none" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M21 3l-9 9" fill="none" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M5 12v7h7" fill="none" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
                   </a>
-                ) : ((pageText && <span className="user-link--text">{pageText}</span>) || "—")}
+                ) : ("—")}
               </div>
 
               <div>
@@ -490,11 +711,15 @@ export default function AdminChatPage() {
                   if (!selected) return;
                   setBlocking(true);
                   try {
-                    await api.post(`/api/chat/admin/user/${selected.userId}/block`, { block: !selectedUserInfo.isBlocked });
+                    await api.post(`/api/chat/admin/user/${selected.userId}/block`, {
+                      block: !selectedUserInfo.isBlocked,
+                    });
                     const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
                     setSelectedUserInfo(normalizeUserInfo(info));
                     await loadChats();
-                  } finally { setBlocking(false); }
+                  } finally {
+                    setBlocking(false);
+                  }
                 }}
               >
                 {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
