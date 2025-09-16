@@ -16,6 +16,22 @@ const SECRET = process.env.JWT_SECRET || 'truck_secret';
 router.use(withTenant);
 
 /* =========================================================
+   ДОБАВЛЯЕМ ПОЛЯ ДЛЯ СТРАНИЦЫ, ЕСЛИ ИХ НЕТ В СХЕМЕ
+========================================================= */
+try {
+  if (!User.schema.path('lastPageUrl')) {
+    User.schema.add({
+      lastPageUrl:   { type: String, default: '' }, // относительный или абсолютный URL
+      lastPageHref:  { type: String, default: '' }, // полный href, если нужен
+      lastReferrer:  { type: String, default: '' },
+      lastPageTitle: { type: String, default: '' },
+    });
+  }
+} catch (e) {
+  console.warn('User.schema add page fields failed (ok to ignore if already present):', e?.message);
+}
+
+/* =========================================================
    Multer storage (по тенанту)
 ========================================================= */
 const storage = multer.diskStorage({
@@ -90,17 +106,18 @@ function requireAdmin(req, res, next) {
 function pickPageUrl(req) {
   const b = req.body || {};
   const q = req.query || {};
-  const cand =
-    b.pageUrl || b.pageHref || b.referrer ||
-    q.pageUrl || q.pageHref || q.referrer || null;
-  return cand && typeof cand === 'string' ? cand : null;
+  // при JSON body — из body; при multipart — Multer положит текстовые поля тоже в body
+  const fromBody = b.pageUrl || b.pageHref || b.referrer || b.title;
+  // можно прокидывать заголовком
+  const fromHeader = req.get('x-page-url') || req.get('referer');
+  return (fromBody || fromHeader) || null;
 }
 
 /* ---------- Безопасное удаление файла по относительному пути ---------- */
 function safeUnlink(rel) {
   try {
     if (!rel) return;
-    const cleaned = String(rel).replace(/^\/+/, ''); // "/uploads/..." -> "uploads/..."
+    const cleaned = String(rel).replace(/^\/+/, '');
     const abs = path.resolve(__dirname, '..', cleaned);
     if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) {
       fs.unlinkSync(abs);
@@ -480,12 +497,7 @@ router.post(
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
-      // если админ пишет, тоже можно обновить страницу (полезно при виджете)
-      const pageUrl = pickPageUrl(req);
-      if (pageUrl) {
-        user.lastPageUrl = pageUrl;
-        await user.save();
-      }
+      // при необходимости можно тоже обновлять
 
       const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
