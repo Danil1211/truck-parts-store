@@ -1,4 +1,3 @@
-// src/components/ChatWindow.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import { useSite } from "../context/SiteContext";
@@ -20,6 +19,34 @@ function hexToRgba(hex, alpha) {
 }
 function safeParseJwt(token) {
   try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+}
+
+/* ====================== helpers (страница) =================== */
+function getPageMeta() {
+  const { href, pathname, search, hash } = window.location;
+  const pagePath = `${pathname}${search}${hash}`;
+  return {
+    pageUrl: pagePath || "/",
+    pageHref: href,
+    referrer: document.referrer || null,
+    title: document.title || null,
+  };
+}
+/** Патчим pushState/replaceState, чтобы ловить SPA-навигацию */
+function patchHistory(onChange) {
+  const origPush = history.pushState;
+  const origReplace = history.replaceState;
+  history.pushState = function (...args) {
+    const ret = origPush.apply(this, args);
+    try { onChange(); } catch {}
+    return ret;
+  };
+  history.replaceState = function (...args) {
+    const ret = origReplace.apply(this, args);
+    try { onChange(); } catch {}
+    return ret;
+  };
+  return () => { history.pushState = origPush; history.replaceState = origReplace; };
 }
 
 /* ===================== анимация "печатает" ================== */
@@ -164,7 +191,6 @@ const ChatWindow = ({ onClose }) => {
       recorder.start();
       setIsRecording(true);
       setRecordTime(0);
-
       recordTimer.current = setInterval(() => setRecordTime((prev) => prev + 1), 1000);
     } catch {
       setError('Не удалось начать запись');
@@ -184,15 +210,43 @@ const ChatWindow = ({ onClose }) => {
     shouldScrollToBottom.current = (scrollTop + clientHeight >= scrollHeight - 10);
   };
 
+  /* ======================== presence/страница ==================== */
+  const sendPresence = async () => {
+    if (!effectiveToken) return;
+    const meta = getPageMeta();
+    try {
+      await fetch(`${apiUrl}/api/chat/ping`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${effectiveToken}`
+        },
+        body: JSON.stringify(meta),
+      });
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!effectiveToken) return;
+    sendPresence(); // при монтировании
+    const onNav = () => sendPresence();
+    const unpatch = patchHistory(onNav);
+    window.addEventListener('popstate', onNav);
+    window.addEventListener('hashchange', onNav);
+    const vis = () => { if (document.visibilityState === 'visible') sendPresence(); };
+    document.addEventListener('visibilitychange', vis);
+    return () => {
+      unpatch && unpatch();
+      window.removeEventListener('popstate', onNav);
+      window.removeEventListener('hashchange', onNav);
+      document.removeEventListener('visibilitychange', vis);
+    };
+  }, [effectiveToken]);
+
   /* ======================== онлайн-пинг ========================= */
   useEffect(() => {
     if (!effectiveToken) return;
-    const ping = () => {
-      fetch(`${apiUrl}/api/chat/ping`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${effectiveToken}` }
-      }).catch(() => {});
-    };
+    const ping = () => sendPresence();
     ping();
     const interval = setInterval(ping, 25000);
     return () => clearInterval(interval);
@@ -201,9 +255,11 @@ const ChatWindow = ({ onClose }) => {
   useEffect(() => {
     if (!effectiveToken) return;
     const handleBeforeUnload = () => {
+      const meta = getPageMeta();
       fetch(`${apiUrl}/api/chat/offline`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${effectiveToken}` }
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveToken}` },
+        body: JSON.stringify(meta),
       }).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -218,7 +274,6 @@ const ChatWindow = ({ onClose }) => {
         headers: { Authorization: `Bearer ${effectiveToken}` },
       });
       if (res.status === 401) {
-        // если сайт-токен протух — не трогаем chatToken, наоборот
         if (effectiveToken === chatToken) {
           localStorage.removeItem('chatToken');
           setChatToken(null);
@@ -280,10 +335,11 @@ const ChatWindow = ({ onClose }) => {
       return;
     }
     try {
+      const meta = getPageMeta();
       const res = await fetch(`${apiUrl}/api/chat/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone }),
+        body: JSON.stringify({ name, phone, ...meta }),
       });
       const data = await res.json();
       if (res.status === 409 && data?.code === 'ALREADY_REGISTERED') {
@@ -304,6 +360,7 @@ const ChatWindow = ({ onClose }) => {
   function handleInput(e) {
     setMessage(e.target.value);
     if (!effectiveToken || !userId || !userName) return;
+    const meta = getPageMeta();
     fetch(`${apiUrl}/api/chat/typing`, {
       method: 'POST',
       headers: {
@@ -314,14 +371,15 @@ const ChatWindow = ({ onClose }) => {
         userId,
         isTyping: !!e.target.value,
         name: userName,
-        fromAdmin: false
+        fromAdmin: false,
+        ...meta,
       }),
     }).catch(() => {});
   }
 
   /* ======================== отправка сообщения =================== */
   const handleSend = async () => {
-    if (!effectiveToken) return; // без токена не отправляем
+    if (!effectiveToken) return;
     if (!message.trim() && images.length === 0 && audioChunks.length === 0) return;
 
     const formData = new FormData();
@@ -331,6 +389,12 @@ const ChatWindow = ({ onClose }) => {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       formData.append('audio', audioBlob, 'voice.webm');
     }
+    // >>> добавляем страницу
+    const meta = getPageMeta();
+    formData.append('pageUrl', meta.pageUrl);
+    formData.append('pageHref', meta.pageHref);
+    if (meta.referrer) formData.append('referrer', meta.referrer);
+    if (meta.title) formData.append('title', meta.title);
 
     try {
       const res = await fetch(`${apiUrl}/api/chat`, {
@@ -346,11 +410,7 @@ const ChatWindow = ({ onClose }) => {
       setAudioChunks([]);
       setShowEmoji(false);
       await fetchMessages();
-
-      fetch(`${apiUrl}/api/chat/ping`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${effectiveToken}` }
-      }).catch(() => {});
+      sendPresence(); // обновим lastPageUrl сразу после отправки
     } catch {
       setError('Ошибка отправки сообщения');
       setTimeout(() => setError(''), 2000);
@@ -358,13 +418,14 @@ const ChatWindow = ({ onClose }) => {
 
     // сбросить тайпинг
     if (effectiveToken && userId && userName) {
+      const meta2 = getPageMeta();
       fetch(`${apiUrl}/api/chat/typing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${effectiveToken}`,
         },
-        body: JSON.stringify({ userId, isTyping: false, name: userName, fromAdmin: false }),
+        body: JSON.stringify({ userId, isTyping: false, name: userName, fromAdmin: false, ...meta2 }),
       }).catch(() => {});
     }
   };
@@ -407,7 +468,6 @@ const ChatWindow = ({ onClose }) => {
           <button className="chat-close" onClick={onClose}>×</button>
         </div>
 
-        {/* если есть токен (сайт или чат) — показываем чат; иначе форму регистрации */}
         {!effectiveToken ? (
           <div style={{ padding: 16 }}>
             <p>

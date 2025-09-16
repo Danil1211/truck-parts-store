@@ -1,4 +1,3 @@
-// backend/routes/chat.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -87,6 +86,28 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+/* ---------- Вытаскиваем ссылку страницы из запроса ---------- */
+function pickPageUrl(req) {
+  const b = req.body || {};
+  const q = req.query || {};
+  const cand =
+    b.pageUrl || b.pageHref || b.referrer ||
+    q.pageUrl || q.pageHref || q.referrer || null;
+  return cand && typeof cand === 'string' ? cand : null;
+}
+
+/* ---------- Безопасное удаление файла по относительному пути ---------- */
+function safeUnlink(rel) {
+  try {
+    if (!rel) return;
+    const cleaned = String(rel).replace(/^\/+/, ''); // "/uploads/..." -> "uploads/..."
+    const abs = path.resolve(__dirname, '..', cleaned);
+    if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) {
+      fs.unlinkSync(abs);
+    }
+  } catch {}
+}
+
 /* ======================= typing statuses ======================= */
 let typingStatus = {}; // { tenantId: { userId: { isTyping, name, fromAdmin } } }
 
@@ -128,6 +149,8 @@ router.post('/register', async (req, res) => {
       city = geo.data?.city || '';
     } catch { city = ''; }
 
+    const pageUrl = pickPageUrl(req);
+
     user = await User.create({
       tenantId: req.tenantId,
       email: `${sPhone}@example.com`,
@@ -139,7 +162,8 @@ router.post('/register', async (req, res) => {
       isOnline: true,
       lastOnlineAt: new Date(),
       ip,
-      city
+      city,
+      ...(pageUrl ? { lastPageUrl: pageUrl } : {})
     });
 
     const token = signChatToken(user);
@@ -196,9 +220,10 @@ router.post(
       if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Вы заблокированы' });
 
-      // опционально сохраняем pageUrl (если пришлют из фронта)
-      if (req.body?.pageUrl || req.body?.referrer) {
-        user.lastPageUrl = req.body.pageUrl || req.body.referrer;
+      // сохраняем последнюю страницу, если прилетела
+      const pageUrl = pickPageUrl(req);
+      if (pageUrl) {
+        user.lastPageUrl = pageUrl;
         await user.save();
       }
 
@@ -278,10 +303,8 @@ router.post('/ping', authAny, async (req, res) => {
     if (user) {
       user.isOnline = true;
       user.lastOnlineAt = new Date();
-      // примем и сохраним ссылку страницы, если фронт её прислал
-      if (req.body?.pageUrl || req.body?.referrer) {
-        user.lastPageUrl = req.body.pageUrl || req.body.referrer;
-      }
+      const pageUrl = pickPageUrl(req);
+      if (pageUrl) user.lastPageUrl = pageUrl;
       await user.save();
     }
     res.json({ ok: true });
@@ -299,6 +322,8 @@ router.post('/offline', authAny, async (req, res) => {
     });
     if (user) {
       user.isOnline = false;
+      const pageUrl = pickPageUrl(req);
+      if (pageUrl) user.lastPageUrl = pageUrl;
       await user.save();
     }
     res.json({ ok: true });
@@ -349,7 +374,6 @@ router.get('/admin', requireAdmin, async (req, res) => {
     await updateMissedChats(tStr);
 
     const chats = await Message.aggregate([
-      // НЕ фильтруем по Message.tenantId, берём по пользователю
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$user", lastMessage: { $first: "$$ROOT" } } },
 
@@ -455,6 +479,13 @@ router.post(
       });
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
+
+      // если админ пишет, тоже можно обновить страницу (полезно при виджете)
+      const pageUrl = pickPageUrl(req);
+      if (pageUrl) {
+        user.lastPageUrl = pageUrl;
+        await user.save();
+      }
 
       const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
       const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
@@ -602,18 +633,11 @@ router.delete('/admin/:userId', requireAdmin, async (req, res) => {
       const files = [];
       if (Array.isArray(m.imageUrls)) files.push(...m.imageUrls);
       if (m.audioUrl) files.push(m.audioUrl);
-      for (const rel of files) {
-        try {
-          // rel вида /uploads/<tenant>/<filename>
-          const abs = path.join(__dirname, '..', rel);
-          if (fs.existsSync(abs)) fs.unlinkSync(abs);
-        } catch {}
-      }
+      for (const rel of files) safeUnlink(rel);
     }
 
     await Message.deleteMany({ user: user._id });
 
-    // опционально можно сбросить статусы пользователя
     user.status = 'waiting';
     user.adminLastReadAt = new Date();
     await user.save();
