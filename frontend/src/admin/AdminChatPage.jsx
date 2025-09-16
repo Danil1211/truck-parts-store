@@ -1,21 +1,13 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
-import api from "../utils/api.js";
+import api from "../utils/api";
 import "../assets/admin-chat.css";
 
 const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
-// База для клиентских страниц — домен сайта, а не API
-const SITE_ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
-const withSite = (u) => {
-  if (!u) return null;
-  if (/^https?:\/\//i.test(u)) return u; // уже абсолютный
-  return `${SITE_ORIGIN}${u.startsWith("/") ? u : `/${u}`}`;
-};
-
-/* ---------- НОРМАЛИЗАЦИЯ USER INFO ---------- */
+/** нормализация user info (+ lastPageUrl) */
 const normalizeUserInfo = (raw) => {
   const d = raw?.data ?? raw ?? {};
   const u = d.user ?? d.profile ?? d;
@@ -34,6 +26,24 @@ const normalizeUserInfo = (raw) => {
     lastPageUrl,
   };
 };
+
+const QUOTES = [
+  "Я нашёл 10 000 способов, которые не работают. — Томас Эдисон",
+  "Каждый отказ приближает меня к успеху. — Эдгар Кейси",
+  "Успех — это идти от одной неудачи к другой без потери энтузиазма. — У. Черчилль",
+  "Падение — часть жизни. Вставание — часть жизни успешного человека. — Зиг Зиглар",
+  "Самый большой риск — никогда не рисковать. — М. Цукерберг",
+  "Тот, кто не ошибается, обычно ничего не делает. — У. К. Магги",
+  "Неудача — это просто смена курса. — Опра Уинфри",
+  "Отказы перенаправляют энергию туда, где работает. — Брайан Трейси",
+  "Самый верный путь к успеху — попробовать ещё раз. — Т. Эдисон",
+  "Отказы учат ценить успех. — Грант Кардон",
+  "В продажах «нет» — шанс сделать новое предложение. — Джон Рон",
+  "Сегодня «нет» — завтра кто-то скажет «да». — Джек Кэнфилд",
+  "Победители ищут способы, проигравшие — оправдания. — Ф. Д. Рузвельт",
+  "Неудачи учат нас больше, чем успехи. — Тони Роббинс",
+  "Неудача — не провал, а шанс начать заново. — Ричард Брэнсон",
+];
 
 const Svg = {
   smile: (
@@ -71,18 +81,6 @@ function decodeHtml(html) {
   return txt.value;
 }
 
-function TypingAnimation() {
-  const [dots, setDots] = useState("...");
-  useEffect(() => {
-    const arr = ["...", "..", ".", ""];
-    let i = 0;
-    const t = setInterval(() => setDots(arr[i++ % arr.length]), 320);
-    return () => clearInterval(t);
-  }, []);
-  return <span className="typing-dots">{dots}</span>;
-}
-
-/* === Голосовое в месседже === */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -126,8 +124,8 @@ function AudioPreview({ blob, onRemove }) {
   }, [blob]);
 
   useEffect(() => {
-    if (!audioRef.current) return;
     const a = audioRef.current;
+    if (!a) return;
     const on = () => setPlaying(true);
     const off = () => setPlaying(false);
     a.addEventListener("play", on);
@@ -161,15 +159,23 @@ function AudioPreview({ blob, onRemove }) {
   );
 }
 
-function isUserOnline(info) {
-  if (!info?.lastOnlineAt) return false;
-  return Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000;
-}
+const QUICK = [
+  "Ожидайте, пожалуйста. Проверяю информацию ✅",
+  "Уже спешу на помощь! 🙌",
+  "Спасибо за обращение! Подключаюсь к задаче 👨‍💻",
+  "Можем перейти на звонок, если удобно 📞",
+  "Супер, сейчас пришлю детали 📩",
+  "Понимаю. Предлагаю такой вариант 👇",
+  "Готово! Проверьте, пожалуйста ✅",
+  "Принял, держу в курсе ⏳",
+];
+
+const isUserOnline = (info) =>
+  info?.lastOnlineAt ? Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000 : false;
 
 export default function AdminChatPage() {
   const { resetUnread, unread } = useAdminNotify();
 
-  // точный topbar
   useLayoutEffect(() => {
     const el = document.querySelector(".admin-topbar");
     const h = el ? Math.round(el.getBoundingClientRect().height) : 56;
@@ -198,7 +204,18 @@ export default function AdminChatPage() {
   const audioChunks = useRef([]);
   const recordingTimer = useRef();
 
-  // ================== CHATS LIST ==================
+  const quickRef = useRef(null);
+  const emojiRef = useRef(null);
+  const composerRef = useRef(null);
+
+  // пустой экран — стабильная случайная цитата
+  const emptyQuote = useMemo(
+    () => QUOTES[Math.floor(Math.random() * QUOTES.length)],
+    // обновлять только при первом открытии страницы
+    []
+  );
+
+  // ====== данные
   const normalizeChatsResponse = (res) => {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.chats)) return res.chats;
@@ -221,6 +238,8 @@ export default function AdminChatPage() {
           lastMessageObj: c.lastMessage,
         }))
       );
+      // если открыт чат — сбрасываем непрочитанные по нему (не показываем уведомления в открытом)
+      if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
       setChats([]);
@@ -232,9 +251,8 @@ export default function AdminChatPage() {
     loadChats();
     const iv = setInterval(loadChats, 4000);
     return () => clearInterval(iv);
-  }, []);
+  }, []); // eslint-disable-line
 
-  // ================== MESSAGES ==================
   const loadMessages = async () => {
     if (!selected) return;
     try {
@@ -267,6 +285,7 @@ export default function AdminChatPage() {
     setFiles([]);
     setInput("");
     setShowQuick(false);
+    setShowEmoji(false);
     setIsAutoScroll(true);
     setAudioPreview(null);
     resetUnread(c.userId);
@@ -277,7 +296,7 @@ export default function AdminChatPage() {
     } catch {}
 
     try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
-    setTimeout(loadChats, 180);
+    setTimeout(loadChats, 160);
   };
 
   const handleDeleteChat = async (chat) => {
@@ -293,7 +312,7 @@ export default function AdminChatPage() {
     await loadChats();
   };
 
-  // ================== VOICE ==================
+  // ====== голосовые
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -337,10 +356,6 @@ export default function AdminChatPage() {
     }
   };
 
-  const quickReplies = [
-    "Ожидайте, пожалуйста. Проверяю информацию ✅",
-    "Уже спешу на помощь! 🙌",
-  ];
   const handleQuickReply = async (text) => {
     if (!selected) return;
     try {
@@ -371,7 +386,7 @@ export default function AdminChatPage() {
     }
   };
 
-  // ================== SEND ==================
+  // ====== send
   const sendText = async () => {
     if (!input.trim() || !selected) return;
     try {
@@ -424,12 +439,12 @@ export default function AdminChatPage() {
 
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
-    if (selected?.userId === chat.userId) return false;
+    if (selected?.userId === chat.userId) return false; // открыт — не подсвечиваем
     if (unread[chat.userId]) return true;
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
-  // авто-скролл
+  // автоскролл
   useEffect(() => {
     if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAutoScroll]);
@@ -453,18 +468,36 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []);
 
-  // Универсальная пометка "Непрочитано"
+  // пометить как непрочитанное: пробуем несколько эндпоинтов
   const markUnread = async (uid) => {
     try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
     try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
     try { await api.post(`/api/chat/read/${uid}`, { unread: true }); } catch {}
   };
 
-  if (error) return <div className="admin-chat-error">{error}</div>;
-  const chatList = Array.isArray(chats) ? chats : [];
+  // ====== клик снаружи — закрыть меню и смайлики
+  useEffect(() => {
+    const onDoc = (e) => {
+      const t = e.target;
+      if (showQuick && quickRef.current && !quickRef.current.contains(t)) setShowQuick(false);
+      if (showEmoji) {
+        const inEmoji = emojiRef.current && emojiRef.current.contains(t);
+        const inComposer = composerRef.current && composerRef.current.contains(t);
+        if (!inEmoji && !inComposer) setShowEmoji(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
+  }, [showQuick, showEmoji]);
 
-  // ссылка «Перейти» — всегда на домене сайта
-  const pageHref = selectedUserInfo?.lastPageUrl ? withSite(selectedUserInfo.lastPageUrl) : null;
+  if (error) return <div className="admin-chat-error">{error}</div>;
+
+  const chatList = Array.isArray(chats) ? chats : [];
+  const pageHref = selectedUserInfo?.lastPageUrl
+    ? (selectedUserInfo.lastPageUrl.startsWith("http")
+        ? selectedUserInfo.lastPageUrl
+        : `${BASE_URL}${selectedUserInfo.lastPageUrl}`)
+    : null;
 
   return (
     <div className="admin-chat-page">
@@ -507,7 +540,7 @@ export default function AdminChatPage() {
                         {unreadExists && <span className="chat-new">NEW</span>}
                       </div>
                       <div className="chat-phone">{c.phone}</div>
-                      <div className="chat-last">{c.lastMessage?.slice(0, 64)}</div>
+                      <div className="chat-last">{(c.lastMessage || "").slice(0, 64)}</div>
                     </div>
                     <button
                       className="chat-delete"
@@ -526,7 +559,12 @@ export default function AdminChatPage() {
         {/* CENTER */}
         <section className="chat-main">
           {!selected ? (
-            <div className="chat-empty">Выберите чат слева</div>
+            <div className="chat-empty">
+              <div className="empty-quote">
+                <div className="empty-quote__title">Выберите чат слева</div>
+                <div className="empty-quote__text">“{emptyQuote}”</div>
+              </div>
+            </div>
           ) : (
             <>
               <header className="chat-topbar">
@@ -546,14 +584,14 @@ export default function AdminChatPage() {
                     Непрочитано
                   </button>
 
-                  <div className={`quick ${showQuick ? "open" : ""}`}>
+                  <div className={`quick ${showQuick ? "open" : ""}`} ref={quickRef}>
                     <button className="btn-outline" onClick={() => setShowQuick((v) => !v)}>
                       Быстрый ответ
                     </button>
                     {showQuick && (
-                      <div className="quick-menu" onMouseLeave={() => setShowQuick(false)}>
-                        {["Ожидайте, пожалуйста. Проверяю информацию ✅","Уже спешу на помощь! 🙌"].map((q, i) => (
-                          <button key={i} onClick={() => handleQuickReply(q)}>{q}</button>
+                      <div className="quick-menu">
+                        {QUICK.map((q, i) => (
+                          <button key={i} onClick={() => handleQuickReply(q)} title={q}>{q}</button>
                         ))}
                       </div>
                     )}
@@ -563,14 +601,16 @@ export default function AdminChatPage() {
 
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
                 {Array.isArray(messages) && messages.map((m, i) => (
-                  <div key={m._id || i} className={`bubble ${m.fromAdmin ? "in" : "out"}`}>
+                  <div
+                    key={m._id || i}
+                    className={`bubble ${m.fromAdmin ? "out" : "in"}`} // admin -> right(Out), user -> left(In)
+                  >
                     <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
                     {m.text && <div className="bubble-text">{m.text}</div>}
                     {m.imageUrls?.map((u, idx) => (
                       <img key={idx} src={withBase(u)} alt="img" className="bubble-img" />
                     ))}
                     {m.audioUrl && <VoiceMessage audioUrl={withBase(m.audioUrl)} createdAt={m.createdAt} />}
-
                     {!m.audioUrl && (
                       <div className="bubble-time">
                         {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -584,7 +624,7 @@ export default function AdminChatPage() {
                   !typingMap[selected.userId]?.fromAdmin && (
                     <div className="typing">
                       <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
-                      <span> печатает</span><TypingAnimation />
+                      <span> печатает</span><span className="typing-dots">...</span>
                     </div>
                   )}
                 <div ref={endRef} />
@@ -594,14 +634,18 @@ export default function AdminChatPage() {
                 <div className="previews">
                   {files.map((file, i) => (
                     <div className="preview" key={i}>
-                      <img src={URL.createObjectURL(file)} alt="preview" onLoad={(e)=>URL.revokeObjectURL(e.currentTarget.src)} />
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="preview"
+                        onLoad={(e)=>URL.revokeObjectURL(e.currentTarget.src)}
+                      />
                       <button className="preview__close" onClick={() => removeFile(i)}>×</button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="composer">
+              <div className="composer" ref={composerRef}>
                 <button className="icon-btn" onClick={() => setShowEmoji((v) => !v)} title="Эмодзи">
                   {Svg.smile}
                 </button>
@@ -647,12 +691,18 @@ export default function AdminChatPage() {
               </div>
 
               {showEmoji && (
-                <div className="emoji-popover">
+                <div className="emoji-popover" ref={emojiRef}>
                   <Picker
                     onEmojiClick={(emojiData) => {
                       setInput((v) => v + emojiData.emoji);
                       setShowEmoji(false);
                     }}
+                    width={320}
+                    height={260}
+                    searchDisabled
+                    skinTonesDisabled
+                    previewConfig={{ showPreview: false }}
+                    lazyLoadEmojis
                   />
                 </div>
               )}
@@ -674,21 +724,12 @@ export default function AdminChatPage() {
             <div className="user-props">
               <div><b>IP:</b> <span>{selectedUserInfo.ip || "—"}</span></div>
               <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
-
               <div className="user-link-row">
                 <b>Страница:</b>{" "}
                 {pageHref ? (
-                  <a className="user-link-btn" href={pageHref} target="_blank" rel="noreferrer">
-                    Перейти
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden style={{ marginLeft: 6 }}>
-                      <path d="M14 3h7v7" fill="none" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M21 3l-9 9" fill="none" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M5 12v7h7" fill="none" stroke="currentColor" strokeWidth="2"/>
-                    </svg>
-                  </a>
+                  <a className="user-link" href={pageHref} target="_blank" rel="noreferrer">Перейти ↗</a>
                 ) : ("—")}
               </div>
-
               <div>
                 <b>Статус:</b>{" "}
                 <span className={`pill ${isUserOnline(selectedUserInfo) ? "pill--ok" : "pill--bad"}`}>
