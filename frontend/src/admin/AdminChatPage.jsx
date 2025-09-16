@@ -7,6 +7,25 @@ import "../assets/admin-chat.css";
 const BASE_URL = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const withBase = (u) => (u && /^https?:\/\//i.test(u) ? u : `${BASE_URL}${u || ""}`);
 
+/* ---------- НОРМАЛИЗАЦИЯ USER INFO (фикс "Страница: —") ---------- */
+const normalizeUserInfo = (raw) => {
+  const d = raw?.data ?? raw ?? {};
+  const u = d.user ?? d.profile ?? d; // частые варианты обёрток
+
+  const lastPageUrl =
+    u.lastPageUrl || u.lastPage || u.lastUrl || u.pageUrl || u.path || u.url || null;
+
+  return {
+    name: u.name || d.name || "",
+    phone: u.phone || u.tel || "",
+    ip: u.ip || u.ipAddress || "",
+    city: u.city || u.location?.city || "",
+    isBlocked: Boolean(u.isBlocked ?? u.blocked),
+    lastOnlineAt: u.lastOnlineAt || u.lastSeenAt || u.last_seen || null,
+    lastPageUrl, // относительный или абсолютный — при рендере прогоняем через withBase
+  };
+};
+
 const Svg = {
   smile: (
     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
@@ -222,8 +241,8 @@ export default function AdminChatPage() {
     const load = async () => {
       await loadMessages();
       try {
-        const res = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
-        setSelectedUserInfo(res?.data || res);
+        const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
+        setSelectedUserInfo(normalizeUserInfo(info));
       } catch {}
     };
     load();
@@ -244,7 +263,7 @@ export default function AdminChatPage() {
 
     try {
       const info = await api.get(`/api/chat/admin/user/${c.userId}`, { params: { _: Date.now() } });
-      setSelectedUserInfo(info?.data || info);
+      setSelectedUserInfo(normalizeUserInfo(info));
     } catch {}
 
     try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
@@ -424,7 +443,7 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []);
 
-  // универсальная пометка "Непрочитано" (3 варианта бэка, по очереди)
+  // Универсальная пометка "Непрочитано" — пробуем несколько эндпоинтов
   const markUnread = async (uid) => {
     try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
     try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
@@ -520,7 +539,7 @@ export default function AdminChatPage() {
                     </button>
                     {showQuick && (
                       <div className="quick-menu" onMouseLeave={() => setShowQuick(false)}>
-                        {quickReplies.map((q, i) => (
+                        {["Ожидайте, пожалуйста. Проверяю информацию ✅","Уже спешу на помощь! 🙌"].map((q, i) => (
                           <button key={i} onClick={() => handleQuickReply(q)}>{q}</button>
                         ))}
                       </div>
@@ -642,9 +661,10 @@ export default function AdminChatPage() {
             <div className="user-props">
               <div><b>IP:</b> <span>{selectedUserInfo.ip || "—"}</span></div>
               <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
-              <div><b>Страница:</b>{" "}
-                {selectedUserInfo.lastPageUrl
-                  ? (<a href={selectedUserInfo.lastPageUrl} target="_blank" rel="noreferrer">Открыть</a>)
+              <div>
+                <b>Страница:</b>{" "}
+                {selectedUserInfo?.lastPageUrl
+                  ? (<a href={withBase(selectedUserInfo.lastPageUrl)} target="_blank" rel="noreferrer">Открыть</a>)
                   : "—"}
               </div>
               <div>
@@ -673,7 +693,7 @@ export default function AdminChatPage() {
                       block: !selectedUserInfo.isBlocked,
                     });
                     const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
-                    setSelectedUserInfo(info?.data || info);
+                    setSelectedUserInfo(normalizeUserInfo(info));
                     await loadChats();
                   } finally {
                     setBlocking(false);
