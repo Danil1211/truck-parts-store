@@ -131,3 +131,28 @@
 @media (max-width:1200px){ .admin-chat-root{ grid-template-columns: 280px minmax(0,1fr); }
   .user-panel{ display:none; } }
 @media (max-width:900px){ .admin-chat-root{ grid-template-columns: 1fr; } .chat-sidebar{ display:none; } .bubble{ max-width:85%; } }
+
+/* --- FIX: отступ от левого меню + центрирование контента --- */
+:root{
+  /* если уже есть эта переменная — останется ваша */
+  --sidebar-w: 72px;
+  --page-max: 1320px; /* ширина «по центру» */
+}
+
+.admin-chat-page{
+  /* отступаемся от фиксированного меню и даём внутренние поля */
+  margin-left: var(--sidebar-w, 72px);
+  padding: 12px 16px 16px;
+  box-sizing: border-box;
+}
+
+/* центрируем саму сетку чата */
+.admin-chat-root{
+  max-width: var(--page-max);
+  margin-inline: auto;      /* по центру */
+}
+
+/* на узких экранах меню прячется — отступ убирать */
+@media (max-width: 900px){
+  .admin-chat-page{ margin-left: 0; }
+}
