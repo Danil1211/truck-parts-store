@@ -1,4 +1,3 @@
-// src/admin/AdminChatPage.jsx
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
@@ -53,9 +52,10 @@ const QUOTES = [
   "Неудача — не провал, а шанс начать заново. — Р. Брэнсон",
 ];
 
+/* ==== Иконки (выровнены) ==== */
 const Svg = {
   smile: (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
       <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" />
       <path d="M8 15c1.333 1.333 2.667 2 4 2s2.667-.667 4-2" fill="none" stroke="currentColor" />
       <circle cx="9" cy="10" r="1" fill="currentColor" />
@@ -63,20 +63,20 @@ const Svg = {
     </svg>
   ),
   camera: (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+    <svg className="icon icon--nudge-down" viewBox="0 0 24 24" aria-hidden>
       <rect x="3" y="7" width="18" height="14" rx="3" fill="none" stroke="currentColor" />
       <path d="M7 7l2-3h6l2 3" fill="none" stroke="currentColor" />
       <circle cx="12" cy="14" r="3.5" fill="none" stroke="currentColor" />
     </svg>
   ),
   mic: (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
       <rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" />
       <path d="M5 12a7 7 0 0014 0M12 19v2" fill="none" stroke="currentColor" />
     </svg>
   ),
   send: (
-    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
       <path d="M22 2L11 13" fill="none" stroke="currentColor" />
       <path d="M22 2l-7 20-4-9-9-4 20-7z" fill="none" stroke="currentColor" />
     </svg>
@@ -217,7 +217,7 @@ const QUICK = [
 ];
 
 export default function AdminChatPage() {
-  const { resetUnread, unread, setActiveChatId } = useAdminNotify(); // ← берём setter
+  const { resetUnread, unread, setActiveChatId } = useAdminNotify();
 
   /* корректная высота topbar */
   useLayoutEffect(() => {
@@ -256,11 +256,7 @@ export default function AdminChatPage() {
   const emojiRef = useRef(null);
   const composerRef = useRef(null);
 
-  /* красивый пустой экран: фиксируем цитату один раз */
-  const emptyQuote = useMemo(
-    () => QUOTES[Math.floor(Math.random() * QUOTES.length)],
-    []
-  );
+  const emptyQuote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
 
   /* ================== загрузка чатов ================== */
   const normalizeChatsResponse = (res) => {
@@ -288,7 +284,7 @@ export default function AdminChatPage() {
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
-      setChats((prev) => prev); // не затираем список при ошибке
+      setChats((prev) => prev);
       setError("Ошибка получения чатов");
     }
   };
@@ -308,7 +304,6 @@ export default function AdminChatPage() {
       setMessages((prev) => mergeWithTmp(prev, arr));
     } catch (e) {
       console.error("loadMessages error:", e);
-      // не очищаем, чтобы не мигало
     }
   };
 
@@ -335,7 +330,7 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // синхронизируем активный чат с контекстом и чистим при размонтировании
+  // активный чат → контекст
   useEffect(() => {
     setActiveChatId(selected?.userId || null);
     return () => setActiveChatId(null);
@@ -344,7 +339,7 @@ export default function AdminChatPage() {
 
   const handleSelectChat = async (c) => {
     setSelected(c);
-    setActiveChatId(c.userId); // ← отметили активный чат
+    setActiveChatId(c.userId);
     setFiles([]);
     setInput("");
     setShowQuick(false);
@@ -371,7 +366,7 @@ export default function AdminChatPage() {
       setSelected(null);
       setMessages([]);
       setSelectedUserInfo(null);
-      setActiveChatId(null); // ← очистили активный чат
+      setActiveChatId(null);
     }
     await loadChats();
   };
@@ -475,7 +470,7 @@ export default function AdminChatPage() {
     const optimistic = pushOptimistic({ text });
 
     try {
-      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text /*, clientId: optimistic._id*/ });
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
 
       const real = pickMessage(res);
@@ -502,7 +497,7 @@ export default function AdminChatPage() {
     setInput("");
 
     try {
-      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text /*, clientId: optimistic._id*/ });
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
 
       const real = pickMessage(res);
@@ -701,7 +696,7 @@ export default function AdminChatPage() {
                     <div className="chat-meta">
                       <div className="chat-title">
                         <span className="chat-name">{c.name}</span>
-                        {unreadExists && <span className="chat-new">NEW</span>}
+                        {/* убрали зелёный NEW */}
                       </div>
                       <div className="chat-phone">{c.phone}</div>
                       <div className="chat-last">{(c.lastMessage || "").slice(0, 64)}</div>
@@ -746,7 +741,7 @@ export default function AdminChatPage() {
                       setSelected(null);
                       setMessages([]);
                       setSelectedUserInfo(null);
-                      setActiveChatId(null); // ← закрыли активный чат
+                      setActiveChatId(null);
                     }}
                   >
                     Непрочитано
@@ -771,7 +766,7 @@ export default function AdminChatPage() {
                 {Array.isArray(messages) && messages.map((m, i) => (
                   <div
                     key={m._id || i}
-                    className={`bubble ${m.fromAdmin ? "out" : "in"}`} // admin -> right, user -> left
+                    className={`bubble ${m.fromAdmin ? "out" : "in"}`}
                   >
                     <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
                     {m.text && <div className="bubble-text">{m.text}</div>}
