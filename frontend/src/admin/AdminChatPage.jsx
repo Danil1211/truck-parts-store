@@ -1,3 +1,4 @@
+// src/admin/AdminChatPage.jsx
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
@@ -208,6 +209,10 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
+  // === флаги для анти-гонки ===
+  const sendingRef = useRef(false);       // идёт отправка
+  const skipNextPollRef = useRef(false);  // пропустить ближайший пулл
+
   const endRef = useRef(null);
   const messagesRef = useRef(null);
   const mediaRecorder = useRef(null);
@@ -275,13 +280,24 @@ export default function AdminChatPage() {
 
   useEffect(() => {
     if (!selected) return;
+
     const load = async () => {
+      // если идёт отправка — не дёргаем список, чтобы не словить дубль
+      if (sendingRef.current) return;
+
+      // после успешной отправки пропускаем один цикл
+      if (skipNextPollRef.current) {
+        skipNextPollRef.current = false;
+        return;
+      }
+
       await loadMessages();
       try {
         const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
         setSelectedUserInfo(normalizeUserInfo(info));
       } catch {}
     };
+
     load();
     const iv = setInterval(load, 2500);
     resetUnread(selected.userId);
@@ -366,35 +382,6 @@ export default function AdminChatPage() {
   };
 
   /* ================== быстрые ответы ================== */
-  const handleQuickReply = async (text) => {
-    if (!selected) return;
-    // оптимистично
-    const optimistic = {
-      _id: `tmp-${Date.now()}`,
-      text,
-      fromAdmin: true,
-      createdAt: new Date().toISOString(),
-      imageUrls: [],
-      audioUrl: "",
-    };
-    setMessages((prev) => [...prev, optimistic]);
-
-    try {
-      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, { text });
-      await typingOff();
-      // заменим временное на реальное
-      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id).concat(data));
-      await loadChats();
-    } catch (e) {
-      console.error("quick reply error:", e);
-      // откат
-      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
-    } finally {
-      setShowQuick(false);
-    }
-  };
-
-  /* ================== отправка ================== */
   const pushOptimistic = (payload) => {
     const m = {
       _id: `tmp-${Date.now()}`,
@@ -408,24 +395,61 @@ export default function AdminChatPage() {
     return m;
   };
 
-  const sendText = async () => {
-    if (!input.trim() || !selected) return;
-    const optimistic = pushOptimistic({ text: input.trim() });
-    setInput("");
+  const handleQuickReply = async (text) => {
+    if (!selected || sendingRef.current) return;
+
+    sendingRef.current = true;
+    const optimistic = pushOptimistic({ text });
+
     try {
-      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, { text: optimistic.text });
+      await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id).concat(data));
+
+      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
+      skipNextPollRef.current = true;
+      await loadMessages();
+      await loadChats();
+    } catch (e) {
+      console.error("quick reply error:", e);
+      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
+      setShowQuick(false);
+    }
+  };
+
+  /* ================== отправка ================== */
+  const sendText = async () => {
+    if (!input.trim() || !selected || sendingRef.current) return;
+
+    sendingRef.current = true;
+    const text = input.trim();
+
+    const optimistic = pushOptimistic({ text });
+    setInput("");
+
+    try {
+      await api.post(`/api/chat/admin/${selected.userId}`, { text });
+      await typingOff();
+
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+      skipNextPollRef.current = true;
+      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("sendText error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
     }
   };
 
   const handleAudioSend = async () => {
-    if (!audioPreview || !selected) return;
-    const optimistic = pushOptimistic({ audioUrl: "" }); // просто появится «пузырь»
+    if (!audioPreview || !selected || sendingRef.current) return;
+
+    sendingRef.current = true;
+    const optimistic = pushOptimistic({ audioUrl: "" });
+
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
@@ -433,42 +457,56 @@ export default function AdminChatPage() {
     setAudioPreview(null);
 
     try {
-      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, form, {
+      await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await typingOff();
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id).concat(data));
+
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+      skipNextPollRef.current = true;
+      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
     }
   };
 
   const sendMedia = async ({ audio, images }) => {
-    if (!selected) return;
+    if (!selected || sendingRef.current) return;
+
+    sendingRef.current = true;
     const optimistic = pushOptimistic({
       text: input.trim() || "",
-      imageUrls: images.length ? ["__local_preview__"] : [],
-      audioUrl: audio ? "__local_audio__" : "",
+      imageUrls: [],
+      audioUrl: audio ? "" : "",
     });
+
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
     if (audio) form.append("audio", audio, "voice.webm");
     images.forEach((f) => form.append("images", f));
+
     setFiles([]);
     setInput("");
 
     try {
-      const { data } = await api.post(`/api/chat/admin/${selected.userId}`, form, {
+      await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await typingOff();
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id).concat(data));
+
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+      skipNextPollRef.current = true;
+      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -629,6 +667,10 @@ export default function AdminChatPage() {
                       if (!selected) return;
                       await markUnread(selected.userId);
                       await loadChats();
+                      // выходим из чата сразу
+                      setSelected(null);
+                      setMessages([]);
+                      setSelectedUserInfo(null);
                     }}
                   >
                     Непрочитано
