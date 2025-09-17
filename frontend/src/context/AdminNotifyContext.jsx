@@ -15,7 +15,7 @@ export function useAdminNotify() {
   return useContext(AdminNotifyContext);
 }
 
-// --- Toast ---
+/* ===== Toast ===== */
 function Toast({ data, onClose, onClick }) {
   const [hide, setHide] = useState(false);
 
@@ -32,7 +32,9 @@ function Toast({ data, onClose, onClick }) {
       tabIndex={0}
       style={{ pointerEvents: "auto" }}
     >
-      <span className="tg-toast-icon">{data.type === "order" ? "🧾" : data.type === "cancel" ? "⚠️" : "💬"}</span>
+      <span className="tg-toast-icon">
+        {data.type === "order" ? "🧾" : data.type === "cancel" ? "⚠️" : "💬"}
+      </span>
       <div className="tg-toast-texts">
         <div className="tg-toast-title">{data.title || data.msg}</div>
         {data.subtitle && <div className="tg-toast-sub">{data.subtitle}</div>}
@@ -41,45 +43,46 @@ function Toast({ data, onClose, onClick }) {
       <style>{`
         .tg-toast {
           background: rgba(30,41,59,0.96);
-          color: #fff;
-          padding: 10px 14px 10px 12px;
-          border-radius: 14px;
-          box-shadow: 0 8px 36px #09142829, 0 1.5px 8px #1113;
-          display: flex; align-items: center; gap: 10px;
-          min-width: 240px; max-width: 420px;
-          cursor: pointer;
+          color:#fff;
+          padding:10px 14px 10px 12px;
+          border-radius:14px;
+          box-shadow:0 8px 36px #09142829, 0 1.5px 8px #1113;
+          display:flex; align-items:center; gap:10px;
+          min-width:240px; max-width:420px;
+          cursor:pointer;
           animation: tgtoast-in .28s cubic-bezier(.8,1.5,.9,1) both;
-          opacity: 1; transition: opacity .25s, transform .4s;
-          margin-bottom: 8px;
+          opacity:1; transition:opacity .25s, transform .4s;
+          margin-bottom:8px;
         }
-        .tg-toast.hide { opacity: 0; transform: translateY(-6px) scale(.98); }
-        .tg-toast-icon { font-size: 18px; }
-        .tg-toast-title { font-size: 14px; font-weight: 700; line-height: 1.1; }
-        .tg-toast-sub { font-size: 12.5px; color: #d1d5db; line-height: 1.15; margin-top: 2px; }
+        .tg-toast.hide { opacity:0; transform:translateY(-6px) scale(.98); }
+        .tg-toast-icon { font-size:18px; }
+        .tg-toast-title { font-size:14px; font-weight:700; line-height:1.1; }
+        .tg-toast-sub { font-size:12.5px; color:#d1d5db; line-height:1.15; margin-top:2px; }
         @keyframes tgtoast-in {
-          from {opacity:0;transform:translateY(-10px) scale(.94);}
-          to   {opacity:1;transform:translateY(0)     scale(1);}
+          from {opacity:0; transform:translateY(-10px) scale(.94);}
+          to   {opacity:1; transform:translateY(0)     scale(1);}
         }
       `}</style>
     </div>
   );
 }
 
+/* ===== Provider ===== */
 export function AdminNotifyProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [unread, setUnread] = useState({});
   const [lastUnreadChat, setLastUnreadChat] = useState(null);
 
-  // 🔇 активный чат (не уведомляем по нему)
+  // активный чат (не уведомляем по нему)
   const [activeChatId, setActiveChatId] = useState(null);
   const activeChatIdRef = useRef(null);
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
 
-  // 🔗 «канал» для открытия чата по клику на тост
+  // канал "открыть чат"
   const [openChatRequest, setOpenChatRequest] = useState(null);
   const clearOpenChatRequest = useCallback(() => setOpenChatRequest(null), []);
   const requestOpenChat = useCallback((chatId) => {
-    setOpenChatRequest({ chatId, ts: Date.now() });
+    setOpenChatRequest({ chatId: String(chatId), ts: Date.now() });
   }, []);
 
   const audioMsgRef = useRef();
@@ -103,62 +106,58 @@ export function AdminNotifyProvider({ children }) {
           ? data.map((c) => ({ ...c, lastMessageObj: c.lastMessage }))
           : [];
 
-        // На первом заходе — без уведомлений, просто фиксируем
+        // первое получение — без тостов
         if (firstLoadChats.current) {
           chats.forEach((chat) => {
             if (chat.lastMessageObj && !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read) {
-              lastNotifiedMsgRef.current[chat.userId] = chat.lastMessageObj._id;
+              lastNotifiedMsgRef.current[String(chat.userId)] = chat.lastMessageObj._id;
             }
           });
           firstLoadChats.current = false;
 
-          // инициализируем unread, игноря открытый чат
-          const openId = activeChatIdRef.current;
+          const openId = String(activeChatIdRef.current || "");
           const initialUnread = {};
           chats.forEach((chat) => {
             const lm = chat.lastMessageObj;
-            if (lm && !lm.fromAdmin && !lm.read && chat.userId !== openId) {
-              initialUnread[chat.userId] = 1;
+            if (lm && !lm.fromAdmin && !lm.read && String(chat.userId) !== openId) {
+              initialUnread[String(chat.userId)] = 1;
             }
           });
           setUnread(initialUnread);
           return;
         }
 
-        // Новые входящие
-        const openId = activeChatIdRef.current;
+        // новые входящие
+        const openId = String(activeChatIdRef.current || "");
         chats.forEach((chat) => {
           const lm = chat.lastMessageObj;
           if (lm && !lm.fromAdmin && !lm.read) {
-            const prevId = lastNotifiedMsgRef.current[chat.userId];
+            const key = String(chat.userId);
+            const prevId = lastNotifiedMsgRef.current[key];
             if (prevId !== lm._id) {
-              if (chat.userId === openId) {
-                lastNotifiedMsgRef.current[chat.userId] = lm._id;
-                return;
+              if (key === openId) {
+                lastNotifiedMsgRef.current[key] = lm._id;
+                return; // чат открыт — молчим
               }
-              // Тост с chatId → клик откроет чат
-              notify(
-                `Новое сообщение от ${chat.name || chat.phone || "клиента"}`,
-                "msg",
-                {
-                  chatId: chat.userId,
-                  title: "Новое сообщение",
-                  subtitle: chat.name || chat.phone || "Клиент",
-                }
-              );
-              incrementUnread(chat.userId);
-              setLastUnreadChat(chat.userId);
-              lastNotifiedMsgRef.current[chat.userId] = lm._id;
+              // тост с chatId, по клику откроем
+              notify(`Новое сообщение от ${chat.name || chat.phone || "клиента"}`, "msg", {
+                chatId: key,
+                title: "Новое сообщение",
+                subtitle: chat.name || chat.phone || "Клиент",
+              });
+              incrementUnread(key);
+              setLastUnreadChat(key);
+              lastNotifiedMsgRef.current[key] = lm._id;
             }
           }
         });
 
-        // Пересобираем карту непрочитанных (кроме открытого чата)
+        // актуализируем карту непрочитанных
         const unreadObj = {};
         chats.forEach((chat) => {
           const lm = chat.lastMessageObj;
-          if (lm && !lm.fromAdmin && !lm.read && chat.userId !== openId) {
-            unreadObj[chat.userId] = 1;
+          if (lm && !lm.fromAdmin && !lm.read && String(chat.userId) !== String(openId)) {
+            unreadObj[String(chat.userId)] = 1;
           }
         });
         setUnread(unreadObj);
@@ -170,15 +169,17 @@ export function AdminNotifyProvider({ children }) {
   }, []);
 
   const incrementUnread = useCallback((userId) => {
-    setUnread((u) => ({ ...u, [userId]: 1 }));
+    const key = String(userId);
+    setUnread((u) => ({ ...u, [key]: 1 }));
   }, []);
   const resetUnread = useCallback((userId) => {
+    const key = String(userId);
     setUnread((u) => {
       const nu = { ...u };
-      delete nu[userId];
+      delete nu[key];
       return nu;
     });
-    sessionStorage.setItem("admin-selected-user", userId);
+    sessionStorage.setItem("admin-selected-user", key);
     setLastUnreadChat(null);
   }, []);
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
@@ -223,7 +224,7 @@ export function AdminNotifyProvider({ children }) {
 
   const totalNewOrders = newOrders.length;
 
-  // --- Отменённые заказы (как было) ---
+  // --- Отменённые (как было) ---
   const prevCancelledRef = useRef([]);
   const firstLoadCancelled = useRef(true);
 
@@ -265,7 +266,6 @@ export function AdminNotifyProvider({ children }) {
   const notify = useCallback((msg, type = "msg", extra = {}) => {
     const t = { id: Date.now() + Math.random(), msg, type, ...extra };
     setToasts((prev) => {
-      // лимит стека = 3
       const next = [...prev, t];
       return next.length > 3 ? next.slice(next.length - 3) : next;
     });
@@ -294,7 +294,6 @@ export function AdminNotifyProvider({ children }) {
         totalNewOrders,
         activeChatId,
         setActiveChatId,
-        // клик по тосту -> открыть чат
         openChatRequest,
         clearOpenChatRequest,
       }}
@@ -305,7 +304,7 @@ export function AdminNotifyProvider({ children }) {
       <audio ref={audioOrderRef} src="/order.mp3" preload="auto" />
       <audio ref={audioCancelRef} src="/cancelOrder.mp3" preload="auto" />
 
-      {/* контейнер тостов по центру сверху */}
+      {/* центр сверху */}
       <div
         style={{
           position: "fixed",
@@ -321,7 +320,7 @@ export function AdminNotifyProvider({ children }) {
             <Toast
               data={t}
               onClose={() => removeToast(t.id)}
-              onClick={() => { if (t.chatId) requestOpenChat(t.chatId); }}
+              onClick={() => { if (t.chatId) requestOpenChat(String(t.chatId)); }}
             />
           </div>
         ))}
