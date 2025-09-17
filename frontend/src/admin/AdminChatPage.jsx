@@ -1,3 +1,4 @@
+// src/admin/AdminChatPage.jsx
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
@@ -52,10 +53,9 @@ const QUOTES = [
   "Неудача — не провал, а шанс начать заново. — Р. Брэнсон",
 ];
 
-/* Иконки выровненные (размер задан через CSS .icon) */
 const Svg = {
   smile: (
-    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
       <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" />
       <path d="M8 15c1.333 1.333 2.667 2 4 2s2.667-.667 4-2" fill="none" stroke="currentColor" />
       <circle cx="9" cy="10" r="1" fill="currentColor" />
@@ -63,20 +63,20 @@ const Svg = {
     </svg>
   ),
   camera: (
-    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
       <rect x="3" y="7" width="18" height="14" rx="3" fill="none" stroke="currentColor" />
       <path d="M7 7l2-3h6l2 3" fill="none" stroke="currentColor" />
       <circle cx="12" cy="14" r="3.5" fill="none" stroke="currentColor" />
     </svg>
   ),
   mic: (
-    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
       <rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" />
-      <path d="M5 12a7 7 0 0014 0M12 19v2" fill="none" stroke="currentColor" />
+      <path d="M5 12a7 7 0 0 0 14 0M12 19v2" fill="none" stroke="currentColor" />
     </svg>
   ),
   send: (
-    <svg className="icon" viewBox="0 0 24 24" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
       <path d="M22 2L11 13" fill="none" stroke="currentColor" />
       <path d="M22 2l-7 20-4-9-9-4 20-7z" fill="none" stroke="currentColor" />
     </svg>
@@ -246,6 +246,9 @@ export default function AdminChatPage() {
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
 
+  // ожидаемый к открытию чат (когда список ещё не загрузился)
+  const pendingOpenId = useRef(null);
+
   const endRef = useRef(null);
   const messagesRef = useRef(null);
   const mediaRecorder = useRef(null);
@@ -288,7 +291,7 @@ export default function AdminChatPage() {
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
-      setChats((prev) => prev); // не затираем список при ошибке
+      setChats((prev) => prev);
       setError("Ошибка получения чатов");
     }
   };
@@ -299,6 +302,17 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []); // eslint-disable-line
 
+  /* если был pending chatId — откроем его как только список подгрузился */
+  useEffect(() => {
+    if (!pendingOpenId.current || !Array.isArray(chats) || chats.length === 0) return;
+    const found = chats.find((c) => String(c.userId) === String(pendingOpenId.current));
+    if (found) {
+      pendingOpenId.current = null;
+      handleSelectChat(found);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chats]);
+
   /* ================== загрузка сообщений ================== */
   const loadMessages = async () => {
     if (!selected) return;
@@ -308,7 +322,6 @@ export default function AdminChatPage() {
       setMessages((prev) => mergeWithTmp(prev, arr));
     } catch (e) {
       console.error("loadMessages error:", e);
-      // не очищаем, чтобы не мигало
     }
   };
 
@@ -335,12 +348,44 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // синхронизируем активный чат с контекстом
+  // активный чат в контексте
   useEffect(() => {
     setActiveChatId(selected?.userId || null);
     return () => setActiveChatId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
+
+  /* ==== Открытие чата по id (для клика по уведомлению) ==== */
+  const openChatById = async (userId) => {
+    if (!userId) return;
+    const chat = chats.find((c) => String(c.userId) === String(userId));
+    if (chat) {
+      handleSelectChat(chat);
+    } else {
+      pendingOpenId.current = String(userId);
+      await loadChats();
+    }
+  };
+
+  // 1) при монтировании — берем сохранённый id
+  useEffect(() => {
+    const stored = sessionStorage.getItem("openChatId");
+    if (stored) {
+      sessionStorage.removeItem("openChatId");
+      openChatById(stored);
+    }
+  }, []); // один раз
+
+  // 2) если уже на странице — принимаем внутреннее событие
+  useEffect(() => {
+    const onOpenInPage = (e) => {
+      const id = e.detail?.chatId;
+      if (id) openChatById(id);
+    };
+    window.addEventListener("open-chat-in-page", onOpenInPage);
+    return () => window.removeEventListener("open-chat-in-page", onOpenInPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSelectChat = async (c) => {
     setSelected(c);
@@ -376,71 +421,19 @@ export default function AdminChatPage() {
     await loadChats();
   };
 
-  /* ================== Открытие чата по клику на уведомление ================== */
-  const openChatById = async (uid) => {
-    const id = String(uid);
-
-    // 1) пробуем найти уже загруженный
-    let c = chats.find((x) => String(x.userId) === id);
-    if (c) {
-      handleSelectChat(c);
-      return;
-    }
-
-    // 2) фантом выбранного чата, чтобы сразу перейти в центр
-    const phantom = { userId: id, name: "Клиент", phone: "" };
-    setSelected(phantom);
-    setActiveChatId(id);
-    resetUnread(id);
-
-    try {
-      const infoRes = await api.get(`/api/chat/admin/user/${id}`, { params: { _: Date.now() } });
-      const info = normalizeUserInfo(infoRes);
-      setSelected((prev) => ({
-        ...(prev || {}),
-        userId: id,
-        name: info.name || prev?.name || "Клиент",
-        phone: info.phone || prev?.phone || "",
-      }));
-      setSelectedUserInfo(info);
-    } catch {}
-
-    try { await api.post(`/api/chat/read/${id}`); } catch {}
-
-    // 3) подтянем список и синхронизируем карточку слева
-    try {
-      const res = await api(`/api/chat/admin?_=${Date.now()}`);
-      const arr = normalizeChatsResponse(res);
-      c = arr.find((x) => String(x.userId) === id);
-      if (c) handleSelectChat(c);
-      else setTimeout(loadChats, 200);
-    } catch {}
-  };
-
-  useEffect(() => {
-    const onOpen = (e) => {
-      const { chatId } = e.detail || {};
-      if (chatId) openChatById(chatId);
-    };
-    window.addEventListener("open-chat", onOpen);
-    return () => window.removeEventListener("open-chat", onOpen);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   /* ================== голосовые ================== */
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
         try {
-          const rec = new window.MediaRecorder(stream);
-          rec.ondataavailable = (e) => audioChunks.current.push(e.data);
-          rec.onstop = () => {
+          mediaRecorder.current = new window.MediaRecorder(stream);
+          mediaRecorder.current.ondataavailable = (e) => audioChunks.current.push(e.data);
+          mediaRecorder.current.onstop = () => {
             const blob = new Blob(audioChunks.current, { type: "audio/webm" });
             audioChunks.current = [];
             setAudioPreview(blob);
           };
-          mediaRecorder.current = rec;
         } catch {}
       })
       .catch(() => {});
@@ -476,7 +469,7 @@ export default function AdminChatPage() {
   function updateChatPreviewOptimistic(userId, payload) {
     setChats((prev) =>
       prev.map((c) =>
-        String(c.userId) === String(userId)
+        c.userId === userId
           ? {
               ...c,
               lastMessageObj: {
@@ -659,8 +652,8 @@ export default function AdminChatPage() {
 
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
-    if (String(selected?.userId) === String(chat.userId)) return false; // открытый чат — не уведомляем
-    if (unread[String(chat.userId)]) return true;
+    if (selected?.userId === chat.userId) return false;
+    if (unread[chat.userId]) return true;
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
@@ -690,10 +683,9 @@ export default function AdminChatPage() {
 
   /* пометить как непрочитанное (надежно) */
   const markUnread = async (uid) => {
-    const id = String(uid);
-    try { await api.post(`/api/chat/admin/${id}/unread`); return; } catch {}
-    try { await api.post(`/api/chat/unread/${id}`); return; } catch {}
-    try { await api.post(`/api/chat/read/${id}`, { unread: true }); } catch {}
+    try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
+    try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
+    try { await api.post(`/api/chat/read/${uid}`, { unread: true }); } catch {}
   };
 
   /* закрытие меню/эмодзи по клику вне */
@@ -728,7 +720,7 @@ export default function AdminChatPage() {
               onChange={(e) => {
                 const q = e.target.value.trim();
                 if (!q) return loadChats();
-                const f = chats.filter((c) => (String(c.phone || "")).includes(q));
+                const f = chats.filter((c) => (c.phone || "").includes(q));
                 setChats(f);
               }}
             />
@@ -739,7 +731,7 @@ export default function AdminChatPage() {
               <div className="chat-empty-left">Пока нет диалогов</div>
             ) : (
               chatList.map((c) => {
-                const isSelected = String(selected?.userId) === String(c.userId);
+                const isSelected = selected?.userId === c.userId;
                 const unreadExists = hasUnread(c);
                 return (
                   <div
@@ -754,6 +746,7 @@ export default function AdminChatPage() {
                     <div className="chat-meta">
                       <div className="chat-title">
                         <span className="chat-name">{c.name}</span>
+                        {/* убрали "NEW" бейдж, оставили только красную точку */}
                       </div>
                       <div className="chat-phone">{c.phone}</div>
                       <div className="chat-last">{(c.lastMessage || "").slice(0, 64)}</div>

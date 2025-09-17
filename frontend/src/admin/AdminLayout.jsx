@@ -1,6 +1,6 @@
 // src/admin/AdminLayout.jsx
 import React, { useState, useEffect } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import "../assets/AdminPanel.css";
@@ -88,6 +88,8 @@ function Icon({ name }) {
 export default function AdminLayout() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
   const [dark, setDark] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -110,7 +112,7 @@ export default function AdminLayout() {
 
   const isActive = (href) => location.pathname.startsWith(href);
 
-  // имитация инициализации (напр. /api/settings)
+  // инициализация (например /api/settings)
   useEffect(() => {
     (async () => {
       try {
@@ -122,6 +124,23 @@ export default function AdminLayout() {
       }
     })();
   }, []);
+
+  // Глобальный слушатель: открыть чат по событию с уведомления
+  useEffect(() => {
+    const onOpenChat = (e) => {
+      const { chatId } = e.detail || {};
+      if (!chatId) return;
+      sessionStorage.setItem("openChatId", String(chatId));
+      if (location.pathname !== "/admin/chat") {
+        navigate("/admin/chat");
+      } else {
+        // если уже на странице чата — продублируем событие для неё
+        window.dispatchEvent(new CustomEvent("open-chat-in-page", { detail: { chatId } }));
+      }
+    };
+    window.addEventListener("open-chat", onOpenChat);
+    return () => window.removeEventListener("open-chat", onOpenChat);
+  }, [location.pathname, navigate]);
 
   if (loading) return <LoaderScreen />;
 
@@ -141,7 +160,6 @@ export default function AdminLayout() {
         </div>
 
         <div className="admin-topbar-right">
-          {/* Переключатель темы */}
           <label className="theme-switch">
             <input
               type="checkbox"
@@ -152,23 +170,19 @@ export default function AdminLayout() {
             <span className="theme-label">Темная тема</span>
           </label>
 
-          {/* Техподдержка */}
           <button className="support-btn" title="Техподдержка">
             <Icon name="support" />
             <span>Техподдержка</span>
           </button>
 
-          {/* Тариф */}
           <div className="tariff-chip">
             Ваш тариф: <b>Free</b>
           </div>
 
-          {/* Посетители */}
           <div className="visitors-chip">
             Посетителей на сайте: <b>0</b>
           </div>
 
-          {/* Профиль */}
           <div className="profile-mini" title={user?.email || "Профиль"}>
             <div className="avatar-mini">
               {user?.name?.charAt(0)?.toUpperCase() || "A"}
