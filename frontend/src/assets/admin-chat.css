@@ -206,17 +206,19 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === СПИННЕР: наш фирменный (две синие дуги, белое ядро, серый трек) === */
+/* === СПИННЕР: одна синяя дуга (как на скрине) === */
 .spinner{
-  --size:22px;            /* базовый размер */
-  --thick:3px;            /* толщина кольца */
-  --track:#e9eef6;        /* серый трек */
-  --accent:#2291ff;       /* синяя дуга */
+  --size:22px;          /* базовый размер */
+  --thick:3px;          /* толщина кольца */
+  --track:#e9eef6;      /* серый трек */
+  --accent:#2291ff;     /* синяя дуга */
+  --speed:.9s;          /* скорость */
   position:relative;
   display:inline-block;
   width:var(--size);
   height:var(--size);
   vertical-align:middle;
+
   /* белое ядро с мягким сиянием */
   background:
     radial-gradient(circle at 50% 50%, #ffffff 0 58%, transparent 59% 100%);
@@ -230,28 +232,22 @@
   border:var(--thick) solid var(--track);
 }
 
-/* две дуги с хвостами + вращение */
+/* ОДНА дуга (около 80°) поверх трека + вращение */
 .spinner::after{
   content:"";
   position:absolute; inset:0;
   border-radius:50%;
+  /* дуга: прозрачное → синий сектор → прозрачное */
   background:
     conic-gradient(
       from 0deg,
-      transparent 0deg 20deg,
-      rgba(34,145,255,.25) 20deg 26deg,
-      rgba(34,145,255,.95) 26deg 52deg,
-      rgba(34,145,255,.25) 52deg 58deg,
-      transparent 58deg 170deg,
-      rgba(34,145,255,.25) 170deg 176deg,
-      rgba(34,145,255,.95) 176deg 202deg,
-      rgba(34,145,255,.25) 202deg 208deg,
-      transparent 208deg 360deg
+      transparent 0deg 280deg,          /* пустая часть круга */
+      var(--accent) 280deg 360deg       /* синяя дуга (~80°) */
     );
-  /* маска делает «пончик» */
+  /* маска формирует «бублик» толщиной var(--thick) */
   -webkit-mask:radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
           mask:radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
-  animation:spinner-rot .8s linear infinite;
+  animation:spinner-rot var(--speed) linear infinite;
 }
 @keyframes spinner-rot { to { transform:rotate(360deg); } }
 
@@ -260,31 +256,20 @@
 .spinner--md{ --size:24px; }
 .spinner--xs{ --size:14px; --thick:2px; }
 
-/* белый вариант для кнопок */
+/* белый вариант для кнопок (на синей кнопке) */
 .spinner--btn{
   --size:18px; --thick:2.5px;
   --track:rgba(255,255,255,.35);
   --accent:#fff;
   background:
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,.95) 0 58%, transparent 59% 100%);
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.96) 0 58%, transparent 59% 100%);
 }
 .spinner--btn::after{
   background:
-    conic-gradient(
-      from 0deg,
-      transparent 0deg 20deg,
-      rgba(255,255,255,.25) 20deg 26deg,
-      rgba(255,255,255,.95) 26deg 52deg,
-      rgba(255,255,255,.25) 52deg 58deg,
-      transparent 58deg 170deg,
-      rgba(255,255,255,.25) 170deg 176deg,
-      rgba(255,255,255,.95) 176deg 202deg,
-      rgba(255,255,255,.25) 202deg 208deg,
-      transparent 208deg 360deg
-    );
+    conic-gradient(from 0deg, transparent 0deg 280deg, var(--accent) 280deg 360deg);
 }
 
-/* Оверлеи загрузки (если используешь) */
+/* Оверлеи загрузки */
 .loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
 .area-loader{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.6); z-index:5; }
 

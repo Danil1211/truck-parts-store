@@ -1,4 +1,3 @@
-// src/admin/AdminChatPage.jsx
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Picker from "emoji-picker-react";
 import { useAdminNotify } from "../context/AdminNotifyContext";
@@ -106,10 +105,8 @@ const pickMessage = (res) => {
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
-/* мердж сервера с локальными tmp, чтобы tmp не исчезал до подтверждения с бэка */
 function mergeWithTmp(prev, serverArr) {
   const server = Array.isArray(serverArr) ? serverArr : [];
-
   const isSimilar = (tmp) =>
     server.some((s) => {
       const sameSide = !!s.fromAdmin === !!tmp.fromAdmin;
@@ -120,9 +117,39 @@ function mergeWithTmp(prev, serverArr) {
         Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 15000;
       return sameSide && (sameText || bothAudio || bothImages) && closeTime;
     });
-
   const tmpLeft = prev.filter((m) => String(m._id || "").startsWith("tmp-") && !isSimilar(m));
   return sortByDate([...server, ...tmpLeft]);
+}
+
+/* --- голосовая «пузырь» --- */
+function VoiceMessage({ audioUrl, createdAt }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    playing ? a.pause() : a.play();
+  };
+  return (
+    <div className="voice-bubble">
+      <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
+        {playing ? "⏸" : "▶️"}
+      </button>
+      <div className="voice-bar"><div className="voice-bar-bg" /></div>
+      <span className="voice-time">
+        {createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+      </span>
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        style={{ display: "none" }}
+        preload="auto"
+      />
+    </div>
+  );
 }
 
 /* --- предпрослушка записи --- */
@@ -130,14 +157,12 @@ function AudioPreview({ blob, onRemove }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
-
   useEffect(() => {
     if (!blob) return;
     const u = URL.createObjectURL(blob);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [blob]);
-
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -152,9 +177,7 @@ function AudioPreview({ blob, onRemove }) {
       a.removeEventListener("ended", off);
     };
   }, [url]);
-
   if (!blob) return null;
-
   return (
     <div className="audio-preview">
       <button
@@ -188,7 +211,6 @@ const QUICK = [
 export default function AdminChatPage() {
   const { resetUnread, unread, setActiveChatId } = useAdminNotify();
 
-  /* корректная высота topbar */
   useLayoutEffect(() => {
     const el = document.querySelector(".admin-topbar");
     const h = el ? Math.round(el.getBoundingClientRect().height) : 56;
@@ -234,17 +256,14 @@ export default function AdminChatPage() {
   const emojiRef = useRef(null);
   const composerRef = useRef(null);
 
-  // для «только первый раз» флагов
   const firstChatsLoadRef = useRef(true);
   const firstThreadLoadRef = useRef(false);
 
-  /* красивый пустой экран: фиксируем цитату один раз */
   const emptyQuote = useMemo(
     () => QUOTES[Math.floor(Math.random() * QUOTES.length)],
     []
   );
 
-  /* ================== загрузка чатов ================== */
   const normalizeChatsResponse = (res) => {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.chats)) return res.chats;
@@ -270,7 +289,7 @@ export default function AdminChatPage() {
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
-      setChats((prev) => prev); // не затираем список
+      setChats((prev) => prev);
       setError("Ошибка получения чатов");
     } finally {
       if (firstChatsLoadRef.current) {
@@ -286,7 +305,6 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []); // eslint-disable-line
 
-  // pending open once chats are here
   useEffect(() => {
     if (!pendingOpenId.current || !Array.isArray(chats) || chats.length === 0) return;
     const found = chats.find((c) => String(c.userId) === String(pendingOpenId.current));
@@ -297,7 +315,6 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats]);
 
-  /* ================== загрузка сообщений ================== */
   const loadMessages = async () => {
     if (!selected) return;
     try {
@@ -342,14 +359,12 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // активный чат в контексте
   useEffect(() => {
     setActiveChatId(selected?.userId || null);
     return () => setActiveChatId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  /* ==== открытие чата по id (клик по уведомлению) ==== */
   const openChatById = async (userId) => {
     if (!userId) return;
     const chat = chats.find((c) => String(c.userId) === String(userId));
@@ -417,7 +432,6 @@ export default function AdminChatPage() {
     await loadChats();
   };
 
-  /* ================== голосовые ================== */
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
@@ -461,7 +475,6 @@ export default function AdminChatPage() {
     }
   };
 
-  /* ===== превью чатов слева — оптимистично ===== */
   function updateChatPreviewOptimistic(userId, payload) {
     setChats((prev) =>
       prev.map((c) =>
@@ -488,7 +501,6 @@ export default function AdminChatPage() {
     );
   }
 
-  /* ================== отправка ================== */
   const pushOptimistic = (payload) => {
     const m = {
       _id: `tmp-${Date.now()}`,
@@ -511,18 +523,14 @@ export default function AdminChatPage() {
 
   const handleQuickReply = async (text) => {
     if (!selected || sendingRef.current) return;
-
     sendingRef.current = true;
     setIsSending(true);
     const optimistic = pushOptimistic({ text });
-
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
-
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-
       skipNextPollRef.current = true;
       await loadChats();
     } catch (e) {
@@ -537,21 +545,16 @@ export default function AdminChatPage() {
 
   const sendText = async () => {
     if (!input.trim() || !selected || sendingRef.current) return;
-
     sendingRef.current = true;
     setIsSending(true);
     const text = input.trim();
-
     const optimistic = pushOptimistic({ text });
     setInput("");
-
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
-
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-
       skipNextPollRef.current = true;
       await loadChats();
     } catch (e) {
@@ -565,26 +568,21 @@ export default function AdminChatPage() {
 
   const handleAudioSend = async () => {
     if (!audioPreview || !selected || sendingRef.current) return;
-
     sendingRef.current = true;
     setIsSending(true);
     const optimistic = pushOptimistic({ audioUrl: "" });
-
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
     setFiles([]);
     setAudioPreview(null);
-
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await typingOff();
-
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-
       skipNextPollRef.current = true;
       await loadChats();
     } catch (e) {
@@ -598,7 +596,6 @@ export default function AdminChatPage() {
 
   const sendMedia = async ({ audio, images }) => {
     if (!selected || sendingRef.current) return;
-
     sendingRef.current = true;
     setIsSending(true);
     const optimistic = pushOptimistic({
@@ -606,24 +603,19 @@ export default function AdminChatPage() {
       imageUrls: images?.length ? ["__local__"] : [],
       audioUrl: audio ? "__local__" : "",
     });
-
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
     if (audio) form.append("audio", audio, "voice.webm");
     (images || []).forEach((f) => form.append("images", f));
-
     setFiles([]);
     setInput("");
-
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await typingOff();
-
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-
       skipNextPollRef.current = true;
       await loadChats();
     } catch (e) {
@@ -656,12 +648,11 @@ export default function AdminChatPage() {
 
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
-    if (selected?.userId === chat.userId) return false; // открытый чат — не уведомляем
+    if (selected?.userId === chat.userId) return false;
     if (unread[chat.userId]) return true;
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
-  /* автоскролл */
   useEffect(() => {
     if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAutoScroll]);
@@ -672,7 +663,6 @@ export default function AdminChatPage() {
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
-  /* typing poll */
   useEffect(() => {
     const poll = async () => {
       try {
@@ -685,14 +675,12 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []);
 
-  /* пометить как непрочитанное (надежно) */
   const markUnread = async (uid) => {
     try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
     try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
     try { await api.post(`/api/chat/read/${uid}`, { unread: true }); } catch {}
   };
 
-  /* закрытие меню/эмодзи по клику вне */
   useEffect(() => {
     const onDoc = (e) => {
       const t = e.target;
@@ -750,7 +738,6 @@ export default function AdminChatPage() {
                     <div className="chat-meta">
                       <div className="chat-title">
                         <span className="chat-name">{c.name}</span>
-                        {/* убрали бейдж NEW */}
                       </div>
                       <div className="chat-phone">{c.phone}</div>
                       <div className="chat-last">{(c.lastMessage || "").slice(0, 64)}</div>
