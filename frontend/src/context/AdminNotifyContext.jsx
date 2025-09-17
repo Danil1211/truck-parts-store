@@ -15,7 +15,33 @@ export function useAdminNotify() {
   return useContext(AdminNotifyContext);
 }
 
-/* ===== Toast ===== */
+/* ----- Badge (если где-то нужен) ----- */
+export function UnreadBadge({ count }) {
+  if (!count) return null;
+  return (
+    <span
+      style={{
+        background: "#f43f5e",
+        color: "#fff",
+        fontSize: 13,
+        fontWeight: 600,
+        borderRadius: "10px",
+        padding: "1px 7px",
+        marginLeft: 8,
+        minWidth: 18,
+        display: "inline-block",
+        textAlign: "center",
+        lineHeight: "20px",
+        verticalAlign: "middle",
+        boxShadow: "0 1px 5px #0002",
+      }}
+    >
+      {count}
+    </span>
+  );
+}
+
+/* ----- Toast ----- */
 function Toast({ data, onClose, onClick }) {
   const [hide, setHide] = useState(false);
 
@@ -67,36 +93,31 @@ function Toast({ data, onClose, onClick }) {
   );
 }
 
-/* ===== Provider ===== */
+/* ----- Provider ----- */
 export function AdminNotifyProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [unread, setUnread] = useState({});
   const [lastUnreadChat, setLastUnreadChat] = useState(null);
 
-  // активный чат (не уведомляем по нему)
+  // активный чат — по нему не показываем тосты/не считаем unread
   const [activeChatId, setActiveChatId] = useState(null);
   const activeChatIdRef = useRef(null);
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
-
-  // канал "открыть чат"
-  const [openChatRequest, setOpenChatRequest] = useState(null);
-  const clearOpenChatRequest = useCallback(() => setOpenChatRequest(null), []);
-  const requestOpenChat = useCallback((chatId) => {
-    setOpenChatRequest({ chatId: String(chatId), ts: Date.now() });
-  }, []);
 
   const audioMsgRef = useRef();
   const audioOrderRef = useRef();
   const audioCancelRef = useRef();
 
-  // --- Чаты ---
+  // для антидублей уведомлений
   const lastNotifiedMsgRef = useRef({});
   const firstLoadChats = useRef(true);
 
+  /* ---- Пуллинг чатов ---- */
   useEffect(() => {
     async function pollChats() {
       const token = localStorage.getItem("token");
       if (!token) return;
+
       try {
         const res = await fetch(`${apiUrl}/api/chat/admin`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -106,11 +127,12 @@ export function AdminNotifyProvider({ children }) {
           ? data.map((c) => ({ ...c, lastMessageObj: c.lastMessage }))
           : [];
 
-        // первое получение — без тостов
+        // первичная инициализация — без тостов
         if (firstLoadChats.current) {
           chats.forEach((chat) => {
-            if (chat.lastMessageObj && !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read) {
-              lastNotifiedMsgRef.current[String(chat.userId)] = chat.lastMessageObj._id;
+            const lm = chat.lastMessageObj;
+            if (lm && !lm.fromAdmin && !lm.read) {
+              lastNotifiedMsgRef.current[String(chat.userId)] = lm._id;
             }
           });
           firstLoadChats.current = false;
@@ -127,8 +149,9 @@ export function AdminNotifyProvider({ children }) {
           return;
         }
 
-        // новые входящие
         const openId = String(activeChatIdRef.current || "");
+
+        // новые входящие
         chats.forEach((chat) => {
           const lm = chat.lastMessageObj;
           if (lm && !lm.fromAdmin && !lm.read) {
@@ -136,10 +159,11 @@ export function AdminNotifyProvider({ children }) {
             const prevId = lastNotifiedMsgRef.current[key];
             if (prevId !== lm._id) {
               if (key === openId) {
+                // чат открыт — молчим
                 lastNotifiedMsgRef.current[key] = lm._id;
-                return; // чат открыт — молчим
+                return;
               }
-              // тост с chatId, по клику откроем
+              // показываем тост (по клику откроем чат)
               notify(`Новое сообщение от ${chat.name || chat.phone || "клиента"}`, "msg", {
                 chatId: key,
                 title: "Новое сообщение",
@@ -152,26 +176,29 @@ export function AdminNotifyProvider({ children }) {
           }
         });
 
-        // актуализируем карту непрочитанных
+        // актуализируем карту непрочитанных (игнорим открытый чат)
         const unreadObj = {};
         chats.forEach((chat) => {
           const lm = chat.lastMessageObj;
-          if (lm && !lm.fromAdmin && !lm.read && String(chat.userId) !== String(openId)) {
+          if (lm && !lm.fromAdmin && !lm.read && String(chat.userId) !== openId) {
             unreadObj[String(chat.userId)] = 1;
           }
         });
         setUnread(unreadObj);
       } catch {}
     }
+
     pollChats();
-    const interval = setInterval(pollChats, 3500);
-    return () => clearInterval(interval);
+    const iv = setInterval(pollChats, 3500);
+    return () => clearInterval(iv);
   }, []);
 
+  /* ---- helpers ---- */
   const incrementUnread = useCallback((userId) => {
     const key = String(userId);
     setUnread((u) => ({ ...u, [key]: 1 }));
   }, []);
+
   const resetUnread = useCallback((userId) => {
     const key = String(userId);
     setUnread((u) => {
@@ -182,9 +209,10 @@ export function AdminNotifyProvider({ children }) {
     sessionStorage.setItem("admin-selected-user", key);
     setLastUnreadChat(null);
   }, []);
+
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
 
-  // --- Заказы (как было) ---
+  /* ---- Заказы / отмены (как у тебя было) ---- */
   const [newOrders, setNewOrders] = useState([]);
   const prevOrdersRef = useRef([]);
   const firstLoadOrders = useRef(true);
@@ -224,7 +252,6 @@ export function AdminNotifyProvider({ children }) {
 
   const totalNewOrders = newOrders.length;
 
-  // --- Отменённые (как было) ---
   const prevCancelledRef = useRef([]);
   const firstLoadCancelled = useRef(true);
 
@@ -262,7 +289,7 @@ export function AdminNotifyProvider({ children }) {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Уведомления ---
+  /* ---- Notify ---- */
   const notify = useCallback((msg, type = "msg", extra = {}) => {
     const t = { id: Date.now() + Math.random(), msg, type, ...extra };
     setToasts((prev) => {
@@ -294,8 +321,6 @@ export function AdminNotifyProvider({ children }) {
         totalNewOrders,
         activeChatId,
         setActiveChatId,
-        openChatRequest,
-        clearOpenChatRequest,
       }}
     >
       {children}
@@ -304,7 +329,7 @@ export function AdminNotifyProvider({ children }) {
       <audio ref={audioOrderRef} src="/order.mp3" preload="auto" />
       <audio ref={audioCancelRef} src="/cancelOrder.mp3" preload="auto" />
 
-      {/* центр сверху */}
+      {/* Центр-сверху */}
       <div
         style={{
           position: "fixed",
@@ -320,7 +345,17 @@ export function AdminNotifyProvider({ children }) {
             <Toast
               data={t}
               onClose={() => removeToast(t.id)}
-              onClick={() => { if (t.chatId) requestOpenChat(String(t.chatId)); }}
+              onClick={() => {
+                // Бросаем глобальное событие — AdminChatPage поймает и откроет чат
+                if (t.chatId) {
+                  window.dispatchEvent(
+                    new CustomEvent("open-chat", {
+                      detail: { chatId: String(t.chatId) },
+                    })
+                  );
+                }
+                removeToast(t.id);
+              }}
             />
           </div>
         ))}
