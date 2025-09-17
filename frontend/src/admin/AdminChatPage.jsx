@@ -217,7 +217,7 @@ const QUICK = [
 ];
 
 export default function AdminChatPage() {
-  const { resetUnread, unread } = useAdminNotify();
+  const { resetUnread, unread, setActiveChatId } = useAdminNotify(); // ← берём setter
 
   /* корректная высота topbar */
   useLayoutEffect(() => {
@@ -335,8 +335,16 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
+  // синхронизируем активный чат с контекстом и чистим при размонтировании
+  useEffect(() => {
+    setActiveChatId(selected?.userId || null);
+    return () => setActiveChatId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
   const handleSelectChat = async (c) => {
     setSelected(c);
+    setActiveChatId(c.userId); // ← отметили активный чат
     setFiles([]);
     setInput("");
     setShowQuick(false);
@@ -363,6 +371,7 @@ export default function AdminChatPage() {
       setSelected(null);
       setMessages([]);
       setSelectedUserInfo(null);
+      setActiveChatId(null); // ← очистили активный чат
     }
     await loadChats();
   };
@@ -598,7 +607,7 @@ export default function AdminChatPage() {
 
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
-    if (selected?.userId === chat.userId) return false;
+    if (selected?.userId === chat.userId) return false; // открытый чат — не уведомляем
     if (unread[chat.userId]) return true;
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
@@ -722,7 +731,7 @@ export default function AdminChatPage() {
             </div>
           ) : (
             <>
-              <header className="chat-topbar">
+              <header className="chat-topbar admin-topbar">
                 <div className="chat-topbar__title">
                   <strong>{selected.name}</strong>
                 </div>
@@ -737,6 +746,7 @@ export default function AdminChatPage() {
                       setSelected(null);
                       setMessages([]);
                       setSelectedUserInfo(null);
+                      setActiveChatId(null); // ← закрыли активный чат
                     }}
                   >
                     Непрочитано
