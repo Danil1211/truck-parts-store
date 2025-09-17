@@ -92,6 +92,20 @@ function decodeHtml(html) {
   return txt.value;
 }
 
+/* helpers */
+const sortByDate = (arr) =>
+  [...arr].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+const pickMessage = (res) => {
+  const d = res?.data ?? res;
+  if (!d) return null;
+  if (Array.isArray(d)) return d[d.length - 1] || null;
+  if (Array.isArray(d?.data)) return d.data[d.data.length - 1] || null;
+  if (d?.message) return d.message;
+  if (d?.data && (d.data._id || d.data.text)) return d.data;
+  return (d._id || d.text || d.imageUrls || d.audioUrl) ? d : null;
+};
+
 /* --- голосовая «пузырь» --- */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
@@ -255,7 +269,7 @@ export default function AdminChatPage() {
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
-      setChats([]);
+      setChats((prev) => prev); // не затираем список при ошибке
       setError("Ошибка получения чатов");
     }
   };
@@ -271,10 +285,12 @@ export default function AdminChatPage() {
     if (!selected) return;
     try {
       const { data } = await api.get(`/api/chat/admin/${selected.userId}`, { params: { _: Date.now() } });
-      setMessages(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []);
+      const arr = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      setMessages(sortByDate(arr));
     } catch (e) {
       console.error("loadMessages error:", e);
-      setMessages([]);
+      // не очищаем, чтобы не мигало
+      // setMessages(prev => prev);
     }
   };
 
@@ -282,15 +298,11 @@ export default function AdminChatPage() {
     if (!selected) return;
 
     const load = async () => {
-      // если идёт отправка — не дёргаем список, чтобы не словить дубль
       if (sendingRef.current) return;
-
-      // после успешной отправки пропускаем один цикл
       if (skipNextPollRef.current) {
         skipNextPollRef.current = false;
         return;
       }
-
       await loadMessages();
       try {
         const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
@@ -381,7 +393,7 @@ export default function AdminChatPage() {
     }
   };
 
-  /* ================== быстрые ответы ================== */
+  /* ================== быстрые ответы и отправка ================== */
   const pushOptimistic = (payload) => {
     const m = {
       _id: `tmp-${Date.now()}`,
@@ -391,8 +403,16 @@ export default function AdminChatPage() {
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
     };
-    setMessages((prev) => [...prev, m]);
+    setMessages((prev) => sortByDate([...prev, m]));
     return m;
+  };
+
+  const replaceTmp = (tmpId, real) => {
+    if (!real) return;
+    setMessages((prev) => {
+      const mapped = prev.map((m) => (m._id === tmpId ? real : m));
+      return sortByDate(mapped);
+    });
   };
 
   const handleQuickReply = async (text) => {
@@ -402,12 +422,18 @@ export default function AdminChatPage() {
     const optimistic = pushOptimistic({ text });
 
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, { text });
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
 
-      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
+      const real = pickMessage(res);
+      if (real && real._id) {
+        replaceTmp(optimistic._id, real);
+      } else {
+        // если бэкенд ничего не вернул — оставляем tmp до ближайшего пулла
+        setMessages((prev) => prev);
+      }
+
       skipNextPollRef.current = true;
-      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("quick reply error:", e);
@@ -418,7 +444,6 @@ export default function AdminChatPage() {
     }
   };
 
-  /* ================== отправка ================== */
   const sendText = async () => {
     if (!input.trim() || !selected || sendingRef.current) return;
 
@@ -429,12 +454,17 @@ export default function AdminChatPage() {
     setInput("");
 
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, { text });
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
 
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+      const real = pickMessage(res);
+      if (real && real._id) {
+        replaceTmp(optimistic._id, real);
+      } else {
+        // fallback: оставим tmp до обновления по пуллу
+      }
+
       skipNextPollRef.current = true;
-      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("sendText error:", e);
@@ -457,14 +487,19 @@ export default function AdminChatPage() {
     setAudioPreview(null);
 
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, form, {
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await typingOff();
 
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+      const real = pickMessage(res);
+      if (real && real._id) {
+        replaceTmp(optimistic._id, real);
+      } else {
+        // ждём пулл
+      }
+
       skipNextPollRef.current = true;
-      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
@@ -480,27 +515,30 @@ export default function AdminChatPage() {
     sendingRef.current = true;
     const optimistic = pushOptimistic({
       text: input.trim() || "",
-      imageUrls: [],
-      audioUrl: audio ? "" : "",
+      imageUrls: images?.length ? ["__local_preview__"] : [],
+      audioUrl: audio ? "__local_audio__" : "",
     });
 
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
     if (audio) form.append("audio", audio, "voice.webm");
-    images.forEach((f) => form.append("images", f));
+    (images || []).forEach((f) => form.append("images", f));
 
     setFiles([]);
     setInput("");
 
     try {
-      await api.post(`/api/chat/admin/${selected.userId}`, form, {
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       await typingOff();
 
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+      const real = pickMessage(res);
+      if (real && real._id) {
+        replaceTmp(optimistic._id, real);
+      }
+
       skipNextPollRef.current = true;
-      await loadMessages();
       await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
@@ -667,7 +705,6 @@ export default function AdminChatPage() {
                       if (!selected) return;
                       await markUnread(selected.userId);
                       await loadChats();
-                      // выходим из чата сразу
                       setSelected(null);
                       setMessages([]);
                       setSelectedUserInfo(null);
