@@ -44,11 +44,10 @@ export function UnreadBadge({ count }) {
 
 /* ===================== iOS/macOS style Toast ===================== */
 
-function Toast({ message, onClose, type = "msg", ttl = 3200 }) {
+function IosToast({ message, onClose, type = "msg", ttl = 1800 }) {
   const [leaving, setLeaving] = useState(false);
   const rootRef = useRef(null);
 
-  // авто-скрытие + прогресс
   useEffect(() => {
     const t1 = setTimeout(() => setLeaving(true), ttl);
     const t2 = setTimeout(onClose, ttl + 220);
@@ -62,7 +61,6 @@ function Toast({ message, onClose, type = "msg", ttl = 3200 }) {
   const onPointerDown = (e) => {
     startY.current = e.clientY || e.touches?.[0]?.clientY || 0;
     deltaY.current = 0;
-    rootRef.current?.setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e) => {
     if (!startY.current) return;
@@ -110,11 +108,14 @@ function Toast({ message, onClose, type = "msg", ttl = 3200 }) {
         <div className="ios-toast__title">{label}</div>
         <div className="ios-toast__text">{message}</div>
       </div>
-      <button className="ios-toast__close" onClick={() => { setLeaving(true); setTimeout(onClose, 180); }} aria-label="Закрыть">
+      <button
+        className="ios-toast__close"
+        onClick={() => { setLeaving(true); setTimeout(onClose, 180); }}
+        aria-label="Закрыть"
+      >
         ×
       </button>
       <div className="ios-toast__progress" style={{ ["--ttl"]: `${ttl}ms` }} />
-      {/* styles */}
       <style>{toastCss}</style>
     </div>
   );
@@ -423,6 +424,10 @@ export function AdminNotifyProvider({ children }) {
   }, []);
   const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
+  // разное время жизни по типам
+  const ttlFor = (type) =>
+    type === "order" ? 2400 : type === "cancel" ? 2000 : 1800;
+
   return (
     <AdminNotifyContext.Provider
       value={{
@@ -444,13 +449,14 @@ export function AdminNotifyProvider({ children }) {
       <audio ref={audioOrderRef} src="/order.mp3" preload="auto" />
       <audio ref={audioCancelRef} src="/cancelOrder.mp3" preload="auto" />
 
-      {/* стек тостов — позиционирование как у баннеров macOS */}
+      {/* стек тостов по центру сверху */}
       <div className="ios-toast-stack">
         {toasts.map((t) => (
-          <Toast
+          <IosToast
             key={t.id}
             message={t.msg}
             type={t.type}
+            ttl={ttlFor(t.type)}
             onClose={() => removeToast(t.id)}
           />
         ))}
@@ -464,20 +470,16 @@ export function AdminNotifyProvider({ children }) {
 const stackCss = `
 .ios-toast-stack {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 10px;
   z-index: 10000;
-  pointer-events: none; /* отдельные тосты сами включают pointer-events */
+  pointer-events: none; /* сами тосты кликабельны */
 }
 @media (max-width: 640px) {
-  .ios-toast-stack {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    top: 14px;
-  }
+  .ios-toast-stack { top: 12px; }
 }
 `;
