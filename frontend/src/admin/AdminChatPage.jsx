@@ -125,37 +125,6 @@ function mergeWithTmp(prev, serverArr) {
   return sortByDate([...server, ...tmpLeft]);
 }
 
-/* --- голосовая «пузырь» --- */
-function VoiceMessage({ audioUrl, createdAt }) {
-  const audioRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const toggle = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    playing ? a.pause() : a.play();
-  };
-  return (
-    <div className="voice-bubble">
-      <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
-        {playing ? "⏸" : "▶️"}
-      </button>
-      <div className="voice-bar"><div className="voice-bar-bg" /></div>
-      <span className="voice-time">
-        {createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-      </span>
-      <audio
-        ref={audioRef}
-        src={audioUrl}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)}
-        style={{ display: "none" }}
-        preload="auto"
-      />
-    </div>
-  );
-}
-
 /* --- предпрослушка записи --- */
 function AudioPreview({ blob, onRemove }) {
   const [url, setUrl] = useState(null);
@@ -242,11 +211,17 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
+  // loading flags
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
   // анти-гонка
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
 
-  // ожидаемый к открытию чат (когда список ещё не загрузился)
+  // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
 
   const endRef = useRef(null);
@@ -258,6 +233,10 @@ export default function AdminChatPage() {
   const quickRef = useRef(null);
   const emojiRef = useRef(null);
   const composerRef = useRef(null);
+
+  // для «только первый раз» флагов
+  const firstChatsLoadRef = useRef(true);
+  const firstThreadLoadRef = useRef(false);
 
   /* красивый пустой экран: фиксируем цитату один раз */
   const emptyQuote = useMemo(
@@ -291,8 +270,13 @@ export default function AdminChatPage() {
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
-      setChats((prev) => prev);
+      setChats((prev) => prev); // не затираем список
       setError("Ошибка получения чатов");
+    } finally {
+      if (firstChatsLoadRef.current) {
+        setLoadingChats(false);
+        firstChatsLoadRef.current = false;
+      }
     }
   };
 
@@ -302,7 +286,7 @@ export default function AdminChatPage() {
     return () => clearInterval(iv);
   }, []); // eslint-disable-line
 
-  /* если был pending chatId — откроем его как только список подгрузился */
+  // pending open once chats are here
   useEffect(() => {
     if (!pendingOpenId.current || !Array.isArray(chats) || chats.length === 0) return;
     const found = chats.find((c) => String(c.userId) === String(pendingOpenId.current));
@@ -328,6 +312,9 @@ export default function AdminChatPage() {
   useEffect(() => {
     if (!selected) return;
 
+    firstThreadLoadRef.current = true;
+    setLoadingThread(true);
+
     const load = async () => {
       if (sendingRef.current) return;
       if (skipNextPollRef.current) {
@@ -335,10 +322,17 @@ export default function AdminChatPage() {
         return;
       }
       await loadMessages();
+      if (firstThreadLoadRef.current) {
+        setLoadingThread(false);
+        firstThreadLoadRef.current = false;
+      }
       try {
         const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
         setSelectedUserInfo(normalizeUserInfo(info));
-      } catch {}
+      } catch {
+      } finally {
+        if (loadingInfo) setLoadingInfo(false);
+      }
     };
 
     load();
@@ -355,7 +349,7 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  /* ==== Открытие чата по id (для клика по уведомлению) ==== */
+  /* ==== открытие чата по id (клик по уведомлению) ==== */
   const openChatById = async (userId) => {
     if (!userId) return;
     const chat = chats.find((c) => String(c.userId) === String(userId));
@@ -367,16 +361,14 @@ export default function AdminChatPage() {
     }
   };
 
-  // 1) при монтировании — берем сохранённый id
   useEffect(() => {
     const stored = sessionStorage.getItem("openChatId");
     if (stored) {
       sessionStorage.removeItem("openChatId");
       openChatById(stored);
     }
-  }, []); // один раз
+  }, []);
 
-  // 2) если уже на странице — принимаем внутреннее событие
   useEffect(() => {
     const onOpenInPage = (e) => {
       const id = e.detail?.chatId;
@@ -396,12 +388,16 @@ export default function AdminChatPage() {
     setShowEmoji(false);
     setIsAutoScroll(true);
     setAudioPreview(null);
+    setLoadingInfo(true);
     resetUnread(c.userId);
 
     try {
       const info = await api.get(`/api/chat/admin/user/${c.userId}`, { params: { _: Date.now() } });
       setSelectedUserInfo(normalizeUserInfo(info));
-    } catch {}
+    } catch {
+    } finally {
+      setLoadingInfo(false);
+    }
 
     try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
     setTimeout(loadChats, 160);
@@ -517,6 +513,7 @@ export default function AdminChatPage() {
     if (!selected || sendingRef.current) return;
 
     sendingRef.current = true;
+    setIsSending(true);
     const optimistic = pushOptimistic({ text });
 
     try {
@@ -533,6 +530,7 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
+      setIsSending(false);
       setShowQuick(false);
     }
   };
@@ -541,6 +539,7 @@ export default function AdminChatPage() {
     if (!input.trim() || !selected || sendingRef.current) return;
 
     sendingRef.current = true;
+    setIsSending(true);
     const text = input.trim();
 
     const optimistic = pushOptimistic({ text });
@@ -560,6 +559,7 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
+      setIsSending(false);
     }
   };
 
@@ -567,6 +567,7 @@ export default function AdminChatPage() {
     if (!audioPreview || !selected || sendingRef.current) return;
 
     sendingRef.current = true;
+    setIsSending(true);
     const optimistic = pushOptimistic({ audioUrl: "" });
 
     const form = new FormData();
@@ -591,6 +592,7 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
+      setIsSending(false);
     }
   };
 
@@ -598,6 +600,7 @@ export default function AdminChatPage() {
     if (!selected || sendingRef.current) return;
 
     sendingRef.current = true;
+    setIsSending(true);
     const optimistic = pushOptimistic({
       text: input.trim() || "",
       imageUrls: images?.length ? ["__local__"] : [],
@@ -628,6 +631,7 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
+      setIsSending(false);
     }
   };
 
@@ -652,7 +656,7 @@ export default function AdminChatPage() {
 
   const hasUnread = (chat) => {
     if (!chat.lastMessageObj) return false;
-    if (selected?.userId === chat.userId) return false;
+    if (selected?.userId === chat.userId) return false; // открытый чат — не уведомляем
     if (unread[chat.userId]) return true;
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
@@ -746,7 +750,7 @@ export default function AdminChatPage() {
                     <div className="chat-meta">
                       <div className="chat-title">
                         <span className="chat-name">{c.name}</span>
-                        {/* убрали "NEW" бейдж, оставили только красную точку */}
+                        {/* убрали бейдж NEW */}
                       </div>
                       <div className="chat-phone">{c.phone}</div>
                       <div className="chat-last">{(c.lastMessage || "").slice(0, 64)}</div>
@@ -762,6 +766,7 @@ export default function AdminChatPage() {
                 );
               })
             )}
+            {loadingChats && <div className="area-loader"><span className="spinner spinner--lg" /></div>}
           </div>
         </aside>
 
@@ -813,25 +818,29 @@ export default function AdminChatPage() {
               </header>
 
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
-                {Array.isArray(messages) && messages.map((m, i) => (
-                  <div
-                    key={m._id || i}
-                    className={`bubble ${m.fromAdmin ? "out" : "in"}`}
-                  >
-                    <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
-                    {m.text && <div className="bubble-text">{m.text}</div>}
-                    {m.imageUrls?.map((u, idx) => (
-                      <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
-                    ))}
-                    {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
+                {Array.isArray(messages) && messages.map((m, i) => {
+                  const isTmp = String(m._id || "").startsWith("tmp-");
+                  return (
+                    <div
+                      key={m._id || i}
+                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
+                    >
+                      <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
+                      {m.text && <div className="bubble-text">{m.text}</div>}
+                      {m.imageUrls?.map((u, idx) => (
+                        <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
+                      ))}
+                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                    {!m.audioUrl && (
-                      <div className="bubble-time">
-                        {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      {!m.audioUrl && (
+                        <div className="bubble-time">
+                          {isTmp ? <span className="spinner spinner--xs" /> :
+                            new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {selected?.userId &&
                   typingMap[selected.userId]?.isTyping &&
@@ -842,6 +851,7 @@ export default function AdminChatPage() {
                     </div>
                   )}
                 <div ref={endRef} />
+                {loadingThread && <div className="loading-overlay"><span className="spinner spinner--lg" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -899,8 +909,8 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                <button className="send-btn" onClick={handleSend} disabled={!!recording} title="Отправить">
-                  {Svg.send}
+                <button className={`send-btn ${isSending ? "is-loading" : ""}`} onClick={handleSend} disabled={!!recording || isSending} title="Отправить">
+                  {isSending ? <span className="spinner spinner--btn" /> : Svg.send}
                 </button>
               </div>
 
@@ -925,61 +935,67 @@ export default function AdminChatPage() {
         </section>
 
         {/* RIGHT */}
-        {selected && selectedUserInfo && (
+        {selected && (
           <aside className="user-panel">
-            <div className="user-card">
-              <div className="user-avatar">{selectedUserInfo.name?.[0] || "?"}</div>
-              <div className="user-id">
-                <div className="user-name">{selectedUserInfo.name}</div>
-                <div className="user-phone">{selectedUserInfo.phone}</div>
-              </div>
-            </div>
+            {loadingInfo && <div className="area-loader"><span className="spinner spinner--md" /></div>}
 
-            <div className="user-props">
-              <div><b>IP:</b> <span>{selectedUserInfo.ip || "—"}</span></div>
-              <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
-              <div className="user-link-row">
-                <b>Страница:</b>{" "}
-                {pageHref ? (
-                  <a className="user-link" href={pageHref} target="_blank" rel="noreferrer">Перейти ↗</a>
-                ) : ("—")}
-              </div>
-              <div>
-                <b>Статус:</b>{" "}
-                <span className={`pill ${isUserOnline(selectedUserInfo) ? "pill--ok" : "pill--bad"}`}>
-                  {isUserOnline(selectedUserInfo) ? "Онлайн" : "Оффлайн"}
-                </span>
-              </div>
-              <div>
-                <b>Блок:</b>{" "}
-                <span className={`pill ${selectedUserInfo.isBlocked ? "pill--bad" : "pill--ok"}`}>
-                  {selectedUserInfo.isBlocked ? "Заблокирован" : "Активный"}
-                </span>
-              </div>
-            </div>
+            {selectedUserInfo && (
+              <>
+                <div className="user-card">
+                  <div className="user-avatar">{selectedUserInfo.name?.[0] || "?"}</div>
+                  <div className="user-id">
+                    <div className="user-name">{selectedUserInfo.name}</div>
+                    <div className="user-phone">{selectedUserInfo.phone}</div>
+                  </div>
+                </div>
 
-            <div className="block-row">
-              <button
-                className={`block-btn ${selectedUserInfo.isBlocked ? "unblock" : "block"}`}
-                disabled={blocking}
-                onClick={async () => {
-                  if (!selected) return;
-                  setBlocking(true);
-                  try {
-                    await api.post(`/api/chat/admin/user/${selected.userId}/block`, {
-                      block: !selectedUserInfo.isBlocked,
-                    });
-                    const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
-                    setSelectedUserInfo(normalizeUserInfo(info));
-                    await loadChats();
-                  } finally {
-                    setBlocking(false);
-                  }
-                }}
-              >
-                {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
-              </button>
-            </div>
+                <div className="user-props">
+                  <div><b>IP:</b> <span>{selectedUserInfo.ip || "—"}</span></div>
+                  <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
+                  <div className="user-link-row">
+                    <b>Страница:</b>{" "}
+                    {selectedUserInfo.lastPageUrl ? (
+                      <a className="user-link" href={withSite(selectedUserInfo.lastPageUrl)} target="_blank" rel="noreferrer">Перейти ↗</a>
+                    ) : ("—")}
+                  </div>
+                  <div>
+                    <b>Статус:</b>{" "}
+                    <span className={`pill ${isUserOnline(selectedUserInfo) ? "pill--ok" : "pill--bad"}`}>
+                      {isUserOnline(selectedUserInfo) ? "Онлайн" : "Оффлайн"}
+                    </span>
+                  </div>
+                  <div>
+                    <b>Блок:</b>{" "}
+                    <span className={`pill ${selectedUserInfo.isBlocked ? "pill--bad" : "pill--ok"}`}>
+                      {selectedUserInfo.isBlocked ? "Заблокирован" : "Активный"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="block-row">
+                  <button
+                    className={`block-btn ${selectedUserInfo.isBlocked ? "unblock" : "block"}`}
+                    disabled={blocking}
+                    onClick={async () => {
+                      if (!selected) return;
+                      setBlocking(true);
+                      try {
+                        await api.post(`/api/chat/admin/user/${selected.userId}/block`, {
+                          block: !selectedUserInfo.isBlocked,
+                        });
+                        const info = await api.get(`/api/chat/admin/user/${selected.userId}`, { params: { _: Date.now() } });
+                        setSelectedUserInfo(normalizeUserInfo(info));
+                        await loadChats();
+                      } finally {
+                        setBlocking(false);
+                      }
+                    }}
+                  >
+                    {selectedUserInfo.isBlocked ? "Разблокировать" : "Заблокировать"}
+                  </button>
+                </div>
+              </>
+            )}
           </aside>
         )}
       </div>

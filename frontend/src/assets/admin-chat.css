@@ -48,6 +48,7 @@
 
 /* ===== LEFT ===== */
 .chat-sidebar{
+  position:relative;
   background:#fff; border-right:1px solid var(--line);
   height:100%; min-width:0; overflow:hidden; display:flex; flex-direction:column;
 }
@@ -55,7 +56,7 @@
 .chat-sidebar__search input{
   width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fbfdff;
 }
-.chat-list{ flex:1 1 auto; min-height:0; overflow:auto; }
+.chat-list{ position:relative; flex:1 1 auto; min-height:0; overflow:auto; }
 .chat-empty-left{ padding:14px; color:#94a3b8; font-size:14px; }
 
 .chat-item{ display:flex; gap:10px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); cursor:pointer; }
@@ -119,6 +120,7 @@
 
 /* Лента сообщений */
 .thread{
+  position:relative;
   flex:1 1 auto; min-height:0; overflow:auto; padding:14px;
   display:flex; flex-direction:column; gap:10px;
   background:
@@ -127,13 +129,14 @@
     #fff;
 }
 
-/* Сообщения (в стиле Telegram) */
+/* Сообщения */
 .bubble{ max-width:72%; border-radius:16px; padding:10px 12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:8px; word-break:break-word; }
 .bubble.in{  align-self:flex-start; background:#f0f4f8; color:#0f172a; }
 .bubble.out{ align-self:flex-end;   background:linear-gradient(180deg, var(--tg-blue), #5bb6ff); color:#fff; }
-.bubble-author{ font-size:12px; opacity:.85; } .bubble-text{ font-size:14px; white-space:pre-wrap; }
+.bubble-author{ font-size:12px; opacity:.85; }
+.bubble-text{ font-size:14px; white-space:pre-wrap; }
 .bubble-img{ max-width:260px; border-radius:12px; display:block; }
-.bubble-time{ font-size:12px; opacity:.8; text-align:right; }
+.bubble-time{ font-size:12px; opacity:.8; text-align:right; min-height:16px; }
 
 /* Кто печатает */
 .typing{ align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:12px; padding:8px 10px; font-size:13px; color:#334155; }
@@ -151,10 +154,11 @@
 .icon-btn:hover{ background:#eef2f7; box-shadow:0 8px 24px rgba(15,23,42,.08); }
 .icon-btn:active{ transform: translateY(1px); }
 .icon-btn--disabled{ opacity:.55; cursor:not-allowed; }
+.icon-btn svg{ display:block; } /* выравнивание иконок */
 
-/* ВЫРАВНИВАНИЕ ИКОНОК */
-.icon { width:20px; height:20px; display:block; }
-.icon--nudge-down { transform: translateY(1px); } /* камера была чуть выше — опустили */
+/* Доп: если где-то используешь <span class="icon"> */
+.icon{ width:20px; height:20px; display:block; }
+.icon--nudge-down{ transform:translateY(1px); }
 
 .composer__input{ flex:1; min-width:0; padding:12px 16px; border-radius:999px; border:1px solid var(--line); outline:none; font-size:14px; background:#fbfdff; }
 .composer__input:focus{ border-color:#bfdcff; box-shadow:0 0 0 6px rgba(34,145,255,.08); }
@@ -167,6 +171,8 @@
   width:40px; height:40px; border:none; color:#fff; cursor:pointer; border-radius:14px;
   background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 10px 30px rgba(34,145,255,.35); font-size:18px; line-height:1;
 }
+.send-btn.is-loading{ pointer-events:none; }
+.send-btn.is-loading .spinner{ display:block; }
 
 /* Аудио */
 .voice-bubble{ display:flex; align-items:center; gap:10px; }
@@ -176,7 +182,10 @@
 .voice-bubble audio{ display:none !important; }
 
 /* ===== RIGHT ===== */
-.user-panel{ background:#fff; border-left:1px solid var(--line); height:100%; min-width:0; overflow:auto; padding:16px 14px; }
+.user-panel{
+  position:relative;
+  background:#fff; border-left:1px solid var(--line); height:100%; min-width:0; overflow:auto; padding:16px 14px;
+}
 .user-card{ display:flex; gap:10px; align-items:center; margin-bottom:10px; }
 .user-avatar{ width:42px; height:42px; border-radius:50%; display:grid; place-items:center; background:#eaf2ff; color:#1d4ed8; font-weight:700; }
 .user-name{ font-weight:700; }
@@ -197,6 +206,18 @@
 
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
+
+/* === СПИННЕРЫ / ОВЕРЛЕИ === */
+.spinner{ --s:20px; width:var(--s); height:var(--s); border-radius:50%; border:3px solid #dbeafe; border-top-color:var(--tg-blue); animation:spin .8s linear infinite; }
+.spinner--lg{ --s:38px; border-width:4px; }
+.spinner--md{ --s:24px; }
+.spinner--xs{ --s:14px; border-width:2px; }
+.spinner--btn{ --s:18px; border-width:2.5px; border-color:rgba(255,255,255,.35); border-top-color:#fff; }
+
+@keyframes spin{ to{ transform: rotate(360deg); } }
+
+.loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
+.area-loader{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.6); z-index:5; }
 
 /* Адаптив */
 @media (max-width:1200px){
