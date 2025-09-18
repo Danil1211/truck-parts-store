@@ -233,6 +233,11 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
+  /* --- ВЕРНУЛ флаги загрузки --- */
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+
   // анти-гонка
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
@@ -341,7 +346,7 @@ export default function AdminChatPage() {
         setSelectedUserInfo(normalizeUserInfo(info));
       } catch {
       } finally {
-        // no-op
+        if (loadingInfo) setLoadingInfo(false);
       }
     };
 
@@ -393,12 +398,16 @@ export default function AdminChatPage() {
     setShowEmoji(false);
     setIsAutoScroll(true);
     setAudioPreview(null);
+    setLoadingInfo(true);
     resetUnread(c.userId);
 
     try {
       const info = await api.get(`/api/chat/admin/user/${c.userId}`, { params: { _: Date.now() } });
       setSelectedUserInfo(normalizeUserInfo(info));
-    } catch {}
+    } catch {
+    } finally {
+      setLoadingInfo(false);
+    }
 
     try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
     setTimeout(loadChats, 160);
@@ -807,8 +816,7 @@ export default function AdminChatPage() {
                 })}
 
                 <div ref={endRef} />
-                {/* оверлей загрузки треда (тот же размер) */}
-                {false && <div className="loading-overlay"><span className="spinner" /></div>}
+                {loadingThread && <div className="loading-overlay"><span className="spinner" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -866,7 +874,7 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                {/* кнопка отправки не блокируется */}
+                {/* кнопка отправки НЕ блокируется */}
                 <button className="send-btn" onClick={handleSend} title="Отправить">
                   {Svg.send}
                 </button>
@@ -895,8 +903,7 @@ export default function AdminChatPage() {
         {/* RIGHT */}
         {selected && (
           <aside className="user-panel">
-            {/* можно оставить — это отдельный блок, грузится редко */}
-            {/* {loadingInfo && <div className="area-loader"><span className="spinner" /></div>} */}
+            {loadingInfo && <div className="area-loader"><span className="spinner" /></div>}
 
             {selectedUserInfo && (
               <>
