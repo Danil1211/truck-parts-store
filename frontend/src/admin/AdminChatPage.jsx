@@ -250,7 +250,7 @@ export default function AdminChatPage() {
   const messagesRef = useRef(null);
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
-  the recordingTimer = useRef();
+  const recordingTimer = useRef();
 
   const quickRef = useRef(null);
   const emojiRef = useRef(null);
