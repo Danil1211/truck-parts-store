@@ -250,7 +250,7 @@ export default function AdminChatPage() {
   const messagesRef = useRef(null);
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
-  const recordingTimer = useRef();
+  the recordingTimer = useRef();
 
   const quickRef = useRef(null);
   const emojiRef = useRef(null);
@@ -312,7 +312,6 @@ export default function AdminChatPage() {
       pendingOpenId.current = null;
       handleSelectChat(found);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats]);
 
   const loadMessages = async () => {
@@ -356,13 +355,11 @@ export default function AdminChatPage() {
     const iv = setInterval(load, 2500);
     resetUnread(selected.userId);
     return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   useEffect(() => {
     setActiveChatId(selected?.userId || null);
     return () => setActiveChatId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   const openChatById = async (userId) => {
@@ -391,7 +388,6 @@ export default function AdminChatPage() {
     };
     window.addEventListener("open-chat-in-page", onOpenInPage);
     return () => window.removeEventListener("open-chat-in-page", onOpenInPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSelectChat = async (c) => {
@@ -698,7 +694,6 @@ export default function AdminChatPage() {
   if (error) return <div className="admin-chat-error">{error}</div>;
 
   const chatList = Array.isArray(chats) ? chats : [];
-  const pageHref = selectedUserInfo?.lastPageUrl ? withSite(selectedUserInfo.lastPageUrl) : null;
 
   return (
     <div className="admin-chat-page">
@@ -829,14 +824,6 @@ export default function AdminChatPage() {
                   );
                 })}
 
-                {selected?.userId &&
-                  typingMap[selected.userId]?.isTyping &&
-                  !typingMap[selected.userId]?.fromAdmin && (
-                    <div className="typing">
-                      <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
-                      <span> печатает</span><span className="typing-dots">...</span>
-                    </div>
-                  )}
                 <div ref={endRef} />
                 {loadingThread && <div className="loading-overlay"><span className="spinner spinner--lg" /></div>}
               </div>

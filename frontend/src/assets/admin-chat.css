@@ -137,10 +137,6 @@
 .bubble-img{ max-width:260px; border-radius:12px; display:block; }
 .bubble-time{ font-size:12px; opacity:.8; text-align:right; min-height:16px; }
 
-/* Кто печатает */
-.typing{ align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:12px; padding:8px 10px; font-size:13px; color:#334155; }
-.typing-dots{ display:inline-block; width:18px; text-align:left; }
-
 /* Превью изображений */
 .previews{ flex:0 0 auto; display:flex; gap:10px; flex-wrap:wrap; padding:8px 12px 0; border-top:1px solid var(--line); background:#fff; }
 .preview{ position:relative; width:92px; height:92px; border-radius:12px; overflow:hidden; background:#eef2f7; }
@@ -148,7 +144,7 @@
 .preview__close{ position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,.48); color:#fff; cursor:pointer; }
 
 /* Панель ввода */
-.composer{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px солид var(--line); background:#fff; }
+.composer{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px solid var(--line); background:#fff; }
 .icon-btn{ display:flex; align-items:center; justify-content:center; width:40px; height:40px; border:none; border-radius:12px; background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer; font-size:18px; transition:transform .06s ease, box-shadow .2s ease; }
 .icon-btn:hover{ background:#eef2f7; box-shadow:0 8px 24px rgba(15,23,42,.08); }
 .icon-btn:active{ transform: translateY(1px); }
@@ -205,54 +201,28 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === СПИННЕР (жёстко изолированный под страницу чата) === */
-.admin-chat-page .spinner{
-  --size:22px; --thick:3px; --track:#e9eef6; --accent:#2291ff; --speed:.9s;
-  position:relative; display:inline-block; width:var(--size); height:var(--size);
-  border-radius:50%; vertical-align:middle;
-}
-/* Сброс любых внешних стилей на псевдо-элементах */
-.admin-chat-page .spinner::before,
-.admin-chat-page .spinner::after{
-  all: unset;
-  content:"";
-  position:absolute; inset:0;
+/* === СПИННЕР (как у клиентов) === */
+@keyframes chat-spin { to { transform: rotate(360deg) } }
+
+.admin-chat-page .spinner {
+  width:22px; height:22px;
+  border:3px solid #e5e7eb;        /* серый трек */
+  border-top-color:#2291ff;        /* синяя дуга */
   border-radius:50%;
-  display:block;
+  display:inline-block;
+  animation:chat-spin .9s linear infinite;
 }
-/* Серый трек */
-.admin-chat-page .spinner::before{
-  border:var(--thick) solid var(--track);
-  background:none; box-shadow:none; outline:0;
-}
-/* ОДНА синяя дуга (верхняя четверть) */
-.admin-chat-page .spinner::after{
-  border:var(--thick) solid transparent;
-  border-top-color:var(--accent);
-  animation:chat-spin var(--speed) linear infinite;
-  background:none; box-shadow:none; outline:0;
-  will-change:transform;
-}
-/* размеры / варианты для чата */
-.admin-chat-page .spinner--lg{ --size:38px; --thick:4px; }
-.admin-chat-page .spinner--md{ --size:24px; }
-.admin-chat-page .spinner--xs{ --size:14px; --thick:2px; }
-.admin-chat-page .spinner--btn{
-  --size:18px; --thick:2.5px; --track:rgba(255,255,255,.35); --accent:#fff;
-}
-@keyframes chat-spin { to { transform: rotate(360deg); } }
-/* Fallback, если браузер не умеет `all` */
-@supports not (all: initial){
-  .admin-chat-page .spinner::before,
-  .admin-chat-page .spinner::after{
-    background:none!important; box-shadow:none!important; outline:0!important;
-  }
-  .admin-chat-page .spinner::before{ border:var(--thick) solid var(--track)!important; }
-  .admin-chat-page .spinner::after{
-    border:var(--thick) solid transparent!important;
-    border-top-color:var(--accent)!important;
-    animation:chat-spin var(--speed) linear infinite!important;
-  }
+
+/* размеры */
+.admin-chat-page .spinner--lg { width:38px; height:38px; border-width:4px; }
+.admin-chat-page .spinner--md { width:24px; height:24px; }
+.admin-chat-page .spinner--xs { width:14px; height:14px; border-width:2px; }
+
+/* белый внутри кнопки */
+.admin-chat-page .spinner--btn {
+  width:18px; height:18px;
+  border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;
 }
 
 /* Оверлеи загрузки */
