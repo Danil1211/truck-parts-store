@@ -125,15 +125,76 @@ function mergeWithTmp(prev, serverArr) {
   return sortByDate([...server, ...tmpLeft]);
 }
 
-/* --- голосовая «пузырь» (без внутреннего времени) --- */
+/* ===== формат mm:ss ===== */
+const fmt = (sec) => {
+  const s = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(s / 60);
+  const SS = String(s % 60).padStart(2, "0");
+  return `${m}:${SS}`;
+};
+
+/* --- голосовая «пузырь» (с длительностью и перетаскиванием) --- */
 function VoiceMessage({ audioUrl }) {
   const audioRef = useRef(null);
+  const barRef = useRef(null);
+
   const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [current, setCurrent] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+
+    const onLoaded = () => setDuration(Number.isFinite(a.duration) ? a.duration : 0);
+    const onTime = () => { if (!dragging) setCurrent(a.currentTime || 0); };
+    const onEnd = () => setPlaying(false);
+
+    a.addEventListener("loadedmetadata", onLoaded);
+    a.addEventListener("durationchange", onLoaded);
+    a.addEventListener("timeupdate", onTime);
+    a.addEventListener("ended", onEnd);
+    return () => {
+      a.removeEventListener("loadedmetadata", onLoaded);
+      a.removeEventListener("durationchange", onLoaded);
+      a.removeEventListener("timeupdate", onTime);
+      a.removeEventListener("ended", onEnd);
+    };
+  }, [dragging]);
 
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
     playing ? a.pause() : a.play();
+  };
+
+  const pct = duration ? Math.min(1, Math.max(0, current / duration)) : 0;
+
+  const seekToClientX = (clientX) => {
+    const el = barRef.current;
+    const a = audioRef.current;
+    if (!el || !a || !duration) return;
+    const rect = el.getBoundingClientRect();
+    const x = Math.min(Math.max(0, clientX - rect.left), rect.width);
+    const next = (x / rect.width) * duration;
+    a.currentTime = next;
+    setCurrent(next);
+  };
+
+  const onPointerDown = (e) => {
+    e.preventDefault();
+    setDragging(true);
+    seekToClientX(e.clientX);
+
+    const move = (ev) => seekToClientX(ev.clientX);
+    const up = () => {
+      setDragging(false);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
   };
 
   return (
@@ -146,30 +207,39 @@ function VoiceMessage({ audioUrl }) {
         {playing ? "⏸" : "▶️"}
       </button>
 
-      <div className="voice-bar">
-        <div className="voice-fill" />
+      <div
+        className="voice-bar"
+        ref={barRef}
+        onPointerDown={onPointerDown}
+        role="slider"
+        aria-valuemin={0}
+        aria-valuemax={Math.round(duration)}
+        aria-valuenow={Math.round(current)}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          const a = audioRef.current;
+          if (!a) return;
+          if (e.key === "ArrowLeft") a.currentTime = Math.max(0, a.currentTime - 5);
+          if (e.key === "ArrowRight") a.currentTime = Math.min(duration, a.currentTime + 5);
+        }}
+      >
+        <div className="voice-progress" style={{ width: `${pct * 100}%` }} />
+        <div className="voice-thumb" style={{ left: `${pct * 100}%` }} />
       </div>
+
+      <span className="voice-duration">{fmt(duration)}</span>
 
       <audio
         ref={audioRef}
         src={audioUrl}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)}
-        style={{ display: "none" }}
         preload="auto"
+        style={{ display: "none" }}
       />
     </div>
   );
 }
-
-/* утилы времени */
-const fmt = (sec) => {
-  const s = Math.max(0, Math.floor(sec || 0));
-  const m = Math.floor(s / 60);
-  const SS = String(s % 60).padStart(2, "0");
-  return `${String(m).padStart(2, "0")}:${SS}`;
-};
 
 /* --- предпрослушка записи --- */
 function AudioPreview({ blob, seconds = 0, onRemove }) {
@@ -820,7 +890,6 @@ export default function AdminChatPage() {
                         <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                       ))}
 
-                      {/* аудио: скелет при оптимистичной отправке, иначе плеер */}
                       {m.audioUrl === "__optim__" ? (
                         <div className="voice-skeleton">
                           <div className="voice-skel-btn" />
