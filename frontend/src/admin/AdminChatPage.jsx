@@ -109,15 +109,12 @@ function mergeWithTmp(prev, serverArr) {
       const closeTime =
         Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 20000;
 
-      // аудио
       if (tmp.tempKind === "audio" || tmp.audioUrl) {
         if (!!s.audioUrl && sameSide && closeTime) return true;
       }
-      // изображения
       if ((tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0 && sameSide && closeTime) {
         return true;
       }
-      // текст
       if (tmp.text && s.text && tmp.text.trim() === s.text.trim() && sameSide && closeTime) {
         return true;
       }
@@ -128,15 +125,17 @@ function mergeWithTmp(prev, serverArr) {
   return sortByDate([...server, ...tmpLeft]);
 }
 
-/* --- голосовая «пузырь» --- */
-function VoiceMessage({ audioUrl, createdAt }) {
+/* --- голосовая «пузырь» (без внутреннего времени) --- */
+function VoiceMessage({ audioUrl }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
+
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
     playing ? a.pause() : a.play();
   };
+
   return (
     <div className="voice-bubble">
       <button
@@ -146,10 +145,11 @@ function VoiceMessage({ audioUrl, createdAt }) {
       >
         {playing ? "⏸" : "▶️"}
       </button>
-      <div className="voice-bar"><div className="voice-bar-bg" /></div>
-      <span className="voice-time">
-        {createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-      </span>
+
+      <div className="voice-bar">
+        <div className="voice-fill" />
+      </div>
+
       <audio
         ref={audioRef}
         src={audioUrl}
@@ -820,7 +820,7 @@ export default function AdminChatPage() {
                         <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                       ))}
 
-                      {/* аудио: показываем скелет, пока идёт оптимистичная отправка */}
+                      {/* аудио: скелет при оптимистичной отправке, иначе плеер */}
                       {m.audioUrl === "__optim__" ? (
                         <div className="voice-skeleton">
                           <div className="voice-skel-btn" />
@@ -828,7 +828,7 @@ export default function AdminChatPage() {
                           <div className="voice-skel-time" />
                         </div>
                       ) : (
-                        m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />
+                        m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} />
                       )}
 
                       <div className="bubble-time">
@@ -903,7 +903,6 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{fmt(recordingTime)}</span>}
                 </button>
 
-                {/* send / rec-stop */}
                 {!recording ? (
                   <button
                     className="send-btn"
