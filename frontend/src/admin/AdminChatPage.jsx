@@ -233,12 +233,6 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
-  // loading flags
-  const [loadingChats, setLoadingChats] = useState(true);
-  const [loadingThread, setLoadingThread] = useState(false);
-  const [loadingInfo, setLoadingInfo] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-
   // анти-гонка
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
@@ -347,7 +341,7 @@ export default function AdminChatPage() {
         setSelectedUserInfo(normalizeUserInfo(info));
       } catch {
       } finally {
-        if (loadingInfo) setLoadingInfo(false);
+        // no-op
       }
     };
 
@@ -366,7 +360,7 @@ export default function AdminChatPage() {
     if (!userId) return;
     const chat = chats.find((c) => String(c.userId) === String(userId));
     if (chat) {
-    handleSelectChat(chat);
+      handleSelectChat(chat);
     } else {
       pendingOpenId.current = String(userId);
       await loadChats();
@@ -399,16 +393,12 @@ export default function AdminChatPage() {
     setShowEmoji(false);
     setIsAutoScroll(true);
     setAudioPreview(null);
-    setLoadingInfo(true);
     resetUnread(c.userId);
 
     try {
       const info = await api.get(`/api/chat/admin/user/${c.userId}`, { params: { _: Date.now() } });
       setSelectedUserInfo(normalizeUserInfo(info));
-    } catch {
-    } finally {
-      setLoadingInfo(false);
-    }
+    } catch {}
 
     try { await api.post(`/api/chat/read/${c.userId}`); } catch {}
     setTimeout(loadChats, 160);
@@ -520,7 +510,6 @@ export default function AdminChatPage() {
   const handleQuickReply = async (text) => {
     if (!selected || sendingRef.current) return;
     sendingRef.current = true;
-    setIsSending(true);
     const optimistic = pushOptimistic({ text });
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
@@ -534,7 +523,6 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
-      setIsSending(false);
       setShowQuick(false);
     }
   };
@@ -542,7 +530,6 @@ export default function AdminChatPage() {
   const sendText = async () => {
     if (!input.trim() || !selected || sendingRef.current) return;
     sendingRef.current = true;
-    setIsSending(true);
     const text = input.trim();
     const optimistic = pushOptimistic({ text });
     setInput("");
@@ -558,14 +545,12 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
-      setIsSending(false);
     }
   };
 
   const handleAudioSend = async () => {
     if (!audioPreview || !selected || sendingRef.current) return;
     sendingRef.current = true;
-    setIsSending(true);
     const optimistic = pushOptimistic({ audioUrl: "" });
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
@@ -586,14 +571,12 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
-      setIsSending(false);
     }
   };
 
   const sendMedia = async ({ audio, images }) => {
     if (!selected || sendingRef.current) return;
     sendingRef.current = true;
-    setIsSending(true);
     const optimistic = pushOptimistic({
       text: input.trim() || "",
       imageUrls: images?.length ? ["__local__"] : [],
@@ -619,7 +602,6 @@ export default function AdminChatPage() {
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
       sendingRef.current = false;
-      setIsSending(false);
     }
   };
 
@@ -749,7 +731,7 @@ export default function AdminChatPage() {
                 );
               })
             )}
-            {loadingChats && <div className="area-loader"><span className="spinner spinner--lg" /></div>}
+            {loadingChats && <div className="area-loader"><span className="spinner" /></div>}
           </div>
         </aside>
 
@@ -825,7 +807,8 @@ export default function AdminChatPage() {
                 })}
 
                 <div ref={endRef} />
-                {loadingThread && <div className="loading-overlay"><span className="spinner spinner--lg" /></div>}
+                {/* оверлей загрузки треда (тот же размер) */}
+                {false && <div className="loading-overlay"><span className="spinner" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -883,13 +866,8 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                {/* без спиннера на кнопке */}
-                <button
-                  className={`send-btn ${isSending ? "is-loading" : ""}`}
-                  onClick={handleSend}
-                  disabled={!!recording || isSending}
-                  title="Отправить"
-                >
+                {/* кнопка отправки не блокируется */}
+                <button className="send-btn" onClick={handleSend} title="Отправить">
                   {Svg.send}
                 </button>
               </div>
@@ -917,7 +895,8 @@ export default function AdminChatPage() {
         {/* RIGHT */}
         {selected && (
           <aside className="user-panel">
-            {loadingInfo && <div className="area-loader"><span className="spinner spinner--md" /></div>}
+            {/* можно оставить — это отдельный блок, грузится редко */}
+            {/* {loadingInfo && <div className="area-loader"><span className="spinner" /></div>} */}
 
             {selectedUserInfo && (
               <>

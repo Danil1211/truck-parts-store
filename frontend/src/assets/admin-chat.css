@@ -137,7 +137,7 @@
 .bubble-img{ max-width:260px; border-radius:12px; display:block; }
 .bubble-time{ font-size:12px; opacity:.8; text-align:right; min-height:16px; }
 
-/* Кто печатает (оставили как было) */
+/* Кто печатает */
 .typing{ align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:12px; padding:8px 10px; font-size:13px; color:#334155; }
 .typing-dots{ display:inline-block; width:18px; text-align:left; }
 
@@ -169,14 +169,6 @@
   width:40px; height:40px; border:none; color:#fff; cursor:pointer; border-radius:14px;
   background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 10px 30px rgba(34,145,255,.35); font-size:18px; line-height:1;
 }
-.send-btn.is-loading{ opacity:.6; } /* без спиннера — просто бледная и disabled */
-
-/* Аудио */
-.voice-bubble{ display:flex; align-items:center; gap:10px; }
-.voice-bar{ width:160px; height:6px; border-radius:999px; background:#e5edff; overflow:hidden; }
-.voice-bar-bg{ width:60%; height:100%; background:#bfdcff; }
-.voice-time{ font-size:12px; opacity:.85; }
-.voice-bubble audio{ display:none !important; }
 
 /* ===== RIGHT ===== */
 .user-panel{
@@ -204,48 +196,21 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === СПИННЕР (как у клиентов) === */
+/* === ЕДИНЫЙ СПИННЕР 20×20 (и глушим внешние псевдо-элементы) === */
 @keyframes chat-spin { to { transform: rotate(360deg) } }
-
-.admin-chat-page .spinner {
-  width:22px; height:22px;
-  border:3px solid #e5e7eb;        /* серый трек */
-  border-top-color:#2291ff;        /* синяя дуга */
+.admin-chat-page .spinner{
+  width:20px; height:20px;
+  border:3px solid #e5e7eb;
+  border-top-color:#2291ff;
   border-radius:50%;
   display:inline-block;
   animation:chat-spin .9s linear infinite;
-  background:none !important;      /* на всякий — убираем фон */
-  box-shadow:none !important;
+  background:none !important; box-shadow:none !important;
 }
-/* Глушим чужие псевдо-элементы, чтобы не было второй дуги */
 .admin-chat-page .spinner::before,
-.admin-chat-page .spinner::after{
-  content:none !important; display:none !important;
-}
+.admin-chat-page .spinner::after{ content:none !important; display:none !important; }
 
-/* МЕНЬШЕ в ЛЕВОМ списке чатов */
-.admin-chat-page .chat-list .spinner{
-  width:18px; height:18px; border-width:2px;
-}
-
-/* Ещё компактнее в ЛЕНТЕ сообщений (рядом со временем) */
-.admin-chat-page .thread .spinner{
-  width:12px; height:12px; border-width:2px; vertical-align:-1px;
-}
-
-/* размеры модификаторы */
-.admin-chat-page .spinner--lg { width:38px; height:38px; border-width:4px; }
-.admin-chat-page .spinner--md { width:24px; height:24px; }
-.admin-chat-page .spinner--xs { width:14px; height:14px; border-width:2px; }
-
-/* белый вариант для кнопок — не используется, оставим */
-.admin-chat-page .spinner--btn {
-  width:18px; height:18px;
-  border:2.5px solid rgba(255,255,255,.35);
-  border-top-color:#fff;
-}
-
-/* Оверлеи загрузки */
+/* Оверлеи */
 .loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
 .area-loader{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.6); z-index:5; }
 
