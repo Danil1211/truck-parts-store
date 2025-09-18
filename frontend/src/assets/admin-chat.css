@@ -205,43 +205,38 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === СПИННЕР — как на втором скрине: тонкий трек + короткая дуга === */
+/* === СПИННЕР — простой, без градиентов: один трек + одна дуга === */
 .spinner{
   --size:22px;          /* базовый размер */
   --thick:3px;          /* толщина кольца */
   --track:#e9eef6;      /* серый трек */
   --accent:#2291ff;     /* синяя дуга */
-  --speed:.9s;          /* скорость */
+  --speed:0.9s;         /* скорость */
+
   position:relative;
   display:inline-block;
   width:var(--size);
   height:var(--size);
+  border-radius:50%;
   vertical-align:middle;
 }
 
-/* серый трек тонким кольцом */
+/* серый трек кольцом */
 .spinner::before{
   content:"";
   position:absolute; inset:0;
   border-radius:50%;
-  background: conic-gradient(var(--track) 0 360deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
-          mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
+  border:var(--thick) solid var(--track);
 }
 
-/* короткая синяя дуга (~60°), без «ядра», вращается */
+/* одна синяя дуга (верхняя четверть), крутится */
 .spinner::after{
   content:"";
   position:absolute; inset:0;
   border-radius:50%;
-  background:
-    conic-gradient(from -90deg,           /* старт сверху */
-      transparent 0deg 300deg,            /* пустая часть */
-      var(--accent) 300deg 360deg         /* синяя дуга ~60° */
-    );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
-          mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
-  animation:spinner-rot var(--speed) linear infinite;
+  border:var(--thick) solid transparent;
+  border-top-color:var(--accent);   /* ← одна дуга */
+  animation:spin var(--speed) linear infinite;
   will-change: transform;
 }
 
@@ -250,13 +245,14 @@
 .spinner--md{ --size:24px; }
 .spinner--xs{ --size:14px; --thick:2px; }
 
-/* белый вариант для кнопок (на синей кнопке) */
+/* белый вариант внутри кнопки */
 .spinner--btn{
   --size:18px; --thick:2.5px;
   --track:rgba(255,255,255,.35);
   --accent:#fff;
 }
-@keyframes spinner-rot { to { transform:rotate(360deg); } }
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Оверлеи загрузки */
 .loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
