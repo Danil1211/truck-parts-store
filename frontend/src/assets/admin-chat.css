@@ -137,10 +137,6 @@
 .bubble-img{ max-width:260px; border-radius:12px; display:block; }
 .bubble-time{ font-size:12px; opacity:.8; text-align:right; min-height:16px; }
 
-/* Кто печатает */
-.typing{ align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:12px; padding:8px 10px; font-size:13px; color:#334155; }
-.typing-dots{ display:inline-block; width:18px; text-align:left; }
-
 /* Превью изображений */
 .previews{ flex:0 0 auto; display:flex; gap:10px; flex-wrap:wrap; padding:8px 12px 0; border-top:1px solid var(--line); background:#fff; }
 .preview{ position:relative; width:92px; height:92px; border-radius:12px; overflow:hidden; background:#eef2f7; }
@@ -170,6 +166,13 @@
   background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 10px 30px rgba(34,145,255,.35); font-size:18px; line-height:1;
 }
 
+/* Аудио */
+.voice-bubble{ display:flex; align-items:center; gap:10px; }
+.voice-bar{ width:160px; height:6px; border-radius:999px; background:#e5edff; overflow:hidden; }
+.voice-bar-bg{ width:60%; height:100%; background:#bfdcff; }
+.voice-time{ font-size:12px; opacity:.85; }
+.voice-bubble audio{ display:none !important; }
+
 /* ===== RIGHT ===== */
 .user-panel{
   position:relative;
@@ -196,21 +199,18 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === ЕДИНЫЙ СПИННЕР 20×20 (и глушим внешние псевдо-элементы) === */
+/* === ЕДИНЫЙ СПИННЕР 20×20 === */
 @keyframes chat-spin { to { transform: rotate(360deg) } }
 .admin-chat-page .spinner{
   width:20px; height:20px;
-  border:3px solid #e5e7eb;
-  border-top-color:#2291ff;
+  border:3px solid #e5e7eb;      /* серый трек */
+  border-top-color:#2291ff;      /* синяя дуга */
   border-radius:50%;
   display:inline-block;
   animation:chat-spin .9s linear infinite;
-  background:none !important; box-shadow:none !important;
 }
-.admin-chat-page .spinner::before,
-.admin-chat-page .spinner::after{ content:none !important; display:none !important; }
 
-/* Оверлеи */
+/* Оверлеи загрузки */
 .loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
 .area-loader{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.6); z-index:5; }
 

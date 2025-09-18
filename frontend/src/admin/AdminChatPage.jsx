@@ -85,12 +85,6 @@ const Svg = {
 const isUserOnline = (info) =>
   info?.lastOnlineAt ? Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000 : false;
 
-function decodeHtml(html) {
-  const txt = document.createElement("textarea");
-  txt.innerHTML = html;
-  return txt.value;
-}
-
 /* ===== helpers ===== */
 const sortByDate = (arr) =>
   [...arr].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -233,13 +227,13 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
-  /* --- ВЕРНУЛ флаги загрузки --- */
+  /* флаги загрузки */
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  // анти-гонка
-  const sendingRef = useRef(false);
+  /* блокируем только аплоады, текст уходит мгновенно */
+  const uploadingRef = useRef(false);
   const skipNextPollRef = useRef(false);
 
   // ожидание открытия конкретного id
@@ -331,7 +325,6 @@ export default function AdminChatPage() {
     setLoadingThread(true);
 
     const load = async () => {
-      if (sendingRef.current) return;
       if (skipNextPollRef.current) {
         skipNextPollRef.current = false;
         return;
@@ -510,15 +503,10 @@ export default function AdminChatPage() {
     return m;
   };
 
-  const replaceTmp = (tmpId, real) => {
-    if (!real) return;
-    setMessages((prev) => sortByDate(prev.map((m) => (m._id === tmpId ? real : m))));
-    if (selected?.userId) updateChatPreviewOptimistic(selected.userId, real);
-  };
+  /* === отправка === */
 
   const handleQuickReply = async (text) => {
-    if (!selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!selected) return;
     const optimistic = pushOptimistic({ text });
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
@@ -531,14 +519,12 @@ export default function AdminChatPage() {
       console.error("quick reply error:", e);
       setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
     } finally {
-      sendingRef.current = false;
       setShowQuick(false);
     }
   };
 
   const sendText = async () => {
-    if (!input.trim() || !selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!input.trim() || !selected) return;
     const text = input.trim();
     const optimistic = pushOptimistic({ text });
     setInput("");
@@ -552,14 +538,12 @@ export default function AdminChatPage() {
     } catch (e) {
       console.error("sendText error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
-    } finally {
-      sendingRef.current = false;
     }
   };
 
   const handleAudioSend = async () => {
-    if (!audioPreview || !selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!audioPreview || !selected || uploadingRef.current) return;
+    uploadingRef.current = true;
     const optimistic = pushOptimistic({ audioUrl: "" });
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
@@ -579,13 +563,13 @@ export default function AdminChatPage() {
       console.error("audio send error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
-      sendingRef.current = false;
+      uploadingRef.current = false;
     }
   };
 
   const sendMedia = async ({ audio, images }) => {
-    if (!selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!selected || uploadingRef.current) return;
+    uploadingRef.current = true;
     const optimistic = pushOptimistic({
       text: input.trim() || "",
       imageUrls: images?.length ? ["__local__"] : [],
@@ -610,7 +594,7 @@ export default function AdminChatPage() {
       console.error("sendMedia error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     } finally {
-      sendingRef.current = false;
+      uploadingRef.current = false;
     }
   };
 
@@ -874,7 +858,7 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                {/* кнопка отправки НЕ блокируется */}
+                {/* кнопка отправки не блокируется */}
                 <button className="send-btn" onClick={handleSend} title="Отправить">
                   {Svg.send}
                 </button>
