@@ -85,6 +85,12 @@ const Svg = {
 const isUserOnline = (info) =>
   info?.lastOnlineAt ? Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000 : false;
 
+function decodeHtml(html) {
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html;
+  return txt.value;
+}
+
 /* ===== helpers ===== */
 const sortByDate = (arr) =>
   [...arr].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -95,7 +101,7 @@ const pickMessage = (res) => {
   if (Array.isArray(d)) return d[d.length - 1] || null;
   if (Array.isArray(d?.data)) return d.data[d.data.length - 1] || null;
   if (d?.message) return d.message;
-  if (d?.data && (d.data._id || d.data.text)) return d.data;
+  if (d?.data && (d.data._id || d.data.text || d.data.audioUrl || d.data.imageUrls?.length)) return d.data;
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
@@ -116,61 +122,31 @@ function mergeWithTmp(prev, serverArr) {
 }
 
 /* --- голосовая «пузырь» --- */
-function formatMMSS(sec) {
-  const s = Math.max(0, Math.round(sec || 0));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${String(m).padStart(1, "0")}:${String(r).padStart(2, "0")}`;
-}
-
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
-  const [dur, setDur] = useState(null);
-
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    const onLoaded = () => setDur(a.duration || 0);
-    a.addEventListener("loadedmetadata", onLoaded);
-    return () => a.removeEventListener("loadedmetadata", onLoaded);
-  }, []);
-
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
     playing ? a.pause() : a.play();
   };
-
   return (
     <div className="voice-bubble">
-      <button
-        className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`}
-        onClick={toggle}
-        title={playing ? "Пауза" : "Воспроизвести"}
-      >
+      <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
         {playing ? "⏸" : "▶️"}
       </button>
-
       <div className="voice-bar"><div className="voice-bar-bg" /></div>
-
-      <div className="voice-meta">
-        {dur != null && <span className="voice-dur">{formatMMSS(dur)}</span>}
-        {createdAt && (
-          <span className="voice-time">
-            {new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </span>
-        )}
-      </div>
-
+      <span className="voice-time">
+        {createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+      </span>
       <audio
         ref={audioRef}
         src={audioUrl}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
-        preload="auto"
         style={{ display: "none" }}
+        preload="auto"
       />
     </div>
   );
@@ -180,36 +156,28 @@ function VoiceMessage({ audioUrl, createdAt }) {
 function AudioPreview({ blob, onRemove }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
-  const [dur, setDur] = useState(null);
   const audioRef = useRef(null);
-
   useEffect(() => {
     if (!blob) return;
     const u = URL.createObjectURL(blob);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [blob]);
-
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     const on = () => setPlaying(true);
     const off = () => setPlaying(false);
-    const meta = () => setDur(a.duration || 0);
     a.addEventListener("play", on);
     a.addEventListener("pause", off);
     a.addEventListener("ended", off);
-    a.addEventListener("loadedmetadata", meta);
     return () => {
       a.removeEventListener("play", on);
       a.removeEventListener("pause", off);
       a.removeEventListener("ended", off);
-      a.removeEventListener("loadedmetadata", meta);
     };
   }, [url]);
-
   if (!blob) return null;
-
   return (
     <div className="audio-preview">
       <button
@@ -217,17 +185,13 @@ function AudioPreview({ blob, onRemove }) {
         onClick={() => {
           const a = audioRef.current;
           if (!a) return;
-          if (playing) a.pause();
-          else { a.currentTime = 0; a.play(); }
+          playing ? a.pause() : (a.currentTime = 0, a.play());
         }}
-        title={playing ? "Пауза" : "Прослушать"}
       >
         {playing ? "⏸" : "▶️"}
       </button>
-      <span className="audio-preview__label">
-        Предпрослушка {dur != null ? `• ${formatMMSS(dur)}` : ""}
-      </span>
-      <button className="audio-preview__close" onClick={onRemove} title="Удалить">×</button>
+      <span className="audio-preview__label">Предпрослушка</span>
+      <button className="audio-preview__close" onClick={onRemove}>×</button>
       {url && <audio ref={audioRef} src={url} preload="auto" style={{ display: "none" }} />}
     </div>
   );
@@ -269,11 +233,13 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
+  // loading flags
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  const uploadingRef = useRef(false);
+  // анти-гонка (оставим только для запрета повторной отправки ОДНОГО типа прямо в момент)
+  const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
 
   const pendingOpenId = useRef(null);
@@ -306,25 +272,21 @@ export default function AdminChatPage() {
     return [];
   };
 
-  const lastPreview = (m) => (
-    m?.text ||
-    (m?.imageUrls?.length ? "📷 Фото" : "") ||
-    (m?.audioUrl ? "🎤 Голосовое" : "") ||
-    "—"
-  );
+  const mapLast = (c) => ({
+    ...c,
+    lastMessageObj: c.lastMessage,
+    lastMessage:
+      c.lastMessage?.text ||
+      (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "") ||
+      (c.lastMessage?.audioUrl ? "🎤 Голосовое" : "—"),
+  });
 
   const loadChats = async () => {
     setError("");
     try {
       const res = await api(`/api/chat/admin?_=${Date.now()}`);
       const arr = normalizeChatsResponse(res);
-      setChats(
-        arr.map((c) => ({
-          ...c,
-          lastMessageObj: c.lastMessage,
-          lastMessage: lastPreview(c.lastMessage),
-        }))
-      );
+      setChats(arr.map(mapLast));
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
@@ -466,17 +428,22 @@ export default function AdminChatPage() {
     await loadChats();
   };
 
+  /* ==== ГОЛОСОВЫЕ: запись ==== */
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
         try {
           mediaRecorder.current = new window.MediaRecorder(stream);
-          mediaRecorder.current.ondataavailable = (e) => audioChunks.current.push(e.data);
+          mediaRecorder.current.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) audioChunks.current.push(e.data);
+          };
           mediaRecorder.current.onstop = () => {
-            const blob = new Blob(audioChunks.current, { type: "audio/webm" });
-            audioChunks.current = [];
-            setAudioPreview(blob);
+            if (audioChunks.current.length) {
+              const blob = new Blob(audioChunks.current, { type: "audio/webm" });
+              audioChunks.current = [];
+              setAudioPreview(blob);
+            }
           };
         } catch {}
       })
@@ -555,8 +522,6 @@ export default function AdminChatPage() {
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, real);
   };
 
-  /* === отправка === */
-
   const handleQuickReply = async (text) => {
     if (!selected) return;
     const optimistic = pushOptimistic({ text });
@@ -565,8 +530,6 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("quick reply error:", e);
       setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
@@ -585,8 +548,6 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("sendText error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
@@ -594,9 +555,8 @@ export default function AdminChatPage() {
   };
 
   const handleAudioSend = async () => {
-    if (!audioPreview || !selected || uploadingRef.current) return;
-    uploadingRef.current = true;
-    const optimistic = pushOptimistic({ audioUrl: "" });
+    if (!audioPreview || !selected) return;
+    const optimistic = pushOptimistic({ audioUrl: "__local__" });
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
@@ -609,19 +569,14 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
-    } finally {
-      uploadingRef.current = false;
     }
   };
 
   const sendMedia = async ({ audio, images }) => {
-    if (!selected || uploadingRef.current) return;
-    uploadingRef.current = true;
+    if (!selected) return;
     const optimistic = pushOptimistic({
       text: input.trim() || "",
       imageUrls: images?.length ? ["__local__"] : [],
@@ -640,17 +595,18 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
-    } finally {
-      uploadingRef.current = false;
     }
   };
 
   const handleSend = () => {
+    if (recording) {
+      // нажали на красный круг — остановить запись
+      startOrStopRecording();
+      return;
+    }
     if (audioPreview) handleAudioSend();
     else if (files.length) sendMedia({ audio: null, images: files });
     else sendText();
@@ -697,12 +653,6 @@ export default function AdminChatPage() {
     const iv = setInterval(poll, 1200);
     return () => clearInterval(iv);
   }, []);
-
-  const markUnread = async (uid) => {
-    try { await api.post(`/api/chat/admin/${uid}/unread`); return; } catch {}
-    try { await api.post(`/api/chat/unread/${uid}`); return; } catch {}
-    try { await api.post(`/api/chat/read/${uid}`, { unread: true }); } catch {}
-  };
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -776,7 +726,7 @@ export default function AdminChatPage() {
                 );
               })
             )}
-            {loadingChats && <div className="area-loader"><span className="chat-spinner" /></div>}
+            {loadingChats && <div className="area-loader"><span className="spinner spinner--md" /></div>}
           </div>
         </aside>
 
@@ -797,8 +747,6 @@ export default function AdminChatPage() {
                 </div>
 
                 <div className="chat-actions">
-                  {/* убрали «Непрочитано» по ТЗ */}
-
                   <div className={`quick ${showQuick ? "open" : ""}`} ref={quickRef}>
                     <button className="btn-outline" onClick={() => setShowQuick((v) => !v)}>
                       Быстрый ответ
@@ -818,29 +766,35 @@ export default function AdminChatPage() {
                 {Array.isArray(messages) && messages.map((m, i) => {
                   const isTmp = String(m._id || "").startsWith("tmp-");
                   return (
-                    <div key={m._id || i} className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
+                    <div
+                      key={m._id || i}
+                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
+                    >
                       <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
-
                       {m.text && <div className="bubble-text">{m.text}</div>}
-
                       {m.imageUrls?.map((u, idx) => (
                         <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                       ))}
+                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                      {m.audioUrl ? (
-                        <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />
-                      ) : (
-                        <div className="bubble-time">
-                          {!isTmp &&
-                            new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                      )}
+                      <div className="bubble-time">
+                        {!isTmp &&
+                          new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
                     </div>
                   );
                 })}
 
+                {selected?.userId &&
+                  typingMap[selected.userId]?.isTyping &&
+                  !typingMap[selected.userId]?.fromAdmin && (
+                    <div className="typing">
+                      <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
+                      <span> печатает</span><span className="typing-dots">...</span>
+                    </div>
+                  )}
                 <div ref={endRef} />
-                {loadingThread && <div className="loading-overlay"><span className="chat-spinner" /></div>}
+                {loadingThread && <div className="loading-overlay"><span className="spinner spinner--md" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -895,12 +849,16 @@ export default function AdminChatPage() {
                   title={recording ? `Остановить запись (${recordingTime}s)` : "Записать голосовое"}
                 >
                   {Svg.mic}
-                  {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                <button className="send-btn" onClick={handleSend} title="Отправить">
-                  {Svg.send}
-                </button>
+                {/* Когда идёт запись — вместо send кнопки показываем красный пульсирующий круг */}
+                {recording ? (
+                  <button className="recording-btn" onClick={handleSend} title="Остановить запись" />
+                ) : (
+                  <button className="send-btn" onClick={handleSend} title="Отправить">
+                    {Svg.send}
+                  </button>
+                )}
               </div>
 
               {showEmoji && (
@@ -926,7 +884,7 @@ export default function AdminChatPage() {
         {/* RIGHT */}
         {selected && (
           <aside className="user-panel">
-            {loadingInfo && <div className="area-loader"><span className="chat-spinner" /></div>}
+            {loadingInfo && <div className="area-loader"><span className="spinner spinner--md" /></div>}
 
             {selectedUserInfo && (
               <>
