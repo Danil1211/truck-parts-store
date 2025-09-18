@@ -366,7 +366,7 @@ export default function AdminChatPage() {
     if (!userId) return;
     const chat = chats.find((c) => String(c.userId) === String(userId));
     if (chat) {
-      handleSelectChat(chat);
+    handleSelectChat(chat);
     } else {
       pendingOpenId.current = String(userId);
       await loadChats();
@@ -694,6 +694,7 @@ export default function AdminChatPage() {
   if (error) return <div className="admin-chat-error">{error}</div>;
 
   const chatList = Array.isArray(chats) ? chats : [];
+  const pageHref = selectedUserInfo?.lastPageUrl ? withSite(selectedUserInfo.lastPageUrl) : null;
 
   return (
     <div className="admin-chat-page">
@@ -814,12 +815,11 @@ export default function AdminChatPage() {
                       ))}
                       {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                      {!m.audioUrl && (
-                        <div className="bubble-time">
-                          {isTmp ? <span className="spinner spinner--xs" /> :
-                            new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                      )}
+                      {/* без спиннера на отправке */}
+                      <div className="bubble-time">
+                        {!isTmp &&
+                          new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
                     </div>
                   );
                 })}
@@ -883,8 +883,14 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                <button className={`send-btn ${isSending ? "is-loading" : ""}`} onClick={handleSend} disabled={!!recording || isSending} title="Отправить">
-                  {isSending ? <span className="spinner spinner--btn" /> : Svg.send}
+                {/* без спиннера на кнопке */}
+                <button
+                  className={`send-btn ${isSending ? "is-loading" : ""}`}
+                  onClick={handleSend}
+                  disabled={!!recording || isSending}
+                  title="Отправить"
+                >
+                  {Svg.send}
                 </button>
               </div>
 
@@ -928,8 +934,8 @@ export default function AdminChatPage() {
                   <div><b>Город:</b> <span>{selectedUserInfo.city || "—"}</span></div>
                   <div className="user-link-row">
                     <b>Страница:</b>{" "}
-                    {selectedUserInfo.lastPageUrl ? (
-                      <a className="user-link" href={withSite(selectedUserInfo.lastPageUrl)} target="_blank" rel="noreferrer">Перейти ↗</a>
+                    {pageHref ? (
+                      <a className="user-link" href={pageHref} target="_blank" rel="noreferrer">Перейти ↗</a>
                     ) : ("—")}
                   </div>
                   <div>
