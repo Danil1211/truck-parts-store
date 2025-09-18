@@ -99,24 +99,36 @@ const pickMessage = (res) => {
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
-/* дедуп — особенно для аудио, чтобы не было дублей */
+/* аккуратное слияние: не допускаем дублей аудио/картинок/текста */
 function mergeWithTmp(prev, serverArr) {
   const server = Array.isArray(serverArr) ? serverArr : [];
+
   const isSimilar = (tmp) =>
     server.some((s) => {
       const sameSide = !!s.fromAdmin === !!tmp.fromAdmin;
       const closeTime =
         Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 20000;
-      if ((tmp.tempKind === "audio" || tmp.audioUrl) && s.audioUrl && sameSide && closeTime) return true;
-      if ((tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0 && sameSide && closeTime) return true;
-      if (tmp.text && s.text && tmp.text.trim() === s.text.trim() && sameSide && closeTime) return true;
+
+      // аудио
+      if (tmp.tempKind === "audio" || tmp.audioUrl) {
+        if (!!s.audioUrl && sameSide && closeTime) return true;
+      }
+      // изображения
+      if ((tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0 && sameSide && closeTime) {
+        return true;
+      }
+      // текст
+      if (tmp.text && s.text && tmp.text.trim() === s.text.trim() && sameSide && closeTime) {
+        return true;
+      }
       return false;
     });
+
   const tmpLeft = prev.filter((m) => String(m._id || "").startsWith("tmp-") && !isSimilar(m));
   return sortByDate([...server, ...tmpLeft]);
 }
 
-/* голосовой пузырь */
+/* --- голосовая «пузырь» --- */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -144,30 +156,34 @@ function VoiceMessage({ audioUrl, createdAt }) {
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
-        preload="auto"
         style={{ display: "none" }}
+        preload="auto"
       />
     </div>
   );
 }
 
-/* --- предпрослушка записи --- */
+/* утилы времени */
 const fmt = (sec) => {
   const s = Math.max(0, Math.floor(sec || 0));
   const m = Math.floor(s / 60);
   const SS = String(s % 60).padStart(2, "0");
   return `${String(m).padStart(2, "0")}:${SS}`;
 };
+
+/* --- предпрослушка записи --- */
 function AudioPreview({ blob, seconds = 0, onRemove }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
+
   useEffect(() => {
     if (!blob) return;
     const u = URL.createObjectURL(blob);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [blob]);
+
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -182,6 +198,7 @@ function AudioPreview({ blob, seconds = 0, onRemove }) {
       a.removeEventListener("ended", off);
     };
   }, [url]);
+
   if (!blob) return null;
   return (
     <div className="audio-preview">
@@ -239,12 +256,16 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
+  // loading flags
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
+  // анти-гонка
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
+
+  // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
 
   const endRef = useRef(null);
@@ -293,6 +314,7 @@ export default function AdminChatPage() {
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
+      setChats((prev) => prev);
       setError("Ошибка получения чатов");
     } finally {
       if (firstChatsLoadRef.current) {
@@ -404,6 +426,7 @@ export default function AdminChatPage() {
     setAudioPreview(null);
     setRecording(false);
     setRecordingTime(0);
+    clearInterval(recordingTimer.current);
     setLoadingInfo(true);
     resetUnread(c.userId);
 
@@ -511,7 +534,7 @@ export default function AdminChatPage() {
       imageUrls: payload.imageUrls || [],
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
-      tempKind: payload.tempKind || null,
+      tempKind: payload.tempKind || null, // для дедупа, особенно аудио
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
@@ -574,6 +597,7 @@ export default function AdminChatPage() {
     files.forEach((f) => form.append("images", f));
     setFiles([]);
     setAudioPreview(null);
+    setRecordingTime(0);
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -624,7 +648,11 @@ export default function AdminChatPage() {
   };
 
   const handleSend = () => {
-    if (recording) { startOrStopRecording(); return; }
+    if (recording) {
+      // во время записи пульс-кнопка останавливает запись
+      startOrStopRecording();
+      return;
+    }
     if (audioPreview) handleAudioSend();
     else if (files.length) sendMedia({ audio: null, images: files });
     else sendText();
@@ -744,7 +772,7 @@ export default function AdminChatPage() {
                 );
               })
             )}
-            {loadingChats && <div className="area-loader"><span className="spinner" /></div>}
+            {loadingChats && <div className="area-loader"><span className="chat-spinner chat-spinner--md" /></div>}
           </div>
         </aside>
 
@@ -781,23 +809,28 @@ export default function AdminChatPage() {
               </header>
 
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
-                {Array.isArray(messages) && messages.map((m, i) => (
-                  <div key={m._id || i} className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
-                    <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
-                    {m.text && <div className="bubble-text">{m.text}</div>}
-                    {m.imageUrls?.map((u, idx) => (
-                      <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
-                    ))}
-                    {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
+                {Array.isArray(messages) && messages.map((m, i) => {
+                  return (
+                    <div
+                      key={m._id || i}
+                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
+                    >
+                      <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
+                      {m.text && <div className="bubble-text">{m.text}</div>}
+                      {m.imageUrls?.map((u, idx) => (
+                        <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
+                      ))}
+                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                    <div className="bubble-time">
-                      {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                      <div className="bubble-time">
+                        {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 <div ref={endRef} />
-                {loadingThread && <div className="loading-overlay"><span className="spinner" /></div>}
+                {loadingThread && <div className="loading-overlay"><span className="chat-spinner chat-spinner--md" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -863,11 +896,20 @@ export default function AdminChatPage() {
 
                 {/* send / rec-stop */}
                 {!recording ? (
-                  <button className="send-btn" onClick={handleSend} title="Отправить">
+                  <button
+                    className="send-btn"
+                    onClick={handleSend}
+                    title="Отправить"
+                  >
                     {Svg.send}
                   </button>
                 ) : (
-                  <button className="rec-stop" onClick={handleSend} title="Остановить запись" aria-label="Остановить запись" />
+                  <button
+                    className="rec-stop"
+                    onClick={handleSend}
+                    title="Остановить запись"
+                    aria-label="Остановить запись"
+                  />
                 )}
               </div>
 
@@ -894,7 +936,7 @@ export default function AdminChatPage() {
         {/* RIGHT */}
         {selected && (
           <aside className="user-panel">
-            {loadingInfo && <div className="area-loader"><span className="spinner" /></div>}
+            {loadingInfo && <div className="area-loader"><span className="chat-spinner chat-spinner--md" /></div>}
 
             {selectedUserInfo && (
               <>
