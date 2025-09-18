@@ -148,7 +148,7 @@
 .preview__close{ position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,.48); color:#fff; cursor:pointer; }
 
 /* Панель ввода */
-.composer{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px solid var(--line); background:#fff; }
+.composer{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px солид var(--line); background:#fff; }
 .icon-btn{ display:flex; align-items:center; justify-content:center; width:40px; height:40px; border:none; border-radius:12px; background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer; font-size:18px; transition:transform .06s ease, box-shadow .2s ease; }
 .icon-btn:hover{ background:#eef2f7; box-shadow:0 8px 24px rgba(15,23,42,.08); }
 .icon-btn:active{ transform: translateY(1px); }
@@ -205,54 +205,55 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === СПИННЕР — простой, без градиентов: один трек + одна дуга === */
-.spinner{
-  --size:22px;          /* базовый размер */
-  --thick:3px;          /* толщина кольца */
-  --track:#e9eef6;      /* серый трек */
-  --accent:#2291ff;     /* синяя дуга */
-  --speed:0.9s;         /* скорость */
-
-  position:relative;
-  display:inline-block;
-  width:var(--size);
-  height:var(--size);
-  border-radius:50%;
-  vertical-align:middle;
+/* === СПИННЕР (жёстко изолированный под страницу чата) === */
+.admin-chat-page .spinner{
+  --size:22px; --thick:3px; --track:#e9eef6; --accent:#2291ff; --speed:.9s;
+  position:relative; display:inline-block; width:var(--size); height:var(--size);
+  border-radius:50%; vertical-align:middle;
 }
-
-/* серый трек кольцом */
-.spinner::before{
+/* Сброс любых внешних стилей на псевдо-элементах */
+.admin-chat-page .spinner::before,
+.admin-chat-page .spinner::after{
+  all: unset;
   content:"";
   position:absolute; inset:0;
   border-radius:50%;
+  display:block;
+}
+/* Серый трек */
+.admin-chat-page .spinner::before{
   border:var(--thick) solid var(--track);
+  background:none; box-shadow:none; outline:0;
 }
-
-/* одна синяя дуга (верхняя четверть), крутится */
-.spinner::after{
-  content:"";
-  position:absolute; inset:0;
-  border-radius:50%;
+/* ОДНА синяя дуга (верхняя четверть) */
+.admin-chat-page .spinner::after{
   border:var(--thick) solid transparent;
-  border-top-color:var(--accent);   /* ← одна дуга */
-  animation:spin var(--speed) linear infinite;
-  will-change: transform;
+  border-top-color:var(--accent);
+  animation:chat-spin var(--speed) linear infinite;
+  background:none; box-shadow:none; outline:0;
+  will-change:transform;
 }
-
-/* размеры / варианты */
-.spinner--lg{ --size:38px; --thick:4px; }
-.spinner--md{ --size:24px; }
-.spinner--xs{ --size:14px; --thick:2px; }
-
-/* белый вариант внутри кнопки */
-.spinner--btn{
-  --size:18px; --thick:2.5px;
-  --track:rgba(255,255,255,.35);
-  --accent:#fff;
+/* размеры / варианты для чата */
+.admin-chat-page .spinner--lg{ --size:38px; --thick:4px; }
+.admin-chat-page .spinner--md{ --size:24px; }
+.admin-chat-page .spinner--xs{ --size:14px; --thick:2px; }
+.admin-chat-page .spinner--btn{
+  --size:18px; --thick:2.5px; --track:rgba(255,255,255,.35); --accent:#fff;
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes chat-spin { to { transform: rotate(360deg); } }
+/* Fallback, если браузер не умеет `all` */
+@supports not (all: initial){
+  .admin-chat-page .spinner::before,
+  .admin-chat-page .spinner::after{
+    background:none!important; box-shadow:none!important; outline:0!important;
+  }
+  .admin-chat-page .spinner::before{ border:var(--thick) solid var(--track)!important; }
+  .admin-chat-page .spinner::after{
+    border:var(--thick) solid transparent!important;
+    border-top-color:var(--accent)!important;
+    animation:chat-spin var(--speed) linear infinite!important;
+  }
+}
 
 /* Оверлеи загрузки */
 .loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
