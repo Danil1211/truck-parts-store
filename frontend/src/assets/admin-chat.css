@@ -67,7 +67,6 @@
 .chat-meta{ min-width:0; flex:1; }
 .chat-title{ display:flex; gap:8px; align-items:center; }
 .chat-name{ color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-/* .chat-new — удалено */
 .chat-phone{ font-size:12px; color:#64748b; }
 .chat-last{ font-size:12px; color:#334155; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .chat-delete{ border:none; background:transparent; color:#94a3b8; font-size:18px; cursor:pointer; }
@@ -154,7 +153,7 @@
 .icon-btn:hover{ background:#eef2f7; box-shadow:0 8px 24px rgba(15,23,42,.08); }
 .icon-btn:active{ transform: translateY(1px); }
 .icon-btn--disabled{ opacity:.55; cursor:not-allowed; }
-.icon-btn svg{ display:block; } /* выравнивание иконок */
+.icon-btn svg{ display:block; }
 
 .icon{ width:20px; height:20px; display:block; }
 .icon--nudge-down{ transform:translateY(1px); }
@@ -206,7 +205,7 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === СПИННЕР: одна синяя дуга (как на скрине) === */
+/* === СПИННЕР — как на втором скрине: тонкий трек + короткая дуга === */
 .spinner{
   --size:22px;          /* базовый размер */
   --thick:3px;          /* толщина кольца */
@@ -218,38 +217,33 @@
   width:var(--size);
   height:var(--size);
   vertical-align:middle;
-
-  /* белое ядро с мягким сиянием */
-  background:
-    radial-gradient(circle at 50% 50%, #ffffff 0 58%, transparent 59% 100%);
 }
 
-/* серый трек */
+/* серый трек тонким кольцом */
 .spinner::before{
   content:"";
   position:absolute; inset:0;
   border-radius:50%;
-  border:var(--thick) solid var(--track);
+  background: conic-gradient(var(--track) 0 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
+          mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
 }
 
-/* ОДНА дуга (около 80°) поверх трека + вращение */
+/* короткая синяя дуга (~60°), без «ядра», вращается */
 .spinner::after{
   content:"";
   position:absolute; inset:0;
   border-radius:50%;
-  /* дуга: прозрачное → синий сектор → прозрачное */
   background:
-    conic-gradient(
-      from 0deg,
-      transparent 0deg 280deg,          /* пустая часть круга */
-      var(--accent) 280deg 360deg       /* синяя дуга (~80°) */
+    conic-gradient(from -90deg,           /* старт сверху */
+      transparent 0deg 300deg,            /* пустая часть */
+      var(--accent) 300deg 360deg         /* синяя дуга ~60° */
     );
-  /* маска формирует «бублик» толщиной var(--thick) */
-  -webkit-mask:radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
-          mask:radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
+          mask: radial-gradient(farthest-side, transparent calc(50% - var(--thick)), #000 calc(50% - var(--thick)));
   animation:spinner-rot var(--speed) linear infinite;
+  will-change: transform;
 }
-@keyframes spinner-rot { to { transform:rotate(360deg); } }
 
 /* размеры / варианты */
 .spinner--lg{ --size:38px; --thick:4px; }
@@ -261,13 +255,8 @@
   --size:18px; --thick:2.5px;
   --track:rgba(255,255,255,.35);
   --accent:#fff;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,.96) 0 58%, transparent 59% 100%);
 }
-.spinner--btn::after{
-  background:
-    conic-gradient(from 0deg, transparent 0deg 280deg, var(--accent) 280deg 360deg);
-}
+@keyframes spinner-rot { to { transform:rotate(360deg); } }
 
 /* Оверлеи загрузки */
 .loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
