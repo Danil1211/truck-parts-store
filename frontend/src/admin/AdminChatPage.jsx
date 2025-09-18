@@ -100,13 +100,16 @@ const pickMessage = (res) => {
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
+/* аккуратное слияние: не допускаем дублей аудио/картинок/текста */
 function mergeWithTmp(prev, serverArr) {
   const server = Array.isArray(serverArr) ? serverArr : [];
+
   const isSimilar = (tmp) =>
     server.some((s) => {
       const sameSide = !!s.fromAdmin === !!tmp.fromAdmin;
       const closeTime =
         Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 20000;
+
       if (tmp.tempKind === "audio" || tmp.audioUrl) {
         if (!!s.audioUrl && sameSide && closeTime) return true;
       }
@@ -118,6 +121,7 @@ function mergeWithTmp(prev, serverArr) {
       }
       return false;
     });
+
   const tmpLeft = prev.filter((m) => String(m._id || "").startsWith("tmp-") && !isSimilar(m));
   return sortByDate([...server, ...tmpLeft]);
 }
@@ -134,17 +138,20 @@ const fmt = (sec) => {
 const REACTIONS = ["❤️", "🙂", "😂", "😮", "😢", "😡", "👍"];
 const isReaction = (v) => typeof v === "string" && v.length > 0;
 
+/** Кнопка реакции с поповером */
 function ReactionButton({ value, onToggleHeart, onPick }) {
   const [open, setOpen] = useState(false);
   const pressTimer = useRef(null);
   const closeTimer = useRef(null);
 
+  // старт «долгого ховера/тапа» — 1 сек
   const startLong = () => {
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => setOpen(true), 1000);
   };
   const stopLong = () => clearTimeout(pressTimer.current);
 
+  // не закрывать, пока курсор на поповере
   const safeOpen = () => { clearTimeout(closeTimer.current); setOpen(true); };
   const safeClose = () => { clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 150); };
 
@@ -379,15 +386,14 @@ export default function AdminChatPage() {
   const [error, setError] = useState("");
 
   // loading flags
+  the: // (nothing)
+  // anti-race flags etc.
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  // анти-гонка
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
-
-  // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
 
   const endRef = useRef(null);

@@ -117,14 +117,8 @@
     #fff;
 }
 
-/* ==== СТРОКА СООБЩЕНИЯ (реакция РЯДОМ с пузырём) ==== */
-.msg-row{ display:flex; align-items:flex-end; gap:8px; }
-.msg-row.left{ justify-content:flex-start; }
-.msg-row.right{ justify-content:flex-end; flex-direction:row-reverse; }
-.msg-react{ flex:0 0 auto; }
-
 /* Сообщения */
-.bubble{ position:relative; max-width:72%; border-radius:16px; padding:10px 12px 24px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:8px; word-break:break-word; }
+.bubble{ max-width:72%; border-radius:16px; padding:10px 12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:8px; word-break:break-word; }
 .bubble.in{  align-self:flex-start; background:#f0f4f8; color:#0f172a; }
 .bubble.out{ align-self:flex-end;   background:linear-gradient(180deg, #46a3ff, #5bb6ff); color:#fff; }
 .bubble-author{ font-size:12px; opacity:.9; }
@@ -183,6 +177,7 @@
 .voice-bubble{ display:flex; align-items:center; gap:10px; }
 .chat-voice-btn{ width:34px; height:34px; border-radius:10px; }
 
+/* трек (кликабелен) */
 .voice-bar{
   position:relative;
   width:160px; height:6px;
@@ -191,16 +186,27 @@
   overflow:hidden;
   cursor:pointer;
 }
+/* прогресс */
 .voice-progress{
-  position:absolute; left:0; top:0; height:100%; background:#bfdcff;
+  position:absolute; left:0; top:0;
+  height:100%;
+  background:#bfdcff;
 }
+/* ползунок */
 .voice-thumb{
-  position:absolute; top:50%; transform:translate(-50%,-50%);
-  width:12px; height:12px; border-radius:50%; background:#2291ff;
-  box-shadow:0 0 0 4px rgba(34,145,255,.18); pointer-events:none;
+  position:absolute; top:50%;
+  transform:translate(-50%,-50%);
+  width:12px; height:12px; border-radius:50%;
+  background:#2291ff;
+  box-shadow:0 0 0 4px rgba(34,145,255,.18);
+  pointer-events:none;
 }
 .voice-bar:hover .voice-thumb{ box-shadow:0 0 0 6px rgba(34,145,255,.16); }
-.voice-duration{ font-size:12px; opacity:.8; width:38px; text-align:right; }
+
+/* длительность записи справа от трека */
+.voice-duration{
+  font-size:12px; opacity:.8; width:38px; text-align:right;
+}
 
 /* Предпрослушка */
 .audio-preview{
@@ -212,7 +218,7 @@
 .audio-preview__label{ font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .audio-preview__close{ margin-left:auto; width:22px; height:22px; border:none; border-radius:50%; background:#e2e8f0; cursor:pointer; }
 
-/* --- скелет при оптимистичной отправке --- */
+/* скелет при оптимистичной отправке */
 .voice-skeleton{ display:flex; align-items:center; gap:10px; }
 .voice-skel-btn{ width:34px; height:34px; border-radius:10px; background:#e9eef7; }
 .voice-skel-bar{
@@ -221,37 +227,6 @@
 }
 .voice-skel-time{ width:32px; height:10px; border-radius:6px; background:#eef2f7; }
 @keyframes skel{ 0%{background-position:0% 0} 100%{background-position:200% 0} }
-
-/* ===== Reactions (рядом с пузырём) ===== */
-.react-root{ position:relative; display:inline-block; }
-
-/* фиолетовый бейдж как на твоём скрине */
-.react-btn{
-  width:32px; height:32px;
-  border:none; border-radius:10px;
-  background:#ece7ff;            /* светло-фиолетовый фон */
-  color:#6b21a8;                 /* фиолетовая иконка */
-  display:grid; place-items:center;
-  font-size:16px; cursor:pointer;
-  box-shadow:var(--shadow-sm);
-  transition:transform .08s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
-}
-.react-btn:hover{ background:#e2d9ff; box-shadow:0 8px 24px rgba(15,23,42,.08); }
-.react-btn--active{ background:#ffeef0; color:#ef4444; } /* есть реакция */
-.react-heart{ color:#ef4444; }
-
-/* поповер со смайлами — держится, пока курсор на нём */
-.react-pop{
-  position:absolute; bottom:38px; left:50%; transform:translateX(-50%);
-  display:flex; gap:6px; padding:6px;
-  background:#fff; border:1px solid var(--line); border-radius:999px;
-  box-shadow:0 12px 30px rgba(15,23,42,.12); z-index:10;
-}
-.react-item{
-  width:28px; height:28px; border:none; background:transparent; cursor:pointer;
-  font-size:18px; line-height:1; transition: transform .05s ease;
-}
-.react-item:hover{ transform: translateY(-1px) scale(1.06); }
 
 /* ===== RIGHT ===== */
 .user-panel{ position:relative; background:#fff; border-left:1px solid var(--line); height:100%; min-width:0; overflow:auto; padding:16px 14px; }
