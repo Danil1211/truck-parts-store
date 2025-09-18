@@ -80,7 +80,7 @@
 .chat-topbar{
   flex:0 0 auto; padding:10px 14px; border-bottom:1px solid var(--line);
   display:flex; align-items:center; justify-content:space-between; background:#fff;
-  position:relative; z-index:2; /* чтобы не перекрывали локальные оверлеи */
+  position:relative; z-index:2;
 }
 .chat-topbar__title{ font-weight:700; color:#0f172a; font-size:16px; }
 .chat-actions{ display:flex; gap:8px; align-items:center; }
@@ -133,7 +133,7 @@
 /* Сообщения */
 .bubble{ max-width:72%; border-radius:16px; padding:10px 12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:8px; word-break:break-word; }
 .bubble.in{  align-self:flex-start; background:#f0f4f8; color:#0f172a; }
-.bubble.out{ align-self:flex-end;   background:linear-gradient(180deg, var(--tg-blue), #5bb6ff); color:#fff; }
+.bubble.out{ align-self:flex-end;   background:linear-gradient(180deg, #3aa0ff, #6cbcff); color:#fff; } /* слегка светлее */
 .bubble-author{ font-size:12px; opacity:.85; }
 .bubble-text{ font-size:14px; white-space:pre-wrap; }
 .bubble-img{ max-width:260px; border-radius:12px; display:block; }
@@ -146,34 +146,64 @@
 .preview__close{ position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,.48); color:#fff; cursor:pointer; }
 
 /* Панель ввода */
-.composer{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px solid var(--line); background:#fff; }
-.icon-btn{ display:flex; align-items:center; justify-content:center; width:40px; height:40px; border:none; border-radius:12px; background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer; font-size:18px; transition:transform .06s ease, box-shadow .2s ease; }
+.composer{
+  flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px solid var(--line); background:#fff;
+}
+.icon-btn,
+.send-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:40px;
+  border:none; border-radius:12px;
+  line-height:0; padding:0; margin:0;  /* чтобы всё было по одной линии */
+}
+.icon-btn{ background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer; font-size:18px; }
 .icon-btn:hover{ background:#eef2f7; box-shadow:0 8px 24px rgba(15,23,42,.08); }
 .icon-btn:active{ transform: translateY(1px); }
 .icon-btn--disabled{ opacity:.55; cursor:not-allowed; }
 .icon-btn svg{ display:block; }
-
-.icon{ width:20px; height:20px; display:block; }
-.icon--nudge-down{ transform:translateY(1px); }
-
-.composer__input{ flex:1; min-width:0; padding:12px 16px; border-radius:999px; border:1px solid var(--line); outline:none; font-size:14px; background:#fbfdff; }
-.composer__input:focus{ border-color:#bfdcff; box-shadow:0 0 0 6px rgba(34,145,255,.08); }
-
 .mic{ position:relative; } .mic--rec{ background:#fee2e2; }
 .mic__badge{ position:absolute; right:-6px; top:-6px; font-size:11px; background:#ef4444; color:#fff; border-radius:999px; padding:2px 6px; }
 
 .send-btn{
-  display:flex; align-items:center; justify-content:center;
-  width:40px; height:40px; border:none; color:#fff; cursor:pointer; border-radius:14px;
-  background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 10px 30px rgba(34,145,255,.35); font-size:18px; line-height:1;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--tg-blue),#5bb6ff);
+  box-shadow:0 10px 30px rgba(34,145,255,.35); color:#fff; font-size:18px; line-height:1;
 }
 
-/* Аудио */
+.composer__input{
+  flex:1; min-width:0; padding:12px 16px; border-radius:999px;
+  border:1px solid var(--line); outline:none; font-size:14px; background:#fbfdff;
+}
+.composer__input:focus{ border-color:#bfdcff; box-shadow:0 0 0 6px rgba(34,145,255,.08); }
+
+/* === Предпрослушка — стиль как в телеге === */
+.audio-preview{
+  display:inline-flex; align-items:center; gap:8px;
+  background:#f5f8ff; border:1px solid #e5edff; border-radius:999px; padding:6px 10px; height:40px;
+}
+.audio-preview__btn{
+  width:28px; height:28px; border:none; border-radius:8px; background:#dff0ff; color:#0b87ff; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; line-height:0;
+}
+.audio-preview__label{ font-size:14px; color:#0f172a; }
+.audio-preview__close{
+  width:22px; height:22px; border:none; border-radius:50%; background:#e5e7eb; color:#111827; cursor:pointer;
+}
+.audio-preview__close:hover{ background:#dbe0e6; }
+
+/* === Голосовое внутри пузыря === */
 .voice-bubble{ display:flex; align-items:center; gap:10px; }
-.voice-bar{ width:160px; height:6px; border-radius:999px; background:#e5edff; overflow:hidden; }
-.voice-bar-bg{ width:60%; height:100%; background:#bfdcff; }
+.chat-voice-btn{
+  width:34px; height:34px; border-radius:12px; background:rgba(255,255,255,.9); color:#0b87ff; box-shadow:var(--shadow-sm);
+}
+.bubble.in .chat-voice-btn{ background:#e7f3ff; }
+.voice-bar{ flex:0 1 180px; height:6px; border-radius:999px; background:rgba(255,255,255,.55); overflow:hidden; }
+.bubble.in .voice-bar{ background:#e5edff; }
+.voice-bar-bg{ width:60%; height:100%; background:rgba(255,255,255,.9); }
+.bubble.in .voice-bar-bg{ background:#bfdcff; }
+.voice-meta{ display:flex; align-items:center; gap:10px; margin-left:2px; }
+.voice-dur{ font-size:12px; opacity:.85; }
 .voice-time{ font-size:12px; opacity:.85; }
-.voice-bubble audio{ display:none !important; }
 
 /* ===== RIGHT ===== */
 .user-panel{

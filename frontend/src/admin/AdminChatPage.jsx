@@ -116,31 +116,61 @@ function mergeWithTmp(prev, serverArr) {
 }
 
 /* --- голосовая «пузырь» --- */
+function formatMMSS(sec) {
+  const s = Math.max(0, Math.round(sec || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(1, "0")}:${String(r).padStart(2, "0")}`;
+}
+
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
+  const [dur, setDur] = useState(null);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onLoaded = () => setDur(a.duration || 0);
+    a.addEventListener("loadedmetadata", onLoaded);
+    return () => a.removeEventListener("loadedmetadata", onLoaded);
+  }, []);
+
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
     playing ? a.pause() : a.play();
   };
+
   return (
     <div className="voice-bubble">
-      <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
+      <button
+        className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`}
+        onClick={toggle}
+        title={playing ? "Пауза" : "Воспроизвести"}
+      >
         {playing ? "⏸" : "▶️"}
       </button>
+
       <div className="voice-bar"><div className="voice-bar-bg" /></div>
-      <span className="voice-time">
-        {createdAt ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-      </span>
+
+      <div className="voice-meta">
+        {dur != null && <span className="voice-dur">{formatMMSS(dur)}</span>}
+        {createdAt && (
+          <span className="voice-time">
+            {new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        )}
+      </div>
+
       <audio
         ref={audioRef}
         src={audioUrl}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
-        style={{ display: "none" }}
         preload="auto"
+        style={{ display: "none" }}
       />
     </div>
   );
@@ -150,28 +180,36 @@ function VoiceMessage({ audioUrl, createdAt }) {
 function AudioPreview({ blob, onRemove }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
+  const [dur, setDur] = useState(null);
   const audioRef = useRef(null);
+
   useEffect(() => {
     if (!blob) return;
     const u = URL.createObjectURL(blob);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [blob]);
+
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     const on = () => setPlaying(true);
     const off = () => setPlaying(false);
+    const meta = () => setDur(a.duration || 0);
     a.addEventListener("play", on);
     a.addEventListener("pause", off);
     a.addEventListener("ended", off);
+    a.addEventListener("loadedmetadata", meta);
     return () => {
       a.removeEventListener("play", on);
       a.removeEventListener("pause", off);
       a.removeEventListener("ended", off);
+      a.removeEventListener("loadedmetadata", meta);
     };
   }, [url]);
+
   if (!blob) return null;
+
   return (
     <div className="audio-preview">
       <button
@@ -179,13 +217,17 @@ function AudioPreview({ blob, onRemove }) {
         onClick={() => {
           const a = audioRef.current;
           if (!a) return;
-          playing ? a.pause() : (a.currentTime = 0, a.play());
+          if (playing) a.pause();
+          else { a.currentTime = 0; a.play(); }
         }}
+        title={playing ? "Пауза" : "Прослушать"}
       >
         {playing ? "⏸" : "▶️"}
       </button>
-      <span className="audio-preview__label">Предпрослушка</span>
-      <button className="audio-preview__close" onClick={onRemove}>×</button>
+      <span className="audio-preview__label">
+        Предпрослушка {dur != null ? `• ${formatMMSS(dur)}` : ""}
+      </span>
+      <button className="audio-preview__close" onClick={onRemove} title="Удалить">×</button>
       {url && <audio ref={audioRef} src={url} preload="auto" style={{ display: "none" }} />}
     </div>
   );
@@ -227,16 +269,13 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
-  /* флаги загрузки */
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  /* блокируем только аплоады, текст уходит мгновенно */
   const uploadingRef = useRef(false);
   const skipNextPollRef = useRef(false);
 
-  // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
 
   const endRef = useRef(null);
@@ -267,6 +306,13 @@ export default function AdminChatPage() {
     return [];
   };
 
+  const lastPreview = (m) => (
+    m?.text ||
+    (m?.imageUrls?.length ? "📷 Фото" : "") ||
+    (m?.audioUrl ? "🎤 Голосовое" : "") ||
+    "—"
+  );
+
   const loadChats = async () => {
     setError("");
     try {
@@ -275,8 +321,8 @@ export default function AdminChatPage() {
       setChats(
         arr.map((c) => ({
           ...c,
-          lastMessage: c.lastMessage?.text || (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "—"),
           lastMessageObj: c.lastMessage,
+          lastMessage: lastPreview(c.lastMessage),
         }))
       );
       if (selected?.userId) resetUnread(selected.userId);
@@ -751,20 +797,7 @@ export default function AdminChatPage() {
                 </div>
 
                 <div className="chat-actions">
-                  <button
-                    className="btn-outline"
-                    onClick={async () => {
-                      if (!selected) return;
-                      await markUnread(selected.userId);
-                      await loadChats();
-                      setSelected(null);
-                      setMessages([]);
-                      setSelectedUserInfo(null);
-                      setActiveChatId(null);
-                    }}
-                  >
-                    Непрочитано
-                  </button>
+                  {/* убрали «Непрочитано» по ТЗ */}
 
                   <div className={`quick ${showQuick ? "open" : ""}`} ref={quickRef}>
                     <button className="btn-outline" onClick={() => setShowQuick((v) => !v)}>
@@ -785,21 +818,23 @@ export default function AdminChatPage() {
                 {Array.isArray(messages) && messages.map((m, i) => {
                   const isTmp = String(m._id || "").startsWith("tmp-");
                   return (
-                    <div
-                      key={m._id || i}
-                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
-                    >
+                    <div key={m._id || i} className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
                       <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
+
                       {m.text && <div className="bubble-text">{m.text}</div>}
+
                       {m.imageUrls?.map((u, idx) => (
                         <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                       ))}
-                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                      <div className="bubble-time">
-                        {!isTmp &&
-                          new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
+                      {m.audioUrl ? (
+                        <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />
+                      ) : (
+                        <div className="bubble-time">
+                          {!isTmp &&
+                            new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
