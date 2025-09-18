@@ -503,6 +503,12 @@ export default function AdminChatPage() {
     return m;
   };
 
+  const replaceTmp = (tmpId, real) => {
+    if (!real) return;
+    setMessages((prev) => sortByDate(prev.map((m) => (m._id === tmpId ? real : m))));
+    if (selected?.userId) updateChatPreviewOptimistic(selected.userId, real);
+  };
+
   /* === отправка === */
 
   const handleQuickReply = async (text) => {
@@ -724,7 +730,7 @@ export default function AdminChatPage() {
                 );
               })
             )}
-            {loadingChats && <div className="area-loader"><span className="spinner" /></div>}
+            {loadingChats && <div className="area-loader"><span className="chat-spinner" /></div>}
           </div>
         </aside>
 
@@ -790,7 +796,6 @@ export default function AdminChatPage() {
                       ))}
                       {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                      {/* без спиннера на отправке */}
                       <div className="bubble-time">
                         {!isTmp &&
                           new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -800,7 +805,7 @@ export default function AdminChatPage() {
                 })}
 
                 <div ref={endRef} />
-                {loadingThread && <div className="loading-overlay"><span className="spinner" /></div>}
+                {loadingThread && <div className="loading-overlay"><span className="chat-spinner" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -858,7 +863,6 @@ export default function AdminChatPage() {
                   {recording && <span className="mic__badge">{recordingTime}</span>}
                 </button>
 
-                {/* кнопка отправки не блокируется */}
                 <button className="send-btn" onClick={handleSend} title="Отправить">
                   {Svg.send}
                 </button>
@@ -887,7 +891,7 @@ export default function AdminChatPage() {
         {/* RIGHT */}
         {selected && (
           <aside className="user-panel">
-            {loadingInfo && <div className="area-loader"><span className="spinner" /></div>}
+            {loadingInfo && <div className="area-loader"><span className="chat-spinner" /></div>}
 
             {selectedUserInfo && (
               <>

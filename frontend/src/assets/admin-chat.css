@@ -80,18 +80,20 @@
 .chat-topbar{
   flex:0 0 auto; padding:10px 14px; border-bottom:1px solid var(--line);
   display:flex; align-items:center; justify-content:space-between; background:#fff;
+  position:relative; z-index:2; /* чтобы не перекрывали локальные оверлеи */
 }
 .chat-topbar__title{ font-weight:700; color:#0f172a; font-size:16px; }
 .chat-actions{ display:flex; gap:8px; align-items:center; }
 .btn-outline{
-  padding:8px 12px; border:1px solid var(--line); border-radius:12px; background:#fff; cursor:pointer;
-  transition:transform .06s ease, box-shadow .2s ease;
+  padding:8px 12px; border:1px solid #cfd7e6; border-radius:12px; background:#fff; cursor:pointer;
+  color:#0f172a; font-weight:600;
+  transition:transform .06s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.btn-outline:hover{ box-shadow:0 4px 16px rgba(15,23,42,.06); }
+.btn-outline:hover{ box-shadow:0 4px 16px rgba(15,23,42,.08); border-color:#b9c3d6; }
 .btn-outline:active{ transform: translateY(1px); }
 
 .quick{ position:relative; }
-.quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.08); }
+.quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.10); }
 .quick-menu{
   position:absolute; right:0; top:calc(100% + 8px);
   background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md);
@@ -102,7 +104,7 @@
 }
 .quick-menu button{
   display:block; width:100%; padding:8px 10px; border:1px solid #e8edf6; border-radius:10px;
-  background:#f8fbff; cursor:pointer; text-align:left; font-size:13px; line-height:1.25;
+  background:#f8fbff; cursor:pointer; text-align:left; font-size:13px; line-height:1.25; color:#0f172a;
 }
 .quick-menu button:hover{ background:#eef5ff; }
 
@@ -137,10 +139,6 @@
 .bubble-img{ max-width:260px; border-radius:12px; display:block; }
 .bubble-time{ font-size:12px; opacity:.8; text-align:right; min-height:16px; }
 
-/* Кто печатает */
-.typing{ align-self:flex-start; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:12px; padding:8px 10px; font-size:13px; color:#334155; }
-.typing-dots{ display:inline-block; width:18px; text-align:left; }
-
 /* Превью изображений */
 .previews{ flex:0 0 auto; display:flex; gap:10px; flex-wrap:wrap; padding:8px 12px 0; border-top:1px solid var(--line); background:#fff; }
 .preview{ position:relative; width:92px; height:92px; border-radius:12px; overflow:hidden; background:#eef2f7; }
@@ -170,6 +168,13 @@
   background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 10px 30px rgba(34,145,255,.35); font-size:18px; line-height:1;
 }
 
+/* Аудио */
+.voice-bubble{ display:flex; align-items:center; gap:10px; }
+.voice-bar{ width:160px; height:6px; border-radius:999px; background:#e5edff; overflow:hidden; }
+.voice-bar-bg{ width:60%; height:100%; background:#bfdcff; }
+.voice-time{ font-size:12px; opacity:.85; }
+.voice-bubble audio{ display:none !important; }
+
 /* ===== RIGHT ===== */
 .user-panel{
   position:relative;
@@ -196,23 +201,20 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === ЕДИНЫЙ СПИННЕР 20×20 (и глушим внешние псевдо-элементы) === */
+/* === УНИКАЛЬНЫЙ СПИННЕР (20×20) — без конфликтов === */
 @keyframes chat-spin { to { transform: rotate(360deg) } }
-.admin-chat-page .spinner{
+.admin-chat-page .chat-spinner{
   width:20px; height:20px;
-  border:3px solid #e5e7eb;
-  border-top-color:#2291ff;
+  border:3px solid #e5e7eb;      /* серый трек */
+  border-top-color:#2291ff;      /* синяя дуга */
   border-radius:50%;
   display:inline-block;
   animation:chat-spin .9s linear infinite;
-  background:none !important; box-shadow:none !important;
 }
-.admin-chat-page .spinner::before,
-.admin-chat-page .spinner::after{ content:none !important; display:none !important; }
 
-/* Оверлеи */
-.loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:5; }
-.area-loader{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.6); z-index:5; }
+/* Оверлеи загрузки */
+.loading-overlay{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.55); backdrop-filter: blur(1px); z-index:1; }
+.area-loader{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(255,255,255,.6); z-index:1; }
 
 /* Адаптив */
 @media (max-width:1200px){
