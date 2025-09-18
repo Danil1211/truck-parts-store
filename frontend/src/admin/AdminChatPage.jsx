@@ -534,7 +534,7 @@ export default function AdminChatPage() {
       imageUrls: payload.imageUrls || [],
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
-      tempKind: payload.tempKind || null, // для дедупа, особенно аудио
+      tempKind: payload.tempKind || null,
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
@@ -649,7 +649,6 @@ export default function AdminChatPage() {
 
   const handleSend = () => {
     if (recording) {
-      // во время записи пульс-кнопка останавливает запись
       startOrStopRecording();
       return;
     }
@@ -820,7 +819,17 @@ export default function AdminChatPage() {
                       {m.imageUrls?.map((u, idx) => (
                         <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                       ))}
-                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
+
+                      {/* аудио: показываем скелет, пока идёт оптимистичная отправка */}
+                      {m.audioUrl === "__optim__" ? (
+                        <div className="voice-skeleton">
+                          <div className="voice-skel-btn" />
+                          <div className="voice-skel-bar" />
+                          <div className="voice-skel-time" />
+                        </div>
+                      ) : (
+                        m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />
+                      )}
 
                       <div className="bubble-time">
                         {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}

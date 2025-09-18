@@ -67,11 +67,12 @@
   height:100%; min-width:0; overflow:hidden; display:flex; flex-direction:column; min-height:0;
 }
 .chat-topbar{
+  position: sticky; top: 0; z-index: 3;            /* фикс кнопки Быстрый ответ */
   flex:0 0 auto; padding:10px 14px; border-bottom:1px solid var(--line);
   display:flex; align-items:center; justify-content:space-between; background:#fff;
 }
-.chat-topbar__title{ font-weight:700; color:#0f172a; font-size:16px; }
-.chat-actions{ display:flex; gap:8px; align-items:center; }
+.chat-topbar__title{ font-weight:700; color:#0f172a; font-size:16px; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.chat-actions{ display:flex; gap:8px; align-items:center; flex:0 0 auto; white-space:nowrap; }
 .btn-outline{
   padding:8px 12px; border:1px solid var(--line); border-radius:12px; background:#fff; cursor:pointer;
   transition:transform .06s ease, box-shadow .2s ease;
@@ -79,10 +80,10 @@
 .btn-outline:hover{ box-shadow:0 4px 16px rgba(15,23,42,.06); }
 .btn-outline:active{ transform: translateY(1px); }
 
-.quick{ position:relative; }
+.quick{ position:relative; z-index:4; }     /* над контентом */
 .quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.08); }
 .quick-menu{
-  position:absolute; right:0; top:calc(100% + 8px);
+  position:absolute; right:0; top:calc(100% + 8px); z-index:5;
   background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md);
   min-width:320px; max-width:560px;
   padding:8px;
@@ -139,12 +140,13 @@
 }
 .icon-btn{
   display:inline-grid; place-items:center;
-  width:40px; height:40px; border:none; border-radius:12px;
+  width:36px; height:36px; border:none; border-radius:10px;      /* было 40 */
   background:#f4f6f9; box-shadow:var(--shadow-sm); cursor:pointer;
   line-height:0; vertical-align:middle;
   transition:transform .06s ease, box-shadow .2s ease, background .2s ease;
 }
-.icon-btn svg{ display:block; }
+.icon-btn svg{ display:block; transform: translateY(0.5px); }   /* камера была выше */
+
 .icon-btn:hover{ background:#eef2f7; box-shadow:0 8px 24px rgba(15,23,42,.08); }
 .icon-btn:active{ transform: translateY(1px); }
 .icon-btn--disabled{ opacity:.55; cursor:not-allowed; }
@@ -157,21 +159,23 @@
 /* микрофон с бейджем времени */
 .mic{ position:relative; }
 .mic__badge{
-  position:absolute; right:-6px; top:-6px; font-size:11px; background:#ef4444; color:#fff; border-radius:999px; padding:2px 6px;
+  position:absolute; right:-4px; top:-4px;
+  font-size:10px; line-height:1; padding:1px 5px;
+  background:#ef4444; color:#fff; border-radius:999px;
 }
 
 /* кнопка отправить */
 .send-btn{
   display:inline-grid; place-items:center;
-  width:40px; height:40px; border:none; color:#fff; cursor:pointer; border-radius:14px;
+  width:36px; height:36px; border:none; color:#fff; cursor:pointer; border-radius:12px;   /* было 40 */
   background:linear-gradient(135deg,var(--tg-blue),#5bb6ff); box-shadow:0 10px 30px rgba(34,145,255,.35);
 }
 
 /* кнопка «пульс» во время записи — компактнее */
 @keyframes pulse { 0%{ transform:scale(.96) } 50%{ transform:scale(1) } 100%{ transform:scale(.96) } }
 .rec-stop{
-  width:40px; height:40px; border-radius:999px; border:none; cursor:pointer;
-  background:#ff5858; box-shadow:0 0 0 6px rgba(255,88,88,.18); animation:pulse 1.2s ease-in-out infinite;
+  width:28px; height:28px; border-radius:999px; border:none; cursor:pointer;          /* было 40 */
+  background:#ff5858; box-shadow:0 0 0 4px rgba(255,88,88,.18); animation:pulse 1.1s ease-in-out infinite;
 }
 
 /* Аудио в пузыре */
@@ -181,15 +185,25 @@
 .voice-bar-bg{ width:60%; height:100%; background:#bfdcff; }
 .voice-time{ font-size:12px; opacity:.85; }
 
-/* Предпрослушка — шириной до кнопок, чтобы ничего не прыгало */
+/* Предпрослушка — фикс высоты, чтобы ничего не прыгало */
 .audio-preview{
-  flex:1 1 auto; min-width:0;
+  flex:1 1 auto; min-width:0; min-height:36px;
   display:flex; align-items:center; gap:10px;
   padding:8px 12px; border-radius:14px; border:1px solid var(--line); background:#fbfdff;
 }
 .audio-preview__btn{ width:34px; height:34px; border-radius:10px; border:none; background:#eaf2ff; color:#0f172a; cursor:pointer; }
 .audio-preview__label{ font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .audio-preview__close{ margin-left:auto; width:22px; height:22px; border:none; border-radius:50%; background:#e2e8f0; cursor:pointer; }
+
+/* --- скелет для оптимистичной отправки аудио (без артефактов) --- */
+.voice-skeleton{ display:flex; align-items:center; gap:10px; }
+.voice-skel-btn{ width:34px; height:34px; border-radius:10px; background:#e9eef7; }
+.voice-skel-bar{
+  width:160px; height:6px; border-radius:999px; background:linear-gradient(90deg,#e9eef7 0%,#f5f7fb 50%,#e9eef7 100%);
+  background-size:200% 100%; animation: skel 1.1s linear infinite;
+}
+.voice-skel-time{ width:32px; height:10px; border-radius:6px; background:#eef2f7; }
+@keyframes skel{ 0%{background-position:0% 0} 100%{background-position:200% 0} }
 
 /* ===== RIGHT ===== */
 .user-panel{ position:relative; background:#fff; border-left:1px solid var(--line); height:100%; min-width:0; overflow:auto; padding:16px 14px; }
@@ -212,7 +226,7 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:5; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === ЛОКАЛЬНЫЙ СПИННЕР, чтобы не ломать другие === */
+/* === ЛОКАЛЬНЫЙ СПИННЕР === */
 @keyframes chat-spin { to { transform: rotate(360deg) } }
 .admin-chat-page .chat-spinner{
   width:22px; height:22px;
