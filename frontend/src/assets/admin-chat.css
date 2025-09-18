@@ -240,3 +240,16 @@
   .chat-sidebar{ display:none; }
   .bubble{ max-width:85%; }
 }
+
+/* Жёстко убираем чужие псевдо-элементы у .spinner внутри страницы чата */
+.admin-chat-page .spinner {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* Глобальные ::before/::after иногда рисуют вторую дугу — отключаем их */
+.admin-chat-page .spinner::before,
+.admin-chat-page .spinner::after {
+  content: none !important;
+  display: none !important;
+}
