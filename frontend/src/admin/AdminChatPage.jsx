@@ -52,7 +52,7 @@ const QUOTES = [
   "Неудача — не провал, а шанс начать заново. — Р. Брэнсон",
 ];
 
-/* иконки */
+/* svg */
 const Svg = {
   smile: (
     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
@@ -138,17 +138,24 @@ const fmt = (sec) => {
 const REACTIONS = ["❤️", "🙂", "😂", "😮", "😢", "😡", "👍"];
 const isReaction = (v) => typeof v === "string" && v.length > 0;
 
+/** Кнопка реакции с поповером */
 function ReactionButton({ value, onToggleHeart, onPick }) {
   const [open, setOpen] = useState(false);
-  const timerRef = useRef(null);
+  const pressTimer = useRef(null);
+  const closeTimer = useRef(null);
 
+  // старт «долгого ховера/тапа» — 1 сек
   const startLong = () => {
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setOpen(true), 3000);
+    clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => setOpen(true), 1000);
   };
-  const stopLong = () => clearTimeout(timerRef.current);
+  const stopLong = () => clearTimeout(pressTimer.current);
 
-  useEffect(() => () => clearTimeout(timerRef.current), []);
+  // не закрывать, пока курсор на поповере
+  const safeOpen = () => { clearTimeout(closeTimer.current); setOpen(true); };
+  const safeClose = () => { clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 150); };
+
+  useEffect(() => () => { clearTimeout(pressTimer.current); clearTimeout(closeTimer.current); }, []);
 
   const icon = isReaction(value) && value !== "❤️" ? value : "💟";
 
@@ -156,20 +163,24 @@ function ReactionButton({ value, onToggleHeart, onPick }) {
     <div
       className="react-root"
       onMouseEnter={startLong}
-      onMouseLeave={() => { stopLong(); setOpen(false); }}
+      onMouseLeave={() => { stopLong(); safeClose(); }}
       onPointerDown={(e) => { if (e.pointerType !== "mouse") startLong(); }}
-      onPointerUp={stopLong}
+      onPointerUp={() => { stopLong(); }}
     >
       <button
         className={`react-btn ${value ? "react-btn--active" : ""} ${value === "❤️" ? "react-heart" : ""}`}
-        onClick={(e) => { e.stopPropagation(); open ? setOpen(false) : onToggleHeart(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (open) { setOpen(false); return; }
+          onToggleHeart();
+        }}
         title={value ? "Убрать реакцию" : "Поставить лайк"}
       >
         {icon}
       </button>
 
       {open && (
-        <div className="react-pop">
+        <div className="react-pop" onMouseEnter={safeOpen} onMouseLeave={safeClose}>
           {REACTIONS.map((r) => (
             <button key={r} className="react-item" onClick={() => { onPick(r); setOpen(false); }}>
               {r}
@@ -375,15 +386,14 @@ export default function AdminChatPage() {
   const [error, setError] = useState("");
 
   // loading flags
+  the: // (nothing)
+  // anti-race flags etc.
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  // анти-гонка
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
-
-  // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
 
   const endRef = useRef(null);
@@ -653,7 +663,7 @@ export default function AdminChatPage() {
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
       tempKind: payload.tempKind || null,
-      reaction: "", // реакция по умолчанию
+      reaction: "",
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
@@ -666,13 +676,12 @@ export default function AdminChatPage() {
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, real);
   };
 
-  // ===== реакции: локально и на сервер =====
+  // реакции
   const setMessageReactionLocal = (messageId, reaction) => {
     setMessages((prev) =>
       prev.map((m) => (m._id === messageId ? { ...m, reaction } : m))
     );
   };
-
   const saveReaction = async (msg, reaction) => {
     try {
       await api.post(`/api/chat/admin/${selected.userId}/reaction`, {
@@ -680,7 +689,6 @@ export default function AdminChatPage() {
         reaction: reaction || null,
       });
     } catch (e) {
-      // откат
       setMessageReactionLocal(msg._id, msg.reaction || "");
       console.error("reaction save error:", e);
     }
@@ -948,11 +956,8 @@ export default function AdminChatPage() {
 
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
                 {Array.isArray(messages) && messages.map((m, i) => {
-                  return (
-                    <div
-                      key={m._id || i}
-                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
-                    >
+                  const Bubble = (
+                    <div className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
                       <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
                       {m.text && <div className="bubble-text">{m.text}</div>}
                       {m.imageUrls?.map((u, idx) => (
@@ -972,24 +977,39 @@ export default function AdminChatPage() {
                       <div className="bubble-time">
                         {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
                       </div>
+                    </div>
+                  );
 
-                      {/* === реакция === */}
-                      <div className={`bubble-react ${m.fromAdmin ? "pos-left" : "pos-right"}`}>
-                        <ReactionButton
-                          value={m.reaction || ""}
-                          onToggleHeart={() => {
-                            const next = m.reaction === "❤️" ? "" : "❤️";
-                            const prev = m.reaction || "";
-                            setMessageReactionLocal(m._id, next);     // оптимистично
-                            saveReaction({ ...m, reaction: prev }, next);
-                          }}
-                          onPick={(emoji) => {
-                            const prev = m.reaction || "";
-                            setMessageReactionLocal(m._id, emoji);    // оптимистично
-                            saveReaction({ ...m, reaction: prev }, emoji);
-                          }}
-                        />
-                      </div>
+                  const Reaction = (
+                    <ReactionButton
+                      value={m.reaction || ""}
+                      onToggleHeart={() => {
+                        const next = m.reaction === "❤️" ? "" : "❤️";
+                        const prev = m.reaction || "";
+                        setMessageReactionLocal(m._id, next);
+                        saveReaction({ ...m, reaction: prev }, next);
+                      }}
+                      onPick={(emoji) => {
+                        const prev = m.reaction || "";
+                        setMessageReactionLocal(m._id, emoji);
+                        saveReaction({ ...m, reaction: prev }, emoji);
+                      }}
+                    />
+                  );
+
+                  return (
+                    <div key={m._id || i} className={`msg-row ${m.fromAdmin ? "right" : "left"}`}>
+                      {m.fromAdmin ? (
+                        <>
+                          <div className="msg-react">{Reaction}</div>
+                          {Bubble}
+                        </>
+                      ) : (
+                        <>
+                          {Bubble}
+                          <div className="msg-react">{Reaction}</div>
+                        </>
+                      )}
                     </div>
                   );
                 })}

@@ -117,6 +117,12 @@
     #fff;
 }
 
+/* ==== СТРОКА СООБЩЕНИЯ (реакция РЯДОМ с пузырём) ==== */
+.msg-row{ display:flex; align-items:flex-end; gap:8px; }
+.msg-row.left{ justify-content:flex-start; }
+.msg-row.right{ justify-content:flex-end; flex-direction:row-reverse; }
+.msg-react{ flex:0 0 auto; }
+
 /* Сообщения */
 .bubble{ position:relative; max-width:72%; border-radius:16px; padding:10px 12px 24px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:8px; word-break:break-word; }
 .bubble.in{  align-self:flex-start; background:#f0f4f8; color:#0f172a; }
@@ -216,31 +222,34 @@
 .voice-skel-time{ width:32px; height:10px; border-radius:6px; background:#eef2f7; }
 @keyframes skel{ 0%{background-position:0% 0} 100%{background-position:200% 0} }
 
-/* ===== Reactions ===== */
+/* ===== Reactions (рядом с пузырём) ===== */
 .react-root{ position:relative; display:inline-block; }
-.bubble-react{ position:absolute; bottom:8px; }
-.bubble-react.pos-right{ right:-6px; }
-.bubble-react.pos-left{ left:-6px; }
 
+/* фиолетовый бейдж как на твоём скрине */
 .react-btn{
-  width:26px; height:26px; border:none; border-radius:999px;
-  background:#f1f5f9; box-shadow:var(--shadow-sm);
-  cursor:pointer; line-height:1; display:grid; place-items:center;
-  font-size:14px; transition: transform .08s ease, box-shadow .18s ease, background .18s ease;
+  width:32px; height:32px;
+  border:none; border-radius:10px;
+  background:#ece7ff;            /* светло-фиолетовый фон */
+  color:#6b21a8;                 /* фиолетовая иконка */
+  display:grid; place-items:center;
+  font-size:16px; cursor:pointer;
+  box-shadow:var(--shadow-sm);
+  transition:transform .08s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
 }
-.react-btn:hover{ background:#eaf2ff; box-shadow:0 8px 24px rgba(15,23,42,.08); }
-.react-btn--active{ background:#ffeef0; }
+.react-btn:hover{ background:#e2d9ff; box-shadow:0 8px 24px rgba(15,23,42,.08); }
+.react-btn--active{ background:#ffeef0; color:#ef4444; } /* есть реакция */
 .react-heart{ color:#ef4444; }
 
+/* поповер со смайлами — держится, пока курсор на нём */
 .react-pop{
-  position:absolute; bottom:30px; left:50%; transform:translateX(-50%);
+  position:absolute; bottom:38px; left:50%; transform:translateX(-50%);
   display:flex; gap:6px; padding:6px;
   background:#fff; border:1px solid var(--line); border-radius:999px;
   box-shadow:0 12px 30px rgba(15,23,42,.12); z-index:10;
 }
 .react-item{
   width:28px; height:28px; border:none; background:transparent; cursor:pointer;
-  font-size:16px; line-height:1; transition: transform .05s ease;
+  font-size:18px; line-height:1; transition: transform .05s ease;
 }
 .react-item:hover{ transform: translateY(-1px) scale(1.06); }
 
