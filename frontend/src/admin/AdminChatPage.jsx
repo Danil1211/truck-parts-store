@@ -85,12 +85,6 @@ const Svg = {
 const isUserOnline = (info) =>
   info?.lastOnlineAt ? Date.now() - new Date(info.lastOnlineAt).getTime() < 2 * 60 * 1000 : false;
 
-function decodeHtml(html) {
-  const txt = document.createElement("textarea");
-  txt.innerHTML = html;
-  return txt.value;
-}
-
 /* ===== helpers ===== */
 const sortByDate = (arr) =>
   [...arr].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -101,27 +95,28 @@ const pickMessage = (res) => {
   if (Array.isArray(d)) return d[d.length - 1] || null;
   if (Array.isArray(d?.data)) return d.data[d.data.length - 1] || null;
   if (d?.message) return d.message;
-  if (d?.data && (d.data._id || d.data.text || d.data.audioUrl || d.data.imageUrls?.length)) return d.data;
+  if (d?.data && (d.data._id || d.data.text)) return d.data;
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
+/* дедуп — особенно для аудио, чтобы не было дублей */
 function mergeWithTmp(prev, serverArr) {
   const server = Array.isArray(serverArr) ? serverArr : [];
   const isSimilar = (tmp) =>
     server.some((s) => {
       const sameSide = !!s.fromAdmin === !!tmp.fromAdmin;
-      const sameText = tmp.text && s.text && tmp.text === s.text;
-      const bothAudio = !!tmp.audioUrl && !!s.audioUrl;
-      const bothImages = (tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0;
       const closeTime =
-        Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 15000;
-      return sameSide && (sameText || bothAudio || bothImages) && closeTime;
+        Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 20000;
+      if ((tmp.tempKind === "audio" || tmp.audioUrl) && s.audioUrl && sameSide && closeTime) return true;
+      if ((tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0 && sameSide && closeTime) return true;
+      if (tmp.text && s.text && tmp.text.trim() === s.text.trim() && sameSide && closeTime) return true;
+      return false;
     });
   const tmpLeft = prev.filter((m) => String(m._id || "").startsWith("tmp-") && !isSimilar(m));
   return sortByDate([...server, ...tmpLeft]);
 }
 
-/* --- голосовая «пузырь» --- */
+/* голосовой пузырь */
 function VoiceMessage({ audioUrl, createdAt }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -132,7 +127,11 @@ function VoiceMessage({ audioUrl, createdAt }) {
   };
   return (
     <div className="voice-bubble">
-      <button className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`} onClick={toggle}>
+      <button
+        className={`icon-btn chat-voice-btn ${playing ? "is-playing" : "is-paused"}`}
+        onClick={toggle}
+        title={playing ? "Пауза" : "Воспроизвести"}
+      >
         {playing ? "⏸" : "▶️"}
       </button>
       <div className="voice-bar"><div className="voice-bar-bg" /></div>
@@ -145,15 +144,21 @@ function VoiceMessage({ audioUrl, createdAt }) {
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
-        style={{ display: "none" }}
         preload="auto"
+        style={{ display: "none" }}
       />
     </div>
   );
 }
 
 /* --- предпрослушка записи --- */
-function AudioPreview({ blob, onRemove }) {
+const fmt = (sec) => {
+  const s = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(s / 60);
+  const SS = String(s % 60).padStart(2, "0");
+  return `${String(m).padStart(2, "0")}:${SS}`;
+};
+function AudioPreview({ blob, seconds = 0, onRemove }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
@@ -187,11 +192,12 @@ function AudioPreview({ blob, onRemove }) {
           if (!a) return;
           playing ? a.pause() : (a.currentTime = 0, a.play());
         }}
+        title={playing ? "Пауза" : "Прослушать"}
       >
         {playing ? "⏸" : "▶️"}
       </button>
-      <span className="audio-preview__label">Предпрослушка</span>
-      <button className="audio-preview__close" onClick={onRemove}>×</button>
+      <span className="audio-preview__label">Голосовое сообщение — {fmt(seconds)}</span>
+      <button className="audio-preview__close" onClick={onRemove} title="Удалить">×</button>
       {url && <audio ref={audioRef} src={url} preload="auto" style={{ display: "none" }} />}
     </div>
   );
@@ -233,15 +239,12 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
-  // loading flags
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  // анти-гонка (оставим только для запрета повторной отправки ОДНОГО типа прямо в момент)
   const sendingRef = useRef(false);
   const skipNextPollRef = useRef(false);
-
   const pendingOpenId = useRef(null);
 
   const endRef = useRef(null);
@@ -272,25 +275,24 @@ export default function AdminChatPage() {
     return [];
   };
 
-  const mapLast = (c) => ({
-    ...c,
-    lastMessageObj: c.lastMessage,
-    lastMessage:
-      c.lastMessage?.text ||
-      (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "") ||
-      (c.lastMessage?.audioUrl ? "🎤 Голосовое" : "—"),
-  });
-
   const loadChats = async () => {
     setError("");
     try {
       const res = await api(`/api/chat/admin?_=${Date.now()}`);
       const arr = normalizeChatsResponse(res);
-      setChats(arr.map(mapLast));
+      setChats(
+        arr.map((c) => ({
+          ...c,
+          lastMessage:
+            c.lastMessage?.text ||
+            (c.lastMessage?.imageUrls?.length ? "📷 Фото" : "") ||
+            (c.lastMessage?.audioUrl ? "🎤 Голосовое" : "—"),
+          lastMessageObj: c.lastMessage,
+        }))
+      );
       if (selected?.userId) resetUnread(selected.userId);
     } catch (e) {
       console.error("loadChats error:", e);
-      setChats((prev) => prev);
       setError("Ошибка получения чатов");
     } finally {
       if (firstChatsLoadRef.current) {
@@ -333,6 +335,7 @@ export default function AdminChatPage() {
     setLoadingThread(true);
 
     const load = async () => {
+      if (sendingRef.current) return;
       if (skipNextPollRef.current) {
         skipNextPollRef.current = false;
         return;
@@ -399,6 +402,8 @@ export default function AdminChatPage() {
     setShowEmoji(false);
     setIsAutoScroll(true);
     setAudioPreview(null);
+    setRecording(false);
+    setRecordingTime(0);
     setLoadingInfo(true);
     resetUnread(c.userId);
 
@@ -428,22 +433,18 @@ export default function AdminChatPage() {
     await loadChats();
   };
 
-  /* ==== ГОЛОСОВЫЕ: запись ==== */
+  /* --- media recorder --- */
   useEffect(() => {
     if (!navigator.mediaDevices) return;
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
         try {
           mediaRecorder.current = new window.MediaRecorder(stream);
-          mediaRecorder.current.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) audioChunks.current.push(e.data);
-          };
+          mediaRecorder.current.ondataavailable = (e) => audioChunks.current.push(e.data);
           mediaRecorder.current.onstop = () => {
-            if (audioChunks.current.length) {
-              const blob = new Blob(audioChunks.current, { type: "audio/webm" });
-              audioChunks.current = [];
-              setAudioPreview(blob);
-            }
+            const blob = new Blob(audioChunks.current, { type: "audio/webm" });
+            audioChunks.current = [];
+            setAudioPreview(blob);
           };
         } catch {}
       })
@@ -510,6 +511,7 @@ export default function AdminChatPage() {
       imageUrls: payload.imageUrls || [],
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
+      tempKind: payload.tempKind || null,
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
@@ -523,23 +525,28 @@ export default function AdminChatPage() {
   };
 
   const handleQuickReply = async (text) => {
-    if (!selected) return;
+    if (!selected || sendingRef.current) return;
+    sendingRef.current = true;
     const optimistic = pushOptimistic({ text });
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("quick reply error:", e);
       setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
     } finally {
+      sendingRef.current = false;
       setShowQuick(false);
     }
   };
 
   const sendText = async () => {
-    if (!input.trim() || !selected) return;
+    if (!input.trim() || !selected || sendingRef.current) return;
+    sendingRef.current = true;
     const text = input.trim();
     const optimistic = pushOptimistic({ text });
     setInput("");
@@ -548,15 +555,20 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("sendText error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
     }
   };
 
   const handleAudioSend = async () => {
-    if (!audioPreview || !selected) return;
-    const optimistic = pushOptimistic({ audioUrl: "__local__" });
+    if (!audioPreview || !selected || sendingRef.current) return;
+    sendingRef.current = true;
+    const optimistic = pushOptimistic({ audioUrl: "__optim__", tempKind: "audio" });
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
@@ -569,18 +581,24 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
     }
   };
 
   const sendMedia = async ({ audio, images }) => {
-    if (!selected) return;
+    if (!selected || sendingRef.current) return;
+    sendingRef.current = true;
     const optimistic = pushOptimistic({
       text: input.trim() || "",
       imageUrls: images?.length ? ["__local__"] : [],
-      audioUrl: audio ? "__local__" : "",
+      audioUrl: audio ? "__optim__" : "",
+      tempKind: audio ? "audio" : null,
     });
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
@@ -595,18 +613,18 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
       setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
+    } finally {
+      sendingRef.current = false;
     }
   };
 
   const handleSend = () => {
-    if (recording) {
-      // нажали на красный круг — остановить запись
-      startOrStopRecording();
-      return;
-    }
+    if (recording) { startOrStopRecording(); return; }
     if (audioPreview) handleAudioSend();
     else if (files.length) sendMedia({ audio: null, images: files });
     else sendText();
@@ -726,7 +744,7 @@ export default function AdminChatPage() {
                 );
               })
             )}
-            {loadingChats && <div className="area-loader"><span className="spinner spinner--md" /></div>}
+            {loadingChats && <div className="area-loader"><span className="spinner" /></div>}
           </div>
         </aside>
 
@@ -763,38 +781,23 @@ export default function AdminChatPage() {
               </header>
 
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
-                {Array.isArray(messages) && messages.map((m, i) => {
-                  const isTmp = String(m._id || "").startsWith("tmp-");
-                  return (
-                    <div
-                      key={m._id || i}
-                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
-                    >
-                      <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
-                      {m.text && <div className="bubble-text">{m.text}</div>}
-                      {m.imageUrls?.map((u, idx) => (
-                        <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
-                      ))}
-                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
+                {Array.isArray(messages) && messages.map((m, i) => (
+                  <div key={m._id || i} className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
+                    <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
+                    {m.text && <div className="bubble-text">{m.text}</div>}
+                    {m.imageUrls?.map((u, idx) => (
+                      <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
+                    ))}
+                    {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} createdAt={m.createdAt} />}
 
-                      <div className="bubble-time">
-                        {!isTmp &&
-                          new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
+                    <div className="bubble-time">
+                      {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
 
-                {selected?.userId &&
-                  typingMap[selected.userId]?.isTyping &&
-                  !typingMap[selected.userId]?.fromAdmin && (
-                    <div className="typing">
-                      <span className="typing-name">{decodeHtml(typingMap[selected.userId].name)}</span>
-                      <span> печатает</span><span className="typing-dots">...</span>
-                    </div>
-                  )}
                 <div ref={endRef} />
-                {loadingThread && <div className="loading-overlay"><span className="spinner spinner--md" /></div>}
+                {loadingThread && <div className="loading-overlay"><span className="spinner" /></div>}
               </div>
 
               {files.length > 0 && (
@@ -828,7 +831,13 @@ export default function AdminChatPage() {
                   />
                 )}
 
-                {audioPreview && <AudioPreview blob={audioPreview} onRemove={() => setAudioPreview(null)} />}
+                {audioPreview && (
+                  <AudioPreview
+                    blob={audioPreview}
+                    seconds={recordingTime}
+                    onRemove={() => setAudioPreview(null)}
+                  />
+                )}
 
                 <label className={`icon-btn ${audioPreview ? "icon-btn--disabled" : ""}`} title="Прикрепить фото">
                   {Svg.camera}
@@ -846,18 +855,19 @@ export default function AdminChatPage() {
                   className={`icon-btn mic ${recording ? "mic--rec" : ""}`}
                   onClick={startOrStopRecording}
                   disabled={!!audioPreview}
-                  title={recording ? `Остановить запись (${recordingTime}s)` : "Записать голосовое"}
+                  title={recording ? `Остановить запись (${fmt(recordingTime)})` : "Записать голосовое"}
                 >
                   {Svg.mic}
+                  {recording && <span className="mic__badge">{fmt(recordingTime)}</span>}
                 </button>
 
-                {/* Когда идёт запись — вместо send кнопки показываем красный пульсирующий круг */}
-                {recording ? (
-                  <button className="recording-btn" onClick={handleSend} title="Остановить запись" />
-                ) : (
+                {/* send / rec-stop */}
+                {!recording ? (
                   <button className="send-btn" onClick={handleSend} title="Отправить">
                     {Svg.send}
                   </button>
+                ) : (
+                  <button className="rec-stop" onClick={handleSend} title="Остановить запись" aria-label="Остановить запись" />
                 )}
               </div>
 
@@ -884,7 +894,7 @@ export default function AdminChatPage() {
         {/* RIGHT */}
         {selected && (
           <aside className="user-panel">
-            {loadingInfo && <div className="area-loader"><span className="spinner spinner--md" /></div>}
+            {loadingInfo && <div className="area-loader"><span className="spinner" /></div>}
 
             {selectedUserInfo && (
               <>
