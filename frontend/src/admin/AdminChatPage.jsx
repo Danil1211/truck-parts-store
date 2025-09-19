@@ -136,6 +136,29 @@ const fmt = (sec) => {
   return `${m}:${SS}`;
 };
 
+/* ====== даты для «Сегодня/Вчера/День недели/дата» ====== */
+const dayNames = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+const pad2 = (n) => String(n).padStart(2, "0");
+const ymd = (d) => {
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
+};
+const dayLabel = (d) => {
+  const today = new Date();
+  const dd = new Date(d);
+  const one = 24*60*60*1000;
+
+  const diffDays = Math.floor((new Date(ymd(today)) - new Date(ymd(dd))) / one);
+  if (diffDays === 0) return "Сегодня";
+  if (diffDays === 1) return "Вчера";
+
+  // в пределах недели — имя дня
+  if (diffDays < 7 && diffDays > 1) return dayNames[dd.getDay()];
+
+  // иначе — dd.MM
+  return `${pad2(dd.getDate())}.${pad2(dd.getMonth()+1)}`;
+};
+
 /* ===== blob URL manager ===== */
 const tmpObjectUrls = new Set();
 function makeBlobUrl(blob) {
@@ -167,7 +190,6 @@ function VoiceMessage({ audioUrl, initialDuration = 0 }) {
     setPlaying(false);
     setCurrent(0);
     seekingFixApplied.current = false;
-    // а.load() подтянет метаданные для новых src (blob/cloudinary)
     if (a.readyState < 1) a.load();
   }, [audioUrl]);
 
@@ -183,7 +205,7 @@ function VoiceMessage({ audioUrl, initialDuration = 0 }) {
           a.removeEventListener("seeked", onSeeked);
         };
         a.addEventListener("seeked", onSeeked);
-        a.currentTime = 1e9; // хак: проматываем «в конец», браузер вычислит duration
+        a.currentTime = 1e9;
       }
     } else {
       setDuration(a.duration);
@@ -381,6 +403,10 @@ export default function AdminChatPage() {
   const [blocking, setBlocking] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
+
+  // индикатор дня при прокрутке
+  const [scrollBadge, setScrollBadge] = useState({ visible: false, text: "" });
+  const hideBadgeTimer = useRef(null);
 
   // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
@@ -657,7 +683,6 @@ export default function AdminChatPage() {
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
-    // при своей отправке — всегда вниз
     setIsAutoScroll(true);
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
     return m;
@@ -678,20 +703,21 @@ export default function AdminChatPage() {
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
   };
 
-  const handleQuickReply = async (text) => {
+  // мгновенно закрываем меню и отправляем в фоне
+  const handleQuickReply = (text) => {
     if (!selected) return;
+    setShowQuick(false);
     const optimistic = pushOptimistic({ text });
-    try {
-      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
-      await typingOff();
-      const real = pickMessage(res);
-      if (real && real._id) replaceTmp(optimistic._id, real);
-    } catch (e) {
-      console.error("quick reply error:", e);
-      // оставляем оптимистично; можно добавить тост об ошибке
-    } finally {
-      setShowQuick(false);
-    }
+    (async () => {
+      try {
+        const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
+        await typingOff();
+        const real = pickMessage(res);
+        if (real && real._id) replaceTmp(optimistic._id, real);
+      } catch (e) {
+        console.error("quick reply error:", e);
+      }
+    })();
   };
 
   const sendText = async () => {
@@ -706,14 +732,12 @@ export default function AdminChatPage() {
       if (real && real._id) replaceTmp(optimistic._id, real);
     } catch (e) {
       console.error("sendText error:", e);
-      // можно оставить оптимистичный месседж и подсветить ошибку
     }
   };
 
   const handleAudioSend = async () => {
     if (!audioPreview || !selected) return;
 
-    // мгновенное локальное воспроизведение
     const localUrl = makeBlobUrl(audioPreview);
     const optimistic = pushOptimistic({
       audioUrl: localUrl,
@@ -738,7 +762,6 @@ export default function AdminChatPage() {
       if (real && real._id) replaceTmp(optimistic._id, real);
     } catch (e) {
       console.error("audio send error:", e);
-      // оставляем оптимистичное; можно показать тост
     }
   };
 
@@ -772,7 +795,6 @@ export default function AdminChatPage() {
       if (real && real._id) replaceTmp(optimistic._id, real);
     } catch (e) {
       console.error("sendMedia error:", e);
-      // оставляем оптимистичное
     }
   };
 
@@ -806,6 +828,20 @@ export default function AdminChatPage() {
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
+  /* ====== группировка сообщений по дню для разделителей ====== */
+  const grouped = useMemo(() => {
+    const map = new Map();
+    for (const m of Array.isArray(messages) ? messages : []) {
+      const k = ymd(m.createdAt || Date.now());
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(m);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([k, arr]) => ({ key: k, label: dayLabel(k), items: arr }));
+  }, [messages]);
+
+  /* автоскролл вниз после новых сообщений */
   useEffect(() => {
     if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAutoScroll]);
@@ -813,7 +849,27 @@ export default function AdminChatPage() {
   const handleScroll = () => {
     const el = messagesRef.current;
     if (!el) return;
-    setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
+
+    const stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    setIsAutoScroll(stickToBottom);
+
+    // вычисляем видимую группу (верхнюю)
+    const seps = Array.from(el.querySelectorAll(".day-sep"));
+    const top = el.scrollTop;
+    // самый ближайший сверху (offsetTop <= top + 20)
+    let current = null;
+    for (const s of seps) {
+      if (s.offsetTop <= top + 20) current = s;
+      else break;
+    }
+    const text = current?.dataset?.label || "";
+    if (text) {
+      setScrollBadge({ visible: true, text });
+      clearTimeout(hideBadgeTimer.current);
+      hideBadgeTimer.current = setTimeout(() => {
+        setScrollBadge((p) => ({ ...p, visible: false }));
+      }, 900);
+    }
   };
 
   useEffect(() => {
@@ -838,8 +894,14 @@ export default function AdminChatPage() {
         if (!inEmoji && !inComposer) setShowEmoji(false);
       }
     };
+    const onKey = (e) => { if (e.key === "Escape") { setShowQuick(false); setShowEmoji(false); } };
+
     document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [showQuick, showEmoji]);
 
   if (error) return <div className="admin-chat-error">{error}</div>;
@@ -936,34 +998,41 @@ export default function AdminChatPage() {
                 </div>
               </header>
 
+              {/* Плавающий индикатор дня */}
+              {scrollBadge.visible && (
+                <div className="day-floating">{scrollBadge.text}</div>
+              )}
+
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
-                {Array.isArray(messages) && messages.map((m, i) => {
-                  return (
-                    <div
-                      key={m._id || i}
-                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
-                    >
-                      <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
-                      {m.text && <div className="bubble-text">{m.text}</div>}
-
-                      {m.imageUrls?.map((u, idx) => {
-                        const src = isBlobUrl(u) || isExternalUrl(u) ? u : withApi(u);
-                        return <img key={idx} src={src} alt="img" className="bubble-img" />;
-                      })}
-
-                      {m.audioUrl && (
-                        <VoiceMessage
-                          audioUrl={withApi(m.audioUrl)}
-                          initialDuration={m._durationHint || 0}
-                        />
-                      )}
-
-                      <div className="bubble-time">
-                        {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                      </div>
+                {grouped.map((g) => (
+                  <React.Fragment key={g.key}>
+                    <div className="day-sep" data-label={g.label}>
+                      <span>{g.label}</span>
                     </div>
-                  );
-                })}
+                    {g.items.map((m, i) => (
+                      <div key={m._id || i} className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
+                        <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
+                        {m.text && <div className="bubble-text">{m.text}</div>}
+
+                        {m.imageUrls?.map((u, idx) => {
+                          const src = isBlobUrl(u) || isExternalUrl(u) ? u : withApi(u);
+                          return <img key={idx} src={src} alt="img" className="bubble-img" />;
+                        })}
+
+                        {m.audioUrl && (
+                          <VoiceMessage
+                            audioUrl={withApi(m.audioUrl)}
+                            initialDuration={m._durationHint || 0}
+                          />
+                        )}
+
+                        <div className="bubble-time">
+                          {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                        </div>
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ))}
 
                 <div ref={endRef} />
                 {loadingThread && <div className="loading-overlay"><span className="chat-spinner chat-spinner--md" /></div>}
