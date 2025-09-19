@@ -163,7 +163,7 @@
   position: fixed;
   top: calc(var(--topbar-h) + 10px);
   left: 50%;
-  margin-left: 10px;
+  margin-left: 12px;
   transform: translateX(-50%);
   background: rgba(15,23,42,.88);
   color:#fff;
