@@ -9,16 +9,15 @@ const API_BASE = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const SITE_ORIGIN =
   typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
 
-/* медиа из API (фикс: пропускаем https:, blob:, data:) */
+/* медиа из API / blob / data — используем как есть */
 const withApi = (u) => {
-  const s = String(u || "");
-  return /^(https?:|blob:|data:)/i.test(s) ? s : `${API_BASE}${s}`;
+  if (!u) return "";
+  if (/^(https?:|blob:|data:)/i.test(u)) return u;
+  if (u.startsWith("/uploads/")) return `${API_BASE}${u}`;
+  return u; // уже готовая ссылка (например, Cloudinary)
 };
 /* ссылки на страницы сайта (relative -> текущий origin) */
-const withSite = (u) => {
-  const s = String(u || "");
-  return /^(https?:|mailto:|tel:)/i.test(s) ? s : `${SITE_ORIGIN}${s}`;
-};
+const withSite = (u) => (u && /^https?:\/\//i.test(u) ? u : `${SITE_ORIGIN}${u || ""}`);
 
 /* ---------- нормализация user info ---------- */
 const normalizeUserInfo = (raw) => {
@@ -105,31 +104,11 @@ const pickMessage = (res) => {
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
-/* аккуратное слияние: не допускаем дублей аудио/картинок/текста (считаем «похожими») */
+/* аккуратное слияние: НЕ удаляем tmp-сообщения, показываем всё */
 function mergeWithTmp(prev, serverArr) {
   const server = Array.isArray(serverArr) ? serverArr : [];
-
-  const isSimilar = (tmp) =>
-    server.some((s) => {
-      const sameSide = !!s.fromAdmin === !!tmp.fromAdmin;
-      const closeTime =
-        Math.abs(new Date(s.createdAt).getTime() - new Date(tmp.createdAt).getTime()) < 20000;
-
-      if (tmp.tempKind === "audio" || tmp.audioUrl) {
-        if (!!s.audioUrl && sameSide && closeTime) return true;
-      }
-      if ((tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0 && sameSide && closeTime) {
-        // допускаем, что локальные blob уже есть — это ок
-        return false;
-      }
-      if (tmp.text && s.text && tmp.text.trim() === s.text.trim() && sameSide && closeTime) {
-        return true;
-      }
-      return false;
-    });
-
-  const tmpLeft = prev.filter((m) => String(m._id || "").startsWith("tmp-") && !isSimilar(m));
-  return sortByDate([...server, ...tmpLeft]);
+  const tmpFromPrev = prev.filter((m) => String(m._id || "").startsWith("tmp-"));
+  return sortByDate([...server, ...tmpFromPrev]);
 }
 
 /* ===== формат mm:ss ===== */
@@ -140,7 +119,7 @@ const fmt = (sec) => {
   return `${m}:${SS}`;
 };
 
-/* --- голосовая «пузырь» --- */
+/* --- голосовая «пузырь» (с мгновенной длительностью и прогрессом) --- */
 function VoiceMessage({ audioUrl }) {
   const audioRef = useRef(null);
   const barRef = useRef(null);
@@ -154,26 +133,38 @@ function VoiceMessage({ audioUrl }) {
     const a = audioRef.current;
     if (!a) return;
 
-    const onLoaded = () => setDuration(Number.isFinite(a.duration) ? a.duration : 0);
+    const setDur = () => {
+      const d = Number.isFinite(a.duration) && a.duration > 0 ? a.duration : (a.seekable?.end?.(0) ?? 0);
+      if (d && d !== duration) setDuration(d);
+    };
+
+    const onLoadedMeta = () => setDur();
+    const onLoadedData = () => setDur();
+    const onCanPlay = () => setDur();
     const onTime = () => { if (!dragging) setCurrent(a.currentTime || 0); };
     const onEnd = () => setPlaying(false);
 
-    a.addEventListener("loadedmetadata", onLoaded);
-    a.addEventListener("durationchange", onLoaded);
+    a.addEventListener("loadedmetadata", onLoadedMeta);
+    a.addEventListener("loadeddata", onLoadedData);
+    a.addEventListener("canplay", onCanPlay);
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("ended", onEnd);
+    const t = setTimeout(setDur, 50);
+
     return () => {
-      a.removeEventListener("loadedmetadata", onLoaded);
-      a.removeEventListener("durationchange", onLoaded);
+      clearTimeout(t);
+      a.removeEventListener("loadedmetadata", onLoadedMeta);
+      a.removeEventListener("loadeddata", onLoadedData);
+      a.removeEventListener("canplay", onCanPlay);
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("ended", onEnd);
     };
-  }, [dragging]);
+  }, [dragging, duration]);
 
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
-    playing ? a.pause() : a.play();
+    a[playing ? "pause" : "play"]?.().catch(() => {});
   };
 
   const pct = duration ? Math.min(1, Math.max(0, current / duration)) : 0;
@@ -181,10 +172,10 @@ function VoiceMessage({ audioUrl }) {
   const seekToClientX = (clientX) => {
     const el = barRef.current;
     const a = audioRef.current;
-    if (!el || !a || !duration) return;
+    if (!el || !a) return;
     const rect = el.getBoundingClientRect();
     const x = Math.min(Math.max(0, clientX - rect.left), rect.width);
-    const next = (x / rect.width) * duration;
+    const next = duration ? (x / rect.width) * duration : 0;
     a.currentTime = next;
     setCurrent(next);
   };
@@ -193,7 +184,6 @@ function VoiceMessage({ audioUrl }) {
     e.preventDefault();
     setDragging(true);
     seekToClientX(e.clientX);
-
     const move = (ev) => seekToClientX(ev.clientX);
     const up = () => {
       setDragging(false);
@@ -220,29 +210,30 @@ function VoiceMessage({ audioUrl }) {
         onPointerDown={onPointerDown}
         role="slider"
         aria-valuemin={0}
-        aria-valuemax={Math.round(duration)}
-        aria-valuenow={Math.round(current)}
+        aria-valuemax={Math.round(duration || 0)}
+        aria-valuenow={Math.round(current || 0)}
         tabIndex={0}
         onKeyDown={(e) => {
           const a = audioRef.current;
           if (!a) return;
           if (e.key === "ArrowLeft") a.currentTime = Math.max(0, a.currentTime - 5);
-          if (e.key === "ArrowRight") a.currentTime = Math.min(duration, a.currentTime + 5);
+          if (e.key === "ArrowRight") a.currentTime = Math.min(duration || 0, a.currentTime + 5);
         }}
       >
         <div className="voice-progress" style={{ width: `${pct * 100}%` }} />
         <div className="voice-thumb" style={{ left: `${pct * 100}%` }} />
       </div>
 
-      <span className="voice-duration">{fmt(duration)}</span>
+      <span className="voice-duration">{fmt(duration || 0)}</span>
 
       <audio
         ref={audioRef}
-        src={audioUrl}
+        src={withApi(audioUrl)}
+        preload="auto"
+        playsInline
+        style={{ display: "none" }}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        preload="auto"
-        style={{ display: "none" }}
       />
     </div>
   );
@@ -333,10 +324,8 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
-  // loading flags
-  const [loadingChats, setLoadingChats] = useState(true);
-  const [loadingThread, setLoadingThread] = useState(false);
-  const [loadingInfo, setLoadingInfo] = useState(false);
+  // убираем глобальную блокировку отправок — сообщений можно слать хоть 10/сек
+  const skipNextPollRef = useRef(false);
 
   // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
@@ -350,12 +339,10 @@ export default function AdminChatPage() {
   const quickRef = useRef(null);
   const emojiRef = useRef(null);
   const composerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const firstChatsLoadRef = useRef(true);
   const firstThreadLoadRef = useRef(false);
-
-  // отслеживаем локальные blob-URL для корректного revoke при замене серверным
-  const blobUrlsRef = useRef(new Map()); // tmpId -> { images: [blobUrl], audio: blobUrl }
 
   const emptyQuote = useMemo(
     () => QUOTES[Math.floor(Math.random() * QUOTES.length)],
@@ -400,6 +387,10 @@ export default function AdminChatPage() {
     }
   };
 
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+
   useEffect(() => {
     loadChats();
     const iv = setInterval(loadChats, 4000);
@@ -433,6 +424,10 @@ export default function AdminChatPage() {
     setLoadingThread(true);
 
     const load = async () => {
+      if (skipNextPollRef.current) {
+        skipNextPollRef.current = false;
+        return;
+      }
       await loadMessages();
       if (firstThreadLoadRef.current) {
         setLoadingThread(false);
@@ -598,16 +593,14 @@ export default function AdminChatPage() {
   }
 
   const pushOptimistic = (payload) => {
-    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const m = {
-      _id: tmpId,
+      _id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       fromAdmin: true,
       createdAt: new Date().toISOString(),
       imageUrls: payload.imageUrls || [],
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
       tempKind: payload.tempKind || null,
-      __optimistic: true,
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
@@ -618,17 +611,8 @@ export default function AdminChatPage() {
     if (!real) return;
     setMessages((prev) => sortByDate(prev.map((m) => (m._id === tmpId ? real : m))));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, real);
-
-    // cleanup blob urls
-    const rec = blobUrlsRef.current.get(tmpId);
-    if (rec) {
-      (rec.images || []).forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
-      if (rec.audio) { try { URL.revokeObjectURL(rec.audio); } catch {} }
-      blobUrlsRef.current.delete(tmpId);
-    }
   };
 
-  /* ===== TEXT ===== */
   const handleQuickReply = async (text) => {
     if (!selected) return;
     const optimistic = pushOptimistic({ text });
@@ -637,9 +621,13 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("quick reply error:", e);
-      // оставляем оптимистичное, либо можно пометить ошибкой
+      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
+    } finally {
+      setShowQuick(false);
     }
   };
 
@@ -653,27 +641,26 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("sendText error:", e);
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     }
   };
 
-  /* ===== AUDIO ===== */
   const handleAudioSend = async () => {
     if (!audioPreview || !selected) return;
+    const audioBlobUrl = URL.createObjectURL(audioPreview);
+    const optimistic = pushOptimistic({ audioUrl: audioBlobUrl, tempKind: "audio" });
 
-    // мгновенный пузырь с локальным blob:
-    const blobUrl = URL.createObjectURL(audioPreview);
-    const optimistic = pushOptimistic({ audioUrl: blobUrl, tempKind: "audio" });
-    blobUrlsRef.current.set(optimistic._id, { images: [], audio: blobUrl });
-
-    // network не блокирует UI
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
     setFiles([]);
     setAudioPreview(null);
     setRecordingTime(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
@@ -682,27 +669,24 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
-      // оставляем оптимистичное, можно пометить как «ошибка загрузки»
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     }
   };
 
-  /* ===== IMAGES (и текст одновременно) ===== */
   const sendMedia = async ({ audio, images }) => {
     if (!selected) return;
-
-    // локальные blob превью в сам пузырь (моментально)
-    const localImgUrls = (images || []).map((f) => URL.createObjectURL(f));
-    const localAudioUrl = audio ? URL.createObjectURL(audio) : "";
+    const blobImageUrls = (images || []).map((f) => URL.createObjectURL(f));
 
     const optimistic = pushOptimistic({
       text: input.trim() || "",
-      imageUrls: localImgUrls,
-      audioUrl: localAudioUrl,
-      tempKind: audio ? "audio" : null,
+      imageUrls: blobImageUrls,
+      audioUrl: audio ? URL.createObjectURL(audio) : "",
+      tempKind: audio ? "audio" : (images?.length ? "image" : null),
     });
-    blobUrlsRef.current.set(optimistic._id, { images: localImgUrls, audio: localAudioUrl || null });
 
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
@@ -710,6 +694,7 @@ export default function AdminChatPage() {
     (images || []).forEach((f) => form.append("images", f));
     setFiles([]);
     setInput("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
@@ -718,8 +703,11 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
+      skipNextPollRef.current = true;
+      await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
+      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
     }
   };
 
@@ -951,10 +939,15 @@ export default function AdminChatPage() {
                 <label className={`icon-btn ${audioPreview ? "icon-btn--disabled" : ""}`} title="Прикрепить фото">
                   {Svg.camera}
                   <input
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                    onChange={(e) => {
+                      const list = Array.from(e.target.files || []);
+                      setFiles(list);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
                     style={{ display: "none" }}
                     disabled={!!audioPreview}
                   />
