@@ -2,37 +2,37 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const axios = require('axios');
+const { v2: cloudinary } = require('cloudinary');
 
 const withTenant = require('../middleware/withTenant');
 const getRealIp = require('../utils/getIp');
 const { Message, User } = require('../models/models');
 
-const cloudinary = require('../utils/cloudinary'); // v2 configured via env
 const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
-router.use(withTenant);
+/* =============== Cloudinary config (как в routes/upload.js) =============== */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
-/* =============== Multer (tmp only) =============== */
-const TMP_DIR = path.join(__dirname, '../tmp');
-if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
-
+/* =============== multer: in-memory (буферы) =============== */
 const allowedMimes = new Set([
   'image/jpeg','image/png','image/gif','image/webp',
   'audio/mpeg','audio/wav','audio/ogg','audio/webm','audio/mp3'
 ]);
-
 const upload = multer({
-  dest: TMP_DIR,
-  limits: { files: 4, fileSize: 25 * 1024 * 1024 }, // 25MB на файл
+  storage: multer.memoryStorage(),
+  limits: { files: 4, fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => cb(null, allowedMimes.has(file.mimetype))
 });
 
-/* =============== helpers auth =============== */
+/* =============== helpers: auth =============== */
 function signChatToken(user) {
   return jwt.sign(
     {
@@ -71,7 +71,7 @@ function requireAdmin(req, res, next) {
   req.user = payload; next();
 }
 
-/* =============== helpers page meta & files =============== */
+/* =============== helpers: page meta =============== */
 function pickPageFields(req) {
   const b = req.body || {};
   const headersHref = req.get('x-page-href') || req.get('referer') || null;
@@ -90,30 +90,51 @@ async function updateUserPageFields(user, req) {
   if (title    && user.lastPageTitle !== title)     { user.lastPageTitle = title; changed = true; }
   if (changed) await user.save();
 }
-function safeUnlinkTmp(p) {
-  try { if (p && fs.existsSync(p)) fs.unlinkSync(p); } catch {}
-}
 
-/* Cloudinary helpers */
-async function uploadToCloudinary(localPath, folder) {
-  try {
-    const res = await cloudinary.uploader.upload(localPath, {
-      folder,
-      resource_type: 'auto' // auto = image/video/audio
-    });
-    return { url: res.secure_url, public_id: res.public_id };
-  } finally {
-    safeUnlinkTmp(localPath); // чистим tmp всегда
-  }
+/* =============== helpers: Cloudinary upload/destroy (stream) =============== */
+function uploadBufferToCloudinary(buffer, filename, folder, resource_type) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type,             // 'image' | 'video' (аудио = 'video')
+        use_filename: true,
+        filename_override: filename,
+        unique_filename: true,
+        overwrite: false,
+      },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve({
+          url: result.secure_url || result.url,
+          public_id: result.public_id,
+        });
+      }
+    );
+    stream.end(buffer);
+  });
 }
-async function destroyFromCloudinary(publicId) {
+const uploadImageBuffer = (file, folder) =>
+  uploadBufferToCloudinary(file.buffer, file.originalname, folder, 'image');
+const uploadAudioBuffer = (file, folder) =>
+  uploadBufferToCloudinary(file.buffer, file.originalname, folder, 'video'); // важно!
+
+async function destroyImage(publicId) {
   if (!publicId) return;
-  try { await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' }); }
-  catch (e) { console.error('cloudinary delete error:', e?.message || e); }
+  try { await cloudinary.uploader.destroy(publicId, { resource_type: 'image' }); }
+  catch(e){ console.error('cloudinary delete image error:', e?.message || e); }
+}
+async function destroyAudio(publicId) {
+  if (!publicId) return;
+  try { await cloudinary.uploader.destroy(publicId, { resource_type: 'video' }); }
+  catch(e){ console.error('cloudinary delete audio error:', e?.message || e); }
 }
 
 /* typing map per tenant */
 let typingStatus = {}; // { [tenantId]: { [userId]: { isTyping, name, fromAdmin } } }
+
+/* =============== middleware =============== */
+router.use(withTenant);
 
 /* =============== CLIENT: register =============== */
 router.post('/register', async (req, res) => {
@@ -215,17 +236,20 @@ router.post(
 
       await updateUserPageFields(user, req);
 
+      const imgFolder   = process.env.CLOUDINARY_FOLDER || `storo/${tStr}/chat/images`;
+      const audioFolder = process.env.CLOUDINARY_FOLDER || `storo/${tStr}/chat/audio`;
+
       // Upload images
       const images = [];
       for (const f of (req.files?.images || [])) {
-        const u = await uploadToCloudinary(f.path, `chat/${tStr}/images`);
+        const u = await uploadImageBuffer(f, imgFolder);
         images.push(u);
       }
 
       // Upload audio
       let audio = null;
       if (req.files?.audio?.[0]) {
-        audio = await uploadToCloudinary(req.files.audio[0].path, `chat/${tStr}/audio`);
+        audio = await uploadAudioBuffer(req.files.audio[0], audioFolder);
       }
 
       const message = await Message.create({
@@ -233,9 +257,9 @@ router.post(
         user: user._id,
         text: req.body.text || '',
         imageUrls: images.map(x => x.url),
-        imageIds: images.map(x => x.public_id),
-        audioUrl: audio?.url || '',
-        audioId: audio?.public_id || null,
+        imageIds:  images.map(x => x.public_id),
+        audioUrl:  audio?.url || '',
+        audioId:   audio?.public_id || null,
         fromAdmin: !!req.user.isAdmin,
         read: false,
         createdAt: new Date(),
@@ -451,15 +475,18 @@ router.post(
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
+      const imgFolder   = process.env.CLOUDINARY_FOLDER || `storo/${tStr}/chat/images`;
+      const audioFolder = process.env.CLOUDINARY_FOLDER || `storo/${tStr}/chat/audio`;
+
       const images = [];
       for (const f of (req.files?.images || [])) {
-        const u = await uploadToCloudinary(f.path, `chat/${tStr}/images`);
+        const u = await uploadImageBuffer(f, imgFolder);
         images.push(u);
       }
 
       let audio = null;
       if (req.files?.audio?.[0]) {
-        audio = await uploadToCloudinary(req.files.audio[0].path, `chat/${tStr}/audio`);
+        audio = await uploadAudioBuffer(req.files.audio[0], audioFolder);
       }
 
       const message = await Message.create({
@@ -470,9 +497,9 @@ router.post(
         read: false,
         createdAt: new Date(),
         imageUrls: images.map(x => x.url),
-        imageIds: images.map(x => x.public_id),
-        audioUrl: audio?.url || '',
-        audioId: audio?.public_id || null,
+        imageIds:  images.map(x => x.public_id),
+        audioUrl:  audio?.url || '',
+        audioId:   audio?.public_id || null,
       });
 
       if (typingStatus[tStr]?.[String(user._id)]) {
@@ -597,12 +624,11 @@ router.delete('/admin/:userId', requireAdmin, async (req, res) => {
 
     const msgs = await Message.find({ user: user._id });
 
-    // удаляем из Cloudinary по public_id (если есть)
     for (const m of msgs) {
       if (Array.isArray(m.imageIds)) {
-        for (const id of m.imageIds) await destroyFromCloudinary(id);
+        for (const id of m.imageIds) await destroyImage(id);
       }
-      if (m.audioId) await destroyFromCloudinary(m.audioId);
+      if (m.audioId) await destroyAudio(m.audioId);
     }
 
     await Message.deleteMany({ user: user._id });
