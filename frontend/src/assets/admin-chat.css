@@ -79,29 +79,35 @@
 .btn-outline:hover{ box-shadow:0 4px 16px rgba(15,23,42,.06); }
 .btn-outline:active{ transform: translateY(1px); }
 
-/* --- Быстрый ответ (исправлено) --- */
-.quick{ position:relative; z-index: 20; }
-.quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.08); }
-.quick-menu{
+/* --- Быстрый ответ (жёсткие селекторы) --- */
+.admin-chat-page .quick{ position:relative; z-index: 20; }
+.admin-chat-page .quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.08); }
+.admin-chat-page .quick-menu{
   position:absolute; right:0; top:calc(100% + 8px); z-index:21;
   background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md);
   padding:10px;
   display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap:8px;
   max-height:260px;
-  max-width:560px;
+  max-width:720px;
   overflow:auto;
 }
-.quick-menu button{
+.admin-chat-page .quick-menu button{
+  appearance:none;
   display:block; width:100%;
-  padding:8px 10px; border:1px solid #e8edf6; border-radius:10px;
-  background:#f8fbff; cursor:pointer; text-align:left; font-size:13px; line-height:1.25;
-  transition: background .2s ease;
+  padding:10px 12px;
+  border:1px solid #e8edf6; border-radius:12px;
+  background:#f8fbff; cursor:pointer; text-align:left;
+  font-size:13px; line-height:1.25; color:#0f172a;
+  white-space:normal;
+  transition: background .15s ease, border-color .15s ease, box-shadow .2s ease;
 }
-.quick-menu button:hover{ background:#eef5ff; }
+.admin-chat-page .quick-menu button:hover{
+  background:#eef5ff; border-color:#dbe7ff; box-shadow:0 6px 18px rgba(34,145,255,.08);
+}
 
-/* индикатор печати в шапке */
+/* индикатор печати */
 .chat-typing{
   display:flex; align-items:center; gap:6px;
   font-size:12px; color:#64748b; margin-top:2px;
@@ -126,7 +132,7 @@
 .empty-quote__title{ font-size:16px; font-weight:700; margin-bottom:6px; color:#0f172a; letter-spacing:.1px; }
 .empty-quote__text{ font-size:13.5px; color:#475569; font-style:italic; }
 
-/* Лента сообщений */
+/* Лента */
 .thread{
   position:relative;
   flex:1 1 auto; min-height:0; overflow:auto; padding:14px;
@@ -137,31 +143,35 @@
     #fff;
 }
 
-/* ===== Day separator — БОЛЬШЕ НЕ sticky ===== */
+/* ===== Day separator (уменьшен и полупрозрачный) ===== */
 .day-sep{
-  position: relative;   /* было sticky */
+  position: relative;
   display:grid; place-items:center;
-  margin: 12px 0;
+  margin: 10px 0;
 }
 .day-sep > span{
-  background:#0f172a; color:#fff;
-  padding:6px 14px; border-radius:999px;
+  background: rgba(15,23,42,.88);
+  color:#fff;
+  padding:5px 12px;
+  border-radius:999px;
   box-shadow:0 4px 14px rgba(15,23,42,.15);
-  font-size:13px; font-weight:600;
+  font-size:12.5px; font-weight:600;
 }
 
-/* Popover текущего дня (как в телеге) */
+/* Popover текущего дня — тот же стиль и размер */
 .scroll-day-pop{
   position: fixed;
   top: calc(var(--topbar-h) + 10px);
   left: 50%;
   transform: translateX(-50%);
-  background:#0f172a; color:#fff;
-  padding:6px 14px; border-radius:999px;
-  font-size:13px; font-weight:600;
+  background: rgba(15,23,42,.88);
+  color:#fff;
+  padding:5px 12px;
+  border-radius:999px;
+  font-size:12.5px; font-weight:600;
   box-shadow:0 4px 14px rgba(15,23,42,.15);
   opacity: 0; pointer-events:none;
-  transition: opacity .3s ease;
+  transition: opacity .25s ease;
   z-index: 30;
 }
 .scroll-day-pop.show{ opacity: 1; }
@@ -226,7 +236,7 @@
 .voice-bubble{ display:flex; align-items:center; gap:10px; }
 .chat-voice-btn{ width:34px; height:34px; border-radius:10px; }
 
-/* трек (кликабелен) */
+/* трек */
 .voice-bar{
   position:relative;
   width:160px; height:6px;
@@ -235,25 +245,14 @@
   overflow:hidden;
   cursor:pointer;
 }
-.voice-progress{
-  position:absolute; left:0; top:0;
-  height:100%;
-  background:#bfdcff;
-}
+.voice-progress{ position:absolute; left:0; top:0; height:100%; background:#bfdcff; }
 .voice-thumb{
-  position:absolute; top:50%;
-  transform:translate(-50%,-50%);
-  width:12px; height:12px; border-radius:50%;
-  background:#2291ff;
-  box-shadow:0 0 0 4px rgba(34,145,255,.18);
-  pointer-events:none;
+  position:absolute; top:50%; transform:translate(-50%,-50%);
+  width:12px; height:12px; border-radius:50%; background:#2291ff;
+  box-shadow:0 0 0 4px rgba(34,145,255,.18); pointer-events:none;
 }
 .voice-bar:hover .voice-thumb{ box-shadow:0 0 0 6px rgba(34,145,255,.16); }
-
-/* длительность записи справа от трека */
-.voice-duration{
-  font-size:12px; opacity:.8; width:38px; text-align:right;
-}
+.voice-duration{ font-size:12px; opacity:.8; width:38px; text-align:right; }
 
 /* Предпрослушка */
 .audio-preview{
@@ -265,17 +264,7 @@
 .audio-preview__label{ font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .audio-preview__close{ margin-left:auto; width:22px; height:22px; border:none; border-radius:50%; background:#e2e8f0; cursor:pointer; }
 
-/* скелет (на случай задержки бэка) */
-.voice-skeleton{ display:flex; align-items:center; gap:10px; }
-.voice-skel-btn{ width:34px; height:34px; border-radius:10px; background:#e9eef7; }
-.voice-skel-bar{
-  width:160px; height:6px; border-radius:999px; background:linear-gradient(90deg,#e9eef7 0%,#f5f7fb 50%,#e9eef7 100%);
-  background-size:200% 100%; animation: skel 1.1s linear infinite;
-}
-.voice-skel-time{ width:32px; height:10px; border-radius:6px; background:#eef2f7; }
-@keyframes skel{ 0%{background-position:0% 0} 100%{background-position:200% 0} }
-
-/* typing bubble внизу ленты */
+/* typing bubble */
 .typing-bubble{ width:auto; max-width:none; padding:8px 12px; }
 .typing-dots{ display:flex; gap:6px; align-items:center; height:14px; }
 .typing-dots span{
@@ -307,7 +296,7 @@
 /* Эмодзи */
 .emoji-popover{ position:absolute; bottom:72px; left:14px; z-index:22; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); }
 
-/* === ЛОКАЛЬНЫЙ СПИННЕР === */
+/* === СПИННЕР === */
 @keyframes chat-spin { to { transform: rotate(360deg) } }
 .admin-chat-page .chat-spinner{
   width:22px; height:22px;
