@@ -63,7 +63,7 @@
 /* ===== CENTER ===== */
 .chat-main{
   background:#fff; border-left:1px solid var(--line); border-right:1px solid var(--line);
-  height:100%; min-width:0; overflow:hidden; display:flex; flex-direction:column; min-height:0;
+  height:100%; min-width:0; overflow:visible; display:flex; flex-direction:column; min-height:0;
 }
 .chat-topbar{
   position: sticky; top: 0; z-index: 3;
@@ -79,21 +79,43 @@
 .btn-outline:hover{ box-shadow:0 4px 16px rgba(15,23,42,.06); }
 .btn-outline:active{ transform: translateY(1px); }
 
-.quick{ position:relative; z-index:4; }
-.quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.08); }
+.quick{ position:relative; z-index: 50; } /* поверх всего */
+
+.quick.open .btn-outline{ box-shadow:0 8px 28px rgba(15,23,42,.12); }
+
 .quick-menu{
-  position:absolute; right:0; top:calc(100% + 8px); z-index:5;
-  background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md);
-  min-width:320px; max-width:560px;
-  padding:8px;
-  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px;
-  max-height:220px; overflow:auto;
+  position:absolute; right:0; top:calc(100% + 10px);
+  background:#fff; border:1px solid var(--line); border-radius:14px;
+  box-shadow:0 20px 50px rgba(15,23,42,.12);
+  padding:10px;
+  min-width:360px; max-width:640px;
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap:8px;
+  max-height:280px; overflow:auto; overscroll-behavior: contain;
 }
+
+/* маленький «носик» */
+.quick-menu::before{
+  content:""; position:absolute; right:22px; top:-8px; width:14px; height:14px;
+  transform: rotate(45deg);
+  background:#fff; border-left:1px solid var(--line); border-top:1px solid var(--line);
+  box-shadow:-4px -4px 10px rgba(15,23,42,.04);
+}
+
 .quick-menu button{
-  display:block; width:100%; padding:8px 10px; border:1px solid #e8edf6; border-radius:10px;
-  background:#f8fbff; cursor:pointer; text-align:left; font-size:13px; line-height:1.25;
+  display:block; width:100%;
+  padding:10px 12px;
+  border:1px solid #e8edf6; border-radius:12px;
+  background:#f8fbff; cursor:pointer; text-align:left;
+  font-size:13.5px; line-height:1.25;
+  white-space:normal;            /* перенос строк */
+  word-break:break-word;
+  transition: background .15s ease, box-shadow .2s ease, transform .05s ease;
 }
-.quick-menu button:hover{ background:#eef5ff; }
+.quick-menu button:hover{
+  background:#eef5ff; box-shadow:0 6px 18px rgba(34,145,255,.12);
+}
+.quick-menu button:active{ transform: translateY(1px); }
 
 /* пустой экран */
 .chat-empty{
