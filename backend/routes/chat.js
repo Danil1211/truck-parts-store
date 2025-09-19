@@ -12,30 +12,25 @@ const withTenant = require('../middleware/withTenant');
 const getRealIp = require('../utils/getIp');
 const { Message, User } = require('../models/models');
 
+const cloudinary = require('../utils/cloudinary'); // v2 configured via env
 const SECRET = process.env.JWT_SECRET || 'truck_secret';
 
 router.use(withTenant);
 
-/* =============== Multer (пер-арендаторно) =============== */
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../uploads', String(req.tenantId || 'common'));
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname || '');
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
-  }
+/* =============== Multer (tmp only) =============== */
+const TMP_DIR = path.join(__dirname, '../tmp');
+if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
+
+const allowedMimes = new Set([
+  'image/jpeg','image/png','image/gif','image/webp',
+  'audio/mpeg','audio/wav','audio/ogg','audio/webm','audio/mp3'
+]);
+
+const upload = multer({
+  dest: TMP_DIR,
+  limits: { files: 4, fileSize: 25 * 1024 * 1024 }, // 25MB на файл
+  fileFilter: (req, file, cb) => cb(null, allowedMimes.has(file.mimetype))
 });
-const fileFilter = (req, file, cb) => {
-  const allowed = [
-    'image/jpeg', 'image/png', 'image/gif',
-    'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'
-  ];
-  cb(null, allowed.includes(file.mimetype));
-};
-const upload = multer({ storage, fileFilter, limits: { files: 4 } });
 
 /* =============== helpers auth =============== */
 function signChatToken(user) {
@@ -52,7 +47,6 @@ function signChatToken(user) {
     { expiresIn: '30d' }
   );
 }
-
 function getPayload(req) {
   const auth = (req.headers.authorization || '').trim();
   if (!auth.toLowerCase().startsWith('bearer ')) return null;
@@ -63,22 +57,18 @@ function getPayload(req) {
     return payload;
   } catch { return null; }
 }
-
 function authAny(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
-  req.user = payload;
-  next();
+  req.user = payload; next();
 }
-
 function requireAdmin(req, res, next) {
   const payload = getPayload(req);
   if (!payload) return res.status(401).json({ error: 'Auth required' });
   if (!payload.isAdmin && payload.role !== 'owner' && payload.role !== 'admin') {
     return res.status(403).json({ error: 'Admin only' });
   }
-  req.user = payload;
-  next();
+  req.user = payload; next();
 }
 
 /* =============== helpers page meta & files =============== */
@@ -100,15 +90,26 @@ async function updateUserPageFields(user, req) {
   if (title    && user.lastPageTitle !== title)     { user.lastPageTitle = title; changed = true; }
   if (changed) await user.save();
 }
-function safeUnlink(rel) {
+function safeUnlinkTmp(p) {
+  try { if (p && fs.existsSync(p)) fs.unlinkSync(p); } catch {}
+}
+
+/* Cloudinary helpers */
+async function uploadToCloudinary(localPath, folder) {
   try {
-    if (!rel) return;
-    const cleaned = String(rel).replace(/^\/+/, '');
-    const abs = path.resolve(__dirname, '..', cleaned);
-    if (abs.startsWith(path.resolve(__dirname, '..')) && fs.existsSync(abs)) {
-      fs.unlinkSync(abs);
-    }
-  } catch {}
+    const res = await cloudinary.uploader.upload(localPath, {
+      folder,
+      resource_type: 'auto' // auto = image/video/audio
+    });
+    return { url: res.secure_url, public_id: res.public_id };
+  } finally {
+    safeUnlinkTmp(localPath); // чистим tmp всегда
+  }
+}
+async function destroyFromCloudinary(publicId) {
+  if (!publicId) return;
+  try { await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' }); }
+  catch (e) { console.error('cloudinary delete error:', e?.message || e); }
 }
 
 /* typing map per tenant */
@@ -129,7 +130,7 @@ router.post('/register', async (req, res) => {
       $expr: { $and: [
         { $eq: [{ $toString: '$tenantId' }, tenantId] },
         { $eq: ['$phone', sPhone] }
-      ]}
+      ] }
     });
     if (user) {
       return res.status(409).json({
@@ -195,7 +196,7 @@ router.get('/my', authAny, async (req, res) => {
   }
 });
 
-/* =============== CLIENT/ADMIN: send message =============== */
+/* =============== CLIENT/ADMIN: send message (Cloudinary) =============== */
 router.post(
   '/',
   authAny,
@@ -214,15 +215,27 @@ router.post(
 
       await updateUserPageFields(user, req);
 
-      const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
-      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
+      // Upload images
+      const images = [];
+      for (const f of (req.files?.images || [])) {
+        const u = await uploadToCloudinary(f.path, `chat/${tStr}/images`);
+        images.push(u);
+      }
+
+      // Upload audio
+      let audio = null;
+      if (req.files?.audio?.[0]) {
+        audio = await uploadToCloudinary(req.files.audio[0].path, `chat/${tStr}/audio`);
+      }
 
       const message = await Message.create({
         tenantId: req.tenantId,
         user: user._id,
         text: req.body.text || '',
-        imageUrls,
-        audioUrl,
+        imageUrls: images.map(x => x.url),
+        imageIds: images.map(x => x.public_id),
+        audioUrl: audio?.url || '',
+        audioId: audio?.public_id || null,
         fromAdmin: !!req.user.isAdmin,
         read: false,
         createdAt: new Date(),
@@ -268,7 +281,6 @@ router.post('/typing', authAny, async (req, res) => {
     return res.json({ ok: true });
   } catch (e) { return res.json({ ok: true }); }
 });
-
 router.get('/typing/statuses', authAny, (req, res) => {
   res.json(typingStatus[String(req.tenantId)] || {});
 });
@@ -315,7 +327,7 @@ async function updateMissedChats(tenantIdStr) {
     $expr: { $and: [
       { $eq: [{ $toString: '$tenantId' }, tStr] },
       { $in: ['$status', ['new','waiting','active']] }
-    ]}
+    ] }
   });
 
   for (let user of users) {
@@ -351,12 +363,12 @@ router.get('/admin', requireAdmin, async (req, res) => {
             { $match: { $expr: { $and: [
               { $eq: ["$_id", "$$uid"] },
               { $eq: [{ $toString: "$tenantId" }, tStr] }
-            ]}}},
+            ] } } },
             { $project: {
               name:1, phone:1, email:1, status:1, isBlocked:1,
               ip:1, city:1, isOnline:1, lastOnlineAt:1,
               lastPageUrl:1, lastPageHref:1
-            }}
+            } }
           ],
           as: "userInfo"
         }
@@ -376,7 +388,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
         lastPageUrl: "$userInfo.lastPageUrl",
         lastPageHref:"$userInfo.lastPageHref",
         lastMessage: 1
-      }},
+      } },
       { $sort: { "lastMessage.createdAt": -1 } }
     ]);
 
@@ -439,8 +451,16 @@ router.post(
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       if (user.isBlocked) return res.status(403).json({ error: 'Пользователь заблокирован' });
 
-      const imageUrls = req.files?.images?.map(f => `/uploads/${tStr}/${f.filename}`) || [];
-      const audioUrl = req.files?.audio?.[0] ? `/uploads/${tStr}/${req.files.audio[0].filename}` : '';
+      const images = [];
+      for (const f of (req.files?.images || [])) {
+        const u = await uploadToCloudinary(f.path, `chat/${tStr}/images`);
+        images.push(u);
+      }
+
+      let audio = null;
+      if (req.files?.audio?.[0]) {
+        audio = await uploadToCloudinary(req.files.audio[0].path, `chat/${tStr}/audio`);
+      }
 
       const message = await Message.create({
         tenantId: req.tenantId,
@@ -449,8 +469,10 @@ router.post(
         fromAdmin: true,
         read: false,
         createdAt: new Date(),
-        imageUrls,
-        audioUrl
+        imageUrls: images.map(x => x.url),
+        imageIds: images.map(x => x.public_id),
+        audioUrl: audio?.url || '',
+        audioId: audio?.public_id || null,
       });
 
       if (typingStatus[tStr]?.[String(user._id)]) {
@@ -560,7 +582,7 @@ router.post('/unread/:userId', requireAdmin, async (req, res) => {
   } catch (e) { res.json({ ok: true }); }
 });
 
-/* =============== ADMIN: delete chat =============== */
+/* =============== ADMIN: delete chat (Cloudinary cleanup) =============== */
 router.delete('/admin/:userId', requireAdmin, async (req, res) => {
   try {
     const tStr = String(req.tenantId);
@@ -574,12 +596,15 @@ router.delete('/admin/:userId', requireAdmin, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'not found' });
 
     const msgs = await Message.find({ user: user._id });
+
+    // удаляем из Cloudinary по public_id (если есть)
     for (const m of msgs) {
-      const files = [];
-      if (Array.isArray(m.imageUrls)) files.push(...m.imageUrls);
-      if (m.audioUrl) files.push(m.audioUrl);
-      files.forEach(safeUnlink);
+      if (Array.isArray(m.imageIds)) {
+        for (const id of m.imageIds) await destroyFromCloudinary(id);
+      }
+      if (m.audioId) await destroyFromCloudinary(m.audioId);
     }
+
     await Message.deleteMany({ user: user._id });
 
     user.status = 'waiting';

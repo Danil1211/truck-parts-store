@@ -161,15 +161,21 @@ const OrderSchema = new Schema({
 touchUpdatedAt(OrderSchema);
 if (tenantScope) OrderSchema.plugin(tenantScope);
 
-/* =============== Message =============== */
+/* =============== Message (Cloudinary-ready) =============== */
 const MessageSchema = new Schema({
   tenantId:  { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   user:      { type: Schema.Types.ObjectId, ref: 'User' },
   text:      { type: String },
   fromAdmin: { type: Boolean, default: false },
   read:      { type: Boolean, default: false },
-  imageUrls: [String],
+
+  // изображения
+  imageUrls: [String],   // видимые ссылки
+  imageIds:  [String],   // Cloudinary public_id для удаления
+
+  // голосовые
   audioUrl:  { type: String },
+  audioId:   { type: String },
 }, { timestamps: true });
 touchUpdatedAt(MessageSchema);
 if (tenantScope) MessageSchema.plugin(tenantScope);
