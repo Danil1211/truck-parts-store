@@ -136,29 +136,6 @@ const fmt = (sec) => {
   return `${m}:${SS}`;
 };
 
-/* ====== даты для «Сегодня/Вчера/День недели/дата» ====== */
-const dayNames = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
-const pad2 = (n) => String(n).padStart(2, "0");
-const ymd = (d) => {
-  const dt = new Date(d);
-  return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
-};
-const dayLabel = (d) => {
-  const today = new Date();
-  const dd = new Date(d);
-  const one = 24*60*60*1000;
-
-  const diffDays = Math.floor((new Date(ymd(today)) - new Date(ymd(dd))) / one);
-  if (diffDays === 0) return "Сегодня";
-  if (diffDays === 1) return "Вчера";
-
-  // в пределах недели — имя дня
-  if (diffDays < 7 && diffDays > 1) return dayNames[dd.getDay()];
-
-  // иначе — dd.MM
-  return `${pad2(dd.getDate())}.${pad2(dd.getMonth()+1)}`;
-};
-
 /* ===== blob URL manager ===== */
 const tmpObjectUrls = new Set();
 function makeBlobUrl(blob) {
@@ -173,7 +150,7 @@ function revokeTmpUrl(u) {
   }
 }
 
-/* --- голосовая «пузырь» (мгновенно playable, фикс duration Infinity/NaN) --- */
+/* --- голосовая «пузырь» --- */
 function VoiceMessage({ audioUrl, initialDuration = 0 }) {
   const audioRef = useRef(null);
   const barRef = useRef(null);
@@ -379,6 +356,21 @@ const QUICK = [
   "Принял, держу в курсе ⏳",
 ];
 
+/* ===== метки дней ===== */
+const DAYS = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+function dayLabel(d) {
+  const dt = new Date(d);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const that = new Date(dt); that.setHours(0,0,0,0);
+  const diff = Math.round((today - that) / 86400000);
+  if (diff === 0) return "Сегодня";
+  if (diff === 1) return "Вчера";
+  if (diff < 7 && diff > 1) return DAYS[dt.getDay()];
+  const dd = String(dt.getDate()).padStart(2,"0");
+  const mm = String(dt.getMonth()+1).padStart(2,"0");
+  return `${dd}.${mm}`;
+}
+
 export default function AdminChatPage() {
   const { resetUnread, unread, setActiveChatId } = useAdminNotify();
 
@@ -404,13 +396,11 @@ export default function AdminChatPage() {
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [error, setError] = useState("");
 
-  // индикатор дня при прокрутке
-  const [scrollBadge, setScrollBadge] = useState({ visible: false, text: "" });
-  const hideBadgeTimer = useRef(null);
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [loadingInfo, setLoadingInfo] = useState(false);
 
-  // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
-
   const endRef = useRef(null);
   const messagesRef = useRef(null);
   const mediaRecorder = useRef(null);
@@ -467,8 +457,6 @@ export default function AdminChatPage() {
     }
   };
 
-  const [loadingChats, setLoadingChats] = useState(true);
-
   useEffect(() => {
     loadChats();
     const iv = setInterval(loadChats, 4000);
@@ -494,9 +482,6 @@ export default function AdminChatPage() {
       console.error("loadMessages error:", e);
     }
   };
-
-  const [loadingThread, setLoadingThread] = useState(false);
-  const [loadingInfo, setLoadingInfo] = useState(false);
 
   useEffect(() => {
     if (!selected) return;
@@ -703,21 +688,19 @@ export default function AdminChatPage() {
     queueMicrotask(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
   };
 
-  // мгновенно закрываем меню и отправляем в фоне
-  const handleQuickReply = (text) => {
+  const handleQuickReply = async (text) => {
     if (!selected) return;
-    setShowQuick(false);
     const optimistic = pushOptimistic({ text });
-    (async () => {
-      try {
-        const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
-        await typingOff();
-        const real = pickMessage(res);
-        if (real && real._id) replaceTmp(optimistic._id, real);
-      } catch (e) {
-        console.error("quick reply error:", e);
-      }
-    })();
+    try {
+      const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
+      await typingOff();
+      const real = pickMessage(res);
+      if (real && real._id) replaceTmp(optimistic._id, real);
+    } catch (e) {
+      console.error("quick reply error:", e);
+    } finally {
+      setShowQuick(false);
+    }
   };
 
   const sendText = async () => {
@@ -828,20 +811,6 @@ export default function AdminChatPage() {
     return !chat.lastMessageObj.fromAdmin && !chat.lastMessageObj.read;
   };
 
-  /* ====== группировка сообщений по дню для разделителей ====== */
-  const grouped = useMemo(() => {
-    const map = new Map();
-    for (const m of Array.isArray(messages) ? messages : []) {
-      const k = ymd(m.createdAt || Date.now());
-      if (!map.has(k)) map.set(k, []);
-      map.get(k).push(m);
-    }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .map(([k, arr]) => ({ key: k, label: dayLabel(k), items: arr }));
-  }, [messages]);
-
-  /* автоскролл вниз после новых сообщений */
   useEffect(() => {
     if (isAutoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAutoScroll]);
@@ -849,27 +818,7 @@ export default function AdminChatPage() {
   const handleScroll = () => {
     const el = messagesRef.current;
     if (!el) return;
-
-    const stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-    setIsAutoScroll(stickToBottom);
-
-    // вычисляем видимую группу (верхнюю)
-    const seps = Array.from(el.querySelectorAll(".day-sep"));
-    const top = el.scrollTop;
-    // самый ближайший сверху (offsetTop <= top + 20)
-    let current = null;
-    for (const s of seps) {
-      if (s.offsetTop <= top + 20) current = s;
-      else break;
-    }
-    const text = current?.dataset?.label || "";
-    if (text) {
-      setScrollBadge({ visible: true, text });
-      clearTimeout(hideBadgeTimer.current);
-      hideBadgeTimer.current = setTimeout(() => {
-        setScrollBadge((p) => ({ ...p, visible: false }));
-      }, 900);
-    }
+    setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
   };
 
   useEffect(() => {
@@ -894,20 +843,35 @@ export default function AdminChatPage() {
         if (!inEmoji && !inComposer) setShowEmoji(false);
       }
     };
-    const onKey = (e) => { if (e.key === "Escape") { setShowQuick(false); setShowEmoji(false); } };
-
     document.addEventListener("pointerdown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("pointerdown", onDoc);
   }, [showQuick, showEmoji]);
+
+  const clientTyping = useMemo(() => {
+    if (!selected) return false;
+    const s = typingMap?.[selected.userId];
+    return !!(s && s.isTyping && !s.fromAdmin);
+  }, [typingMap, selected]);
 
   if (error) return <div className="admin-chat-error">{error}</div>;
 
   const chatList = Array.isArray(chats) ? chats : [];
   const pageHref = selectedUserInfo?.lastPageUrl ? withSite(selectedUserInfo.lastPageUrl) : null;
+
+  /* список с day separators */
+  const threadItems = useMemo(() => {
+    const out = [];
+    let prevDay = "";
+    for (const m of messages) {
+      const dKey = new Date(m.createdAt || Date.now()).toDateString();
+      if (dKey !== prevDay) {
+        prevDay = dKey;
+        out.push({ type: "sep", key: `sep-${dKey}`, label: dayLabel(m.createdAt || Date.now()) });
+      }
+      out.push({ type: "msg", key: m._id || Math.random(), msg: m });
+    }
+    return out;
+  }, [messages]);
 
   return (
     <div className="admin-chat-page">
@@ -980,6 +944,12 @@ export default function AdminChatPage() {
               <header className="chat-topbar admin-topbar">
                 <div className="chat-topbar__title">
                   <strong>{selected.name}</strong>
+                  {clientTyping && (
+                    <div className="chat-typing">
+                      {selected.name} печатает
+                      <span className="dots"><i></i><i></i><i></i></span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="chat-actions">
@@ -998,41 +968,49 @@ export default function AdminChatPage() {
                 </div>
               </header>
 
-              {/* Плавающий индикатор дня */}
-              {scrollBadge.visible && (
-                <div className="day-floating">{scrollBadge.text}</div>
-              )}
-
               <div className="thread" ref={messagesRef} onScroll={handleScroll}>
-                {grouped.map((g) => (
-                  <React.Fragment key={g.key}>
-                    <div className="day-sep" data-label={g.label}>
-                      <span>{g.label}</span>
-                    </div>
-                    {g.items.map((m, i) => (
-                      <div key={m._id || i} className={`bubble ${m.fromAdmin ? "out" : "in"}`}>
-                        <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
-                        {m.text && <div className="bubble-text">{m.text}</div>}
-
-                        {m.imageUrls?.map((u, idx) => {
-                          const src = isBlobUrl(u) || isExternalUrl(u) ? u : withApi(u);
-                          return <img key={idx} src={src} alt="img" className="bubble-img" />;
-                        })}
-
-                        {m.audioUrl && (
-                          <VoiceMessage
-                            audioUrl={withApi(m.audioUrl)}
-                            initialDuration={m._durationHint || 0}
-                          />
-                        )}
-
-                        <div className="bubble-time">
-                          {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                        </div>
+                {threadItems.map((it) => {
+                  if (it.type === "sep") {
+                    return (
+                      <div className="day-sep" key={it.key}>
+                        <span>{it.label}</span>
                       </div>
-                    ))}
-                  </React.Fragment>
-                ))}
+                    );
+                  }
+                  const m = it.msg;
+                  return (
+                    <div
+                      key={it.key}
+                      className={`bubble ${m.fromAdmin ? "out" : "in"}`}
+                    >
+                      <div className="bubble-author">{m.fromAdmin ? "Менеджер" : selected.name}</div>
+                      {m.text && <div className="bubble-text">{m.text}</div>}
+
+                      {m.imageUrls?.map((u, idx) => {
+                        const src = isBlobUrl(u) || isExternalUrl(u) ? u : withApi(u);
+                        return <img key={idx} src={src} alt="img" className="bubble-img" />;
+                      })}
+
+                      {m.audioUrl && (
+                        <VoiceMessage
+                          audioUrl={withApi(m.audioUrl)}
+                          initialDuration={m._durationHint || 0}
+                        />
+                      )}
+
+                      <div className="bubble-time">
+                        {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* typing bubble */}
+                {clientTyping && (
+                  <div className="bubble in typing-bubble" aria-live="polite">
+                    <div className="typing-dots"><span></span><span></span><span></span></div>
+                  </div>
+                )}
 
                 <div ref={endRef} />
                 {loadingThread && <div className="loading-overlay"><span className="chat-spinner chat-spinner--md" /></div>}
