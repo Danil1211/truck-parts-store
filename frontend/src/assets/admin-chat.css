@@ -66,7 +66,7 @@
   height:100%; min-width:0; overflow:hidden; display:flex; flex-direction:column; min-height:0;
 }
 .chat-topbar{
-  position: sticky; top: 0; z-index: 10; /* выше всего */
+  position: sticky; top: 0; z-index: 10;
   flex:0 0 auto; padding:10px 14px; border-bottom:1px solid var(--line);
   display:flex; align-items:center; justify-content:space-between; background:#fff;
 }
@@ -79,20 +79,25 @@
 .btn-outline:hover{ box-shadow:0 4px 16px rgba(15,23,42,.06); }
 .btn-outline:active{ transform: translateY(1px); }
 
-/* quick menu — фикс стилей + перекрытие */
+/* --- Быстрый ответ (исправлено) --- */
 .quick{ position:relative; z-index: 20; }
 .quick.open .btn-outline{ box-shadow:0 4px 16px rgba(15,23,42,.08); }
 .quick-menu{
   position:absolute; right:0; top:calc(100% + 8px); z-index:21;
   background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md);
-  min-width:320px; max-width:560px;
-  padding:8px;
-  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px;
-  max-height:220px; overflow:auto;
+  padding:10px;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap:8px;
+  max-height:260px;
+  max-width:560px;
+  overflow:auto;
 }
 .quick-menu button{
-  display:block; width:100%; padding:8px 10px; border:1px solid #e8edf6; border-radius:10px;
+  display:block; width:100%;
+  padding:8px 10px; border:1px solid #e8edf6; border-radius:10px;
   background:#f8fbff; cursor:pointer; text-align:left; font-size:13px; line-height:1.25;
+  transition: background .2s ease;
 }
 .quick-menu button:hover{ background:#eef5ff; }
 
@@ -132,13 +137,11 @@
     #fff;
 }
 
-/* ===== Day separator — под топбаром ===== */
+/* ===== Day separator — БОЛЬШЕ НЕ sticky ===== */
 .day-sep{
-  position: sticky;
-  top: calc(8px);                 /* визуально НИЖЕ топбара */
-  z-index: 5;                     /* ниже quick-menu */
+  position: relative;   /* было sticky */
   display:grid; place-items:center;
-  margin: 4px 0 8px;
+  margin: 12px 0;
 }
 .day-sep > span{
   background:#0f172a; color:#fff;
@@ -146,6 +149,22 @@
   box-shadow:0 4px 14px rgba(15,23,42,.15);
   font-size:13px; font-weight:600;
 }
+
+/* Popover текущего дня (как в телеге) */
+.scroll-day-pop{
+  position: fixed;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background:#0f172a; color:#fff;
+  padding:6px 14px; border-radius:999px;
+  font-size:13px; font-weight:600;
+  box-shadow:0 4px 14px rgba(15,23,42,.15);
+  opacity: 0; pointer-events:none;
+  transition: opacity .3s ease;
+  z-index: 30;
+}
+.scroll-day-pop.show{ opacity: 1; }
 
 /* Сообщения */
 .bubble{ max-width:72%; border-radius:16px; padding:10px 12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:8px; word-break:break-word; }

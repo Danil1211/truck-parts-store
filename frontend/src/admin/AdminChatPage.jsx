@@ -400,6 +400,10 @@ export default function AdminChatPage() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
+  // popover "Сегодня/Вчера/..." при прокрутке
+  const [scrollDay, setScrollDay] = useState("");
+  const scrollPopTimer = useRef(null);
+
   const pendingOpenId = useRef(null);
   const endRef = useRef(null);
   const messagesRef = useRef(null);
@@ -818,7 +822,24 @@ export default function AdminChatPage() {
   const handleScroll = () => {
     const el = messagesRef.current;
     if (!el) return;
+
+    // авто-скролл выключаем, если пользователь листает
     setIsAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 100);
+
+    // вычисляем текущую "дату" для поповера (как в Телеге)
+    const seps = Array.from(el.querySelectorAll(".day-sep"));
+    let current = null;
+    const threshold = 60; // чуть ниже верхней границы ленты
+    seps.forEach((s) => {
+      const relTop = s.offsetTop - el.scrollTop;
+      if (relTop <= threshold) current = s;
+    });
+    const label = current?.dataset?.label || "";
+    if (label) {
+      setScrollDay(label);
+      if (scrollPopTimer.current) clearTimeout(scrollPopTimer.current);
+      scrollPopTimer.current = setTimeout(() => setScrollDay(""), 1200);
+    }
   };
 
   useEffect(() => {
@@ -932,6 +953,9 @@ export default function AdminChatPage() {
 
         {/* CENTER */}
         <section className="chat-main">
+          {/* popover текущей даты при скролле */}
+          {!!scrollDay && <div className="scroll-day-pop show">{scrollDay}</div>}
+
           {!selected ? (
             <div className="chat-empty">
               <div className="empty-quote">
@@ -972,7 +996,7 @@ export default function AdminChatPage() {
                 {threadItems.map((it) => {
                   if (it.type === "sep") {
                     return (
-                      <div className="day-sep" key={it.key}>
+                      <div className="day-sep" key={it.key} data-label={it.label}>
                         <span>{it.label}</span>
                       </div>
                     );
