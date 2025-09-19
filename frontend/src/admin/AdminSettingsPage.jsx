@@ -1,11 +1,12 @@
-import React, { useRef, useState, useEffect, useMemo } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import "../assets/AdminSettingsPage.css";
 import { useSite } from "../context/SiteContext";
 import { DISPLAY_DEFAULT, PALETTES } from "../context/SiteContext";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api.js";
+import AdminSubMenu from "./AdminSubMenu"; // существующий компонент под правое/верхнее подменю
 
-// Встроенный SVG-плейсхолдер вместо /noimg.png
+// SVG-плейсхолдер
 const NOIMG =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
@@ -28,23 +29,13 @@ const WEEK_DAYS = [
   { key: "sun", label: "Вс" },
 ];
 
-const COLOR_PALETTE = [
-  "#2291ff",
-  "#4caf50",
-  "#ff9800",
-  "#f44336",
-  "#e91e63",
-  "#a9744f",
-  "#9c27b0",
-  "#00bcd4",
-];
+const COLOR_PALETTE = ["#2291ff","#4caf50","#ff9800","#f44336","#e91e63","#a9744f","#9c27b0","#00bcd4"];
 
 const SETTINGS_MENU = [
   { key: "main", title: "Основные настройки" },
   { key: "site", title: "Управление сайтом" },
 ];
 
-// Подбираем корректную палитру (с футер-цветами) под выбранный основной цвет сайта
 function getPaletteWithFooter(selectedColor) {
   const base =
     PALETTES[selectedColor] || {
@@ -52,15 +43,11 @@ function getPaletteWithFooter(selectedColor) {
       primary: selectedColor,
       "footer-bg": "#232a34",
     };
-  return {
-    ...base,
-    "side-menu-border": selectedColor,
-  };
+  return { ...base, "side-menu-border": selectedColor };
 }
 
-// хелперы для меню
 const newMenuItem = (order = 0) => ({
-  _id: crypto.randomUUID(),
+  _id: (crypto?.randomUUID?.() || String(Math.random())).toString(),
   title: "",
   url: "/",
   visible: true,
@@ -69,7 +56,7 @@ const newMenuItem = (order = 0) => ({
 const sanitizeMenuArray = (arr) =>
   (Array.isArray(arr) ? arr : [])
     .map((it, idx) => ({
-      _id: it._id || crypto.randomUUID(),
+      _id: it._id || (crypto?.randomUUID?.() || `${idx}`),
       title: (it.title || "").trim(),
       url: (it.url || "/").trim(),
       visible: !!it.visible,
@@ -79,29 +66,23 @@ const sanitizeMenuArray = (arr) =>
 
 export default function AdminSettingsPage() {
   const {
-    siteName,
-    setSiteName,
-    contacts,
-    setContacts,
-    display,
-    setDisplay,
-    siteLogo,
-    setSiteLogo,
-    favicon,
-    setFavicon,
+    siteName, setSiteName,
+    contacts, setContacts,
+    display, setDisplay,
+    siteLogo, setSiteLogo,
+    favicon, setFavicon,
     saveSettings,
   } = useSite();
 
   const { user } = useAuth();
-
   const [tab, setTab] = useState("main");
 
-  // ========= MAIN =========
+  // ===== MAIN =====
   const [email, setEmail] = useState(contacts?.email || "");
   const [contactPerson, setContactPerson] = useState(contacts?.contactPerson || "");
   const [address, setAddress] = useState(contacts?.address || "");
   const [phones, setPhones] = useState(
-    contacts?.phones && contacts.phones.length ? contacts.phones : [{ phone: "", comment: "" }]
+    contacts?.phones?.length ? contacts.phones : [{ phone: "", comment: "" }]
   );
 
   const [logoFile, setLogoFile] = useState(null);
@@ -116,9 +97,7 @@ export default function AdminSettingsPage() {
   const defaultChatSettings = contacts?.chatSettings || {};
   const [chatStartTime, setChatStartTime] = useState(defaultChatSettings.startTime || "09:00");
   const [chatEndTime, setChatEndTime] = useState(defaultChatSettings.endTime || "18:00");
-  const [chatWorkDays, setChatWorkDays] = useState(
-    defaultChatSettings.workDays || WEEK_DAYS.map((d) => d.key)
-  );
+  const [chatWorkDays, setChatWorkDays] = useState(defaultChatSettings.workDays || WEEK_DAYS.map(d => d.key));
   const [chatIconPosition, setChatIconPosition] = useState(defaultChatSettings.iconPosition || "left");
   const [chatColor, setChatColor] = useState(defaultChatSettings.color || "#2291ff");
   const [chatGreeting, setChatGreeting] = useState(defaultChatSettings.greeting || "");
@@ -132,15 +111,13 @@ export default function AdminSettingsPage() {
     setEmail(contacts?.email || "");
     setContactPerson(contacts?.contactPerson || "");
     setAddress(contacts?.address || "");
-    setPhones(
-      contacts?.phones && contacts.phones.length ? contacts.phones : [{ phone: "", comment: "" }]
-    );
+    setPhones(contacts?.phones?.length ? contacts.phones : [{ phone: "", comment: "" }]);
     setLogoPreview(siteLogo || null);
 
     if (contacts?.chatSettings) {
       setChatStartTime(contacts.chatSettings.startTime || "09:00");
       setChatEndTime(contacts.chatSettings.endTime || "18:00");
-      setChatWorkDays(contacts.chatSettings.workDays || WEEK_DAYS.map((d) => d.key));
+      setChatWorkDays(contacts.chatSettings.workDays || WEEK_DAYS.map(d => d.key));
       setChatIconPosition(contacts.chatSettings.iconPosition || "left");
       setChatColor(contacts.chatSettings.color || "#2291ff");
       setChatGreeting(contacts.chatSettings.greeting || "");
@@ -149,21 +126,13 @@ export default function AdminSettingsPage() {
 
   function handleSitePaletteSelect(color) {
     const palette = getPaletteWithFooter(color);
-    setDisplay((prev) => ({
-      ...prev,
-      palette,
-    }));
+    setDisplay(prev => ({ ...prev, palette }));
   }
-
-  function handleChatColorSelect(color) {
-    setChatColor(color);
-  }
+  function handleChatColorSelect(color) { setChatColor(color); }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage("");
-    setSaveMessage("");
-
+    setErrorMessage(""); setSaveMessage("");
     try {
       const normalizedSitePalette = getPaletteWithFooter(sitePalettePrimary);
 
@@ -171,10 +140,7 @@ export default function AdminSettingsPage() {
         siteName,
         contacts: {
           ...contacts,
-          email,
-          contactPerson,
-          address,
-          phones,
+          email, contactPerson, address, phones,
           chatSettings: {
             ...(contacts.chatSettings || {}),
             startTime: chatStartTime,
@@ -185,10 +151,7 @@ export default function AdminSettingsPage() {
             greeting: chatGreeting,
           },
         },
-        display: {
-          ...display,
-          palette: normalizedSitePalette,
-        },
+        display: { ...display, palette: normalizedSitePalette },
         siteLogo: logoPreview,
         favicon: faviconPreview,
       });
@@ -196,7 +159,7 @@ export default function AdminSettingsPage() {
       setSaveMessage("Изменения сохранены");
       setTimeout(() => setSaveMessage(""), 2200);
     } catch (err) {
-      console.error("Ошибка в handleSubmit:", err);
+      console.error("handleSubmit:", err);
       setErrorMessage("Ошибка сохранения настроек");
       setTimeout(() => setErrorMessage(""), 3500);
     }
@@ -204,41 +167,32 @@ export default function AdminSettingsPage() {
 
   const handleLogoChange = (e) => {
     setLogoError("");
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) {
-      setLogoFile(null);
-      setLogoPreview(null);
-      setSiteLogo(null);
+      setLogoFile(null); setLogoPreview(null); setSiteLogo(null);
       return;
     }
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+    const allowed = ["image/png","image/jpeg","image/jpg","image/webp"];
+    if (!allowed.includes(file.type)) {
       setLogoError("Разрешены только PNG, JPG, WEBP");
-      setLogoFile(null);
-      setLogoPreview(null);
-      setSiteLogo(null);
+      setLogoFile(null); setLogoPreview(null); setSiteLogo(null);
       return;
     }
     const img = new window.Image();
     const reader = new FileReader();
-    reader.onload = function (ev) {
-      img.onload = function () {
+    reader.onload = (ev) => {
+      img.onload = () => {
         if (img.width > 300 || img.height > 150) {
-          setLogoError("Максимальный размер логотипа 300×150 пикселей");
-          setLogoFile(null);
-          setLogoPreview(null);
-          setSiteLogo(null);
+          setLogoError("Максимальный размер логотипа 300×150");
+          setLogoFile(null); setLogoPreview(null); setSiteLogo(null);
         } else {
           setLogoPreview(ev.target.result);
-          setLogoFile(file);
-          setSiteLogo(ev.target.result);
+          setLogoFile(file); setSiteLogo(ev.target.result);
         }
       };
-      img.onerror = function () {
+      img.onerror = () => {
         setLogoError("Не удалось прочитать изображение");
-        setLogoFile(null);
-        setLogoPreview(null);
-        setSiteLogo(null);
+        setLogoFile(null); setLogoPreview(null); setSiteLogo(null);
       };
       img.src = ev.target.result;
     };
@@ -247,56 +201,34 @@ export default function AdminSettingsPage() {
 
   const handleRemoveLogo = (e) => {
     e.stopPropagation();
-    setLogoFile(null);
-    setLogoPreview(null);
-    setSiteLogo(null);
-    setLogoError("");
-    if (logoInputRef.current) {
-      logoInputRef.current.value = "";
-    }
+    setLogoFile(null); setLogoPreview(null); setSiteLogo(null); setLogoError("");
+    if (logoInputRef.current) logoInputRef.current.value = "";
   };
 
   const handleFaviconChange = (e) => {
-    const file = e.target.files[0];
-    if (
-      file &&
-      (file.type === "image/x-icon" || file.type === "image/png" || file.type === "image/svg+xml")
-    ) {
+    const file = e.target.files?.[0];
+    if (file && ["image/x-icon","image/png","image/svg+xml"].includes(file.type)) {
       setFaviconFile(file);
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setFaviconPreview(ev.target.result);
-        setFavicon(ev.target.result);
-      };
+      reader.onload = (ev) => { setFaviconPreview(ev.target.result); setFavicon(ev.target.result); };
       reader.readAsDataURL(file);
     } else {
-      setFaviconFile(null);
-      setFaviconPreview(null);
-      setFavicon(null);
+      setFaviconFile(null); setFaviconPreview(null); setFavicon(null);
     }
   };
-
   const handleRemoveFavicon = (e) => {
     e.stopPropagation();
-    setFaviconFile(null);
-    setFaviconPreview(null);
-    setFavicon(null);
-    if (faviconInputRef.current) {
-      faviconInputRef.current.value = "";
-    }
+    setFaviconFile(null); setFaviconPreview(null); setFavicon(null);
+    if (faviconInputRef.current) faviconInputRef.current.value = "";
   };
 
-  const handleCheckbox = (key) => setDisplay((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  const handlePhoneChange = (idx, field, value) => {
-    setPhones((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
-  };
-  const handleAddPhone = () => {
-    if (phones.length < 3) setPhones([...phones, { phone: "", comment: "" }]);
-  };
+  const handleCheckbox = (key) => setDisplay(prev => ({ ...prev, [key]: !prev[key] }));
+  const handlePhoneChange = (idx, field, value) =>
+    setPhones(prev => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
+  const handleAddPhone = () => { if (phones.length < 3) setPhones([...phones, { phone: "", comment: "" }]); };
   const handleRemovePhone = (idx) => setPhones(phones.filter((_, i) => i !== idx));
 
-  // ========= SITE (новое) =========
+  // ===== SITE =====
   const [verticalMenu, setVerticalMenu] = useState([]);
   const [horizontalMenu, setHorizontalMenu] = useState([]);
   const [showcaseEnabled, setShowcaseEnabled] = useState(true);
@@ -360,34 +292,22 @@ export default function AdminSettingsPage() {
   }, [pickerOpen, pickerQ, pickerGroup, pickerInStock, pickerPage, pickerLimit]);
 
   const moveItem = (list, setList, idx, dir) => {
-    const arr = [...list];
-    const to = idx + dir;
-    if (to < 0 || to >= arr.length) return;
-    const [it] = arr.splice(idx, 1);
-    arr.splice(to, 0, it);
+    const arr = [...list]; const to = idx + dir; if (to < 0 || to >= arr.length) return;
+    const [it] = arr.splice(idx, 1); arr.splice(to, 0, it);
     setList(arr.map((x, i) => ({ ...x, order: i })));
   };
   const addItem = (list, setList) => setList([...list, newMenuItem(list.length)]);
-  const removeItem = (list, setList, idx) => {
-    const arr = [...list];
-    arr.splice(idx, 1);
-    setList(arr.map((x, i) => ({ ...x, order: i })));
-  };
-  const updateItem = (list, setList, idx, patch) => {
-    const arr = [...list];
-    arr[idx] = { ...arr[idx], ...patch };
-    setList(arr);
-  };
+  const removeItem = (list, setList, idx) => { const arr = [...list]; arr.splice(idx, 1); setList(arr.map((x, i) => ({ ...x, order: i }))); };
+  const updateItem = (list, setList, idx, patch) => { const arr = [...list]; arr[idx] = { ...arr[idx], ...patch }; setList(arr); };
 
   const togglePick = () => setPickerOpen(true);
   const toggleSelected = (id) => {
     id = String(id);
-    setShowcaseIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setShowcaseIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
   const saveSiteTab = async () => {
-    setSavingSite(true);
-    setSiteMsg("");
+    setSavingSite(true); setSiteMsg("");
     try {
       const payload = {
         verticalMenu: verticalMenu.map((x, i) => ({
@@ -402,14 +322,9 @@ export default function AdminSettingsPage() {
           visible: !!x.visible,
           order: i,
         })),
-        showcase: {
-          enabled: !!showcaseEnabled,
-          productIds: showcaseIds,
-        },
+        showcase: { enabled: !!showcaseEnabled, productIds: showcaseIds },
       };
-
       await api.put(`/api/site-settings`, payload);
-
       setSiteMsg("Изменения сохранены");
       setTimeout(() => setSiteMsg(""), 2200);
     } catch (e) {
@@ -422,7 +337,12 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="admin-settings-root">
+    <div className="admin-settings-root admin-root">
+      {/* фиксируем отступ от общего левого сайдбара и показываем стандартное подменю админки */}
+      <div className="admin-settings-header-row">
+        <AdminSubMenu activeKey="settings" />
+      </div>
+
       <aside className="settings-menu-vertical">
         <div className="settings-menu-title">Настройки</div>
         {SETTINGS_MENU.map((item) => (
@@ -437,7 +357,7 @@ export default function AdminSettingsPage() {
         ))}
       </aside>
 
-      <div className="settings-content">
+      <main className="settings-content">
         <div className="settings-content-inner">
           {tab === "main" && (
             <form onSubmit={handleSubmit} className="settings-section">
@@ -490,6 +410,7 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
                 {phones.map((phoneObj, idx) => (
                   <div className="settings-grid-2" key={idx}>
                     <div className="settings-phone-field">
@@ -532,48 +453,28 @@ export default function AdminSettingsPage() {
                 )}
               </div>
 
-              {/* Отображение на сайте */}
+              {/* Отображение на главной */}
               <div className="settings-block">
                 <h3 className="settings-subtitle">Отображение на главной</h3>
                 <div className="settings-checkbox-list">
                   <label>
-                    <input
-                      type="checkbox"
-                      checked={!!display.chat}
-                      onChange={() => handleCheckbox("chat")}
-                    />
+                    <input type="checkbox" checked={!!display.chat} onChange={() => handleCheckbox("chat")} />
                     Отображать Чат
                   </label>
                   <label>
-                    <input
-                      type="checkbox"
-                      checked={!!display.categories}
-                      onChange={() => handleCheckbox("categories")}
-                    />
+                    <input type="checkbox" checked={!!display.categories} onChange={() => handleCheckbox("categories")} />
                     Отображать Категории
                   </label>
                   <label>
-                    <input
-                      type="checkbox"
-                      checked={!!display.showcase}
-                      onChange={() => handleCheckbox("showcase")}
-                    />
+                    <input type="checkbox" checked={!!display.showcase} onChange={() => handleCheckbox("showcase")} />
                     Отображать Витрину
                   </label>
                   <label>
-                    <input
-                      type="checkbox"
-                      checked={!!display.promos}
-                      onChange={() => handleCheckbox("promos")}
-                    />
+                    <input type="checkbox" checked={!!display.promos} onChange={() => handleCheckbox("promos")} />
                     Отображать Акции и Скидки
                   </label>
                   <label>
-                    <input
-                      type="checkbox"
-                      checked={!!display.blog}
-                      onChange={() => handleCheckbox("blog")}
-                    />
+                    <input type="checkbox" checked={!!display.blog} onChange={() => handleCheckbox("blog")} />
                     Отображать Блог
                   </label>
                 </div>
@@ -588,7 +489,7 @@ export default function AdminSettingsPage() {
                       className="settings-logo-uploader"
                       onClick={() => logoInputRef.current.click()}
                       title="Загрузить логотип"
-                      style={{ cursor: "pointer" }}
+                      role="button"
                     >
                       {logoPreview ? (
                         <>
@@ -631,7 +532,7 @@ export default function AdminSettingsPage() {
                       className="settings-favicon-uploader"
                       onClick={() => faviconInputRef.current.click()}
                       title="Загрузить фавикон"
-                      style={{ cursor: "pointer" }}
+                      role="button"
                     >
                       {faviconPreview ? (
                         <>
@@ -687,11 +588,9 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
                 <div style={{ marginTop: 16, marginBottom: 6 }}>
-                  <div
-                    className="settings-subtitle"
-                    style={{ marginBottom: 7, fontSize: 17, color: "#2175f3" }}
-                  >
+                  <div className="settings-subtitle" style={{ marginBottom: 7, fontSize: 17 }}>
                     Рабочие дни чата
                   </div>
                   <div className="chat-days-off-row">
@@ -702,9 +601,7 @@ export default function AdminSettingsPage() {
                           checked={chatWorkDays.includes(day.key)}
                           onChange={(e) => {
                             setChatWorkDays((prev) =>
-                              e.target.checked
-                                ? [...prev, day.key]
-                                : prev.filter((d) => d !== day.key)
+                              e.target.checked ? [...prev, day.key] : prev.filter((d) => d !== day.key)
                             );
                           }}
                         />
@@ -713,58 +610,32 @@ export default function AdminSettingsPage() {
                     ))}
                   </div>
                 </div>
-                <div style={{ marginTop: "16px" }}>
-                  <div
-                    style={{
-                      fontWeight: "400",
-                      fontSize: "18px",
-                      color: "#2175f3",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Положение иконки
-                  </div>
-                  <label
-                    style={{
-                      marginRight: "25px",
-                      fontSize: "18px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
+
+                <div style={{ marginTop: 16 }}>
+                  <div className="design-section-label">Положение иконки</div>
+                  <label>
                     <input
                       type="radio"
                       name="chatIconPosition"
                       value="left"
                       checked={chatIconPosition === "left"}
                       onChange={() => setChatIconPosition("left")}
-                      style={{ width: "18px", height: "18px", marginRight: "8px" }}
                     />
                     Слева
                   </label>
-                  <label
-                    style={{
-                      fontSize: "18px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
+                  <label>
                     <input
                       type="radio"
                       name="chatIconPosition"
                       value="right"
                       checked={chatIconPosition === "right"}
                       onChange={() => setChatIconPosition("right")}
-                      style={{ width: "18px", height: "18px", marginRight: "8px" }}
                     />
                     Справа
                   </label>
                 </div>
-                <div className="settings-subtitle" style={{ marginTop: "16px" }}>
-                  Цвет чата
-                </div>
+
+                <div className="settings-subtitle" style={{ marginTop: 16 }}>Цвет чата</div>
                 <div className="chat-color-palette">
                   {COLOR_PALETTE.map((color) => (
                     <div
@@ -773,34 +644,16 @@ export default function AdminSettingsPage() {
                       style={{
                         background: `linear-gradient(135deg, ${color} 48%, #fff 52%)`,
                         border: "2px solid #222",
-                        width: 24,
-                        height: 24,
-                        boxShadow:
-                          chatColor === color
-                            ? `0 0 0 3px ${color}44, 0 0 6px 2px ${color}88`
-                            : "none",
-                        transform: chatColor === color ? "scale(1.13)" : "scale(1)",
-                        transition: "box-shadow 0.16s, transform 0.17s",
-                        cursor: "pointer",
+                        width: 24, height: 24,
                       }}
                       onClick={() => handleChatColorSelect(color)}
                       title={`Выбрать цвет для чата ${color}`}
                     />
                   ))}
                 </div>
-                <div style={{ marginTop: "24px" }}>
-                  <label
-                    htmlFor="chatGreeting"
-                    style={{
-                      fontWeight: "400",
-                      fontSize: "18px",
-                      color: "#2175f3",
-                      display: "block",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Приветствие (Сообщение перед началом чата)
-                  </label>
+
+                <div style={{ marginTop: 24 }}>
+                  <label htmlFor="chatGreeting" className="design-section-label">Приветствие</label>
                   <textarea
                     id="chatGreeting"
                     value={chatGreeting}
@@ -823,23 +676,15 @@ export default function AdminSettingsPage() {
                   {COLOR_PALETTE.map((color) => (
                     <div
                       key={color}
-                      className={
-                        "design-color-circle" + (sitePalettePrimary === color ? " selected" : "")
-                      }
-                      style={{
-                        background: `linear-gradient(135deg, ${color} 48%, #fff 52%)`,
-                        borderColor: "#222",
-                        cursor: "pointer",
-                      }}
+                      className={"design-color-circle" + (sitePalettePrimary === color ? " selected" : "")}
+                      style={{ background: `linear-gradient(135deg, ${color} 48%, #fff 52%)` }}
                       onClick={() => handleSitePaletteSelect(color)}
                       title={color}
                     />
                   ))}
                 </div>
 
-                <div className="design-section-label" style={{ marginTop: 32, marginBottom: 13 }}>
-                  Выберите дизайн
-                </div>
+                <div className="design-section-label" style={{ marginTop: 24 }}>Выберите дизайн</div>
                 <div className="design-templates-row">
                   {[
                     { key: "standard",          label: "Стандартный",         preview: "/images/standartdesing.png" },
@@ -849,10 +694,7 @@ export default function AdminSettingsPage() {
                   ].map((tpl) => {
                     const isSelected = (display.template || "standard") === tpl.key;
                     return (
-                      <div
-                        key={tpl.key}
-                        className={"design-template-label" + (isSelected ? " selected" : "")}
-                      >
+                      <label key={tpl.key} className={"design-template-label" + (isSelected ? " selected" : "")}>
                         <input
                           type="radio"
                           name="siteTemplate"
@@ -865,24 +707,13 @@ export default function AdminSettingsPage() {
                           src={tpl.preview}
                           alt={tpl.label}
                           className="design-template-preview"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = NOIMG;
-                          }}
+                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = NOIMG; }}
                         />
                         <span className="design-template-title">{tpl.label}</span>
-                        <button
-                          className="apply-template-btn"
-                          type="button"
-                          disabled={!isSelected}
-                          style={{
-                            opacity: isSelected ? 1 : 0.67,
-                            pointerEvents: isSelected ? "auto" : "none",
-                          }}
-                        >
+                        <button className="apply-template-btn" type="button" disabled={!isSelected}>
                           Применить
                         </button>
-                      </div>
+                      </label>
                     );
                   })}
                 </div>
@@ -891,9 +722,7 @@ export default function AdminSettingsPage() {
               {saveMessage && <div className="settings-success-message">{saveMessage}</div>}
               {errorMessage && <div className="logo-error-message">{errorMessage}</div>}
 
-              <button type="submit" className="settings-save-btn">
-                Сохранить
-              </button>
+              <button type="submit" className="settings-save-btn">Сохранить</button>
             </form>
           )}
 
@@ -909,46 +738,31 @@ export default function AdminSettingsPage() {
                         className="menu-input"
                         placeholder="Название"
                         value={item.title}
-                        onChange={(e) =>
-                          updateItem(verticalMenu, setVerticalMenu, idx, { title: e.target.value })
-                        }
+                        onChange={(e) => updateItem(verticalMenu, setVerticalMenu, idx, { title: e.target.value })}
                       />
                       <input
                         className="menu-input"
                         placeholder="Ссылка /url"
                         value={item.url}
-                        onChange={(e) =>
-                          updateItem(verticalMenu, setVerticalMenu, idx, { url: e.target.value })
-                        }
+                        onChange={(e) => updateItem(verticalMenu, setVerticalMenu, idx, { url: e.target.value })}
                       />
                       <label className="menu-visible">
                         <input
                           type="checkbox"
                           checked={!!item.visible}
-                          onChange={(e) =>
-                            updateItem(verticalMenu, setVerticalMenu, idx, {
-                              visible: e.target.checked,
-                            })
-                          }
+                          onChange={(e) => updateItem(verticalMenu, setVerticalMenu, idx, { visible: e.target.checked })}
                         />
                         Видно
                       </label>
                       <div className="menu-actions">
                         <button onClick={() => moveItem(verticalMenu, setVerticalMenu, idx, -1)}>↑</button>
                         <button onClick={() => moveItem(verticalMenu, setVerticalMenu, idx, 1)}>↓</button>
-                        <button
-                          className="danger"
-                          onClick={() => removeItem(verticalMenu, setVerticalMenu, idx)}
-                        >
-                          ✕
-                        </button>
+                        <button className="danger" onClick={() => removeItem(verticalMenu, setVerticalMenu, idx)}>✕</button>
                       </div>
                     </div>
                   ))}
                   <div className="menu-footer">
-                    <button onClick={() => addItem(verticalMenu, setVerticalMenu)}>
-                      + Добавить пункт
-                    </button>
+                    <button onClick={() => addItem(verticalMenu, setVerticalMenu)}>+ Добавить пункт</button>
                   </div>
                 </div>
               </div>
@@ -963,41 +777,31 @@ export default function AdminSettingsPage() {
                         className="menu-input"
                         placeholder="Название"
                         value={item.title}
-                        onChange={(e) =>
-                          updateItem(horizontalMenu, setHorizontalMenu, idx, { title: e.target.value })
-                        }
+                        onChange={(e) => updateItem(horizontalMenu, setHorizontalMenu, idx, { title: e.target.value })}
                       />
                       <input
                         className="menu-input"
                         placeholder="Ссылка /url"
                         value={item.url}
-                        onChange={(e) =>
-                          updateItem(horizontalMenu, setHorizontalMenu, idx, { url: e.target.value })
-                        }
+                        onChange={(e) => updateItem(horizontalMenu, setHorizontalMenu, idx, { url: e.target.value })}
                       />
                       <label className="menu-visible">
                         <input
                           type="checkbox"
                           checked={!!item.visible}
-                          onChange={(e) =>
-                            updateItem(horizontalMenu, setHorizontalMenu, idx, { visible: e.target.checked })
-                          }
+                          onChange={(e) => updateItem(horizontalMenu, setHorizontalMenu, idx, { visible: e.target.checked })}
                         />
                         Видно
                       </label>
                       <div className="menu-actions">
                         <button onClick={() => moveItem(horizontalMenu, setHorizontalMenu, idx, -1)}>↑</button>
                         <button onClick={() => moveItem(horizontalMenu, setHorizontalMenu, idx, 1)}>↓</button>
-                        <button className="danger" onClick={() => removeItem(horizontalMenu, setHorizontalMenu, idx)}>
-                          ✕
-                        </button>
+                        <button className="danger" onClick={() => removeItem(horizontalMenu, setHorizontalMenu, idx)}>✕</button>
                       </div>
                     </div>
                   ))}
                   <div className="menu-footer">
-                    <button onClick={() => addItem(horizontalMenu, setHorizontalMenu)}>
-                      + Добавить пункт
-                    </button>
+                    <button onClick={() => addItem(horizontalMenu, setHorizontalMenu)}>+ Добавить пункт</button>
                   </div>
                 </div>
               </div>
@@ -1006,14 +810,22 @@ export default function AdminSettingsPage() {
               <div className="settings-block">
                 <h3 className="settings-subtitle">Витрина</h3>
                 <div className="showcase-block">
+                  <div className="switch">
+                    <input
+                      id="showcaseEnabled"
+                      type="checkbox"
+                      checked={showcaseEnabled}
+                      onChange={(e) => setShowcaseEnabled(e.target.checked)}
+                    />
+                    <label htmlFor="showcaseEnabled">Показывать витрину на главной</label>
+                  </div>
+
                   <div className="chips">
                     {showcaseIds.length === 0 && <div className="chip muted">Товары не выбраны</div>}
                     {showcaseIds.map((id) => (
                       <div key={id} className="chip">
                         {id}
-                        <button onClick={() => setShowcaseIds((prev) => prev.filter((x) => x !== id))}>
-                          ×
-                        </button>
+                        <button onClick={() => setShowcaseIds((prev) => prev.filter((x) => x !== id))}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1034,66 +846,39 @@ export default function AdminSettingsPage() {
           {tab !== "main" && tab !== "site" && (
             <div className="settings-section">
               <h2>{SETTINGS_MENU.find((item) => item.key === tab)?.title || "Раздел"}</h2>
-              <div className="settings-section-content">
-                Здесь можно редактировать содержимое раздела "{tab}"
-              </div>
+              <div className="settings-section-content">Здесь можно редактировать раздел «{tab}»</div>
             </div>
           )}
         </div>
-      </div>
+      </main>
 
-      {/* Модалка выбора товаров для витрины */}
+      {/* Модалка выбора товаров */}
       {pickerOpen && (
         <div className="modal-backdrop" onClick={() => setPickerOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>Добавить товары в витрину</h3>
-              <button className="icon" onClick={() => setPickerOpen(false)}>
-                ✕
-              </button>
+              <button className="icon" onClick={() => setPickerOpen(false)}>✕</button>
             </div>
 
             <div className="filters">
               <input
                 placeholder="Поиск по названию"
                 value={pickerQ}
-                onChange={(e) => {
-                  setPickerPage(1);
-                  setPickerQ(e.target.value);
-                }}
+                onChange={(e) => { setPickerPage(1); setPickerQ(e.target.value); }}
               />
-              <select
-                value={pickerGroup}
-                onChange={(e) => {
-                  setPickerPage(1);
-                  setPickerGroup(e.target.value);
-                }}
-              >
+              <select value={pickerGroup} onChange={(e) => { setPickerPage(1); setPickerGroup(e.target.value); }}>
                 <option value="">Все группы</option>
                 {groups.map((g) => (
-                  <option key={g._id} value={g._id}>
-                    {g.name}
-                  </option>
+                  <option key={g._id} value={g._id}>{g.name}</option>
                 ))}
               </select>
-              <select
-                value={pickerInStock}
-                onChange={(e) => {
-                  setPickerPage(1);
-                  setPickerInStock(e.target.value);
-                }}
-              >
+              <select value={pickerInStock} onChange={(e) => { setPickerPage(1); setPickerInStock(e.target.value); }}>
                 <option value="">Все</option>
                 <option value="true">В наличии</option>
                 <option value="false">Нет в наличии</option>
               </select>
-              <select
-                value={pickerLimit}
-                onChange={(e) => {
-                  setPickerPage(1);
-                  setPickerLimit(Number(e.target.value));
-                }}
-              >
+              <select value={pickerLimit} onChange={(e) => { setPickerPage(1); setPickerLimit(Number(e.target.value)); }}>
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={40}>40</option>
@@ -1110,10 +895,7 @@ export default function AdminSettingsPage() {
                   />
                   <img
                     src={p.images?.[0] ? p.images[0] : NOIMG}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = NOIMG;
-                    }}
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = NOIMG; }}
                     alt=""
                   />
                   <div className="col">
@@ -1121,14 +903,9 @@ export default function AdminSettingsPage() {
                     <div className="meta">
                       {(() => {
                         const avail = p.availability || "";
-                        const text =
-                          avail === "published" ? "В наличии"
-                          : avail === "order" ? "Под заказ"
-                          : "Нет в наличии";
-                        const cls =
-                          avail === "published" ? "ok"
-                          : avail === "order" ? "warn"
-                          : "bad";
+                        const text = avail === "published" ? "В наличии"
+                          : avail === "order" ? "Под заказ" : "Нет в наличии";
+                        const cls = avail === "published" ? "ok" : avail === "order" ? "warn" : "bad";
                         return <span className={cls}>{text}</span>;
                       })()}
                       <span className="price">{(p.price ?? 0).toLocaleString('uk-UA')} ₴</span>
@@ -1140,24 +917,13 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="pager">
-              <button disabled={pickerPage <= 1} onClick={() => setPickerPage((p) => p - 1)}>
-                ←
-              </button>
-              <span>
-                {pickerPage} / {pickerData.pages}
-              </span>
-              <button
-                disabled={pickerPage >= pickerData.pages}
-                onClick={() => setPickerPage((p) => p + 1)}
-              >
-                →
-              </button>
+              <button disabled={pickerPage <= 1} onClick={() => setPickerPage((p) => p - 1)}>←</button>
+              <span>{pickerPage} / {pickerData.pages}</span>
+              <button disabled={pickerPage >= pickerData.pages} onClick={() => setPickerPage((p) => p + 1)}>→</button>
             </div>
 
             <div className="modal-foot">
-              <button className="primary" onClick={() => setPickerOpen(false)}>
-                Готово
-              </button>
+              <button className="primary" onClick={() => setPickerOpen(false)}>Готово</button>
             </div>
           </div>
         </div>
