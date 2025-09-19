@@ -9,10 +9,16 @@ const API_BASE = String(api?.defaults?.baseURL || "").replace(/\/+$/, "");
 const SITE_ORIGIN =
   typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
 
-/* медиа из API */
-const withApi = (u) => (u && /^https?:\/\//i.test(u) ? u : `${API_BASE}${u || ""}`);
+/* медиа из API (фикс: пропускаем https:, blob:, data:) */
+const withApi = (u) => {
+  const s = String(u || "");
+  return /^(https?:|blob:|data:)/i.test(s) ? s : `${API_BASE}${s}`;
+};
 /* ссылки на страницы сайта (relative -> текущий origin) */
-const withSite = (u) => (u && /^https?:\/\//i.test(u) ? u : `${SITE_ORIGIN}${u || ""}`);
+const withSite = (u) => {
+  const s = String(u || "");
+  return /^(https?:|mailto:|tel:)/i.test(s) ? s : `${SITE_ORIGIN}${s}`;
+};
 
 /* ---------- нормализация user info ---------- */
 const normalizeUserInfo = (raw) => {
@@ -99,7 +105,7 @@ const pickMessage = (res) => {
   return (d?._id || d?.text || d?.imageUrls || d?.audioUrl) ? d : null;
 };
 
-/* аккуратное слияние: не допускаем дублей аудио/картинок/текста */
+/* аккуратное слияние: не допускаем дублей аудио/картинок/текста (считаем «похожими») */
 function mergeWithTmp(prev, serverArr) {
   const server = Array.isArray(serverArr) ? serverArr : [];
 
@@ -113,7 +119,8 @@ function mergeWithTmp(prev, serverArr) {
         if (!!s.audioUrl && sameSide && closeTime) return true;
       }
       if ((tmp.imageUrls?.length || 0) > 0 && (s.imageUrls?.length || 0) > 0 && sameSide && closeTime) {
-        return true;
+        // допускаем, что локальные blob уже есть — это ок
+        return false;
       }
       if (tmp.text && s.text && tmp.text.trim() === s.text.trim() && sameSide && closeTime) {
         return true;
@@ -133,7 +140,7 @@ const fmt = (sec) => {
   return `${m}:${SS}`;
 };
 
-/* --- голосовая «пузырь» (с длительностью и перетаскиванием) --- */
+/* --- голосовая «пузырь» --- */
 function VoiceMessage({ audioUrl }) {
   const audioRef = useRef(null);
   const barRef = useRef(null);
@@ -331,10 +338,6 @@ export default function AdminChatPage() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [loadingInfo, setLoadingInfo] = useState(false);
 
-  // анти-гонка
-  const sendingRef = useRef(false);
-  const skipNextPollRef = useRef(false);
-
   // ожидание открытия конкретного id
   const pendingOpenId = useRef(null);
 
@@ -350,6 +353,9 @@ export default function AdminChatPage() {
 
   const firstChatsLoadRef = useRef(true);
   const firstThreadLoadRef = useRef(false);
+
+  // отслеживаем локальные blob-URL для корректного revoke при замене серверным
+  const blobUrlsRef = useRef(new Map()); // tmpId -> { images: [blobUrl], audio: blobUrl }
 
   const emptyQuote = useMemo(
     () => QUOTES[Math.floor(Math.random() * QUOTES.length)],
@@ -427,11 +433,6 @@ export default function AdminChatPage() {
     setLoadingThread(true);
 
     const load = async () => {
-      if (sendingRef.current) return;
-      if (skipNextPollRef.current) {
-        skipNextPollRef.current = false;
-        return;
-      }
       await loadMessages();
       if (firstThreadLoadRef.current) {
         setLoadingThread(false);
@@ -597,14 +598,16 @@ export default function AdminChatPage() {
   }
 
   const pushOptimistic = (payload) => {
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const m = {
-      _id: `tmp-${Date.now()}`,
+      _id: tmpId,
       fromAdmin: true,
       createdAt: new Date().toISOString(),
       imageUrls: payload.imageUrls || [],
       audioUrl: payload.audioUrl || "",
       text: payload.text || "",
       tempKind: payload.tempKind || null,
+      __optimistic: true,
     };
     setMessages((prev) => sortByDate([...prev, m]));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, payload);
@@ -615,31 +618,33 @@ export default function AdminChatPage() {
     if (!real) return;
     setMessages((prev) => sortByDate(prev.map((m) => (m._id === tmpId ? real : m))));
     if (selected?.userId) updateChatPreviewOptimistic(selected.userId, real);
+
+    // cleanup blob urls
+    const rec = blobUrlsRef.current.get(tmpId);
+    if (rec) {
+      (rec.images || []).forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
+      if (rec.audio) { try { URL.revokeObjectURL(rec.audio); } catch {} }
+      blobUrlsRef.current.delete(tmpId);
+    }
   };
 
+  /* ===== TEXT ===== */
   const handleQuickReply = async (text) => {
-    if (!selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!selected) return;
     const optimistic = pushOptimistic({ text });
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, { text });
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("quick reply error:", e);
-      setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
-    } finally {
-      sendingRef.current = false;
-      setShowQuick(false);
+      // оставляем оптимистичное, либо можно пометить ошибкой
     }
   };
 
   const sendText = async () => {
-    if (!input.trim() || !selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!input.trim() || !selected) return;
     const text = input.trim();
     const optimistic = pushOptimistic({ text });
     setInput("");
@@ -648,26 +653,28 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("sendText error:", e);
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
-    } finally {
-      sendingRef.current = false;
     }
   };
 
+  /* ===== AUDIO ===== */
   const handleAudioSend = async () => {
-    if (!audioPreview || !selected || sendingRef.current) return;
-    sendingRef.current = true;
-    const optimistic = pushOptimistic({ audioUrl: "__optim__", tempKind: "audio" });
+    if (!audioPreview || !selected) return;
+
+    // мгновенный пузырь с локальным blob:
+    const blobUrl = URL.createObjectURL(audioPreview);
+    const optimistic = pushOptimistic({ audioUrl: blobUrl, tempKind: "audio" });
+    blobUrlsRef.current.set(optimistic._id, { images: [], audio: blobUrl });
+
+    // network не блокирует UI
     const form = new FormData();
     form.append("audio", audioPreview, "voice.webm");
     files.forEach((f) => form.append("images", f));
     setFiles([]);
     setAudioPreview(null);
     setRecordingTime(0);
+
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -675,31 +682,35 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("audio send error:", e);
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
-    } finally {
-      sendingRef.current = false;
+      // оставляем оптимистичное, можно пометить как «ошибка загрузки»
     }
   };
 
+  /* ===== IMAGES (и текст одновременно) ===== */
   const sendMedia = async ({ audio, images }) => {
-    if (!selected || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!selected) return;
+
+    // локальные blob превью в сам пузырь (моментально)
+    const localImgUrls = (images || []).map((f) => URL.createObjectURL(f));
+    const localAudioUrl = audio ? URL.createObjectURL(audio) : "";
+
     const optimistic = pushOptimistic({
       text: input.trim() || "",
-      imageUrls: images?.length ? ["__local__"] : [],
-      audioUrl: audio ? "__optim__" : "",
+      imageUrls: localImgUrls,
+      audioUrl: localAudioUrl,
       tempKind: audio ? "audio" : null,
     });
+    blobUrlsRef.current.set(optimistic._id, { images: localImgUrls, audio: localAudioUrl || null });
+
     const form = new FormData();
     if (input.trim()) form.append("text", input.trim());
     if (audio) form.append("audio", audio, "voice.webm");
     (images || []).forEach((f) => form.append("images", f));
     setFiles([]);
     setInput("");
+
     try {
       const res = await api.post(`/api/chat/admin/${selected.userId}`, form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -707,13 +718,8 @@ export default function AdminChatPage() {
       await typingOff();
       const real = pickMessage(res);
       if (real && real._id) replaceTmp(optimistic._id, real);
-      skipNextPollRef.current = true;
-      await loadChats();
     } catch (e) {
       console.error("sendMedia error:", e);
-      setMessages((prev) => prev.filter((x) => x._id !== optimistic._id));
-    } finally {
-      sendingRef.current = false;
     }
   };
 
@@ -890,15 +896,7 @@ export default function AdminChatPage() {
                         <img key={idx} src={withApi(u)} alt="img" className="bubble-img" />
                       ))}
 
-                      {m.audioUrl === "__optim__" ? (
-                        <div className="voice-skeleton">
-                          <div className="voice-skel-btn" />
-                          <div className="voice-skel-bar" />
-                          <div className="voice-skel-time" />
-                        </div>
-                      ) : (
-                        m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} />
-                      )}
+                      {m.audioUrl && <VoiceMessage audioUrl={withApi(m.audioUrl)} />}
 
                       <div className="bubble-time">
                         {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
