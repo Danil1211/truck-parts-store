@@ -92,7 +92,6 @@ export default function AdminSettingsPage() {
 
   /* ===== MAIN ===== */
   const [email, setEmail] = useState(contacts?.email || "");
-  the
   const [contactPerson, setContactPerson] = useState(contacts?.contactPerson || "");
   const [address, setAddress] = useState(contacts?.address || "");
   const [phones, setPhones] = useState(

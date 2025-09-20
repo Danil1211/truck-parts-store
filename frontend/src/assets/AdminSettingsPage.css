@@ -1,10 +1,10 @@
-/* ===== Каркас страницы с субменю ===== */
+/* ===== Каркас страницы настроек ===== */
 .settings-page { padding-bottom: 16px; }
 
-/* небольшой верхний отступ под глобальной шапкой */
-.settings-body{ padding-top: 8px; }
+/* маленький отступ сверху у контента */
+.settings-body { padding-top: 8px; }
 
-/* ===== Стили страницы ===== */
+/* ===== Стили ===== */
 .admin-settings-root {
   display: flex;
   align-items: flex-start;
@@ -28,21 +28,20 @@
   --admin-muted: #9da8b8;
 }
 
-/* Контентная колонка справа от субменю */
+/* Контент */
 .settings-content{
   flex:1; display:flex; justify-content:flex-start; min-width:0;
   padding-right:48px; box-sizing:border-box;
 }
 .settings-content-inner{
-  width:100%; max-width:1150px;
-  margin:0; /* важно: без внешнего верхнего отступа */
+  width:100%; max-width:1150px; margin:8px 0 0 0;
   background:var(--admin-surface-weak);
   border-radius:18px;
   box-shadow:0 2px 12px #2291ff0c;
   padding:28px 24px;
 }
 
-/* Блоки / формы */
+/* Блоки */
 .settings-block{
   background:var(--admin-surface);
   border-radius:14px;
@@ -53,10 +52,10 @@
 }
 .settings-block:last-child{ margin-bottom:0 }
 
-.settings-title, .settings-subtitle{ color:var(--admin-accent); font-weight:400 }
-.settings-title{ font-size:18px; margin:0 0 13px }
-.settings-subtitle{ font-size:18px; margin:0 0 13px }
+.settings-title{ font-size:18px; font-weight:400; margin:0 0 13px; color:var(--admin-accent) }
+.settings-subtitle{ font-size:18px; font-weight:400; margin:0 0 13px; color:var(--admin-accent) }
 
+/* Формы */
 .settings-grid-2{
   display:grid; grid-template-columns:1fr 1fr; gap:22px 34px; margin-bottom:16px;
 }
@@ -64,15 +63,17 @@
   width:100%; padding:11px 13px; font-size:16px; border-radius:9px;
   border:1.5px solid #e4e8ee; background:#f8fbff; font-weight:400; margin-top:6px; box-sizing:border-box;
 }
+
 .settings-phone-field{ position:relative; width:100% }
 .settings-remove-btn{
   position:absolute; top:37px; right:12px; border:none; background:#ffebef; color:#e32d4a;
   border-radius:50%; width:18px; height:18px; font-size:13px; cursor:pointer;
-  display:inline-flex; align-items:center; justify-content:center;
-  box-shadow:0 1px 4px #ef36451c; transition: background .12s; padding:0; outline:none; line-height:16px;
+  display:inline-flex; align-items:center; justify-content:center; box-shadow:0 1px 4px #ef36451c;
+  transition: background .12s; padding:0; outline:none; line-height:16px;
 }
 .settings-add-btn{
-  margin-top:8px; font-size:15px; color:var(--admin-primary); background:none; border:none; cursor:pointer; padding:0; font-weight:400; display:block;
+  margin-top:8px; font-size:15px; color:var(--admin-primary);
+  background:none; border:none; cursor:pointer; padding:0; font-weight:400; display:block;
 }
 
 /* Чекбоксы */
@@ -80,13 +81,14 @@
   display:flex; flex-wrap:wrap; gap:30px 44px; font-size:22px; font-weight:400; width:100%; justify-content:center;
 }
 .settings-checkbox-list label{
-  font-size:18px; display:inline-flex; align-items:center; cursor:pointer; user-select:none; margin-right:36px; margin-bottom:18px; line-height:1.5; color:var(--admin-text);
+  font-size:18px; display:inline-flex; align-items:center; cursor:pointer; user-select:none;
+  margin-right:36px; margin-bottom:18px; line-height:1.5; color:var(--admin-text);
 }
 .settings-checkbox-list input[type="checkbox"]{
   width:20px; height:20px; accent-color: var(--admin-accent); margin-right:13px; border-radius:5px;
 }
 
-/* Логотип/фавикон */
+/* Логотип / фавикон */
 .settings-logo-row{ display:flex; align-items:center; gap:32px; flex-wrap:wrap; width:100% }
 .settings-logo-hint{ color:var(--admin-muted); font-size:15px; margin-top:10px }
 .settings-logo-hint span{ font-weight:400 }
@@ -99,8 +101,9 @@
 .settings-logo-plus{ font-size:28px; color:var(--admin-primary); font-weight:400; line-height:1; user-select:none }
 .settings-logo-preview-img{ max-width:60px; max-height:60px; object-fit:contain; border-radius:8px; background:#fff; box-shadow:0 1px 5px #2291ff12; display:block }
 .settings-logo-remove-btn{
-  position:absolute; top:3px; right:3px; width:21px; height:21px; border-radius:50%; background:#fff; color:#e32d4a; border:none; box-shadow:0 1px 5px #e32d4a11;
-  font-size:16px; line-height:1; font-weight:600; display:flex; align-items:center; justify-content:center; opacity:.93; cursor:pointer; transition:background .12s; z-index:2;
+  position:absolute; top:3px; right:3px; width:21px; height:21px; border-radius:50%; background:#fff; color:#e32d4a; border:none;
+  box-shadow:0 1px 5px #e32d4a11; font-size:16px; line-height:1; font-weight:600; display:flex; align-items:center; justify-content:center;
+  opacity:.93; cursor:pointer; transition:background .12s; z-index:2;
 }
 .settings-logo-remove-btn:hover{ background:#ffe5ec; color:#d0112b; opacity:1 }
 
@@ -113,8 +116,9 @@
 
 /* Кнопка Сохранить */
 .settings-save-btn{
-  margin:16px auto 0 auto; background:#24c471; color:#fff; font-weight:400; font-size:16px; border:none; border-radius:11px; padding:12px 36px; cursor:pointer;
-  box-shadow:0 2px 12px #24c47122; display:block; max-width:220px; width:100%; text-align:center;
+  margin:16px auto 0 auto; background:#24c471; color:#fff; font-weight:400; font-size:16px;
+  border:none; border-radius:11px; padding:12px 36px; cursor:pointer; box-shadow:0 2px 12px #24c47122;
+  display:block; max-width:220px; width:100%; text-align:center;
 }
 
 /* Сообщения */
@@ -125,7 +129,8 @@
 .design-section-label{ font-size:15.2px; font-weight:300; color:var(--admin-text-weak); letter-spacing:.04em; margin:8px 0 }
 .design-palette-row{ display:flex; gap:18px; margin:8px 0 18px; align-items:center }
 .design-color-circle{
-  margin-top:8px; width:25px; height:25px; border-radius:50%; border:2px solid #222; box-sizing:border-box; cursor:pointer; transition: box-shadow .18s, border-color .15s;
+  margin-top:8px; width:25px; height:25px; border-radius:50%; border:2px solid #222; box-sizing:border-box; cursor:pointer;
+  transition: box-shadow .18s, border-color .15s;
   background: linear-gradient(135deg, #2291ff 48%, #fff 52%);
 }
 .design-color-circle.selected{ box-shadow:0 0 0 4px #2291ff44, 0 0 8px 2px #2291ff88; border-color:var(--admin-primary) }
@@ -192,8 +197,8 @@ textarea.settings-input-wide{ height:100px; resize:none !important }
 .admin-settings-root h3,
 .admin-settings-root .settings-section h1,
 .admin-settings-root .settings-section h2,
-.admin-settings-root .settings-section h3{ color: var(--admin-primary-strong) !important }
-.admin-settings-root .settings-section p{ color: var(--admin-text-weak) !important }
+.admin-settings-root .settings-section h3{ color:var(--admin-primary-strong) !important }
+.admin-settings-root .settings-section p{ color:var(--admin-text-weak) !important }
 
 /* ▼ вкладка «Управление сайтом» + модалка ▼ */
 .menu-editor{
