@@ -386,7 +386,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="settings-page admin-content with-submenu">
+    <div className="settings-page">{/* ← убрали admin-content/with-submenu */}
       {/* Единственное субменю слева */}
       <AdminSubMenu type="settings" />
 

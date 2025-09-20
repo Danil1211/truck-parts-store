@@ -1,10 +1,10 @@
-/* ===== Каркас страницы с субменю (эпел-стиль) ===== */
+/* ===== Каркас страницы настроек ===== */
 .settings-page { padding-bottom: 16px; }
 
-/* убрали верхний заголовок/плашку и большой отступ */
-.settings-body{ padding-top: 8px; }
+/* маленький отступ сверху у контента */
+.settings-body { padding-top: 8px; }
 
-/* ===== Ваша текущая стилизация ===== */
+/* ===== Стили ===== */
 .admin-settings-root {
   display: flex;
   align-items: flex-start;
@@ -34,7 +34,7 @@
   padding-right:48px; box-sizing:border-box;
 }
 .settings-content-inner{
-  width:100%; max-width:1150px; margin:8px 0 0 0; /* был 25px — сделали компактнее */
+  width:100%; max-width:1150px; margin:8px 0 0 0;
   background:var(--admin-surface-weak);
   border-radius:18px;
   box-shadow:0 2px 12px #2291ff0c;
