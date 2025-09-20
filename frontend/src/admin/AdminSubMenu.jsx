@@ -4,8 +4,8 @@ import "../assets/AdminPanel.css";
 
 const MENUS = {
   products: [
-    { key: "list",   label: "Товары",            link: "/admin/products" },
-    { key: "groups", label: "Группы", link: "/admin/groups"   },
+    { key: "list",   label: "Товары",  link: "/admin/products" },
+    { key: "groups", label: "Группы",  link: "/admin/groups"   },
   ],
   orders: [
     { key: "all",        label: "Все заказы",   link: "/admin/orders?status=all" },
@@ -15,12 +15,15 @@ const MENUS = {
     { key: "cancelled",  label: "Отменённые",   link: "/admin/orders?status=cancelled" },
   ],
   settings: [
-    { key: "main", label: "Основные настройки", link: "/admin/settings?tab=main" },
-    { key: "site", label: "Управление сайтом",  link: "/admin/settings?tab=site" },
+    { key: "main",    label: "Основные настройки", link: "/admin/settings?tab=main" },
+    { key: "site",    label: "Управление сайтом",  link: "/admin/settings?tab=site" },
+    // ▼ добавлено
+    { key: "chat",    label: "Настройки чата",     link: "/admin/settings?tab=chat" },
+    { key: "banners", label: "Баннеры",            link: "/admin/settings?tab=banners" },
   ],
   clients: [
-  { key: "registered", label: "Зарегистрированные", link: "/admin/clients?tab=registered" },
-  { key: "guests",     label: "Без регистрации",    link: "/admin/clients?tab=guests" },
+    { key: "registered", label: "Зарегистрированные", link: "/admin/clients?tab=registered" },
+    { key: "guests",     label: "Без регистрации",    link: "/admin/clients?tab=guests" },
   ],
 };
 
