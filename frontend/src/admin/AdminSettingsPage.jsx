@@ -92,6 +92,7 @@ export default function AdminSettingsPage() {
 
   /* ===== MAIN ===== */
   const [email, setEmail] = useState(contacts?.email || "");
+  the
   const [contactPerson, setContactPerson] = useState(contacts?.contactPerson || "");
   const [address, setAddress] = useState(contacts?.address || "");
   const [phones, setPhones] = useState(
@@ -386,7 +387,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="settings-page">{/* ← убрали admin-content/with-submenu */}
+    <div className="settings-page admin-content with-submenu">
       {/* Единственное субменю слева */}
       <AdminSubMenu type="settings" />
 
