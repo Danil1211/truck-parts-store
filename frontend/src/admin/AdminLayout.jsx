@@ -43,6 +43,13 @@ function Icon({ name }) {
           <path d="M4 14l8 4 8-4" />
         </svg>
       );
+    case "chat":
+      return (
+        <svg {...p}>
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+          <path d="M8 8h8M8 12h5" />
+        </svg>
+      );
     case "clients":
       return (
         <svg {...p}>
@@ -52,11 +59,21 @@ function Icon({ name }) {
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       );
-    case "chat":
+    /* Новая: Аналитика */
+    case "analytics":
       return (
         <svg {...p}>
-          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-          <path d="M8 8h8M8 12h5" />
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M7 14v4M12 10v8M17 6v12" />
+        </svg>
+      );
+    /* Новая: Маркет */
+    case "market":
+      return (
+        <svg {...p}>
+          <path d="M6 6h12l1 4H5l1-4z" />
+          <path d="M6 10v7a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-7" />
+          <path d="M9 14h6" />
         </svg>
       );
     case "settings":
@@ -95,12 +112,18 @@ export default function AdminLayout() {
 
   const HAS_SUBMENU = /^\/admin\/(orders|products)/.test(location.pathname);
 
+  /* порядок обновлён:
+     - Чат сразу после Товаров
+     - После Клиентов: Аналитика, затем Маркет
+  */
   const SIDE_MENU = [
-    { key: "orders", link: "/admin/orders", title: "Заказы" },
-    { key: "products", link: "/admin/products", title: "Товары" },
-    { key: "clients", link: "/admin/clients", title: "Клиенты" },
-    { key: "chat", link: "/admin/chat", title: "Чат" },
-    { key: "settings", link: "/admin/settings", title: "Настройки" },
+    { key: "orders",    link: "/admin/orders",    title: "Заказы" },
+    { key: "products",  link: "/admin/products",  title: "Товары" },
+    { key: "chat",      link: "/admin/chat",      title: "Чат" },
+    { key: "clients",   link: "/admin/clients",   title: "Клиенты" },
+    { key: "analytics", link: "/admin/analytics", title: "Аналитика" },
+    { key: "market",    link: "/admin/market",    title: "Маркет" },
+    { key: "settings",  link: "/admin/settings",  title: "Настройки" },
   ];
 
   const TOP_NAV = [
@@ -112,7 +135,6 @@ export default function AdminLayout() {
 
   const isActive = (href) => location.pathname.startsWith(href);
 
-  // инициализация (например /api/settings)
   useEffect(() => {
     (async () => {
       try {
@@ -125,16 +147,14 @@ export default function AdminLayout() {
     })();
   }, []);
 
-  // Глобальный слушатель: открыть чат по событию с уведомления
   useEffect(() => {
     const onOpenChat = (e) => {
-      const { chatId } = e.detail || {};
+      const { chatId } = (e.detail || {});
       if (!chatId) return;
       sessionStorage.setItem("openChatId", String(chatId));
       if (location.pathname !== "/admin/chat") {
         navigate("/admin/chat");
       } else {
-        // если уже на странице чата — продублируем событие для неё
         window.dispatchEvent(new CustomEvent("open-chat-in-page", { detail: { chatId } }));
       }
     };
