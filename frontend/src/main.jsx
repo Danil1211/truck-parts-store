@@ -165,7 +165,7 @@ root.render(
                   <Route path="settings" element={<AdminSettingsPage />} />
 
                   {/* Market submenu */}
-                  <Route path="market" element={<Navigate to="market/design" replace />} />
+                  <Route path="market" element={<Navigate to="/admin/market/design" replace />} />
                   <Route path="market/layout" element={<AdminMarketLayoutPage />} />
                   <Route path="market/design" element={<AdminMarketDesignPage />} />
                   <Route path="market/apps" element={<AdminMarketAppsPage />} />
