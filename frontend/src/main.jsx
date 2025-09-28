@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import "./assets/style.css";
 
-// Public pages
+/* Public pages */
 import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
@@ -15,22 +15,22 @@ import LoginRegisterPage from "./pages/LoginRegisterPage";
 import AboutTabsPage from "./pages/AboutTabsPage";
 import GroupPage from "./pages/GroupPage";
 
-// Components
+/* Components */
 import PrivateRoute from "./components/PrivateRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import AddToCartAnimation from "./components/AddToCartAnimation";
 import ChatWidgetWrapper from "./components/ChatWidgetWrapper";
 import ThemeSync from "./components/ThemeSync";
-import TokenCatcher from "./components/TokenCatcher"; // ⬅️ ГЛОБАЛЬНЫЙ перехватчик ?token=&tid=
-import StoreNotFound from "./components/StoreNotFound"; // ⬅️ НОВОЕ
+import TokenCatcher from "./components/TokenCatcher";
+import StoreNotFound from "./components/StoreNotFound";
 
-// Context
+/* Context */
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SiteProvider, useSite } from "./context/SiteContext";
 import { AdminNotifyProvider } from "./context/AdminNotifyContext";
 
-// Admin pages
+/* Admin pages */
 import AdminLayout from "./admin/AdminLayout";
 import AdminOrdersPage from "./admin/AdminOrdersPage";
 import AdminChatPage from "./admin/AdminChatPage";
@@ -45,33 +45,25 @@ import AdminEditProductPage from "./admin/AdminEditProductPage";
 import AdminSettingsPage from "./admin/AdminSettingsPage";
 import AdminLoginPage from "./admin/AdminLoginPage";
 
-// ===== Обёртки =====
+/* New pages */
+import AdminChatSettingsPage from "./admin/AdminChatSettingsPage";
+import AdminMarketLayoutPage from "./admin/AdminMarketLayoutPage";
+import AdminMarketDesignPage from "./admin/AdminMarketDesignPage";
+import AdminMarketAppsPage from "./admin/AdminMarketAppsPage";
+
+/* ===== Wrappers ===== */
 function SiteReady({ children }) {
   const { status, display } = useSite();
-
-  // можно показать глобальный лоадер
   if (status === "loading") return <div />;
-
-  if (status === "notfound") {
-    return <StoreNotFound />;
-  }
-
-  if (status === "error") {
+  if (status === "notfound") return <StoreNotFound />;
+  if (status === "error")
     return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: "#b91c1c" }}>
-          Ошибка загрузки сайта
-        </h1>
-        <p style={{ marginTop: 8, color: "#555" }}>
-          Попробуйте обновить страницу позже.
-        </p>
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: "#b91c1c" }}>Ошибка загрузки сайта</h1>
+        <p style={{ marginTop: 8, color: "#555" }}>Попробуйте обновить страницу позже.</p>
       </div>
     );
-  }
-
-  // ready — палитра уже есть (display.palette)
   if (!display || !display.palette) return <div />;
-
   return (
     <>
       <ThemeSync />
@@ -80,17 +72,12 @@ function SiteReady({ children }) {
   );
 }
 
-// Если пришли на /admin — этот компонент решает, что показать.
 function AdminGate() {
   const { user, loading } = useAuth();
   if (loading) return null;
-
   if (!user) return <AdminLoginPage />;
-
-  const canAdmin =
-    user.role === "owner" || user.role === "admin" || user.isAdmin === true;
+  const canAdmin = user.role === "owner" || user.role === "admin" || user.isAdmin === true;
   if (canAdmin) return <Navigate to="/admin/orders" replace />;
-
   return <Navigate to="/" replace />;
 }
 
@@ -103,8 +90,8 @@ root.render(
         <AuthProvider>
           <CartProvider>
             <Router>
-              {/* Глобальные помощники */}
-              <TokenCatcher /> {/* ⬅️ Сохраняет токен+tenantId из URL до роутов */}
+              {/* Global helpers */}
+              <TokenCatcher />
               <ScrollToTop />
               <AddToCartAnimation />
               <ChatWidgetWrapper />
@@ -137,13 +124,13 @@ root.render(
                 <Route path="/catalog" element={<CatalogPage />} />
                 <Route path="/catalog/group/:groupId" element={<GroupPage />} />
 
-                {/* Admin login (публичный путь) */}
+                {/* Admin login (public) */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
 
-                {/* /admin без хвоста: решаем на месте */}
+                {/* /admin root */}
                 <Route path="/admin" element={<AdminGate />} />
 
-                {/* Admin защищённые */}
+                {/* Admin protected */}
                 <Route
                   path="/admin/*"
                   element={
@@ -154,17 +141,34 @@ root.render(
                     </PrivateRoute>
                   }
                 >
+                  {/* Orders */}
                   <Route path="orders" element={<AdminOrdersPage />} />
+
+                  {/* Products & Groups */}
                   <Route path="products" element={<AdminProductsPage />} />
                   <Route path="products/create" element={<AdminAddProductPage />} />
                   <Route path="products/:id/edit" element={<AdminEditProductPage />} />
                   <Route path="groups" element={<AdminGroupsPage />} />
                   <Route path="groups/create" element={<AdminCreateGroupPage />} />
                   <Route path="groups/edit/:id" element={<AdminEditGroupPage />} />
+
+                  {/* Chat */}
                   <Route path="chat" element={<AdminChatPage />} />
+                  {/* Chat settings moved out */}
+                  <Route path="settings/chat" element={<AdminChatSettingsPage />} />
+
+                  {/* Clients */}
                   <Route path="clients" element={<AdminClientsPage />} />
                   <Route path="clients/:id" element={<AdminClientDetailPage />} />
+
+                  {/* Settings (Main + Site management) */}
                   <Route path="settings" element={<AdminSettingsPage />} />
+
+                  {/* Market submenu */}
+                  <Route path="market" element={<Navigate to="market/design" replace />} />
+                  <Route path="market/layout" element={<AdminMarketLayoutPage />} />
+                  <Route path="market/design" element={<AdminMarketDesignPage />} />
+                  <Route path="market/apps" element={<AdminMarketAppsPage />} />
                 </Route>
 
                 {/* fallback */}
