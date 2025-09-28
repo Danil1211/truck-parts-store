@@ -265,3 +265,24 @@
 @media (max-width: 860px){
   .filters{ grid-template-columns: 1fr 1fr; }
 }
+
+/* === Stretch to the right edge + stick to the very top === */
+
+/* контент без правого внутреннего отступа */
+.settings-page .settings-content{
+  padding: 0 0 24px 0 !important;   /* top=0, right=0, bottom=24, left=0 */
+}
+
+/* внутренний контейнер на всю ширину, без max-width */
+.settings-page .settings-content-inner{
+  max-width: none !important;
+  width: 100% !important;
+  margin-top: 0 !important;         /* на всякий случай */
+  padding-top: 0 !important;
+}
+
+/* сам контейнер admin-content уже под топбаром — закрепим */
+.settings-page.admin-content.with-submenu{
+  padding-top: var(--topbar-h) !important;  /* вровень под шапкой */
+  padding-right: 0 !important;              /* в край справа */
+}
