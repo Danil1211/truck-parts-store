@@ -395,6 +395,24 @@ html,body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Canta
   .page-btn{min-width:34px;height:34px;padding:0 10px}
 }
 
+/* === Single scroll source (фикс двойной полосы) === */
+html, body{
+  height: 100%;
+  overflow: hidden;                 /* убираем скролл у body */
+}
+
+.admin-layout{
+  height: 100vh;
+  overflow: hidden;                 /* контейнер-рама без скролла */
+}
+
+.admin-content{
+  height: 100vh;
+  overflow: auto;                   /* скроллим только контент */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
 /* 11) Media tweaks ---------------------------------------------------------- */
 @media (max-width:1100px){
   .admin-nav-menu{display:none}
