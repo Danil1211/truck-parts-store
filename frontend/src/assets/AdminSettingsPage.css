@@ -1,5 +1,14 @@
 /* ===== Страница настроек (только эта страница) ===== */
 
+/* 0) Единственный скролл только на странице настроек */
+body:has(.settings-page){
+  overflow: hidden;           /* body не скроллится, только контент страницы */
+}
+.settings-page.admin-content{
+  height: 100vh;              /* сама страница — скролл-контейнер */
+  overflow: auto;
+}
+
 /* Корневая обёртка страницы */
 .settings-page { padding-bottom: 16px; }
 
